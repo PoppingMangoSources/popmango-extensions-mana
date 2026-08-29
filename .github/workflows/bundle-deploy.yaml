@@ -32,10 +32,20 @@ jobs:
       - name: Build Extensions
         run: bun run build
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy Catalog to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: dist
           destination_dir: main
+          keep_files: true
+
+      # The catalog lives under /main so the address people paste into Mana
+      # stays stable; this puts a redirect at the site root so the plain
+      # repository URL still lands somewhere useful.
+      - name: Deploy Site Root
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site-root
           keep_files: true
