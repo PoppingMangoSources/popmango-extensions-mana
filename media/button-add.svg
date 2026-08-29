@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="52" viewBox="0 0 380 52" role="img" aria-label="Add PoppingMango to Mana">
+  <defs>
+    <linearGradient id="add-button" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd78a"/>
+      <stop offset="1" stop-color="#ffae69"/>
+    </linearGradient>
+  </defs>
+  <rect width="380" height="52" rx="26" fill="url(#add-button)"/>
+  <circle cx="34" cy="26" r="13" fill="#fffefa" opacity="0.85"/>
+  <path d="M34 19v14M27 26h14" stroke="#ef7e55" stroke-width="3.2" stroke-linecap="round"/>
+  <text x="208" y="33" text-anchor="middle" font-family="'Quicksand', 'Nunito', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="800" fill="#5d352d">Add PoppingMango to Mana</text>
+</svg>

@@ -1,0 +1,42 @@
+{
+  "name": "popmango-extensions-mana",
+  "version": "1.0.0",
+  "private": true,
+  "repositoryName": "PoppingMango Sources",
+  "description": "Novels, manga, manhwa & manhua sources for the Mana app.",
+  "homepage": "https://poppingmangosources.github.io/popmango-extensions-mana",
+  "repository": "https://github.com/PoppingMangoSources/popmango-extensions-mana",
+  "author": "PoppingMango",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "dev": "mana-dev serve --watch",
+    "build": "mana-dev build",
+    "postbuild": "node scripts/build-page.js",
+    "lint": "oxlint src/",
+    "lint:fix": "oxlint --fix src/",
+    "typecheck": "tsc --noEmit",
+    "verify": "node scripts/verify-source.mjs",
+    "new-source": "node scripts/new-source.mjs",
+    "readme": "node scripts/update-readme.mjs",
+    "format": "oxfmt src/",
+    "format:check": "oxfmt --check src/"
+  },
+  "mana": {
+    "src": "src/",
+    "out": "dist/",
+    "target": "es2020",
+    "minify": true,
+    "platform": "web"
+  },
+  "devDependencies": {
+    "@mana-app/dev": "^0.1.14",
+    "@mana-app/types": "^0.0.24",
+    "oxfmt": "^0.50.0",
+    "oxlint": "^1.65.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "fflate": "^0.8.3"
+  }
+}
