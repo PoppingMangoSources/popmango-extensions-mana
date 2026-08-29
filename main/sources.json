@@ -1,0 +1,27 @@
+{
+  "repositoryName": "PoppingMango Sources",
+  "sources": [
+    {
+      "id": "mangago",
+      "name": "Mangago",
+      "version": "1.0.0",
+      "description": "Manga, manhwa and doujinshi from mangago.me.",
+      "website": "https://www.mangago.me",
+      "rating": 1,
+      "supportedLanguages": [
+        "en_US"
+      ],
+      "thumbnail": "assets/icon.png",
+      "developers": [
+        {
+          "name": "PoppingMango",
+          "github": "https://github.com/PoppingMangoSources"
+        }
+      ],
+      "path": "Mangago",
+      "environment": "source",
+      "intents": 6822921,
+      "hash": "1973471f1973471f1973471f1973471f1973471f1973471f1973471f1973471f"
+    }
+  ]
+}
