@@ -18,12 +18,10 @@ import {
   type TrackerResponse,
 } from "./model.ts";
 
-// The site says "your token is stale" with these, not "no".
+// The site says "your token is stale" with these, not "no". Only the status may
+// decide: a successful challenge body contains "access_token", so sniffing it for
+// the word "token" reads every good response as a rejection.
 const STALE_TOKEN_STATUSES = new Set([401, 403, 507]);
-
-function isStaleTokenBody(body: string): boolean {
-  return /integrity|token|unauthorized|forbidden/i.test(body.slice(0, 2048));
-}
 
 function headerValue(response: NetworkResponse, name: string): string {
   const headers = response.headers ?? {};
@@ -226,7 +224,7 @@ export class KaganeApi {
         headers: { "content-type": "application/json", "x-integrity-token": token },
       });
 
-      if (STALE_TOKEN_STATUSES.has(response.status) || isStaleTokenBody(response.data)) {
+      if (STALE_TOKEN_STATUSES.has(response.status)) {
         if (!force) continue;
         throw new Error("Kagane rejected the reader token. Try again in a moment.");
       }
