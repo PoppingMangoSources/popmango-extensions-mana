@@ -26,6 +26,7 @@ export const FilterID = {
 export const PreferenceID = {
   ContentRating: "content-rating",
   ExcludedGenres: "excluded-genres",
+  ExcludedTags: "excluded-tags",
   UploadSource: "upload-source",
   ShowSourceInTitle: "show-source-in-title",
   ShowEditionInTitle: "show-edition-in-title",
@@ -206,6 +207,7 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
   [PreferenceID.ContentRating]: ["Safe", "Suggestive"],
   [PreferenceID.ExcludedGenres]: [] as string[],
+  [PreferenceID.ExcludedTags]: [] as string[],
   [PreferenceID.UploadSource]: "all",
   [PreferenceID.ShowSourceInTitle]: false,
   [PreferenceID.ShowEditionInTitle]: false,

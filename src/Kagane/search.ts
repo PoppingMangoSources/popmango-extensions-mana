@@ -19,6 +19,8 @@ export type SearchBodyOptions = {
   contentLanguages: string[];
   /** Genre ids hidden through settings, always excluded. */
   excludedGenreIds: string[];
+  /** Tag ids hidden through settings, always excluded. */
+  excludedTagIds: string[];
 };
 
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
@@ -38,12 +40,18 @@ function includeExclude(
   excluded: string[],
   matchAll: boolean,
 ): IncludeExclude | undefined {
-  if (included.length === 0 && excluded.length === 0) return undefined;
+  // Asking for something the hide-list hides is the reader overriding their own
+  // setting for one search. Sending it as both a value and an exclusion instead
+  // would just return nothing.
+  const holdBack = new Set(included);
+  const exclusions = excluded.filter((id) => !holdBack.has(id));
+
+  if (included.length === 0 && exclusions.length === 0) return undefined;
 
   return {
     ...(matchAll && included.length > 0 ? { match_all: true } : {}),
     values: included,
-    ...(excluded.length > 0 ? { exclude: excluded } : {}),
+    ...(exclusions.length > 0 ? { exclude: exclusions } : {}),
   };
 }
 
@@ -66,9 +74,12 @@ export function buildSearchBody(
   if (contentRating.length > 0) body["content_rating"] = contentRating;
 
   if (!filters) {
-    // A plain browse still honours the hidden-genre setting.
+    // A plain browse still honours the hide-lists.
     const genres = includeExclude([], options.excludedGenreIds, false);
     if (genres) body["genres"] = genres;
+
+    const tags = includeExclude([], options.excludedTagIds, false);
+    if (tags) body["tags"] = tags;
     return body;
   }
 
@@ -92,7 +103,7 @@ export function buildSearchBody(
   const tagSelection = filters.excludable(FilterID.Tags);
   const tags = includeExclude(
     tagSelection.included,
-    tagSelection.excluded,
+    [...new Set([...tagSelection.excluded, ...options.excludedTagIds])],
     filters.toggle(FilterID.MatchAllTags),
   );
   if (tags) body["tags"] = tags;

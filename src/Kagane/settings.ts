@@ -14,6 +14,8 @@ import {
 export type SettingsHooks = {
   /** Genres the site currently publishes, for the hide-list. */
   genres: () => Promise<Option[]>;
+  /** Tags the site currently publishes, for the hide-list. */
+  tags: () => Promise<Option[]>;
   resetContentFilters: () => Promise<void>;
   resetAll: () => Promise<void>;
 };
@@ -44,6 +46,12 @@ export function buildSettingsSections(hooks: SettingsHooks): PreferenceSection[]
           key: PreferenceID.ExcludedGenres,
           title: "Hide Genres",
           options: hooks.genres,
+        },
+        {
+          type: "multiselect",
+          key: PreferenceID.ExcludedTags,
+          title: "Hide Tags",
+          options: hooks.tags,
         },
       ],
     },

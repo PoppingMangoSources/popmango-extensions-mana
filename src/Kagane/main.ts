@@ -76,7 +76,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.3",
+  version: "1.2.0",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -132,12 +132,14 @@ class KaganeSource
 
   /** Everything the search body needs, read in one pass. */
   private async bodyOptions(query?: string): Promise<SearchBodyOptions> {
-    const [uploadSource, contentRatings, contentLanguages, excludedGenreIds] = await Promise.all([
-      this.text(PreferenceID.UploadSource, "all"),
-      this.strings(PreferenceID.ContentRating),
-      this.strings(PreferenceID.ContentLanguages),
-      this.strings(PreferenceID.ExcludedGenres),
-    ]);
+    const [uploadSource, contentRatings, contentLanguages, excludedGenreIds, excludedTagIds] =
+      await Promise.all([
+        this.text(PreferenceID.UploadSource, "all"),
+        this.strings(PreferenceID.ContentRating),
+        this.strings(PreferenceID.ContentLanguages),
+        this.strings(PreferenceID.ExcludedGenres),
+        this.strings(PreferenceID.ExcludedTags),
+      ]);
 
     return {
       ...(query ? { query } : {}),
@@ -145,6 +147,7 @@ class KaganeSource
       contentRatings,
       contentLanguages: contentLanguages.length > 0 ? contentLanguages : ["en"],
       excludedGenreIds,
+      excludedTagIds,
     };
   }
 
@@ -254,8 +257,10 @@ class KaganeSource
       this.preferences,
       buildSettingsSections({
         genres: () => this.genreOptions(),
+        tags: () => this.tagOptions(),
         resetContentFilters: async () => {
           await this.preferences.reset(PreferenceID.ExcludedGenres);
+          await this.preferences.reset(PreferenceID.ExcludedTags);
           await this.preferences.reset(PreferenceID.ContentRating);
         },
         resetAll: async () => {
