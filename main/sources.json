@@ -21,7 +21,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "44510dfc44510dfc44510dfc44510dfc44510dfc44510dfc44510dfc44510dfc"
+      "hash": "3d617fa63d617fa63d617fa63d617fa63d617fa63d617fa63d617fa63d617fa6"
     },
     {
       "id": "mangago",
@@ -43,7 +43,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "2f2dce8c2f2dce8c2f2dce8c2f2dce8c2f2dce8c2f2dce8c2f2dce8c2f2dce8c"
+      "hash": "361d5f8e361d5f8e361d5f8e361d5f8e361d5f8e361d5f8e361d5f8e361d5f8e"
     }
   ]
 }

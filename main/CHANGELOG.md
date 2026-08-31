@@ -6,6 +6,8 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 ### Changed
 
+- Comments cut from 225 lines to 20, matching the density of other Mana repositories. What
+  remains records a trap that has already caused a bug, in a line or two.
 - Dead code removed and the shared toolkit pruned. `api.ts` takes the repository's own name
   for that layer, `client.ts`; a single-use title helper is inlined, and the relative-time
   formatter both sources carried a copy of now lives in the shared date helpers.
@@ -29,6 +31,7 @@ needs.
 
 ### Changed
 
+- Comments cut from 307 lines to 14, on the same basis as above.
 - Dead code removed: an unused detail parser, its type, an unused alias, and a private copy
   of a URL helper the shared toolkit already had.
 
