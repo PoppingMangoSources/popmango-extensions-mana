@@ -1,6 +1,21 @@
 # Changelog
 
-## Kagane (current: v1.1.3)
+## Kagane (current: v1.2.0)
+
+### Added
+
+- A `Hide Tags` setting, beside `Hide Genres`. Titles carrying a hidden tag are kept out
+  of the home page, listings and search, and `Reset Content Filters` clears it along with
+  the rest. A one-off search can still ask for a hidden tag through the Tags filter, the
+  same way the genre hide-list works.
+
+### Fixed
+
+- Asking for a hidden genre through the search form sent it as both a wanted value and an
+  exclusion, so the search came back empty. An explicit choice on the form now overrides
+  the hide-list for that one search, which is what the form's own footer promises.
+
+## Kagane (v1.1.3)
 
 ### Fixed
 
@@ -9,8 +24,8 @@
   the site's own featured row does.
 - The home rows are the site's, under its names and in its order: `Popular`,
   `Trending Today`, `Trending This Week`, `Trending This Month`, `Latest Updates` and
-  `Recently Added`. `Hidden Gems` and `Highest Rated` were never rows on the site — and
-  `Highest Rated` was ranked by view count, not by rating — so both are gone, and
+  `Recently Added`. `Hidden Gems` and `Highest Rated` are in no reference implementation —
+  and `Highest Rated` was ranked by view count, not by rating — so both are gone, and
   `Newly Added` takes the site's name, `Recently Added`.
 - The rows below the hero were vertical lists you had to scroll past. They are carousels
   now, swiped sideways, so the whole home page stays reachable.
