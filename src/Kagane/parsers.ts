@@ -307,9 +307,9 @@ function buildSummary(details: DetailsResponse, sourceName: string | undefined):
 }
 
 /**
- * The chapter's own name, with the numbering the site repeats in the title
- * removed — the app composes "Vol.1 Ch.13 - Name" from the fields beside it,
- * so a title of "Chapter 44 - Volume 9 (Ushi)" would otherwise say it twice.
+ * The chapter's own name, with the numbering the site repeats inside the title
+ * removed. The label below puts the number back once, so a title of
+ * "Chapter 44 - Volume 9 (Ushi)" would otherwise say it twice.
  */
 function parseChapterName(title: string): string {
   return title
@@ -343,6 +343,14 @@ function parseScanlator(
 
   if (base && tag) return `${base} (${tag})`;
   return base || tag || undefined;
+}
+
+/** "Vol.1 Ch.11 - Oleg: Apology" — the app prints this verbatim. */
+function formatChapterLabel(number: number, volume: number | undefined, name: string): string {
+  const label = [volume === undefined ? "" : `Vol.${volume}`, `Ch.${number}`]
+    .filter(Boolean)
+    .join(" ");
+  return name ? `${label} - ${name}` : label;
 }
 
 export function parseChapters(
@@ -379,7 +387,7 @@ export function parseChapters(
       chapterId: book.book_id,
       number,
       index,
-      ...(name ? { title: name } : {}),
+      title: formatChapterLabel(number, Number.isFinite(volume) ? volume : undefined, name),
       ...(Number.isFinite(volume) ? { volume } : {}),
       date: parseDate(book.created_at) ?? new Date(0),
       language: options.language || DefinedLanguages.ENGLISH,

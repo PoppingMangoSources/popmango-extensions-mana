@@ -403,7 +403,9 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
       chapterId,
       number,
       index: 0,
-      ...(parsedTitle.title ? { title: parsedTitle.title } : {}),
+      // The app renders this verbatim, so it carries the site's own wording,
+      // numbering included; number and volume below only order the list.
+      title: rawTitle,
       ...(parsedTitle.volume === undefined ? {} : { volume: parsedTitle.volume }),
       date: parseDate(clean(row.find("td").last().text())) ?? new Date(0),
       language: DefinedLanguages.ENGLISH,

@@ -151,6 +151,8 @@ The failures this repo has actually shipped, each silent:
 - [ ] No hand-written `user-agent` on a client fronting Cloudflare
 - [ ] A JSON API's 403/503 not reported as a challenge without a real fingerprint
 - [ ] Unnumbered chapters renumbered above the main run, not left at `0`
+- [ ] Chapter `title` carries the whole label — the app prints it verbatim and never
+      joins `volume`/`number` onto it
 - [ ] `WebViewPage` navigated before `evaluate`, bounded by a timer, closed in `finally`
 - [ ] Redraw state serialised per image, not held in a bare field
 - [ ] Every home row costs one request — check the hero row especially

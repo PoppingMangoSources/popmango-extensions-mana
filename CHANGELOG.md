@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.10)
+## Kagane (current: v1.0.11)
+
+### Fixed
+
+- Chapters showed only their name, dropping the number, because the previous release
+  reported the number and the name as separate fields on the assumption that the app would
+  join them. It prints the title as it is given, so the label is composed again:
+  `Vol.1 Ch.11 - Oleg: Apology`, or `Ch.185 - Afterword` where the site names no volume.
+
+## Kagane (v1.0.10)
 
 ### Removed
 
@@ -110,7 +119,16 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.7)
+## Mangago (current: v1.0.8)
+
+### Fixed
+
+- Chapters still lost their number, for the same reason: the number was being reported as
+  a field rather than written into the title the app prints. The title is now the site's own
+  wording verbatim, numbering included, which is what other clients for this site show. The
+  parsed number and volume stay, but only to order the list.
+
+## Mangago (v1.0.7)
 
 ### Fixed
 

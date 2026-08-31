@@ -156,6 +156,13 @@ without checking them. `npm run typecheck` is the gate that catches it.
 at 0 and be contiguous** — the first available chapter is index 0. `date` must be a valid
 `Date`; use `new Date(0)` when the site publishes none rather than an invalid date.
 
+**`title` is printed verbatim; the app does not compose a label from the fields.**
+A chapter row shows `title` exactly as given, and falls back to `Chapter <number>` only
+when there is no title at all. `volume` and `number` order the list and drive resume — they
+are never joined onto the title for display. So a source that wants `Vol.1 Ch.11 - Name` on
+screen has to build that string itself. Where the site already writes the number into its
+own chapter text, pass that text through rather than stripping and rebuilding it.
+
 **`number` decides ordering, and the app picks the start chapter by it.** Every list has
 entries carrying no number — side stories, extras, specials, "Season 2 Prologue". Leaving
 those at `0` files them *ahead of chapter 1*, so the reader opens a side story instead of
