@@ -1,5 +1,22 @@
 # Changelog
 
+## Kagane (current: v1.0.0)
+
+### Added
+
+- Initial release, covering the site's JSON API.
+- Seven home rows: `Popular` (following the Popular Time Span setting), `Latest Updates`,
+  `Newly Added`, and dedicated Today / This Week / This Month / All Time rows.
+- Advanced search with ten sort orders, include/exclude genres and tags, "match all"
+  toggles for each, and multi-select content rating, format, status and source filters.
+  Genres, tags and sources are read from the site rather than hard-coded.
+- Settings for content rating, languages, hidden genres, popular time span, upload source
+  (all / official / scanlations), source and edition annotations in titles, clean titles,
+  spoiler tags, data saver, and four chapter-title formats — plus reset buttons.
+- Reader support for the site's integrity and per-chapter access tokens, including
+  re-minting an expired token when an image is actually fetched.
+- Related editions from a title's tracker entry, and deep links from `kagane.to`.
+
 ## Mangago (current: v1.0.2)
 
 ### Fixed

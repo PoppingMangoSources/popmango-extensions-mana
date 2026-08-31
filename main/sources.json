@@ -2,6 +2,28 @@
   "repositoryName": "PoppingMango Sources",
   "sources": [
     {
+      "id": "kagane",
+      "name": "Kagane",
+      "version": "1.0.0",
+      "description": "Manga, manhwa, manhua and comics from kagane.to.",
+      "website": "https://kagane.to",
+      "rating": 1,
+      "supportedLanguages": [
+        "en_US"
+      ],
+      "thumbnail": "assets/icon.png",
+      "developers": [
+        {
+          "name": "PoppingMango",
+          "github": "https://github.com/PoppingMangoSources"
+        }
+      ],
+      "path": "Kagane",
+      "environment": "source",
+      "intents": 6298637,
+      "hash": "04fb65e004fb65e004fb65e004fb65e004fb65e004fb65e004fb65e004fb65e0"
+    },
+    {
       "id": "mangago",
       "name": "Mangago",
       "version": "1.0.2",
@@ -21,7 +43,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "5925623059256230592562305925623059256230592562305925623059256230"
+      "hash": "4f05cf904f05cf904f05cf904f05cf904f05cf904f05cf904f05cf904f05cf90"
     }
   ]
 }
