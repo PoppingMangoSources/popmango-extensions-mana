@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.2)
+## Kagane (current: v1.0.3)
+
+### Changed
+
+- Staff entries on a title page are built with the helpers the types package exports
+  instead of hand-written numeric type tags, which would break silently if the enum
+  were renumbered.
+
+## Kagane (v1.0.2)
 
 ### Changed
 
@@ -38,7 +46,15 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.2)
+## Mangago (current: v1.0.3)
+
+### Changed
+
+- Staff entries on a title page are built with the helpers the types package exports
+  instead of hand-written numeric type tags, which would break silently if the enum
+  were renumbered.
+
+## Mangago (v1.0.2)
 
 ### Changed
 

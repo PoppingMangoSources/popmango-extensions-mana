@@ -4,6 +4,7 @@ import { load, type Cheerio, type CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
 import {
   ContentRating,
+  additionalInfo,
   ContentType,
   DefinedLanguages,
   PublicationStatus,
@@ -243,20 +244,19 @@ export function parseContent(
     ...(author || artist
       ? {
           additionalInfo: [
-            {
-              type: 1 as const,
+            additionalInfo.staff.section({
               id: "staff",
               title: "Staff",
               hasMore: false,
               items: [
                 ...(author
-                  ? [{ type: 1 as const, id: "author", title: author, subtitle: "Author" }]
+                  ? [additionalInfo.staff.item({ id: "author", title: author, subtitle: "Author" })]
                   : []),
                 ...(artist && artist !== author
-                  ? [{ type: 1 as const, id: "artist", title: artist, subtitle: "Artist" }]
+                  ? [additionalInfo.staff.item({ id: "artist", title: artist, subtitle: "Artist" })]
                   : []),
               ],
-            },
+            }),
           ],
         }
       : {}),

@@ -2,6 +2,7 @@
 
 import {
   ContentRating,
+  additionalInfo,
   ContentType,
   DefinedLanguages,
   PublicationStatus,
@@ -228,28 +229,29 @@ export function toContent(
     ...(authors.length > 0 || artists.length > 0
       ? {
           additionalInfo: [
-            {
-              type: 1 as const,
+            additionalInfo.staff.section({
               id: "staff",
               title: "Staff",
               hasMore: false,
               items: [
-                ...unique(authors).map((name) => ({
-                  type: 1 as const,
-                  id: `author:${name}`,
-                  title: name,
-                  subtitle: "Author",
-                })),
+                ...unique(authors).map((name) =>
+                  additionalInfo.staff.item({
+                    id: `author:${name}`,
+                    title: name,
+                    subtitle: "Author",
+                  }),
+                ),
                 ...unique(artists)
                   .filter((name) => !authors.includes(name))
-                  .map((name) => ({
-                    type: 1 as const,
-                    id: `artist:${name}`,
-                    title: name,
-                    subtitle: "Artist",
-                  })),
+                  .map((name) =>
+                    additionalInfo.staff.item({
+                      id: `artist:${name}`,
+                      title: name,
+                      subtitle: "Artist",
+                    }),
+                  ),
               ],
-            },
+            }),
           ],
         }
       : {}),
