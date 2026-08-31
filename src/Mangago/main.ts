@@ -106,7 +106,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.3",
+  version: "1.0.4",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -118,8 +118,14 @@ const info: SourceInfo = {
 /** How long the details page is reused across `getContent` and `getChapters`. */
 const DETAIL_CACHE_MS = 60_000;
 
-/** Ceiling on how long one image may hold the redraw gate. */
-const REDRAW_GATE_TIMEOUT_MS = 10_000;
+/**
+ * Ceiling on how long one image may hold the redraw gate.
+ *
+ * A matched pair releases it in microseconds; this only bounds the case where
+ * the app asks whether to redraw and then never asks for the instructions, so
+ * it is deliberately short — a stalled gate delays every later image.
+ */
+const REDRAW_GATE_TIMEOUT_MS = 3_000;
 
 const config: SourceConfig = {
   disableUpdateChecks: false,
@@ -714,10 +720,18 @@ class MangagoSource
     const scrambled = resolved.filter((url) => url.includes("cspiclink"));
 
     if (scrambled.length > 0 && crypto.cols > 0) {
-      const keys = await deriveDescramblingKeys(crypto.script, scrambled);
-      for (const [url, raw] of keys) {
-        const key = parseDescrambleKey(raw, crypto.cols);
-        if (key) this.descrambleKeys.set(stripFragment(url), key);
+      // Working out the tile keys means evaluating the site's own JavaScript,
+      // which the runtime may refuse outright. A chapter that opens with
+      // scrambled panels is recoverable; one that never opens is not, so this
+      // can never fail or delay the page list.
+      try {
+        const keys = await deriveDescramblingKeys(crypto.script, scrambled);
+        for (const [url, raw] of keys) {
+          const key = parseDescrambleKey(raw, crypto.cols);
+          if (key) this.descrambleKeys.set(stripFragment(url), key);
+        }
+      } catch {
+        // Leave the panels scrambled.
       }
     }
 

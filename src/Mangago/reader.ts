@@ -36,6 +36,9 @@ const JS_FILTERS = [
   "height",
 ];
 
+/** Ceiling on the WebView fallback, in seconds. */
+const WEBVIEW_TIMEOUT_SECONDS = 8;
+
 const REPLACE_POS_JS = `
 function replacePos(strObj, pos, replacetext) {
   var str = strObj.substr(0, pos) + replacetext + strObj.substring(pos + 1, strObj.length);
@@ -255,8 +258,23 @@ export async function deriveDescramblingKeys(
   const derived = new Map<string, string>();
   if (imageUrls.length === 0) return derived;
 
-  const program = buildDescramblingKeyScript(script);
+  let program: string;
+  try {
+    program = buildDescramblingKeyScript(script);
+  } catch {
+    return derived;
+  }
 
+  const collect = (keys: readonly unknown[] | undefined): void => {
+    imageUrls.forEach((url, index) => {
+      const key = keys?.[index];
+      if (typeof key === "string" && key) derived.set(url, key);
+    });
+  };
+
+  // The whole program is built and called in one go. Defining the function in
+  // one evaluation and calling it by name in another is what produces
+  // "Can't find variable: getDescramblingKey" — the two do not share a scope.
   try {
     const factory = (globalThis as { Function?: FunctionConstructor }).Function;
     if (factory) {
@@ -264,40 +282,61 @@ export async function deriveDescramblingKeys(
         "urls",
         `${program}
 return urls.map(function (url) { return getDescramblingKey(url); });`,
-      ) as (urls: string[]) => string[];
+      ) as (urls: string[]) => unknown[];
 
-      const keys = run(imageUrls);
-      imageUrls.forEach((url, index) => {
-        const key = keys[index];
-        if (typeof key === "string" && key) derived.set(url, key);
-      });
+      collect(run(imageUrls));
       if (derived.size > 0) return derived;
     }
   } catch {
-    // Fall through to the WebView.
+    // The runtime refuses to build a function from a string; try the WebView.
   }
 
   try {
-    const page = await WebViewPage.create();
-    try {
-      const keys = await page.evaluateScript<string[]>(
+    collect(await runInWebView(program, imageUrls));
+  } catch {
+    // Leave the images unscrambled rather than failing the chapter.
+  }
+
+  return derived;
+}
+
+/**
+ * Evaluates the derivation program in the auxiliary WebView.
+ *
+ * The page is navigated first: evaluating in a WebView that has never loaded
+ * anything can hang until the host's own timeout, which shows the reader an
+ * empty chapter that never resolves. The whole attempt is bounded as well, so
+ * a slow page costs a scrambled image rather than a chapter that never opens.
+ */
+async function runInWebView(program: string, imageUrls: string[]): Promise<unknown[] | undefined> {
+  const factory = (globalThis as { WebViewPage?: typeof WebViewPage }).WebViewPage;
+  if (!factory) return undefined;
+
+  // Without a timer there is no way to bound this, and an unbounded hang is
+  // worse than an undescrambled page.
+  const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
+  if (!timer) return undefined;
+
+  const page = await factory.create({ timeout: WEBVIEW_TIMEOUT_SECONDS });
+
+  try {
+    const work = (async (): Promise<unknown[]> => {
+      await page.goto(DOMAIN, { waitUntil: "domcontentloaded" });
+      return await page.evaluateScript<unknown[]>(
         `${program}
 args[0].map(function (url) { return getDescramblingKey(url); });`,
         [imageUrls],
       );
-      imageUrls.forEach((url, index) => {
-        const key = keys?.[index];
-        if (typeof key === "string" && key) derived.set(url, key);
-      });
-    } finally {
-      await page.close();
-    }
-  } catch {
-    // No key means the image is served unscrambled; better a readable page
-    // than a hard failure on a chapter that may not be tiled at all.
-  }
+    })();
 
-  return derived;
+    const expired = new Promise<undefined>((resolve) => {
+      timer(() => resolve(undefined), WEBVIEW_TIMEOUT_SECONDS * 1000);
+    });
+
+    return await Promise.race([work, expired]);
+  } finally {
+    await page.close().catch(() => undefined);
+  }
 }
 
 /**

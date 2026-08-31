@@ -45,7 +45,23 @@
   re-minting an expired token when an image is actually fetched.
 - Related editions from a title's tracker entry, and deep links from `kagane.to`.
 
-## Mangago (current: v1.0.3)
+## Mangago (current: v1.0.4)
+
+### Fixed
+
+- Chapters with scrambled panels failed to open at all. Working out the tile keys means
+  evaluating the site's own JavaScript, and the fallback path opened an auxiliary WebView
+  without navigating it first — which can hang until the host's own timeout, leaving the
+  reader on an empty page that never resolves. The WebView now loads a page before it
+  evaluates anything, the attempt is capped at eight seconds, and it is skipped entirely
+  when there is no timer to bound it with.
+- Key derivation can no longer fail or delay a chapter. A chapter that opens with
+  scrambled panels is recoverable; one that never opens is not, so a failure now costs the
+  descramble rather than the chapter.
+- The redraw gate holds for at most three seconds instead of ten, so an unanswered redraw
+  cannot hold up the images behind it. An image with no tile key never touches the gate.
+
+## Mangago (v1.0.3)
 
 ### Fixed
 
