@@ -342,8 +342,17 @@ function formatChapterName(book: ChapterBook, mode: string): string {
  * Who published the chapter: the series' upload source — an official publisher
  * or a scanlation group — with the group some titles name inline appended.
  */
-function parseScanlator(book: ChapterBook, sourceName: string | undefined): string | undefined {
-  const base = sourceName ?? (book.groups ?? []).map((group) => group.title).join(", ");
+function parseScanlator(
+  book: ChapterBook,
+  sourceName: string | undefined,
+  official: boolean,
+): string | undefined {
+  // The tick marks an official upload, the way other clients for this site do.
+  const base = sourceName
+    ? official
+      ? `${sourceName} ✓`
+      : sourceName
+    : (book.groups ?? []).map((group) => group.title).join(", ");
 
   const stripped = book.title.trim().replace(CHAPTER_METADATA_REGEX, "");
   const match = CHAPTER_GROUP_REGEX.exec(stripped);
@@ -356,7 +365,7 @@ function parseScanlator(book: ChapterBook, sourceName: string | undefined): stri
 export function parseChapters(
   seriesId: string,
   details: DetailsResponse,
-  options: { chapterTitleMode: string; language: string; sourceName?: string },
+  options: { chapterTitleMode: string; language: string; sourceName?: string; official?: boolean },
 ): Chapter[] {
   const books = details.series_books ?? [];
   const useSourceNumber = SOURCE_CHAPTER_NUMBER_FORMATS.has(details.format ?? "");
@@ -365,7 +374,7 @@ export function parseChapters(
   const ordered = [...books].reverse();
 
   return ordered.map((book, index) => {
-    const scanlator = parseScanlator(book, options.sourceName);
+    const scanlator = parseScanlator(book, options.sourceName, options.official === true);
     const parsedNumber = Number.parseFloat((book.chapter_no ?? "").replace(/[^\d.]/g, ""));
 
     // sort_no is a position in the series for most formats, not a chapter number.

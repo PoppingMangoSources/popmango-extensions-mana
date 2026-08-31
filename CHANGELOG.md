@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.8)
+## Kagane (current: v1.0.9)
+
+### Added
+
+- An official upload is marked with a tick beside its publisher, as other clients for this
+  site do. Only sources the site itself types as official get one; a scanlation group or a
+  mixed source is left plain.
+
+## Kagane (v1.0.8)
 
 ### Fixed
 

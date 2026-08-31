@@ -79,7 +79,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.8",
+  version: "1.0.9",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -338,14 +338,16 @@ class KaganeSource
       this.api.fetchUploadSources(),
     ]);
 
-    const sourceName = details.source_id
-      ? sources.find((source) => source.source_id === details.source_id)?.title
+    const source = details.source_id
+      ? sources.find((entry) => entry.source_id === details.source_id)
       : undefined;
 
     return parseChapters(contentId, details, {
       chapterTitleMode,
       language: languages[0] ?? DefinedLanguages.ENGLISH,
-      ...(sourceName === undefined ? {} : { sourceName }),
+      ...(source === undefined
+        ? {}
+        : { sourceName: source.title, official: /^official$/i.test(source.source_type) }),
     });
   }
 
