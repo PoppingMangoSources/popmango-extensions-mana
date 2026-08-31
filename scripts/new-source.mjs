@@ -7,8 +7,10 @@
  *   node scripts/new-source.mjs <Name> --id <id> --url <https://site> [--description "..."]
  *
  * Copies the Template directory, rewrites the class name and `info` block,
- * seeds a CHANGELOG section in the exact format scripts/build-page.js parses,
- * and adds a README table row.
+ * and seeds a CHANGELOG section.
+ *
+ * The README table is generated from dist/sources.json by `npm run readme`, so
+ * it is deliberately left alone here.
  */
 
 import fs from "node:fs";
@@ -82,6 +84,13 @@ fs.mkdirSync(path.join(dest, "assets"), { recursive: true });
 const mainPath = path.join(dest, "main.ts");
 let main = fs.readFileSync(mainPath, "utf-8");
 main = main
+  // The template re-exports its class so the build's `class Target` scan does
+  // not pick the template up. A real source needs that declaration.
+  .replace(
+    /\/\/ `new-source` turns this[\s\S]*?export \{ TemplateSource as Target \};/,
+    `export class Target extends ${name}Source {}`,
+  )
+  .replace(/export \{ TemplateSource as Target \};/, `export class Target extends ${name}Source {}`)
   .replace(/class TemplateSource\b/, `class ${name}Source`)
   .replace(/extends TemplateSource\b/, `extends ${name}Source`)
   .replace(/id: "template",/, `id: "${id}",`)
@@ -114,8 +123,7 @@ const changelogPath = path.join(ROOT, "CHANGELOG.md");
 if (fs.existsSync(changelogPath)) {
   const changelog = fs.readFileSync(changelogPath, "utf-8");
   if (!changelog.includes(`## ${name} (current:`)) {
-    const today = new Date().toISOString().slice(0, 10);
-    const section = `## ${name} (current: v1.0.0)\n\n### ${today}\n- Initial implementation.\n\n`;
+    const section = `## ${name} (current: v1.0.0)\n\n### Added\n\n- Initial release.\n\n`;
     const firstSection = changelog.indexOf("\n## ");
     const updated =
       firstSection === -1
@@ -125,29 +133,11 @@ if (fs.existsSync(changelogPath)) {
   }
 }
 
-// -- README table ----------------------------------------------------------
-
-const readmePath = path.join(ROOT, "README.md");
-if (fs.existsSync(readmePath)) {
-  const readme = fs.readFileSync(readmePath, "utf-8");
-  const rowMarker = /\n\| (?!Name)(?!-)[^\n]*\|\n(?!\|)/;
-  const row = `| ${name.padEnd(13)} | 1.0.0   | English  | Safe   |\n`;
-  const lines = readme.split("\n");
-  let lastRow = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\| \S/.test(lines[i]) && !/^\| Name/.test(lines[i]) && !/^\| -/.test(lines[i])) lastRow = i;
-  }
-  if (lastRow >= 0 && !readme.includes(`| ${name} `)) {
-    lines.splice(lastRow + 1, 0, row.trimEnd());
-    fs.writeFileSync(readmePath, lines.join("\n"), "utf-8");
-  }
-  void rowMarker;
-}
-
 console.log(`created src/${name}`);
 console.log("");
 console.log("next:");
 console.log(`  1. drop an icon at src/${name}/assets/icon.png`);
 console.log(`  2. fill in the selectors in src/${name}/main.ts and the filters in model.ts`);
 console.log(`  3. put a real contentId/chapterId in scripts/probes/${name}.json`);
-console.log(`  4. bun run typecheck && bun run build && bun run verify ${name}`);
+console.log(`  4. npm run typecheck && npm run build && npm run verify ${name}`);
+console.log("  5. npm run readme to add it to the README table");

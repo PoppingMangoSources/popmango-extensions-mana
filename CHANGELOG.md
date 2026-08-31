@@ -1,6 +1,6 @@
 # Changelog
 
-## Mangago (current: v1.1.1)
+## Mangago (current: v1.0.2)
 
 ### Fixed
 
@@ -13,7 +13,7 @@
 - Opening a title made two identical requests for the same page, one for the details and
   one for the chapter list. The page is now fetched once and shared.
 
-## Mangago (v1.1.0)
+## Mangago (v1.0.1)
 
 ### Fixed
 
