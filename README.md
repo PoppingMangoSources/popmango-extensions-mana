@@ -49,8 +49,8 @@ becomes available to install.
 
 | Source | Site | Rating | Version |
 | :----- | :--- | :----- | :------ |
-| <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.12 |
-| <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.9 |
+| <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.13 |
+| <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.10 |
 <!-- sources:end -->
 
 ## Reporting a problem

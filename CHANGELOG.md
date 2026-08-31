@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.12)
+## Kagane (current: v1.0.13)
+
+### Removed
+
+- The silent challenge retry added in the previous release. Loading the site in the
+  auxiliary WebView does not clear the challenge for the source's own requests, so it only
+  delayed the manual prompt. The prompt appears straight away again.
+
+## Kagane (v1.0.12)
 
 ### Added
 
@@ -129,7 +137,15 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.9)
+## Mangago (current: v1.0.10)
+
+### Removed
+
+- The silent challenge retry added in the previous release. Loading the site in the
+  auxiliary WebView does not clear the challenge for the source's own requests, so it only
+  delayed the manual prompt. The prompt appears straight away again.
+
+## Mangago (v1.0.9)
 
 ### Added
 

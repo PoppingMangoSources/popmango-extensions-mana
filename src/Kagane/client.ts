@@ -2,7 +2,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { UrlBuilder, withChallengeRetry } from "../common/index.ts";
+import { UrlBuilder } from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
@@ -88,10 +88,8 @@ export class KaganeApi {
   }
 
   private async fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
-    return withChallengeRetry(BASE_URL, async () => {
-      const response = await this.http.get(url, headers ? { headers } : undefined);
-      return parseJson<T>(response, url);
-    });
+    const response = await this.http.get(url, headers ? { headers } : undefined);
+    return parseJson<T>(response, url);
   }
 
   private async postJson<T>(
@@ -99,15 +97,13 @@ export class KaganeApi {
     body: Record<string, unknown> | undefined,
     headers?: Record<string, string>,
   ): Promise<T> {
-    return withChallengeRetry(BASE_URL, async () => {
-      const response = await this.http.post(url, {
-        ...(body === undefined ? {} : { body }),
-        // `body` stays an object — the host serialises it, and pre-encoding it
-        // here means the server gets a quoted string and answers 400.
-        headers: { "content-type": "application/json", ...headers },
-      });
-      return parseJson<T>(response, url);
+    const response = await this.http.post(url, {
+      ...(body === undefined ? {} : { body }),
+      // `body` stays an object — the host serialises it, and pre-encoding it here
+      // means the server gets a quoted string and answers 400.
+      headers: { "content-type": "application/json", ...headers },
     });
+    return parseJson<T>(response, url);
   }
 
   async fetchSearch(

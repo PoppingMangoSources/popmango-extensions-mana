@@ -46,7 +46,6 @@ import {
   resolveSortId,
   sectionById,
   toPageSections,
-  withChallengeRetry,
   type PreferenceValue,
 } from "../common/index.ts";
 import { buildMangagoClient } from "./client.ts";
@@ -109,7 +108,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.9",
+  version: "1.0.10",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -165,10 +164,8 @@ class MangagoSource
   }
 
   private async fetchHtml(url: string, headers?: Record<string, string>): Promise<string> {
-    return withChallengeRetry(DOMAIN, async () => {
-      const response = await this.http.get(url, headers ? { headers } : undefined);
-      return response.data;
-    });
+    const response = await this.http.get(url, headers ? { headers } : undefined);
+    return response.data;
   }
 
   private async hiddenGenreTitles(): Promise<string[]> {
