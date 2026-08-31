@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="PoppingMango Sources">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7b0d3"/>
+      <stop offset="0.36" stop-color="#efa6d2"/>
+      <stop offset="0.72" stop-color="#ffcaab"/>
+      <stop offset="1" stop-color="#bde6dc"/>
+    </linearGradient>
+    <linearGradient id="mango" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffc98a"/>
+      <stop offset="1" stop-color="#ffa45c"/>
+    </linearGradient>
+    <radialGradient id="bubble" cx="0.34" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+    </radialGradient>
+    <radialGradient id="mintBubble" cx="0.34" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#e6f6d8" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#cfebb4" stop-opacity="0.35"/>
+    </radialGradient>
+    <radialGradient id="peachBubble" cx="0.34" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#ffe8d2" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffcda8" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#brand)"/>
+  <ellipse cx="230" cy="-52" rx="330" ry="150" fill="#ffffff" opacity="0.35"/>
+
+  <!-- Bubbles rising past the fruit, kept clear of the centre so the mango reads at 32px. -->
+  <g>
+    <circle cx="431" cy="112" r="46" fill="url(#bubble)"/>
+    <circle cx="417" cy="97" r="11" fill="#ffffff" opacity="0.9"/>
+    <circle cx="76" cy="150" r="30" fill="url(#mintBubble)"/>
+    <circle cx="68" cy="141" r="7" fill="#ffffff" opacity="0.9"/>
+    <circle cx="447" cy="386" r="34" fill="url(#peachBubble)"/>
+    <circle cx="438" cy="376" r="8" fill="#ffffff" opacity="0.85"/>
+    <circle cx="86" cy="404" r="42" fill="url(#peachBubble)"/>
+    <circle cx="73" cy="390" r="10" fill="#ffffff" opacity="0.85"/>
+    <circle cx="256" cy="452" r="22" fill="url(#mintBubble)"/>
+    <circle cx="150" cy="70" r="15" fill="#ffffff" opacity="0.6"/>
+    <circle cx="352" cy="462" r="13" fill="#ffffff" opacity="0.55"/>
+    <circle cx="470" cy="248" r="12" fill="url(#mintBubble)"/>
+    <circle cx="40" cy="272" r="10" fill="#ffffff" opacity="0.5"/>
+  </g>
+
+  <g transform="translate(256,252)">
+    <!-- The twenty-point burst from the banner, scaled to the icon. -->
+    <path d="M0,-176 43.1,-132.6 103.4,-142.5 112.8,-82 167.4,-54.5 139.3,0 167.4,54.5 112.8,82 103.4,142.5 43.1,132.6 0,176 -43.1,132.6 -103.4,142.5 -112.8,82 -167.4,54.5 -139.3,0 -167.4,-54.5 -112.8,-82 -103.4,-142.5 -43.1,-132.6 Z"
+          fill="#ffffff" opacity="0.5"/>
+    <circle r="128" fill="#fff6fa"/>
+    <circle r="128" fill="none" stroke="#ffffff" stroke-width="7"/>
+
+    <g transform="rotate(-16)">
+      <ellipse cx="0" cy="16" rx="57" ry="73" fill="url(#mango)"/>
+      <ellipse cx="-18" cy="-4" rx="18" ry="29" fill="#ffffff" opacity="0.45"/>
+      <circle cx="-22" cy="37" r="9" fill="#ffffff" opacity="0.6"/>
+      <path d="M4,-53 C7,-73 16,-84 27,-90" fill="none" stroke="#a8d48c" stroke-width="11" stroke-linecap="round"/>
+      <ellipse cx="44" cy="-86" rx="24" ry="12" fill="#bde3a4" transform="rotate(24 44 -86)"/>
+    </g>
+
+    <circle cx="120" cy="-95" r="13" fill="#ffffff" opacity="0.95"/>
+    <circle cx="-120" cy="92" r="11" fill="#ffffff" opacity="0.85"/>
+  </g>
+
+  <!-- Four-point glints. Concave sides keep them reading as sparkles rather
+       than plus signs once the icon is scaled down to a list row. -->
+  <g fill="#ffffff">
+    <path d="M400,168 C404,190 410,196 432,200 C410,204 404,210 400,232 C396,210 390,204 368,200 C390,196 396,190 400,168 Z" opacity="0.95"/>
+    <path d="M116,300 C119,317 123,321 140,324 C123,327 119,331 116,348 C113,331 109,327 92,324 C109,321 113,317 116,300 Z" opacity="0.9"/>
+    <path d="M330,66 C332,78 335,81 347,83 C335,85 332,88 330,100 C328,88 325,85 313,83 C325,81 328,78 330,66 Z" opacity="0.85"/>
+    <path d="M190,436 C192,447 195,450 206,452 C195,454 192,457 190,468 C188,457 185,454 174,452 C185,450 188,447 190,436 Z" opacity="0.8"/>
+  </g>
+</svg>

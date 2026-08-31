@@ -38,5 +38,6 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "fflate": "^0.8.3"
-  }
+  },
+  "thumbnail": "assets/Repository.png"
 }
