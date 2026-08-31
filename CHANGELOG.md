@@ -2,7 +2,18 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.1)
+## Kagane (current: v1.0.2)
+
+### Changed
+
+- Opening the home page fetched the tag and upload-source lists that nothing on it uses.
+  Each list is now fetched on its own, when something asks for it: the home page costs
+  seven requests instead of nine, the tag list waits for the search form, and the source
+  list waits for the search form or for `Show Source in Title`.
+- Section listing and preference reading go through the shared helpers both sources had
+  been reimplementing.
+
+## Kagane (v1.0.1)
 
 ### Changed
 
@@ -27,7 +38,14 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.1)
+## Mangago (current: v1.0.2)
+
+### Changed
+
+- Section listing and preference reading go through the shared helpers, replacing copies
+  of both that had been written out by hand.
+
+## Mangago (v1.0.1)
 
 ### Changed
 

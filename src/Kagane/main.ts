@@ -38,6 +38,8 @@ import {
   buildPreferenceMenu,
   buildSearchForm,
   pageOf,
+  sectionById,
+  toPageSections,
   relativeTime,
   type PreferenceValue,
 } from "../common/index.ts";
@@ -77,7 +79,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -113,28 +115,14 @@ class KaganeSource
 
   private detailCache: { seriesId: string; details: unknown; at: number } | undefined;
 
-  private async strings(key: string): Promise<string[]> {
-    const value = await this.preferences.get(key);
-    return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
-  }
-
-  private async text(key: string, fallback: string): Promise<string> {
-    const value = await this.preferences.get(key);
-    return typeof value === "string" && value ? value : fallback;
-  }
-
-  private async flag(key: string): Promise<boolean> {
-    return (await this.preferences.get(key)) === true;
-  }
-
   private async bodyOptions(query?: string): Promise<SearchBodyOptions> {
     const [uploadSource, contentRatings, contentLanguages, excludedGenreIds, excludedTagIds] =
       await Promise.all([
-        this.text(PreferenceID.UploadSource, "all"),
-        this.strings(PreferenceID.ContentRating),
-        this.strings(PreferenceID.ContentLanguages),
-        this.strings(PreferenceID.ExcludedGenres),
-        this.strings(PreferenceID.ExcludedTags),
+        this.preferences.text(PreferenceID.UploadSource, "all"),
+        this.preferences.strings(PreferenceID.ContentRating),
+        this.preferences.strings(PreferenceID.ContentLanguages),
+        this.preferences.strings(PreferenceID.ExcludedGenres),
+        this.preferences.strings(PreferenceID.ExcludedTags),
       ]);
 
     return {
@@ -148,38 +136,37 @@ class KaganeSource
   }
 
   private async titleOptions(): Promise<TitleOptions> {
-    const [cleanTitle, showSource, showEdition, metadata] = await Promise.all([
-      this.flag(PreferenceID.CleanTitle),
-      this.flag(PreferenceID.ShowSourceInTitle),
-      this.flag(PreferenceID.ShowEditionInTitle),
-      this.api.getMetadata().catch(() => undefined),
+    const [cleanTitle, showSource, showEdition] = await Promise.all([
+      this.preferences.flag(PreferenceID.CleanTitle),
+      this.preferences.flag(PreferenceID.ShowSourceInTitle),
+      this.preferences.flag(PreferenceID.ShowEditionInTitle),
     ]);
+
+    const sources = showSource ? await this.api.sources() : [];
 
     return {
       cleanTitle,
       showSource,
       showEdition,
-      sources: Object.fromEntries(
-        (metadata?.sources ?? []).map((source) => [source.source_id, source.title]),
-      ),
+      sources: Object.fromEntries(sources.map((source) => [source.source_id, source.title])),
     };
   }
 
   private async genreOptions(): Promise<Option[]> {
-    const metadata = await this.api.getMetadata().catch(() => undefined);
-    return toOptions(metadata?.genres);
+    return toOptions(await this.api.genreNames());
   }
 
   private async tagOptions(): Promise<Option[]> {
-    const metadata = await this.api.getMetadata().catch(() => undefined);
-    return toOptions(metadata?.tags);
+    return toOptions(await this.api.tagNames());
   }
 
   private async sourceOptions(): Promise<Option[]> {
-    const metadata = await this.api.getMetadata().catch(() => undefined);
-    const uploadSource = await this.text(PreferenceID.UploadSource, "all");
+    const [sources, uploadSource] = await Promise.all([
+      this.api.sources(),
+      this.preferences.text(PreferenceID.UploadSource, "all"),
+    ]);
 
-    return (metadata?.sources ?? [])
+    return sources
       .filter((source) =>
         uploadSource === "official"
           ? /^official$/i.test(source.source_type)
@@ -267,17 +254,11 @@ class KaganeSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    return DISCOVER_SECTIONS.map((section) => ({
-      id: section.id,
-      title: section.title,
-      ...(section.subtitle === undefined ? {} : { subtitle: section.subtitle }),
-      style: section.style,
-      viewMoreLink: { request: { page: 1, listId: section.id } },
-    }));
+    return toPageSections(DISCOVER_SECTIONS);
   }
 
   async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
-    const spec = DISCOVER_SECTIONS.find((section) => section.id === sectionID);
+    const spec = sectionById(DISCOVER_SECTIONS, sectionID);
     if (!spec) return { items: [] };
 
     const { results } = await this.loadSection(spec, 1);
@@ -285,9 +266,7 @@ class KaganeSource
   }
 
   async search(request: SearchRequest): Promise<PagedSearchResult> {
-    const spec = request.listId
-      ? DISCOVER_SECTIONS.find((section) => section.id === request.listId)
-      : undefined;
+    const spec = sectionById(DISCOVER_SECTIONS, request.listId);
     if (spec) return this.loadSection(spec, pageOf(request));
 
     const filters = new FilterReader(request);
@@ -310,7 +289,7 @@ class KaganeSource
     const [details, titleOptions, showSpoilerTags] = await Promise.all([
       this.fetchDetails(contentId),
       this.titleOptions(),
-      this.flag(PreferenceID.ShowSpoilerTags),
+      this.preferences.flag(PreferenceID.ShowSpoilerTags),
     ]);
 
     const content = toContent(contentId, details, { ...titleOptions, showSpoilerTags }, (imageId) =>
@@ -351,8 +330,8 @@ class KaganeSource
   async getChapters(contentId: string): Promise<Chapter[]> {
     const [details, chapterTitleMode, languages] = await Promise.all([
       this.fetchDetails(contentId),
-      this.text(PreferenceID.ChapterTitleMode, "optional"),
-      this.strings(PreferenceID.ContentLanguages),
+      this.preferences.text(PreferenceID.ChapterTitleMode, "optional"),
+      this.preferences.strings(PreferenceID.ContentLanguages),
     ]);
 
     return toChapters(contentId, details, {
@@ -362,7 +341,7 @@ class KaganeSource
   }
 
   async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
-    const dataSaver = await this.flag(PreferenceID.DataSaver);
+    const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
     const challenge = await this.api.getChallenge(chapterId, dataSaver);
 
     const manifest = challenge.manifest?.pages ?? [];
@@ -386,7 +365,7 @@ class KaganeSource
   }
 
   async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    const dataSaver = await this.flag(PreferenceID.DataSaver);
+    const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
     const url = imageURL.includes("token=")
       ? await this.api.refreshPageUrl(imageURL, dataSaver).catch(() => imageURL)
       : imageURL;
@@ -444,13 +423,11 @@ class KaganeSource
     sort: string,
     layout: SectionLayoutKind = SectionLayout.Simple,
   ): Promise<PagedSearchResult> {
-    const [response, titleOptions, metadata] = await Promise.all([
+    const [response, titleOptions, genreNames] = await Promise.all([
       this.api.search(body, page, size, sort),
       this.titleOptions(),
-      this.api.getMetadata().catch(() => undefined),
+      layout === SectionLayout.Detailed ? this.api.genreNames() : {},
     ]);
-
-    const genreNames = metadata?.genres ?? {};
 
     const results: Highlight[] = (response.content ?? []).map((book) =>
       toHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {

@@ -289,12 +289,6 @@ export type ChallengeDto = {
 
 export type IntegrityDto = { token: string; exp: number };
 
-export type KaganeMetadata = {
-  genres: Record<string, string>;
-  tags: Record<string, string>;
-  sources: SourceDto[];
-};
-
 export const SOURCE_CHAPTER_NUMBER_FORMATS = new Set([
   "Dark Horse Comics",
   "Flame Comics",

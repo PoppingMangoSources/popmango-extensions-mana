@@ -1,11 +1,14 @@
 import type { PageSection, PagedSearchResult, SearchRequest, SectionStyle } from "@mana-app/types";
 
-export type SectionSpec = {
+export type PageSectionSpec = {
   id: string;
   title: string;
   subtitle?: string;
   style?: SectionStyle;
   viewMore?: boolean;
+};
+
+export type SectionSpec = PageSectionSpec & {
   load(page: number): Promise<PagedSearchResult>;
 };
 
@@ -14,7 +17,7 @@ export function pageOf(request: { page?: number }): number {
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
 }
 
-export function toPageSections(specs: readonly SectionSpec[]): PageSection[] {
+export function toPageSections(specs: readonly PageSectionSpec[]): PageSection[] {
   return specs.map((spec) => ({
     id: spec.id,
     title: spec.title,
@@ -24,10 +27,10 @@ export function toPageSections(specs: readonly SectionSpec[]): PageSection[] {
   }));
 }
 
-export function sectionById(
-  specs: readonly SectionSpec[],
+export function sectionById<T extends PageSectionSpec>(
+  specs: readonly T[],
   id: string | undefined,
-): SectionSpec | undefined {
+): T | undefined {
   if (!id) return undefined;
   return specs.find((spec) => spec.id === id);
 }

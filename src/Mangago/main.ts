@@ -44,6 +44,8 @@ import {
   pageOf,
   relativeTime,
   resolveSortId,
+  sectionById,
+  toPageSections,
   type PreferenceValue,
 } from "../common/index.ts";
 import { buildMangagoClient } from "./client.ts";
@@ -106,7 +108,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -167,13 +169,11 @@ class MangagoSource
   }
 
   private async hiddenGenreTitles(): Promise<string[]> {
-    const ids = await this.preferences.get(PreferenceID.HiddenGenres);
-    return Array.isArray(ids) ? ids.map((id) => getGenreTitle(String(id))) : [];
+    return (await this.preferences.strings(PreferenceID.HiddenGenres)).map(getGenreTitle);
   }
 
   private async contentType(): Promise<string> {
-    const value = await this.preferences.get(PreferenceID.ContentType);
-    return typeof value === "string" ? value : "all";
+    return this.preferences.text(PreferenceID.ContentType, "all");
   }
 
   private async settingsExcludedGenres(): Promise<string[]> {
@@ -183,7 +183,7 @@ class MangagoSource
   }
 
   private async sectionEnabled(sectionId: string): Promise<boolean> {
-    return (await this.preferences.get(sectionPreferenceKey(sectionId))) === true;
+    return this.preferences.flag(sectionPreferenceKey(sectionId));
   }
 
   private async genres(): Promise<Option[]> {
@@ -236,18 +236,12 @@ class MangagoSource
       DISCOVER_SECTIONS.map((section) => this.sectionEnabled(section.id)),
     );
 
-    return DISCOVER_SECTIONS.filter((_, position) => enabled[position]).map((section) => ({
-      id: section.id,
-      title: section.title,
-      ...(section.subtitle === undefined ? {} : { subtitle: section.subtitle }),
-      style: section.style,
-      viewMoreLink: { request: { page: 1, listId: section.id } },
-    }));
+    return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }
 
   async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     const id = SECTION_ALIASES[sectionID] ?? sectionID;
-    const spec = DISCOVER_SECTIONS.find((section) => section.id === id);
+    const spec = sectionById(DISCOVER_SECTIONS, id);
     const { results } = await this.loadSection(id, spec, 1);
     return { items: results };
   }
@@ -255,7 +249,7 @@ class MangagoSource
   async search(request: SearchRequest): Promise<PagedSearchResult> {
     const listId = request.listId ? (SECTION_ALIASES[request.listId] ?? request.listId) : undefined;
     if (listId) {
-      const spec = DISCOVER_SECTIONS.find((section) => section.id === listId);
+      const spec = sectionById(DISCOVER_SECTIONS, listId);
       if (spec) return this.loadSection(listId, spec, pageOf(request), false);
     }
 

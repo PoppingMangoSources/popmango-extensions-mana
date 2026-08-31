@@ -11,8 +11,8 @@ import {
   type DetailsDto,
   type GenreDto,
   type IntegrityDto,
-  type KaganeMetadata,
   type SearchDto,
+  type SourceDto,
   type SourcesDto,
   type TagDto,
   type TrackerDto,
@@ -56,8 +56,7 @@ export class KaganeApi {
   private integrityExpiry = 0;
   private integrityRequest: Promise<string> | undefined;
 
-  private metadata: KaganeMetadata | undefined;
-  private metadataRequest: Promise<KaganeMetadata> | undefined;
+  private readonly lists = new Map<string, Promise<unknown>>();
 
   accessToken = "";
 
@@ -141,37 +140,43 @@ export class KaganeApi {
     return new UrlBuilder(API_URL).addPathComponent("image").addPathComponent(imageId).build();
   }
 
-  async getMetadata(): Promise<KaganeMetadata> {
-    if (this.metadata) return this.metadata;
-    if (this.metadataRequest) return this.metadataRequest;
+  private list<T>(key: string, load: () => Promise<T>): Promise<T> {
+    const cached = this.lists.get(key) as Promise<T> | undefined;
+    if (cached) return cached;
+    const request = load().catch((error: unknown) => {
+      this.lists.delete(key);
+      throw error;
+    });
+    this.lists.set(key, request);
+    return request;
+  }
 
-    const request = (async (): Promise<KaganeMetadata> => {
-      const [genres, tags, sources] = await Promise.all([
-        this.getJson<GenreDto[]>(`${API_URL}/genres/list`).catch(() => [] as GenreDto[]),
-        this.getJson<TagDto[]>(`${API_URL}/tags/list`).catch(() => [] as TagDto[]),
-        this.postJson<SourcesDto>(`${API_URL}/sources/list`, { source_types: null }).catch(
-          () => ({}) as SourcesDto,
-        ),
-      ]);
+  async genreNames(): Promise<Record<string, string>> {
+    return this.list("genres", async () =>
+      Object.fromEntries(
+        (await this.getJson<GenreDto[]>(`${API_URL}/genres/list`)).map((genre) => [
+          genre.id,
+          genre.genre_name,
+        ]),
+      ),
+    ).catch(() => ({}));
+  }
 
-      return {
-        genres: Object.fromEntries(
-          (Array.isArray(genres) ? genres : []).map((genre) => [genre.id, genre.genre_name]),
-        ),
-        tags: Object.fromEntries(
-          (Array.isArray(tags) ? tags : []).map((tag) => [tag.id, tag.tag_name]),
-        ),
-        sources: sources.sources ?? [],
-      };
-    })();
+  async tagNames(): Promise<Record<string, string>> {
+    return this.list("tags", async () =>
+      Object.fromEntries(
+        (await this.getJson<TagDto[]>(`${API_URL}/tags/list`)).map((tag) => [tag.id, tag.tag_name]),
+      ),
+    ).catch(() => ({}));
+  }
 
-    this.metadataRequest = request;
-    try {
-      this.metadata = await request;
-      return this.metadata;
-    } finally {
-      this.metadataRequest = undefined;
-    }
+  async sources(): Promise<SourceDto[]> {
+    return this.list("sources", async () => {
+      const body = await this.postJson<SourcesDto>(`${API_URL}/sources/list`, {
+        source_types: null,
+      });
+      return body.sources ?? [];
+    }).catch(() => []);
   }
 
   private async getIntegrityToken(force = false): Promise<string> {

@@ -95,6 +95,20 @@ export class PreferenceStore<T extends Record<string, PreferenceValue>> {
   async reset<K extends keyof T & string>(key: K): Promise<void> {
     await ObjectStore.remove(this.keyFor(key));
   }
+
+  async strings<K extends keyof T & string>(key: K): Promise<string[]> {
+    const value = await this.get(key);
+    return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+  }
+
+  async text<K extends keyof T & string>(key: K, fallback: string): Promise<string> {
+    const value = await this.get(key);
+    return typeof value === "string" && value ? value : fallback;
+  }
+
+  async flag<K extends keyof T & string>(key: K): Promise<boolean> {
+    return (await this.get(key)) === true;
+  }
 }
 
 type PreferenceOptions = readonly Option[] | (() => Promise<readonly Option[]>);
