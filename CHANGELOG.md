@@ -68,7 +68,21 @@
   re-minting an expired token when an image is actually fetched.
 - Related editions from a title's tracker entry, and deep links from `kagane.to`.
 
-## Mangago (current: v1.1.0)
+## Mangago (current: v1.1.1)
+
+### Fixed
+
+- The genre rows did not match the site's. They now mirror its home page exactly: `Yaoi`,
+  `Comedy`, `Shounen Ai`, `Shoujo`, `Yuri`, `Josei`, `Fantasy` and `School Life`, in that
+  order, each ranked ten deep under the site's own naming. `Supernatural` and `Mystery`
+  were never rows on the site and are gone, along with the rule that filtered those two to
+  webtoons only.
+- Rows that were ranked five deep now rank ten, and the three that were hidden until
+  turned on are shown, because the site carries all eight.
+- Every row now has a `more`, as on the site. The ten-deep cap applies to the row itself;
+  the listing behind it paginates in full.
+
+## Mangago (v1.1.0)
 
 ### Changed
 

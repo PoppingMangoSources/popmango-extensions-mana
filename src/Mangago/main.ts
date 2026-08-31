@@ -52,7 +52,6 @@ import {
   DOMAIN,
   FilterID,
   GENRE_OPTIONS,
-  MANHWA_TOP_SECTION_IDS,
   PreferenceID,
   PREFERENCE_DEFAULTS,
   SECTION_ALIASES,
@@ -106,7 +105,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -269,10 +268,9 @@ class MangagoSource
       title: section.title,
       ...(section.subtitle === undefined ? {} : { subtitle: section.subtitle }),
       style: section.style,
-      // A capped "Top N" row has nothing more to show.
-      ...(section.limit === undefined
-        ? { viewMoreLink: { request: { page: 1, listId: section.id } } }
-        : {}),
+      // Every row has a "more" on the site, capped or not: the cap is how deep
+      // the row itself ranks, not how much sits behind it.
+      viewMoreLink: { request: { page: 1, listId: section.id } },
     }));
   }
 
@@ -287,7 +285,7 @@ class MangagoSource
     const listId = request.listId ? (SECTION_ALIASES[request.listId] ?? request.listId) : undefined;
     if (listId) {
       const spec = DISCOVER_SECTIONS.find((section) => section.id === listId);
-      if (spec) return this.loadSection(listId, spec, pageOf(request));
+      if (spec) return this.loadSection(listId, spec, pageOf(request), false);
     }
 
     const page = pageOf(request);
@@ -511,26 +509,30 @@ class MangagoSource
   private sectionUrl(sectionId: string, page: number, sort: string, excluded: string[]): string {
     if (sectionId === "new_chapters") return buildLatestUrl(page);
 
-    const isTop = sectionId.startsWith("top_");
-    const included: string[] = [];
-    if (isTop) {
-      included.push(getGenreTitle(sectionId.slice("top_".length)));
-      if (MANHWA_TOP_SECTION_IDS.has(sectionId)) included.push("Webtoons");
-    }
+    const included = sectionId.startsWith("top_")
+      ? [getGenreTitle(sectionId.slice("top_".length))]
+      : [];
 
     return buildGenreBrowseUrl({ included, excluded, page, sort });
   }
 
+  /**
+   * `capped` distinguishes the home row from the listing behind its "more":
+   * the row ranks ten deep, the listing it links to paginates in full.
+   */
   private async loadSection(
     sectionId: string,
     spec: SectionSpecOption | undefined,
     page: number,
+    capped = true,
   ): Promise<PagedSearchResult> {
+    const limit = capped ? spec?.limit : undefined;
+
     // The site's own Featured Manga is a curated slider on the home page, not
     // a sort of the catalogue, so no `/genre/` browse can reproduce it.
     if (sectionId === "featured_manga") {
       const featured = parseListings(await this.fetchHome(), FEATURED_CONTAINER);
-      const limited = spec?.limit === undefined ? featured : featured.slice(0, spec.limit);
+      const limited = limit === undefined ? featured : featured.slice(0, limit);
       return { results: await this.toHighlights(limited), isLastPage: true };
     }
 
@@ -546,7 +548,7 @@ class MangagoSource
         ? await this.filterNewChapters(parseLatestUpdates(html))
         : parseListings(html);
 
-    const limited = spec?.limit === undefined ? listings : listings.slice(0, spec.limit);
+    const limited = limit === undefined ? listings : listings.slice(0, limit);
 
     const sectionRating = isTop
       ? contentRatingForGenres([getGenreTitle(sectionId.slice("top_".length))])
@@ -557,7 +559,7 @@ class MangagoSource
     return {
       results,
       // Capped rows and the single-page carousels stop after one page.
-      isLastPage: spec?.limit !== undefined || !hasNextPage(html),
+      isLastPage: limit !== undefined || !hasNextPage(html),
     };
   }
 

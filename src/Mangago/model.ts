@@ -169,48 +169,29 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     subtitle: "Your daily dose of the latest updates",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
-  { id: "top_yaoi", title: "Yaoi Manga Top 5", style: SectionStyle.SimpleHero, limit: 5 },
-  {
-    id: "top_shoujo",
-    title: "Shoujo Manga Top 10",
-    style: SectionStyle.SimpleDoubleRow,
+  // The eight genre rows the site's own home page carries, in its order and
+  // under its names. It ranks each ten deep and links the rest behind "more".
+  ...(
+    [
+      ["yaoi", "Yaoi"],
+      ["comedy", "Comedy"],
+      ["shounen_ai", "Shounen Ai"],
+      ["shoujo", "Shoujo"],
+      ["yuri", "Yuri"],
+      ["josei", "Josei"],
+      ["fantasy", "Fantasy"],
+      ["school_life", "School Life"],
+    ] as const
+  ).map(([id, genre]) => ({
+    id: `top_${id}`,
+    title: `${genre} Manga Top 10`,
+    style: SectionStyle.DetailedSingleRowPaged,
     limit: 10,
-  },
-  { id: "top_comedy", title: "Comedy Manga Top 5", style: SectionStyle.SimpleHero, limit: 5 },
-  {
-    id: "top_supernatural",
-    title: "Supernatural Manga Top 10",
-    style: SectionStyle.SimpleDoubleRow,
-    limit: 10,
-  },
-  { id: "top_fantasy", title: "Fantasy Manga Top 5", style: SectionStyle.SimpleHero, limit: 5 },
-  {
-    id: "top_mystery",
-    title: "Mystery Manga Top 10",
-    style: SectionStyle.SimpleDoubleRow,
-    limit: 10,
-  },
-  { id: "top_josei", title: "Josei Manga Top 5", style: SectionStyle.SimpleHero, limit: 5 },
-  {
-    id: "top_shounen_ai",
-    title: "Shounen Ai Manga Top 5",
-    style: SectionStyle.SimpleSingleRow,
-    limit: 5,
-  },
-  { id: "top_yuri", title: "Yuri Manga Top 5", style: SectionStyle.SimpleHero, limit: 5 },
-  {
-    id: "top_school_life",
-    title: "School Life Manga Top 5",
-    style: SectionStyle.SimpleSingleRow,
-    limit: 5,
-  },
+  })),
 ];
 
 /** Home sections hidden until the reader turns them on. */
-export const DEFAULT_OFF_SECTION_IDS = new Set(["top_shounen_ai", "top_yuri", "top_school_life"]);
-
-/** Genre tops that add ",Webtoons" so they list only manhwa/manhua. */
-export const MANHWA_TOP_SECTION_IDS = new Set(["top_supernatural", "top_mystery"]);
+export const DEFAULT_OFF_SECTION_IDS = new Set<string>([]);
 
 /** Legacy section ids an older install may still ask for. */
 export const SECTION_ALIASES: Record<string, string> = {
