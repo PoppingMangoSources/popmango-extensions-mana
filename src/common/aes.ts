@@ -154,7 +154,7 @@ function decryptBlock(block: Uint8Array, schedule: Uint8Array, rounds: number): 
   return state;
 }
 
-export type AesPadding = "none" | "pkcs7" | "zero";
+type AesPadding = "none" | "pkcs7" | "zero";
 
 /**
  * Decrypts an AES-CBC ciphertext.
@@ -299,11 +299,4 @@ export function bytesToUtf8(bytes: Uint8Array): string {
   }
 
   return result;
-}
-
-/** Reads a latin-1/binary string (as a raw response body) into bytes. */
-export function binaryStringToBytes(value: string): Uint8Array {
-  const bytes = new Uint8Array(value.length);
-  for (let i = 0; i < value.length; i++) bytes[i] = value.charCodeAt(i) & 0xff;
-  return bytes;
 }

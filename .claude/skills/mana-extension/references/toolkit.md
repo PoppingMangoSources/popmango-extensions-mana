@@ -124,21 +124,20 @@ Two further rules the store follows, both of which protect user data:
 ## `src/common/query.ts` and `urls.ts` — building URLs
 
 `withQuery(url, params)` drops `undefined`/`null`/empty values and encodes the rest.
-`encodeForm(body)` does the same for `application/x-www-form-urlencoded` POST bodies but
-keeps empty values.
 
-`UrlBuilder` (and its `url(base)` factory) chains path components and query items, and
+`UrlBuilder` chains path components and query items, and
 repeats a key once per entry when handed an array — which is how most sites express
 multi-select filters.
 
 ```ts
-url(DOMAIN).addPathComponent("genre").addPathComponent(page).setQueryItem("e", excluded).build();
+new UrlBuilder(DOMAIN).addPathComponent("genre").addPathComponent(page).setQueryItem("e", excluded).build();
 ```
 
 `resolveUrl(href, base)` absolutises a link: protocol-relative `//host`, root-relative
 `/path`, plain relative, and the `\/`-escaped URLs that come out of inline JSON.
-`hostOf`, `originOf` and `displayHost` pull a URL apart. There is no `URL` global in the
-runtime, so everything goes through these.
+`hostOf(target)` gives a URL's host, lowercased and without a port, and copes with a
+protocol-relative `//host`. There is no `URL` global in the runtime, so everything goes
+through these.
 
 ## `src/common/network.ts` — the network client
 
@@ -173,8 +172,8 @@ await http.post(url, { body: { page: 0 }, headers: { "content-type": "applicatio
 ```
 
 For an endpoint that wants no body, omit the key entirely rather than passing `""` or
-`"{}"`. `encodeForm` is still the right call for a form-encoded body the site expects
-pre-encoded — the rule is that you never double-encode, not that you never encode.
+`"{}"`. A site that wants a pre-encoded form body still gets one — the rule is that you
+never double-encode, not that you never encode.
 
 ### Cloudflare detection on a JSON API
 
@@ -204,33 +203,16 @@ it visibly crawl.
 | `imageSrc(node)` | comic sites lazy-load: tries `data-src`, `data-original`, `data-lazy-src`, `data-cfsrc`, `srcset`, `src`, then a `background-image` URL |
 | `absoluteImage(node, base)` | `imageSrc` resolved against the site root |
 | `summaryOf(node)` | turns a `<div>`/`<br>`-heavy synopsis into plain paragraphs |
-| `parseStatus(raw)` / `parseContentType(raw)` | maps a site's wording onto the app's enums, `undefined` when it does not say |
-| `splitList(value)` | author/artist fields, comma or slash separated |
-| `ownText(node)` | text excluding child elements — info rows are `<li><b>Status:</b> Ongoing</li>`, where `.text()` glues the label to the value |
-| `firstText($, ...sel)` / `firstMatch(str, ...re)` | first selector or pattern that matches, for themes that reshuffle markup |
+| `parseStatus(raw)` | maps a site's wording onto the app's status enum, `undefined` when it does not say |
 | `slugify(value)` | tag and genre ids |
 | `decodeEntities(value)` | entities left in JSON-in-HTML payloads |
 | `hasNextPage($, ...sel)` | the common "next page" link shapes |
-
-### JSON hidden in a `<script>`
-
-`scriptJson($, marker)` finds the inline script containing `marker` and parses the JSON
-that follows it. `balancedJson(source, marker)` is the same extraction on a raw string.
-
-Both count braces and skip over string literals, so a `}` inside a string — or a nested
-object — cannot end the region early. **Do not reach for `/\{[\s\S]*?\}/`**: it truncates
-at the first `}` inside the first nested object, which yields half a chapter list and no
-error.
-
-A single well-formed payload such as `__NEXT_DATA__` or `application/ld+json` needs no
-scanning — parse the script body directly with `parseJsonish`.
 
 ## `src/common/dates.ts` — dates and chapter numbers
 
 `parseDate(raw)` handles relative phrases ("3 days ago", "an hour ago"), keywords
 ("today", "yesterday"), unix timestamps, named months, and numeric dates in either order.
 It returns `undefined` rather than guessing, so the call site can `?? new Date(0)`.
-`parseDateOrEpoch(raw)` does that for you.
 
 `parseChapterNumber(title, fallback)` pulls a number out of a chapter title.
 
@@ -240,5 +222,5 @@ Never hand back an invalid `Date` — it fails the contract test and renders bro
 
 The runtime has **no `crypto.subtle`**, so sites that AES-encrypt their image lists need
 this: `aesCbcDecrypt(ciphertext, key, iv, padding)` with `"zero"`, `"pkcs7"` or `"none"`
-padding, plus `decodeHex`, `base64ToBytes`, `bytesToUtf8` and `binaryStringToBytes`.
+padding, plus `decodeHex`, `base64ToBytes` and `bytesToUtf8`.
 Verified against the FIPS-197 and SP 800-38A vectors.

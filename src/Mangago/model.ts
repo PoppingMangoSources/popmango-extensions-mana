@@ -242,15 +242,6 @@ export type MangagoListing = {
   genres?: string[];
 };
 
-/** Detail-page fields that enrich the featured hero. */
-export type FeaturedDetail = {
-  rating?: string;
-  status?: string;
-  author?: string;
-  summary?: string;
-  chapters?: number;
-};
-
 /**
  * Version tags the site appends to a title. Stripping them makes duplicate
  * library entries collapse onto one another.

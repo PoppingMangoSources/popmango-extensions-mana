@@ -90,16 +90,6 @@ export function parseDate(raw: string | undefined | null): Date | undefined {
   );
 }
 
-/**
- * Same as {@link parseDate}, but never returns `undefined`.
- *
- * Mana's `Chapter.date` is not optional; an undated chapter gets the epoch so
- * it sorts to the bottom instead of claiming to have been published today.
- */
-export function parseDateOrEpoch(raw: string | undefined | null): Date {
-  return parseDate(raw) ?? new Date(0);
-}
-
 function parseKeyword(text: string): Date | undefined {
   const lower = text.toLowerCase();
 
@@ -222,4 +212,31 @@ export function parseChapterNumber(title: string | undefined, fallback: number):
 
   const value = match === null ? Number.NaN : Number.parseFloat(match[1] ?? "");
   return Number.isFinite(value) ? value : fallback;
+}
+
+const RELATIVE_UNITS: [number, string][] = [
+  [60_000, "minute"],
+  [3_600_000, "hour"],
+  [86_400_000, "day"],
+  [604_800_000, "week"],
+  [2_592_000_000, "month"],
+  [31_536_000_000, "year"],
+];
+
+/** "3 hours ago", for the update column of a chapter-updates row. */
+export function relativeTime(date: Date | undefined): string {
+  if (!date) return "";
+
+  const elapsed = Date.now() - date.getTime();
+  if (elapsed < 0) return "";
+  if (elapsed < 60_000) return "just now";
+
+  for (let i = RELATIVE_UNITS.length - 1; i >= 0; i--) {
+    const [size, name] = RELATIVE_UNITS[i]!;
+    if (elapsed >= size) {
+      const count = Math.floor(elapsed / size);
+      return `${count} ${name}${count === 1 ? "" : "s"} ago`;
+    }
+  }
+  return "";
 }

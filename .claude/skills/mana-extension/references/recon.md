@@ -97,7 +97,7 @@ Three places it can live, in increasing order of effort:
    a lazy `/\{[\s\S]*?\}/` truncates at the first `}` inside a nested object. For `__NEXT_DATA__` or JSON-LD the script is a
    single well-formed blob, so `JSON.parse($("script#__NEXT_DATA__").html())` is enough.
 3. **Behind an AJAX endpoint** — a POST to a controller with the title id. Derive the id
-   from the `contentId`, POST form-encoded via `encodeForm`, parse the JSON envelope, and
+   from the `contentId`, POST form-encoded, parse the JSON envelope, and
    check its `success` flag before trusting `data`.
 
 Deriving the fields: `index` must be 0-based and contiguous after any filtering — build the

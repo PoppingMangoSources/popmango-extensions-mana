@@ -222,8 +222,6 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.ContentLanguages]: ["en"],
 };
 
-// ── API shapes ─────────────────────────────────────────────────────────────
-
 export type GenreDto = { id: string; genre_name: string };
 export type TagDto = { id: string; tag_name: string };
 

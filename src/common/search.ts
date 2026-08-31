@@ -10,7 +10,7 @@ import {
   type SearchSortStyle,
 } from "@mana-app/types";
 
-export type SearchFormSpec = {
+type SearchFormSpec = {
   fields?: readonly SearchListField[];
   header?: string;
   footer?: string;

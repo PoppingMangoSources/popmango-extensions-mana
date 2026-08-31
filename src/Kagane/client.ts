@@ -132,8 +132,6 @@ export class KaganeApi {
     return parseJson<T>(response, url);
   }
 
-  // ── catalog ──────────────────────────────────────────────────────────────
-
   /**
    * The search endpoint backs browsing as well as searching — a home row is
    * this call with a sort and no title.
@@ -215,8 +213,6 @@ export class KaganeApi {
       this.metadataRequest = undefined;
     }
   }
-
-  // ── reader tokens ────────────────────────────────────────────────────────
 
   /**
    * The integrity token, refreshed when it has expired.

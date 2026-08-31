@@ -42,12 +42,6 @@ export type TitleOptions = {
   sources: Record<string, string>;
 };
 
-/** Strips a trailing bracketed qualifier, when the reader asked for that. */
-function cleaned(title: string, cleanTitle: boolean): string {
-  const trimmed = title.trim();
-  return cleanTitle ? trimmed.replace(TITLE_BRACKET_REGEX, "").trim() || trimmed : trimmed;
-}
-
 /**
  * Builds a display title.
  *
@@ -60,7 +54,9 @@ export function displayTitle(
   sourceId?: string | null,
   editionInfo?: string | null,
 ): string {
-  if (options.cleanTitle) return cleaned(title, true);
+  const trimmed = title.trim();
+  // A trailing bracketed qualifier is what makes duplicate library entries.
+  if (options.cleanTitle) return trimmed.replace(TITLE_BRACKET_REGEX, "").trim() || trimmed;
 
   let result = title.trim();
   if (options.showEdition && editionInfo) result = `${result} (${editionInfo})`;

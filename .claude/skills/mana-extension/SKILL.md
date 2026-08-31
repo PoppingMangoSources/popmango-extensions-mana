@@ -76,10 +76,10 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `search.ts` | `buildSearchForm`, `resolveSortId` |
 | `sections.ts` | `SectionSpec`, `toPageSections`, `listResults`, `pageOf` |
 | `preferences.ts` | `PreferenceStore`, `buildPreferenceMenu` |
-| `query.ts` | `withQuery`, `encodeForm` |
-| `dates.ts` | `parseDate`, `parseDateOrEpoch`, `parseChapterNumber` |
-| `urls.ts` | `UrlBuilder`, `resolveUrl`, `hostOf`, `originOf` |
-| `html.ts` | `text`, `clean`, `imageSrc`, `ownText`, `summaryOf`, `parseStatus`, `hasNextPage`, `scriptJson` |
+| `query.ts` | `withQuery` |
+| `dates.ts` | `parseDate`, `parseChapterNumber`, `relativeTime` |
+| `urls.ts` | `UrlBuilder`, `resolveUrl`, `hostOf` |
+| `html.ts` | `text`, `clean`, `imageSrc`, `summaryOf`, `parseStatus`, `hasNextPage` |
 | `aes.ts` | `aesCbcDecrypt`, `base64ToBytes`, `bytesToUtf8`, `decodeHex` |
 
 A directory becomes a source when one of its files exports `class Target`. That is why

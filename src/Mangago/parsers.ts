@@ -19,7 +19,6 @@ import {
   genreIdFromTitle,
   getGenreTitle,
   TITLE_VERSION_REGEX,
-  type FeaturedDetail,
   type MangagoListing,
 } from "./model.ts";
 
@@ -181,12 +180,6 @@ function eachInfoRow($: CheerioAPI, visit: (label: string, row: Cheerio<AnyNode>
   });
 }
 
-/** `span.rating_num` — the 0–10 score, or nothing when it is absent. */
-function ratingText($: CheerioAPI): string | undefined {
-  const value = $(".rating_num").first().text().replace(/\s+/g, "");
-  return /^\d+(?:\.\d+)?$/.test(value) ? value : undefined;
-}
-
 /** `.manga_summary`, with its trailing credit line removed. */
 function mangaSummary($: CheerioAPI): string | undefined {
   const node = $(".manga_summary").first();
@@ -194,39 +187,6 @@ function mangaSummary($: CheerioAPI): string | undefined {
   const value = node.text().trim();
   if (!value || /^not found\.*$/i.test(value)) return undefined;
   return value;
-}
-
-export function parseFeaturedDetail(html: string): FeaturedDetail {
-  const $ = load(html);
-
-  let status: string | undefined;
-  let author: string | undefined;
-
-  eachInfoRow($, (label, row) => {
-    if (label.startsWith("status")) {
-      const value = row.find("span").first().text().trim();
-      if (value) status = value;
-    } else if (label.startsWith("author")) {
-      const names = row
-        .find("a")
-        .map((_index, anchor) => $(anchor).text().trim())
-        .get()
-        .filter(Boolean);
-      if (names.length > 0) author = names.join(", ");
-    }
-  });
-
-  const chapters = $(
-    "table#chapter_table > tbody > tr, table#raws_table > tbody > tr, table.uk-table > tbody > tr",
-  ).length;
-
-  return {
-    rating: ratingText($),
-    status,
-    author,
-    summary: mangaSummary($),
-    chapters: chapters > 0 ? chapters : undefined,
-  };
 }
 
 export function parseContent(

@@ -3,7 +3,7 @@
 import type { Option } from "@mana-app/types";
 
 import type { PreferenceSection, PreferenceStore, PreferenceValue } from "../common/index.ts";
-import { CONTENT_TYPE_OPTIONS, DISCOVER_SECTIONS, GENRE_OPTIONS, PreferenceID } from "./model.ts";
+import { CONTENT_TYPE_OPTIONS, DISCOVER_SECTIONS, PreferenceID } from "./model.ts";
 
 export type MangagoPreferences = PreferenceStore<Record<string, PreferenceValue>>;
 
@@ -66,5 +66,3 @@ export function buildSettingsSections(genres: () => Promise<Option[]>): Preferen
     },
   ];
 }
-
-export const STATIC_GENRE_OPTIONS = GENRE_OPTIONS;

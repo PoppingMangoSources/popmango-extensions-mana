@@ -2,9 +2,9 @@ import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from 
 
 export const HTML_ACCEPT =
   "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
-export const JSON_ACCEPT = "application/json, text/javascript, */*; q=0.01";
+const JSON_ACCEPT = "application/json, text/javascript, */*; q=0.01";
 export const ACCEPT_LANGUAGE = "en-US,en;q=0.9";
-export const USER_AGENT =
+const USER_AGENT =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 
 const CHALLENGE_PATTERNS: readonly RegExp[] = [
@@ -26,7 +26,7 @@ export function isChallengePage(html: string): boolean {
   return head.includes("pow_nonce") && head.includes("pow_hash");
 }
 
-export type ClientOptions = {
+type ClientOptions = {
   baseUrl: string;
   requests?: number;
   interval?: number;

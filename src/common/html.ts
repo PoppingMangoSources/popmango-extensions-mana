@@ -2,7 +2,7 @@
 
 import type { Cheerio, CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
-import { ContentType, PublicationStatus } from "@mana-app/types";
+import { PublicationStatus } from "@mana-app/types";
 
 import { resolveUrl } from "./urls.ts";
 
@@ -11,7 +11,7 @@ import { resolveUrl } from "./urls.ts";
  * order worth trying. `src` comes last because it is usually the placeholder
  * when any of the others are present.
  */
-export const LAZY_ATTRS = [
+const LAZY_ATTRS = [
   "data-src",
   "data-original",
   "data-lazy-src",
@@ -73,157 +73,6 @@ export function parseStatus(raw: string): PublicationStatus | undefined {
   if (/complet|finished|end(ed)?\b|完结|完結/.test(value)) return PublicationStatus.COMPLETED;
   if (/hiatus|paused|on hold/.test(value)) return PublicationStatus.HIATUS;
   if (/cancel|dropped|abandon/.test(value)) return PublicationStatus.CANCELLED;
-  return undefined;
-}
-
-/** Maps a site's type wording onto the app's content types. */
-export function parseContentType(raw: string): ContentType | undefined {
-  const value = raw.toLowerCase();
-  if (/manhwa|korean|한국/.test(value)) return ContentType.MANHWA;
-  if (/manhua|chinese|中国|漫画/.test(value)) return ContentType.MANHUA;
-  if (/novel|light novel|web novel/.test(value)) return ContentType.NOVEL;
-  if (/comic|western/.test(value)) return ContentType.COMIC;
-  if (/manga|japanese/.test(value)) return ContentType.MANGA;
-  return undefined;
-}
-
-/**
- * Reads the first capture group of the first pattern that matches.
- *
- * Sites reshuffle their markup between themes; listing the alternatives keeps
- * a parser working across both rather than breaking on the day they switch.
- */
-export function firstMatch(haystack: string, ...patterns: RegExp[]): string | undefined {
-  for (const pattern of patterns) {
-    const found = pattern.exec(haystack)?.[1];
-    if (found) return found;
-  }
-  return undefined;
-}
-
-/** Returns the text of the first selector that matches anything. */
-export function firstText($: CheerioAPI, ...selectors: string[]): string {
-  for (const selector of selectors) {
-    const found = text($(selector).first());
-    if (found) return found;
-  }
-  return "";
-}
-
-/**
- * Splits a comma/slash/semicolon separated list into trimmed entries.
- *
- * Author and artist fields are written this way on nearly every theme.
- */
-export function splitList(value: string): string[] {
-  return value
-    .split(/[,;/|]|\sand\s|、/)
-    .map((entry) => clean(entry))
-    .filter((entry) => entry.length > 0 && !/^(updating|unknown|n\/a|-)$/i.test(entry));
-}
-
-/** Reads a JSON blob out of a `<script>` body, tolerating trailing semicolons. */
-export function parseJsonish<T>(raw: string): T | undefined {
-  const trimmed = raw.trim().replace(/;$/, "");
-  try {
-    return JSON.parse(trimmed) as T;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * The text of a node excluding its child elements.
- *
- * Info rows are usually `<li><b>Status:</b> Ongoing</li>`, where `.text()`
- * returns the label glued to the value.
- */
-export function ownText(node: Cheerio<AnyNode>): string {
-  return clean(
-    node
-      .contents()
-      .toArray()
-      .filter((child) => child.type === "text")
-      .map((child) => ("data" in child ? String(child.data) : ""))
-      .join(" "),
-  );
-}
-
-/**
- * Extracts a *balanced* JSON region beginning at `marker`.
- *
- * A lazy `/\{[\s\S]*?\}/` truncates at the first `}` inside a nested object,
- * which silently yields half a chapter list. This counts braces instead, and
- * skips over strings so a brace inside one cannot unbalance the count.
- */
-export function balancedJson(source: string, marker: string): string | undefined {
-  const from = source.indexOf(marker);
-  if (from < 0) return undefined;
-
-  const start = findOpening(source, from);
-  if (start < 0) return undefined;
-
-  const open = source[start]!;
-  const close = open === "{" ? "}" : "]";
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = start; i < source.length; i++) {
-    const character = source[i]!;
-
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (character === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (character === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-
-    if (character === open) depth++;
-    else if (character === close) {
-      depth--;
-      if (depth === 0) return source.slice(start, i + 1);
-    }
-  }
-
-  return undefined;
-}
-
-function findOpening(source: string, from: number): number {
-  for (let i = from; i < source.length; i++) {
-    const character = source[i];
-    if (character === "{" || character === "[") return i;
-  }
-  return -1;
-}
-
-/**
- * Finds the inline `<script>` containing `marker` and parses the balanced JSON
- * region that follows it.
- *
- * Covers `window.__DATA__ = {...}` and friends. A single well-formed payload
- * such as `__NEXT_DATA__` or JSON-LD needs no scanning — parse the script body
- * directly with {@link parseJsonish}.
- */
-export function scriptJson<T>($: CheerioAPI, marker: string): T | undefined {
-  for (const element of $("script").toArray()) {
-    const body = $(element).html() ?? "";
-    if (!body.includes(marker)) continue;
-
-    const region = balancedJson(body, marker);
-    if (!region) continue;
-
-    const parsed = parseJsonish<T>(region);
-    if (parsed !== undefined) return parsed;
-  }
   return undefined;
 }
 

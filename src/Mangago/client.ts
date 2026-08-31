@@ -2,7 +2,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { HTML_ACCEPT, ACCEPT_LANGUAGE, isChallengePage } from "../common/index.ts";
+import { ACCEPT_LANGUAGE, HTML_ACCEPT, hostOf, isChallengePage } from "../common/index.ts";
 import { BROWSE_USER_AGENT, DOMAIN, READER_USER_AGENT } from "./model.ts";
 
 /**
@@ -16,11 +16,6 @@ const READER_NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-dest": "document",
   "sec-fetch-user": "?1",
 };
-
-function hostOf(target: string): string {
-  const normalised = target.startsWith("//") ? `https:${target}` : target;
-  return /^https?:\/\/([^/?#]+)/i.exec(normalised)?.[1]?.toLowerCase() ?? "";
-}
 
 /** The rotating mirrors that serve the numeric reader (never www.mangago.me). */
 export function isReaderMirrorHost(host: string): boolean {

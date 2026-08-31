@@ -42,6 +42,7 @@ import {
   buildPreferenceMenu,
   buildSearchForm,
   pageOf,
+  relativeTime,
   resolveSortId,
   type PreferenceValue,
 } from "../common/index.ts";
@@ -105,7 +106,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -180,8 +181,6 @@ class MangagoSource
     return response.data;
   }
 
-  // ── preferences ──────────────────────────────────────────────────────────
-
   private async hiddenGenreTitles(): Promise<string[]> {
     const ids = await this.preferences.get(PreferenceID.HiddenGenres);
     return Array.isArray(ids) ? ids.map((id) => getGenreTitle(String(id))) : [];
@@ -221,8 +220,6 @@ class MangagoSource
     this.genreOptions = GENRE_OPTIONS;
     return this.genreOptions;
   }
-
-  // ── source intents ───────────────────────────────────────────────────────
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -409,12 +406,11 @@ class MangagoSource
           webUrl: absoluteUrl(contentId),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }
-
-  // ── image descrambling ───────────────────────────────────────────────────
 
   /**
    * The site serves tiled images whose pieces are shuffled by a per-image key,
@@ -488,8 +484,6 @@ class MangagoSource
 
     return { size, commands };
   }
-
-  // ── discover ─────────────────────────────────────────────────────────────
 
   /**
    * The home page, held briefly.
@@ -611,8 +605,6 @@ class MangagoSource
     });
   }
 
-  // ── reader ───────────────────────────────────────────────────────────────
-
   /** Fetches the first reader page that actually carries an image list. */
   private async resolveReaderPage(
     chapterUrl: string,
@@ -709,8 +701,9 @@ class MangagoSource
         const pageHtml = await this.fetchHtml(buildTemplatePageUrl(template, loadedUrl, page));
         const pageBlob = extractImgsrcs(pageHtml);
         if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
-      } catch {
-        // Leave the slot empty; a gap is better than an aborted chapter.
+      } catch (error) {
+        // A challenge stops every later page too, so a gap is not recoverable.
+        if (error instanceof CloudflareError) throw error;
       }
     }
 
@@ -722,8 +715,8 @@ class MangagoSource
         const pageHtml = await this.fetchHtml(buildTemplatePageUrl(template, loadedUrl, page));
         const pageBlob = extractImgsrcs(pageHtml);
         if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
-      } catch {
-        // Same as above.
+      } catch (error) {
+        if (error instanceof CloudflareError) throw error;
       }
     }
 
@@ -758,35 +751,6 @@ class MangagoSource
 function stripFragment(url: string): string {
   const hash = url.indexOf("#");
   return hash >= 0 ? url.slice(0, hash) : url;
-}
-
-/** "3 hours ago" for the update column of the chapter-updates rows. */
-function relativeTime(date: Date | undefined): string {
-  if (!date) return "";
-  const elapsed = Date.now() - date.getTime();
-  if (elapsed < 0) return "";
-
-  const units: [number, string][] = [
-    [60_000, "minute"],
-    [3_600_000, "hour"],
-    [86_400_000, "day"],
-    [604_800_000, "week"],
-    [2_592_000_000, "month"],
-    [31_536_000_000, "year"],
-  ];
-
-  if (elapsed < 60_000) return "just now";
-
-  let label = "";
-  for (let i = units.length - 1; i >= 0; i--) {
-    const [size, name] = units[i]!;
-    if (elapsed >= size) {
-      const count = Math.floor(elapsed / size);
-      label = `${count} ${name}${count === 1 ? "" : "s"} ago`;
-      break;
-    }
-  }
-  return label;
 }
 
 export { CONTENT_TYPE_OPTIONS };

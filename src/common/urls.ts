@@ -92,11 +92,6 @@ export class UrlBuilder {
   }
 }
 
-/** Convenience factory so call sites read as `url(DOMAIN).addPathComponent(...)`. */
-export function url(base: string): UrlBuilder {
-  return new UrlBuilder(base);
-}
-
 /**
  * Resolves a possibly-relative `href` against a base URL.
  *
@@ -124,20 +119,8 @@ export function resolveUrl(href: string, base: string): string {
  * Used when a cookie needs a domain and only the request URL is at hand.
  */
 export function hostOf(target: string): string {
-  return /^[a-z][a-z0-9+.-]*:\/\/([^/:?#]+)/i.exec(target)?.[1] ?? "";
-}
-
-/**
- * Returns the scheme, host and port of a URL, and nothing else.
- *
- * A source that can talk to several mirrors compares this against the list it
- * knows to work out which one a link belongs to.
- */
-export function originOf(target: string): string {
-  return /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+/i.exec(target)?.[0] ?? "";
-}
-
-/** Strips the scheme and any trailing slash, for display next to a source name. */
-export function displayHost(target: string): string {
-  return hostOf(target).replace(/^www\./, "");
+  // Protocol-relative hrefs are common in scraped markup, and a host compared
+  // against a mirror list has to be lowercased and free of any port.
+  const normalised = target.startsWith("//") ? `https:${target}` : target;
+  return /^[a-z][a-z0-9+.-]*:\/\/([^/:?#]+)/i.exec(normalised)?.[1]?.toLowerCase() ?? "";
 }

@@ -38,9 +38,10 @@ import {
   buildPreferenceMenu,
   buildSearchForm,
   pageOf,
+  relativeTime,
   type PreferenceValue,
 } from "../common/index.ts";
-import { KaganeApi } from "./api.ts";
+import { KaganeApi } from "./client.ts";
 import {
   BASE_URL,
   CONTENT_RATING_OPTIONS,
@@ -76,7 +77,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -113,8 +114,6 @@ class KaganeSource
 
   /** The details document shared by `getContent` and `getChapters`. */
   private detailCache: { seriesId: string; details: unknown; at: number } | undefined;
-
-  // ── preferences ──────────────────────────────────────────────────────────
 
   private async strings(key: string): Promise<string[]> {
     const value = await this.preferences.get(key);
@@ -194,8 +193,6 @@ class KaganeSource
       .map((source) => ({ id: source.source_id, title: source.title }))
       .sort((left, right) => left.title.localeCompare(right.title));
   }
-
-  // ── source intents ───────────────────────────────────────────────────────
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -426,8 +423,6 @@ class KaganeSource
     }
   }
 
-  // ── internals ────────────────────────────────────────────────────────────
-
   private async fetchDetails(seriesId: string): ReturnType<KaganeApi["series"]> {
     const cached = this.detailCache;
     if (cached && cached.seriesId === seriesId && Date.now() - cached.at < DETAIL_CACHE_MS) {
@@ -522,33 +517,6 @@ class KaganeSource
       }
     }
   }
-}
-
-/** "3 hours ago", for the update column of a chapter-updates row. */
-function relativeTime(date: Date | undefined): string {
-  if (!date) return "";
-
-  const elapsed = Date.now() - date.getTime();
-  if (elapsed < 0) return "";
-  if (elapsed < 60_000) return "just now";
-
-  const units: [number, string][] = [
-    [60_000, "minute"],
-    [3_600_000, "hour"],
-    [86_400_000, "day"],
-    [604_800_000, "week"],
-    [2_592_000_000, "month"],
-    [31_536_000_000, "year"],
-  ];
-
-  for (let i = units.length - 1; i >= 0; i--) {
-    const [size, name] = units[i]!;
-    if (elapsed >= size) {
-      const count = Math.floor(elapsed / size);
-      return `${count} ${name}${count === 1 ? "" : "s"} ago`;
-    }
-  }
-  return "";
 }
 
 function toOptions(map: Record<string, string> | undefined): Option[] {
