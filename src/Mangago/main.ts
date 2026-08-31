@@ -106,7 +106,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -114,6 +114,12 @@ const info: SourceInfo = {
   thumbnail: "assets/icon.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
+
+/** How long the details page is reused across `getContent` and `getChapters`. */
+const DETAIL_CACHE_MS = 60_000;
+
+/** Ceiling on how long one image may hold the redraw gate. */
+const REDRAW_GATE_TIMEOUT_MS = 10_000;
 
 const config: SourceConfig = {
   disableUpdateChecks: false,
@@ -146,8 +152,13 @@ class MangagoSource
   private readonly descrambleKeys = new Map<string, DescrambleKey>();
   /** Genres advertised by the site, fetched once per session. */
   private genreOptions: Option[] | undefined;
+  /** The details page shared by `getContent` and `getChapters`. */
+  private detailCache: { contentId: string; html: string; at: number } | undefined;
   /** The image the app most recently asked about, for the redraw handler. */
   private pendingRedraw: DescrambleKey | undefined;
+  /** Serialises the redraw handshake, so pairs cannot interleave. */
+  private redrawQueue: Promise<void> = Promise.resolve();
+  private releaseRedraw: (() => void) | undefined;
 
   private get http(): NetworkClient {
     this.client ??= buildMangagoClient();
@@ -308,8 +319,24 @@ class MangagoSource
     };
   }
 
-  async getContent(contentId: string): Promise<Content> {
+  /**
+   * The details page and the chapter list are the same document, and the app
+   * asks for them one after the other. Holding the last one briefly turns
+   * opening a title from two identical requests into one.
+   */
+  private async fetchDetail(contentId: string): Promise<string> {
+    const cached = this.detailCache;
+    if (cached && cached.contentId === contentId && Date.now() - cached.at < DETAIL_CACHE_MS) {
+      return cached.html;
+    }
+
     const html = await this.fetchHtml(absoluteUrl(contentId));
+    this.detailCache = { contentId, html, at: Date.now() };
+    return html;
+  }
+
+  async getContent(contentId: string): Promise<Content> {
+    const html = await this.fetchDetail(contentId);
     const removeTitleVersion =
       (await this.preferences.get(PreferenceID.RemoveTitleVersion)) === true;
 
@@ -339,7 +366,7 @@ class MangagoSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const html = await this.fetchHtml(absoluteUrl(contentId));
+    const html = await this.fetchDetail(contentId);
     const hideRaws = (await this.preferences.get(PreferenceID.HideRaws)) === true;
     return parseChapters(html, { hideRaws });
   }
@@ -381,18 +408,47 @@ class MangagoSource
   // ── image descrambling ───────────────────────────────────────────────────
 
   /**
-   * The site serves tiled images whose pieces are shuffled by a per-image key.
-   * The key was worked out when the chapter was opened, so this is a lookup —
-   * and the app does the pixel work itself through {@link redrawImageWithSize}.
+   * The site serves tiled images whose pieces are shuffled by a per-image key,
+   * worked out when the chapter was opened. This is a lookup; the app does the
+   * pixel work itself through {@link redrawImageWithSize}.
+   *
+   * That second call carries the image's size but not its URL, so the key has
+   * to be handed over through a field. A reader decoding several pages at once
+   * would then have each image redrawn with another image's key — which looks
+   * exactly like a failed descramble — so the pair is serialised here.
    */
   async shouldRedrawImage(url: string): Promise<BooleanState> {
     const key = this.descrambleKeys.get(stripFragment(url));
+    if (!key) return { state: false };
+
+    // Take a ticket, then wait for the holder ahead of us. The queue tail is
+    // reassigned before the first await, so callers that arrive while we are
+    // suspended line up behind us instead of all waking on the same promise.
+    let release!: () => void;
+    const ours = new Promise<void>((resolve) => {
+      release = resolve;
+      // A "yes" the app never follows up on must not stall every later image.
+      // Timers are not guaranteed in this runtime, hence the lookup.
+      const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown })
+        .setTimeout;
+      timer?.(resolve, REDRAW_GATE_TIMEOUT_MS);
+    });
+
+    const ahead = this.redrawQueue;
+    this.redrawQueue = ahead.then(() => ours);
+    await ahead;
+
     this.pendingRedraw = key;
-    return { state: key !== undefined };
+    this.releaseRedraw = release;
+    return { state: true };
   }
 
   async redrawImageWithSize(size: CGSize): Promise<RedrawWithSizeCommand> {
     const key = this.pendingRedraw;
+    this.pendingRedraw = undefined;
+    this.releaseRedraw?.();
+    this.releaseRedraw = undefined;
+
     if (!key) return { size, commands: [] };
 
     const cols = key.cols;

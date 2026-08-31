@@ -1,6 +1,19 @@
 # Changelog
 
-## Mangago (current: v1.1.0)
+## Mangago (current: v1.1.1)
+
+### Fixed
+
+- Scrambled images came out garbled when several pages decoded at once. The app asks
+  whether to redraw an image and then, in a second call that carries no URL, asks for the
+  instructions — so two images in flight each received the other's tile key. The handshake
+  is now serialised.
+- A tile key that is not a clean permutation is rejected instead of applied, so a bad key
+  leaves the image untouched rather than punching holes in it.
+- Opening a title made two identical requests for the same page, one for the details and
+  one for the chapter list. The page is now fetched once and shared.
+
+## Mangago (v1.1.0)
 
 ### Fixed
 

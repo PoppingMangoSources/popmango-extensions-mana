@@ -300,15 +300,31 @@ args[0].map(function (url) { return getDescramblingKey(url); });`,
   return derived;
 }
 
-/** Turns the site's "3a1a0a…" key into the tile order the redraw handler wants. */
+/**
+ * Turns the site's "3a1a0a…" key into the tile order the redraw handler wants.
+ *
+ * The result has to be a genuine permutation of `cols * cols`: the redraw is a
+ * list of copies, so a repeated destination overwrites a tile and a missing one
+ * leaves a hole. A key that does not qualify is rejected rather than rendered,
+ * because a half-applied permutation looks worse than the untouched image.
+ */
 export function parseDescrambleKey(key: string, cols: number): DescrambleKey | undefined {
-  const order = key.split("a").map((entry) => {
-    const value = Number(entry || "0");
-    return Number.isFinite(value) ? value : 0;
-  });
+  if (cols <= 0) return undefined;
 
-  if (cols <= 0 || order.length < cols * cols) return undefined;
-  return { order: order.slice(0, cols * cols), cols };
+  const size = cols * cols;
+  const order = key.split("a").map((entry) => Number(entry || "0"));
+  if (order.length < size) return undefined;
+
+  const trimmed = order.slice(0, size);
+  const seen = Array.from({ length: size }, () => false);
+
+  for (const destination of trimmed) {
+    if (!Number.isInteger(destination) || destination < 0 || destination >= size) return undefined;
+    if (seen[destination]) return undefined;
+    seen[destination] = true;
+  }
+
+  return { order: trimmed, cols };
 }
 
 /** The mirrors worth trying for a numeric `/chapter/` reader path. */
