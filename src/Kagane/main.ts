@@ -48,7 +48,6 @@ import {
   FORMAT_OPTIONS,
   FilterID,
   PAGE_SIZE,
-  POPULAR_SORT_BY_SPAN,
   PREFERENCE_DEFAULTS,
   PreferenceID,
   SORT_OPTIONS,
@@ -77,7 +76,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -442,16 +441,11 @@ class KaganeSource
   private async loadSection(spec: SectionSpecOption, page: number): Promise<PagedSearchResult> {
     const body = buildSearchBody(await this.bodyOptions());
 
-    const sortId =
-      spec.sort ??
-      POPULAR_SORT_BY_SPAN[await this.text(PreferenceID.PopularTimeSpan, "week")] ??
-      SortID.ViewsWeek;
-
     return this.runSearch(
       body,
       page,
       spec.limit ?? PAGE_SIZE,
-      sortParameter(sortId, false),
+      sortParameter(spec.sort, false),
       spec.layout,
     );
   }

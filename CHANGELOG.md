@@ -1,6 +1,27 @@
 # Changelog
 
-## Kagane (current: v1.1.2)
+## Kagane (current: v1.1.3)
+
+### Fixed
+
+- The hero carousel was sorted by the weekly view count, which made it a second copy of
+  `Trending This Week` under the name `Popular`. It now ranks by total views, ten deep, as
+  the site's own featured row does.
+- The home rows are the site's, under its names and in its order: `Popular`,
+  `Trending Today`, `Trending This Week`, `Trending This Month`, `Latest Updates` and
+  `Recently Added`. `Hidden Gems` and `Highest Rated` were never rows on the site — and
+  `Highest Rated` was ranked by view count, not by rating — so both are gone, and
+  `Newly Added` takes the site's name, `Recently Added`.
+- The rows below the hero were vertical lists you had to scroll past. They are carousels
+  now, swiped sideways, so the whole home page stays reachable.
+- The details page shows the score and view count the site states for every series.
+
+### Removed
+
+- The `Popular Time Span` setting. Each trending window is a row of its own, so it had
+  nothing left to switch between.
+
+## Kagane (v1.1.2)
 
 ### Fixed
 

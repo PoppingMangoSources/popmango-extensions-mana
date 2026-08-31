@@ -7,7 +7,6 @@ import {
   CHAPTER_TITLE_MODE_OPTIONS,
   CONTENT_RATING_OPTIONS,
   LANGUAGE_OPTIONS,
-  POPULAR_TIME_SPAN_OPTIONS,
   PreferenceID,
   UPLOAD_SOURCE_OPTIONS,
 } from "./model.ts";
@@ -53,12 +52,6 @@ export function buildSettingsSections(hooks: SettingsHooks): PreferenceSection[]
       footer:
         "Upload Source picks which uploads appear everywhere; a single search can still override it with the Sources filter.",
       fields: [
-        {
-          type: "select",
-          key: PreferenceID.PopularTimeSpan,
-          title: "Popular Time Span",
-          options: POPULAR_TIME_SPAN_OPTIONS,
-        },
         {
           type: "select",
           key: PreferenceID.UploadSource,

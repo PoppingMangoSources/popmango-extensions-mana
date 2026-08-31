@@ -26,7 +26,6 @@ export const FilterID = {
 export const PreferenceID = {
   ContentRating: "content-rating",
   ExcludedGenres: "excluded-genres",
-  PopularTimeSpan: "popular-time-span",
   UploadSource: "upload-source",
   ShowSourceInTitle: "show-source-in-title",
   ShowEditionInTitle: "show-edition-in-title",
@@ -93,21 +92,6 @@ export const UPLOAD_SOURCE_OPTIONS: Option[] = [
   { id: "scanlations", title: "Scanlations only" },
 ];
 
-export const POPULAR_TIME_SPAN_OPTIONS: Option[] = [
-  { id: "today", title: "Today" },
-  { id: "week", title: "This Week" },
-  { id: "month", title: "This Month" },
-  { id: "allTime", title: "All Time" },
-];
-
-/** Which sort backs the "Popular" row, per the time-span setting. */
-export const POPULAR_SORT_BY_SPAN: Record<string, string> = {
-  today: SortID.ViewsToday,
-  week: SortID.ViewsWeek,
-  month: SortID.ViewsMonth,
-  allTime: SortID.TotalViews,
-};
-
 export const CHAPTER_TITLE_MODE_OPTIONS: Option[] = [
   { id: "optional", title: "Title only — “Ch.5”" },
   { id: "always", title: "Chapter + title — “Ch.5 The Duel”" },
@@ -161,82 +145,59 @@ export type SectionSpecOption = {
   subtitle?: string;
   style: SectionStyle;
   layout: SectionLayoutKind;
-  /** The API sort backing the row; `undefined` means "read it from settings". */
-  sort?: string;
+  /** The API sort backing the row. */
+  sort: string;
   limit?: number;
 };
 
 /**
- * The home page.
+ * The home page, mirroring the site's own.
  *
- * The trending windows are rows of their own rather than a strip of chips that
- * only lead somewhere — a reader on the home page can see what is climbing
- * today without tapping through first.
+ * The trending windows are rows of their own rather than the strip of chips
+ * that only lead somewhere — a reader can see what is climbing today without
+ * tapping through first. Everything else keeps the site's names and order.
  */
 export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   {
     id: "popular",
     title: "Popular",
-    subtitle: "The most-read titles right now",
     style: SectionStyle.SimpleHeroPaged,
     layout: SectionLayout.Hero,
+    sort: SortID.TotalViews,
     limit: 10,
   },
   {
-    id: "hidden_gems",
-    title: "Hidden Gems",
-    subtitle: "Quietly excellent, and easy to miss",
-    style: SectionStyle.DetailedVerticalList,
+    id: "trending_today",
+    title: "Trending Today",
+    style: SectionStyle.DetailedSingleRowPaged,
     layout: SectionLayout.Detailed,
-    sort: SortID.AverageViews,
-    limit: 10,
+    sort: SortID.ViewsToday,
+  },
+  {
+    id: "trending_week",
+    title: "Trending This Week",
+    style: SectionStyle.DetailedSingleRowPaged,
+    layout: SectionLayout.Detailed,
+    sort: SortID.ViewsWeek,
+  },
+  {
+    id: "trending_month",
+    title: "Trending This Month",
+    style: SectionStyle.DetailedSingleRowPaged,
+    layout: SectionLayout.Detailed,
+    sort: SortID.ViewsMonth,
   },
   {
     id: "latest_updates",
     title: "Latest Updates",
-    subtitle: "Your daily dose of the latest updates",
     style: SectionStyle.DetailedVerticalListGrouped,
     layout: SectionLayout.ChapterUpdates,
     sort: SortID.Updated,
   },
   {
-    id: "trending_today",
-    title: "Trending Today",
-    style: SectionStyle.DetailedVerticalList,
-    layout: SectionLayout.Detailed,
-    sort: SortID.ViewsToday,
-    limit: 10,
-  },
-  {
-    id: "trending_week",
-    title: "Trending This Week",
-    style: SectionStyle.SimpleDoubleRow,
-    layout: SectionLayout.Simple,
-    sort: SortID.ViewsWeek,
-    limit: 15,
-  },
-  {
-    id: "trending_month",
-    title: "Trending This Month",
-    style: SectionStyle.SimpleDoubleRow,
-    layout: SectionLayout.Simple,
-    sort: SortID.ViewsMonth,
-    limit: 15,
-  },
-  {
-    id: "highest_rated",
-    title: "Highest Rated",
-    subtitle: "The best of the catalogue, all time",
-    style: SectionStyle.DetailedVerticalList,
-    layout: SectionLayout.Detailed,
-    sort: SortID.TotalViews,
-    limit: 10,
-  },
-  {
-    id: "newly_added",
-    title: "Newly Added",
-    subtitle: "Fresh in the catalogue",
-    style: SectionStyle.SimpleDoubleRow,
+    id: "recently_added",
+    title: "Recently Added",
+    style: SectionStyle.DetailedSingleRowPaged,
     layout: SectionLayout.Simple,
     sort: SortID.Created,
   },
@@ -245,7 +206,6 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
   [PreferenceID.ContentRating]: ["Safe", "Suggestive"],
   [PreferenceID.ExcludedGenres]: [] as string[],
-  [PreferenceID.PopularTimeSpan]: "week",
   [PreferenceID.UploadSource]: "all",
   [PreferenceID.ShowSourceInTitle]: false,
   [PreferenceID.ShowEditionInTitle]: false,

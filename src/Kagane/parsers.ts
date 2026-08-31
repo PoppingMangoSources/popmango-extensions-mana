@@ -284,9 +284,33 @@ function unique(values: string[]): string[] {
   return values.filter((value, index) => value && values.indexOf(value) === index);
 }
 
+/** The API rates out of 100; the site shows that as a score out of ten. */
+function starRating(details: DetailsDto): string | undefined {
+  const percent =
+    typeof details.average_rating === "number" && details.average_rating > 0
+      ? details.average_rating
+      : typeof details.bayesian_rating === "number" && details.bayesian_rating > 0
+        ? details.bayesian_rating
+        : undefined;
+
+  return percent === undefined ? undefined : `★ ${(percent / 10).toFixed(1)}`;
+}
+
+function formatViews(views: number | null | undefined): string | undefined {
+  if (typeof views !== "number" || views <= 0) return undefined;
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M views`;
+  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K views`;
+  return `${views} views`;
+}
+
 /** The description, plus the associated names the site lists separately. */
 function buildSummary(details: DetailsDto, sourceName: string | undefined): string {
   const parts: string[] = [];
+
+  // The site states a score and a view count for every series, but Mana's
+  // `Content` has no field for either, so they lead the summary instead.
+  const stats = [starRating(details), formatViews(details.total_views)].filter(Boolean);
+  if (stats.length > 0) parts.push(stats.join("  ·  "));
 
   const description = (details.description ?? "").trim();
   if (description) {
