@@ -59,13 +59,25 @@ export function contentRatingForGenres(genreTitles: string[]): ContentRating {
   return ContentRating.SAFE;
 }
 
+/**
+ * The site's own "Featured Manga" slider, which only exists on the home page.
+ *
+ * It is a curated list rather than a sort, so it cannot be reproduced by any
+ * `/genre/` browse — the home page has to be fetched for it.
+ */
+export const FEATURED_CONTAINER = "#popular_manga_list";
+
 /** The standard grid used by /genre/, search results and related lists. */
-export function parseListings(html: string): MangagoListing[] {
+export function parseListings(html: string, scope?: string): MangagoListing[] {
   const $ = load(html);
   const items: MangagoListing[] = [];
   const seen = new Set<string>();
 
-  $(".updatesli, .pic_list > li").each((_, element) => {
+  const selector = scope
+    ? `${scope} .updatesli, ${scope} .pic_list > li`
+    : ".updatesli, .pic_list > li";
+
+  $(selector).each((_, element) => {
     const item = $(element);
     const link = item.find("a.thm-effect").first();
     if (link.length === 0) return;

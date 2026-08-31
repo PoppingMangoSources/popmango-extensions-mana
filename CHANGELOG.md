@@ -58,7 +58,18 @@
   re-minting an expired token when an image is actually fetched.
 - Related editions from a title's tracker entry, and deep links from `kagane.to`.
 
-## Mangago (current: v1.0.4)
+## Mangago (current: v1.1.0)
+
+### Changed
+
+- `Featured Manga` is now the site's actual Featured Manga slider, read from the home
+  page. It was being approximated with a catalogue browse sorted by views, which is
+  "most viewed" — a different list from the curated one the site puts at the top.
+- `New Chapters` is renamed `Latest Update` to match the site's own wording. The section
+  id is unchanged, so a saved on/off switch survives the rename.
+- The home page is fetched once and shared between the rows built from it.
+
+## Mangago (v1.0.4)
 
 ### Fixed
 

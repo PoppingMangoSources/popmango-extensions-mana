@@ -150,8 +150,10 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   {
     id: "featured_manga",
     title: "Featured Manga",
-    subtitle: "Hand-picked from what's climbing right now",
+    subtitle: "The site's own hand-picked slider",
     style: SectionStyle.SimpleHeroPaged,
+    // The slider runs to about a hundred titles; a hero row wants a handful.
+    limit: 20,
   },
   {
     id: "popular_manga",
@@ -160,8 +162,10 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     style: SectionStyle.DetailedSingleRowPaged,
   },
   {
+    // The site calls this "Latest Update"; the id predates that and is kept so
+    // a reader's saved section switches survive the rename.
     id: "new_chapters",
-    title: "New Chapters",
+    title: "Latest Update",
     subtitle: "Your daily dose of the latest updates",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
@@ -213,9 +217,6 @@ export const SECTION_ALIASES: Record<string, string> = {
   popular: "popular_manga",
   latest: "new_chapters",
 };
-
-/** How many featured titles get enriched from their detail pages. */
-export const FEATURED_HERO_LIMIT = 8;
 
 /**
  * The site has no content-type field; "Webtoons" is its only manhwa/manhua

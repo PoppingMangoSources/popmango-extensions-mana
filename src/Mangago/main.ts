@@ -50,7 +50,6 @@ import {
   CONTENT_TYPE_OPTIONS,
   DISCOVER_SECTIONS,
   DOMAIN,
-  FEATURED_HERO_LIMIT,
   FilterID,
   GENRE_OPTIONS,
   MANHWA_TOP_SECTION_IDS,
@@ -72,6 +71,7 @@ import {
   buildLatestUrl,
   buildSearchUrl,
   contentRatingForGenres,
+  FEATURED_CONTAINER,
   hasNextPage,
   parseChapters,
   parseContent,
@@ -106,7 +106,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.4",
+  version: "1.1.0",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -117,6 +117,9 @@ const info: SourceInfo = {
 
 /** How long the details page is reused across `getContent` and `getChapters`. */
 const DETAIL_CACHE_MS = 60_000;
+
+/** How long the home page is shared between the rows built from it. */
+const HOME_CACHE_MS = 60_000;
 
 /**
  * Ceiling on how long one image may hold the redraw gate.
@@ -160,6 +163,8 @@ class MangagoSource
   private genreOptions: Option[] | undefined;
   /** The details page shared by `getContent` and `getChapters`. */
   private detailCache: { contentId: string; html: string; at: number } | undefined;
+  /** The home page, shared by the rows built from it. */
+  private homeCache: { html: string; at: number } | undefined;
   /** The image the app most recently asked about, for the redraw handler. */
   private pendingRedraw: DescrambleKey | undefined;
   /** Serialises the redraw handshake, so pairs cannot interleave. */
@@ -488,6 +493,21 @@ class MangagoSource
 
   // ── discover ─────────────────────────────────────────────────────────────
 
+  /**
+   * The home page, held briefly.
+   *
+   * More than one row can be built from it, and the app resolves each row
+   * separately — without this they would each fetch the same document.
+   */
+  private async fetchHome(): Promise<string> {
+    const cached = this.homeCache;
+    if (cached && Date.now() - cached.at < HOME_CACHE_MS) return cached.html;
+
+    const html = await this.fetchHtml(`${DOMAIN}/`);
+    this.homeCache = { html, at: Date.now() };
+    return html;
+  }
+
   private sectionUrl(sectionId: string, page: number, sort: string, excluded: string[]): string {
     if (sectionId === "new_chapters") return buildLatestUrl(page);
 
@@ -506,6 +526,14 @@ class MangagoSource
     spec: SectionSpecOption | undefined,
     page: number,
   ): Promise<PagedSearchResult> {
+    // The site's own Featured Manga is a curated slider on the home page, not
+    // a sort of the catalogue, so no `/genre/` browse can reproduce it.
+    if (sectionId === "featured_manga") {
+      const featured = parseListings(await this.fetchHome(), FEATURED_CONTAINER);
+      const limited = spec?.limit === undefined ? featured : featured.slice(0, spec.limit);
+      return { results: await this.toHighlights(limited), isLastPage: true };
+    }
+
     const excluded = await this.settingsExcludedGenres();
     const isTop = sectionId.startsWith("top_");
     // Popular and the genre tops rank by comment count; everything else by views.
@@ -524,10 +552,7 @@ class MangagoSource
       ? contentRatingForGenres([getGenreTitle(sectionId.slice("top_".length))])
       : undefined;
 
-    const results =
-      sectionId === "featured_manga"
-        ? await this.toFeaturedHighlights(limited)
-        : await this.toHighlights(limited, sectionRating, spec?.style);
+    const results = await this.toHighlights(limited, sectionRating, spec?.style);
 
     return {
       results,
@@ -582,17 +607,6 @@ class MangagoSource
         webUrl: absoluteUrl(item.id),
       };
     });
-  }
-
-  /**
-   * The hero row is built from the listing alone.
-   *
-   * Rating, status and chapter count only exist on a title's own detail page,
-   * and fetching eight of those put eight extra round trips in front of the
-   * first thing the reader sees. The row now costs exactly one request.
-   */
-  private async toFeaturedHighlights(items: MangagoListing[]): Promise<Highlight[]> {
-    return this.toHighlights(items.slice(0, FEATURED_HERO_LIMIT));
   }
 
   // ── reader ───────────────────────────────────────────────────────────────
