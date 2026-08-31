@@ -1,6 +1,18 @@
 # Changelog
 
-## Kagane (current: v1.2.2)
+## Kagane (current: v1.2.3)
+
+### Fixed
+
+- Chapters read `Episode 8` where the site words it that way. The site numbers a chapter
+  in its title as well as in its own field and calls them episodes as often as chapters;
+  one wording is used throughout now, so `Title only` reads `Chapter 8`.
+- `Chapter + title` produced `Ch.44 Chapter 44 - Volume 9 (Ushi)`. The title already
+  carried the number, the volume, and the group — the last of which is shown beside the
+  row anyway — so the label restated all three. It reads `Ch.44`, and a chapter with a
+  name of its own still reads `Ch.44 The Duel`.
+
+## Kagane (v1.2.2)
 
 ### Changed
 

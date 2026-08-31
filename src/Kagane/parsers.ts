@@ -24,6 +24,9 @@ import {
   BASE_URL,
   CHAPTER_GROUP_REGEX,
   CHAPTER_METADATA_REGEX,
+  CHAPTER_NUMBER_PREFIX_REGEX,
+  CHAPTER_TRAILING_GROUP_REGEX,
+  CHAPTER_VOLUME_SUFFIX_REGEX,
   SOURCE_CHAPTER_NUMBER_FORMATS,
   TITLE_BRACKET_REGEX,
   type ChapterBookDto,
@@ -332,6 +335,28 @@ function buildSummary(details: DetailsDto, sourceName: string | undefined): stri
 }
 
 /**
+ * What the chapter is actually called, once the site's own numbering is out.
+ *
+ * A title arrives as "Episode 8", as "Chapter 44 - Volume 9 (Ushi)", or as a
+ * real name. The first two only restate what the composed label already says —
+ * and the group is rendered beside the row in its own right — so both reduce to
+ * nothing, leaving the label free of "Ch.44 Chapter 44 - Volume 9 (Ushi)".
+ */
+function chapterOwnName(title: string): string {
+  let name = title.trim().replace(CHAPTER_METADATA_REGEX, "");
+  name = name.replace(CHAPTER_TRAILING_GROUP_REGEX, "");
+  name = name.replace(CHAPTER_VOLUME_SUFFIX_REGEX, "");
+  name = name.replace(CHAPTER_NUMBER_PREFIX_REGEX, "");
+  // Whatever joined the number to the name — "Episode 8: The Duel".
+  return name.replace(/^[\s:.\-–—]+/, "").trim();
+}
+
+/** The number the site states in the title, for chapters that carry no field. */
+function chapterNumberInTitle(title: string): string {
+  return CHAPTER_NUMBER_PREFIX_REGEX.exec(title.trim())?.[1] ?? "";
+}
+
+/**
  * Composes a chapter's display name.
  *
  * The site's own titles are inconsistent — some carry a number, some only a
@@ -339,31 +364,27 @@ function buildSummary(details: DetailsDto, sourceName: string | undefined): stri
  */
 function chapterName(book: ChapterBookDto, mode: string): string {
   const title = book.title.trim();
-  const chapterNo = (book.chapter_no ?? "").trim();
+  const name = chapterOwnName(title);
+  const chapterNo = (book.chapter_no ?? "").trim() || chapterNumberInTitle(title);
   const volumeNo = (book.volume_no ?? "").trim();
 
-  const volumeAndChapter = (): string => {
-    const parts = [volumeNo ? `Vol.${volumeNo}` : "", chapterNo ? `Ch.${chapterNo}` : ""]
-      .filter(Boolean)
-      .join(" ");
-    if (!parts) return title;
-    if (!title || mode === "vol_local") return parts;
-    return `${parts} ${title}`;
-  };
+  const chapter = chapterNo ? `Ch.${chapterNo}` : "";
+  const volume = volumeNo ? `Vol.${volumeNo}` : "";
+  const join = (...parts: string[]): string => parts.filter(Boolean).join(" ");
 
   switch (mode) {
     case "always":
-      if (!chapterNo && volumeNo) return volumeAndChapter();
-      return title ? `Ch.${chapterNo} ${title}`.trim() : `Ch.${chapterNo}`;
+      return join(chapter, name) || title;
 
     case "vol_local":
+      return join(volume, chapter) || name || title;
+
     case "vol_chapter":
-      return volumeAndChapter();
+      return join(volume, chapter, name) || title;
 
     default:
-      if (!title && !chapterNo && volumeNo) return volumeAndChapter();
-      if (!title && chapterNo) return `Ch.${chapterNo}`;
-      return title;
+      // The site says "Episode 8" as often as "Chapter 8"; one wording for both.
+      return name || (chapterNo ? `Chapter ${chapterNo}` : title);
   }
 }
 

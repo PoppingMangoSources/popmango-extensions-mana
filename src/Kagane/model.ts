@@ -94,7 +94,7 @@ export const UPLOAD_SOURCE_OPTIONS: Option[] = [
 ];
 
 export const CHAPTER_TITLE_MODE_OPTIONS: Option[] = [
-  { id: "optional", title: "Title only — “Ch.5”" },
+  { id: "optional", title: "Title only — “Chapter 5”" },
   { id: "always", title: "Chapter + title — “Ch.5 The Duel”" },
   { id: "vol_local", title: "Volume + chapter — “Vol.1 Ch.5”" },
   { id: "vol_chapter", title: "Volume + chapter + title — “Vol.1 Ch.5 The Duel”" },
@@ -358,3 +358,20 @@ export const CHAPTER_METADATA_REGEX = /(?:\s*\{[^{}]*\})+\s*$/;
 /** A scanlation group named inside a chapter title. */
 export const CHAPTER_GROUP_REGEX =
   /^Chapter\s+.*(?:-\s*Volume\s+.*\(([^()]+)\)|\[([^[\]]+)\])\s*$/i;
+
+/**
+ * A chapter title that only restates its own number.
+ *
+ * The site numbers chapters in the title as well as in `chapter_no`, and calls
+ * them "Episode" as often as "Chapter". Composing a label on top of that yields
+ * "Ch.44 Chapter 44", so the prefix is stripped and the number comes from the
+ * one field that is consistent.
+ */
+export const CHAPTER_NUMBER_PREFIX_REGEX =
+  /^\s*(?:episodes?|chapters?|chap|chp|ch|eps?)\s*\.?\s*#?\s*(\d+(?:\.\d+)?)\s*/i;
+
+/** The volume the site appends to a chapter title, shown by the label instead. */
+export const CHAPTER_VOLUME_SUFFIX_REGEX = /\s*[-–—]?\s*volumes?\s*\.?\s*\d+(?:\.\d+)?\s*$/i;
+
+/** A trailing "(Group)" or "[Group]" — rendered beside the row in its own right. */
+export const CHAPTER_TRAILING_GROUP_REGEX = /\s*(?:\([^()]*\)|\[[^[\]]*\])\s*$/;
