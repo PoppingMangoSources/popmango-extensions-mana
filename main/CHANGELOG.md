@@ -1,6 +1,16 @@
 # Changelog
 
-## Kagane (current: v1.1.1)
+## Kagane (current: v1.1.2)
+
+### Fixed
+
+- Every row failed with `Network Error: Bad Request`. POST bodies were being encoded to
+  JSON before being handed over, and the host encodes them itself according to the content
+  type, so the server received a quoted string where it expected an object and answered
+  400. Bodies are now passed through as objects, and the two endpoints that want no body
+  at all are sent none.
+
+## Kagane (v1.1.1)
 
 ### Fixed
 
