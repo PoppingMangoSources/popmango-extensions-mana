@@ -1,14 +1,18 @@
 # What lives where
 
 ```
+assets/<Name>.png the icon — project root, NOT inside src/
 src/common/       the shared runtime — imported by every source, never copied
 src/<Name>/
   client.ts       the site's network client — headers, cookies, rate limit
   model.ts        site constants, filter/sort definitions, section list, API types
   parsers.ts      HTML/JSON parsing
   main.ts         the source class
-  assets/         icon.png
 ```
+
+The toolchain copies **only the project-root `assets/` folder** into `dist/`. An icon
+under `src/<Name>/assets/` is never packaged, and the app draws a placeholder with no
+error anywhere. `info.thumbnail` is the bare filename in that folder, never a path.
 
 A directory becomes a source when one of its files exports `class Target`. `src/common/`
 has none, which is why it is shared code and not an extension. Never add one to it.
@@ -156,6 +160,37 @@ challenge fingerprint (`challenges.cloudflare.com`, `cf-browser-verification`, `
 A site needing more than this — a per-URL user agent, an injected cookie — gets its own
 `client.ts` built on `NetworkClientBuilder` directly. Per-request `headers` always win over
 the client defaults.
+
+### POST bodies are objects, not strings
+
+`NetworkRequest.body` is handed over as an **object**; the host serialises it according to
+the request's `content-type`. Calling `JSON.stringify` first makes the host encode that
+string in turn, so the server receives a quoted JSON string literal where it expects an
+object and answers **400 Bad Request** — on every call, with no clue as to why.
+
+```ts
+await http.post(url, { body: { page: 0 }, headers: { "content-type": "application/json" } });
+```
+
+For an endpoint that wants no body, omit the key entirely rather than passing `""` or
+`"{}"`. `encodeForm` is still the right call for a form-encoded body the site expects
+pre-encoded — the rule is that you never double-encode, not that you never encode.
+
+### Cloudflare detection on a JSON API
+
+`buildClient`'s blanket "403 or 503 means challenge" is right for an HTML site, where a
+403 usually *is* Cloudflare. It is wrong for a JSON API, which answers 403 or 503 for an
+expired token, a rate limit or an outage — none of which a WebView can resolve, so
+reporting them as a challenge puts an unanswerable prompt in front of every row.
+
+For an API client, require a real challenge fingerprint: the `cf-mitigated: challenge`
+header, or an HTML body carrying Cloudflare's markers. A response whose `content-type` is
+`application/json` is never a challenge.
+
+**Do not set a hand-written `user-agent` on a client fronting Cloudflare.** The app sends
+one matching the connection it actually makes; overriding it with a string of your own
+makes the request's fingerprint inconsistent, which is what gets it challenged in the
+first place. If a reference implementation sends no user agent, send none.
 
 Rate limit: **3 requests per second is the default worth starting from.** The home page
 fans out to one request per enabled section through this one client, so a 1/s budget makes

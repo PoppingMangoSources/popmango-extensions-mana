@@ -28,6 +28,21 @@ Read `references/recon.md` and work through its five targets in order:
 Write down, before coding: the exact URL for each of the five, the selector or JSON path
 for every field, and the pagination signal.
 
+### Porting from an existing source
+
+Most sources here are ports of a working implementation for another app. Two rules:
+
+- **Port the whole thing.** Every discover section, every filter, every setting, every
+  sort — including the ones that look unimportant. A capability dropped in the port is a
+  capability the reader loses, and nobody discovers it is missing until they go looking.
+- **The reference tells you the endpoints; the site tells you the sections.** Home rows
+  must mirror what the site itself offers, under the site's own names. Where the
+  reference collapses several rows into a strip of chips, expand them back into rows —
+  the app has styles for that, and a row shows what is climbing without a tap first.
+
+Read the reference for its request shapes, its token dance and its quirks. Do not carry
+over its section list unchecked against the live home page.
+
 ## Phase 2 — Scaffold
 
 ```bash
@@ -118,7 +133,26 @@ of what comes back. Fill `scripts/probes/<Name>.json` with a real `contentId` (a
 Cloudflare block reports SKIP, not FAIL — that is expected for protected sites and **is
 not a pass**.
 
+When the network cannot reach the site at all — a sandboxed run, a proxy answering
+`Forbidden` for every host — the contract test proves nothing. Say so plainly rather than
+reporting the change as verified; a fix reasoned from a type signature is not a fix
+observed against the server.
+
 Finish with `references/release.md`: version bump, CHANGELOG entry, README row.
+
+## Before calling it done
+
+The failures this repo has actually shipped, each silent:
+
+- [ ] Icon at `assets/<Name>.png`, `thumbnail` a bare filename — not under `src/`
+- [ ] POST bodies passed as objects, never `JSON.stringify`-ed
+- [ ] No hand-written `user-agent` on a client fronting Cloudflare
+- [ ] A JSON API's 403/503 not reported as a challenge without a real fingerprint
+- [ ] Unnumbered chapters renumbered above the main run, not left at `0`
+- [ ] `WebViewPage` navigated before `evaluate`, bounded by a timer, closed in `finally`
+- [ ] Redraw state serialised per image, not held in a bare field
+- [ ] Every home row costs one request — check the hero row especially
+- [ ] Version bumped by a **patch** for a fix; a new row or setting is a minor
 
 ## Performance
 

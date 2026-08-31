@@ -74,6 +74,36 @@ The source runs in a bare V8 / JavaScriptCore context, not Node and not a browse
 Host globals available: `NetworkClient`, `NetworkClientBuilder` (imported from the types
 package), `CloudflareError`, `NetworkError`, `ObjectStore`, `SecureStore`, `WebViewPage`.
 
+**No `crypto.subtle`.** A site that AES-encrypts its image list needs `src/common/aes.ts`.
+
+### `WebViewPage`
+
+`create()` returns a blank page. `evaluate`/`evaluateScript` on a page that has never
+navigated **hangs until the host's own timeout** rather than throwing — the chapter simply
+never opens. Always `goto()` first, race the work against your own timer, and close in a
+`finally`:
+
+```ts
+const page = await WebViewPage.create({ timeout: SECONDS });
+try {
+  const work = (async () => {
+    await page.goto(DOMAIN, { waitUntil: "domcontentloaded" });
+    return await page.evaluateScript<T>(program);
+  })();
+  return await Promise.race([work, expiresIn(SECONDS)]);
+} finally {
+  await page.close().catch(() => undefined);
+}
+```
+
+Both `WebViewPage` and `setTimeout` are host-provided and may be absent in an older build,
+so feature-detect each off `globalThis` and skip the path rather than throwing. Anything a
+WebView is only *enhancing* — a descrambling key, an optional token — belongs in a
+`try`/`catch` that degrades, never in the path that decides whether a chapter opens.
+
+A `Function`-constructed program that is self-contained runs in-process and is far cheaper
+than a WebView; reach for the WebView only when the site's own globals are needed.
+
 **`ObjectStore`/`SecureStore` typed accessors throw on a type mismatch.** `set(k, v)` takes
 any value and stores it natively; `string()`, `boolean()`, `number()` and `stringArray()`
 each throw if the stored value is not that type. Reading a preference without catching that
@@ -125,6 +155,32 @@ without checking them. `npm run typecheck` is the gate that catches it.
 `Chapter` requires `chapterId`, `number`, `index`, `date`, `language`. **`index` must start
 at 0 and be contiguous** — the first available chapter is index 0. `date` must be a valid
 `Date`; use `new Date(0)` when the site publishes none rather than an invalid date.
+
+**`number` decides ordering, and the app picks the start chapter by it.** Every list has
+entries carrying no number — side stories, extras, specials, "Season 2 Prologue". Leaving
+those at `0` files them *ahead of chapter 1*, so the reader opens a side story instead of
+the beginning. Number them above the highest real chapter, preserving their listed order:
+
+```ts
+const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
+const extras = parsed.filter((chapter) => chapter.number === 0);
+extras.forEach((chapter, position) => {
+  chapter.number = highest + (extras.length - position);
+});
+```
+
+### `shouldRedrawImage` / `redrawImageWithSize`
+
+The app calls these as a **pair, per image, concurrently across many images**, and only
+the first call receives the URL. Anything the second call needs — a descrambling key, a
+tile map — has to be carried between them in instance state, and a plain field is a race:
+a second image's `shouldRedrawImage` overwrites the first's state before its
+`redrawImageWithSize` reads it, and the reader shows pages redrawn with each other's
+geometry.
+
+Serialise the pair with a queue chain, taking the ticket **before the first `await`** so
+two callers cannot both observe the same tail. A single shared gate promise is not enough
+— every waiter wakes at once, which is the bug in a different shape.
 
 `ChapterData` is `{ pages?: ChapterPage[] }` where each page has `url` or a base64 `raw`.
 
