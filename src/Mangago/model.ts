@@ -191,7 +191,9 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   ).map(([id, genre]) => ({
     id: `top_${id}`,
     title: `${genre} Manga Top 10`,
-    style: SectionStyle.DetailedSingleRowPaged,
+    // Poster tiles two rows deep, the title and its newest chapter over the
+    // cover — ten titles stay one swipe away instead of ten.
+    style: SectionStyle.SimpleDoubleRow,
     limit: 10,
   })),
 ];

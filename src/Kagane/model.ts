@@ -169,22 +169,26 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   },
   {
     id: "trending_today",
+    // Poster tiles, one row: the format and status ride over the cover, so the
+    // row stays a single swipe.
     title: "Trending Today",
-    style: SectionStyle.DetailedSingleRowPaged,
+    style: SectionStyle.SimpleSingleRow,
     layout: SectionLayout.Detailed,
     sort: SortID.ViewsToday,
   },
   {
     id: "trending_week",
+    // The wider two-row card, which has the room to render the key/value rows
+    // the Detailed layout supplies.
     title: "Trending This Week",
-    style: SectionStyle.DetailedSingleRowPaged,
+    style: SectionStyle.DetailedDoubleRowPaged,
     layout: SectionLayout.Detailed,
     sort: SortID.ViewsWeek,
   },
   {
     id: "trending_month",
     title: "Trending This Month",
-    style: SectionStyle.DetailedSingleRowPaged,
+    style: SectionStyle.DetailedDoubleRowPaged,
     layout: SectionLayout.Detailed,
     sort: SortID.ViewsMonth,
   },
@@ -198,8 +202,10 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   {
     id: "recently_added",
     title: "Recently Added",
-    style: SectionStyle.DetailedSingleRowPaged,
-    layout: SectionLayout.Simple,
+    style: SectionStyle.SimpleSingleRow,
+    // Detailed rather than Simple: a poster tile has room for the format and
+    // status, and a title just added rarely has a chapter label to show.
+    layout: SectionLayout.Detailed,
     sort: SortID.Created,
   },
 ];

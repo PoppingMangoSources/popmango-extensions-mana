@@ -1,6 +1,16 @@
 # Changelog
 
-## Kagane (current: v1.2.0)
+## Kagane (current: v1.2.1)
+
+### Changed
+
+- `Trending Today` and `Recently Added` are poster tiles in a single row, the format and
+  status over the cover. `Recently Added` reads that descriptor now rather than a chapter
+  label, which a title just added rarely has yet.
+- `Trending This Week` and `Trending This Month` take the wider two-row card, which has
+  the room for the key/value rows beneath the title.
+
+## Kagane (v1.2.0)
 
 ### Added
 
@@ -104,7 +114,14 @@
   re-minting an expired token when an image is actually fetched.
 - Related editions from a title's tracker entry, and deep links from `kagane.to`.
 
-## Mangago (current: v1.1.2)
+## Mangago (current: v1.1.3)
+
+### Changed
+
+- The ten genre rows are poster tiles two rows deep. All ten of a row's titles are one
+  swipe away instead of ten, and the title and its newest chapter sit over the cover.
+
+## Mangago (v1.1.2)
 
 ### Added
 
