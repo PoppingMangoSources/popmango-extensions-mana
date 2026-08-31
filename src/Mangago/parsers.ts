@@ -263,7 +263,7 @@ export function parseContent(
   };
 }
 
-function parseChapterTitle(input: string): { number?: number; title?: string } {
+function parseChapterTitle(input: string): { number?: number; volume?: number; title?: string } {
   const trimmed = input.trim();
   const colon = trimmed.indexOf(":");
 
@@ -271,9 +271,13 @@ function parseChapterTitle(input: string): { number?: number; title?: string } {
   const right = colon >= 0 ? trimmed.slice(colon + 1).trim() : "";
 
   let number: number | undefined;
+  let volume: number | undefined;
 
-  const volume = /^Vol\.\s*(?:(\d+(?:\.\d+)?)|TBA|N\/?A|NA)?\s*/i.exec(left);
-  if (volume) left = left.slice(volume[0].length).trimStart();
+  const volumeMatch = /^Vol\.\s*(?:(\d+(?:\.\d+)?)|TBA|N\/?A|NA)?\s*/i.exec(left);
+  if (volumeMatch) {
+    if (volumeMatch[1]) volume = Number(volumeMatch[1]);
+    left = left.slice(volumeMatch[0].length).trimStart();
+  }
 
   if (/^Ch\./i.test(left)) {
     left = left.slice(3).trimStart();
@@ -285,7 +289,7 @@ function parseChapterTitle(input: string): { number?: number; title?: string } {
   }
 
   const title = right && left ? `${left}: ${right}` : right || left || undefined;
-  return { number, title };
+  return { number, volume, title };
 }
 
 function parseChapterNumber(name: string): number {
@@ -399,7 +403,8 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
       chapterId,
       number,
       index: 0,
-      title: parsedTitle.title || rawTitle,
+      ...(parsedTitle.title ? { title: parsedTitle.title } : {}),
+      ...(parsedTitle.volume === undefined ? {} : { volume: parsedTitle.volume }),
       date: parseDate(clean(row.find("td").last().text())) ?? new Date(0),
       language: DefinedLanguages.ENGLISH,
       webUrl: absoluteUrl(chapterId),

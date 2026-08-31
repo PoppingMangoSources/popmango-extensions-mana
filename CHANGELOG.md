@@ -110,7 +110,18 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.6)
+## Mangago (current: v1.0.7)
+
+### Fixed
+
+- A chapter whose title carried a name lost its number entirely, so `Ch.4: Official
+  Uncensored` read as just `Official Uncensored`. The number, the volume and the name are
+  reported as separate fields now and the app composes the row, so it reads
+  `Ch.4 - Official Uncensored`. A chapter with nothing but a number still reads `Ch.4`.
+- The volume was parsed off the title and then discarded; a chapter that names one now
+  reports it, so a row can read `Vol.2 Ch.15 - The Duel`.
+
+## Mangago (v1.0.6)
 
 ### Changed
 
