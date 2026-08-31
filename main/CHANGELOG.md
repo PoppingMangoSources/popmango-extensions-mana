@@ -2,7 +2,14 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.5)
+## Kagane (current: v1.0.6)
+
+### Changed
+
+- Every method that performs a network request is now named `fetch*`, so reading the client
+  tells you which calls cost a request. `get*` is left to the methods the app itself calls.
+
+## Kagane (v1.0.5)
 
 ### Changed
 
@@ -63,7 +70,14 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.5)
+## Mangago (current: v1.0.6)
+
+### Changed
+
+- Naming checked against the reference sources; the network methods already followed the
+  `fetch*` rule that Kagane needed.
+
+## Mangago (v1.0.5)
 
 ### Changed
 
