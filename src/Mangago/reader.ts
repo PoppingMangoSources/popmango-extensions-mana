@@ -3,7 +3,7 @@
 import { aesCbcDecrypt, base64ToBytes, bytesToUtf8 } from "../common/aes.ts";
 import { resolveUrl } from "../common/index.ts";
 import { DOMAIN, READER_MIRROR_HOSTS } from "./model.ts";
-import { pathAndQueryOf, readerOrigin } from "./client.ts";
+import { parsePathAndQuery, readerOrigin } from "./client.ts";
 
 const IMG_SRCS_REGEX = /var\s+imgsrcs\s*=\s*['"]([a-zA-Z0-9+=/]+)['"]/;
 const HEX_VARIABLE_REGEX =
@@ -43,7 +43,7 @@ export type DescrambleKey = {
   cols: number;
 };
 
-export function extractImgsrcs(html: string): string | undefined {
+export function parseImgsrcs(html: string): string | undefined {
   for (const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
     const body = match[1] ?? "";
     if (!body.includes("imgsrcs")) continue;
@@ -53,14 +53,14 @@ export function extractImgsrcs(html: string): string | undefined {
   return IMG_SRCS_REGEX.exec(html)?.[1];
 }
 
-export function extractChapterJsUrl(html: string): string | undefined {
+export function parseChapterJsUrl(html: string): string | undefined {
   return (
     /<script\b[^>]+src=["']([^"']*chapter\.js[^"']*)["'][^>]*>/i.exec(html)?.[1] ??
     /src=["']([^"']*chapter\.js[^"']*)["']/i.exec(html)?.[1]
   );
 }
 
-export function extractTotalPages(html: string): number {
+export function parseTotalPages(html: string): number {
   const candidates = [
     TOTAL_PAGES_REGEX.exec(html)?.[1],
     /class=["'][^"']*multi_pg_tip[^"']*["'][^>]*>\s*\(\s*\d+\s*\/\s*(\d+)\s*\)/i.exec(html)?.[1],
@@ -73,22 +73,22 @@ export function extractTotalPages(html: string): number {
   return 0;
 }
 
-export function extractCurlTemplate(html: string): string | undefined {
+export function parseCurlTemplate(html: string): string | undefined {
   const value = /<input[^>]*id=["']curl["'][^>]*value=["']([^"']+)["']/i.exec(html)?.[1]?.trim();
   if (!value || !value.includes("{page}")) return undefined;
-  return templatePathname(value);
+  return parseTemplatePathname(value);
 }
 
-export function extractPcurlTemplate(html: string): string | undefined {
+export function parsePcurlTemplate(html: string): string | undefined {
   const match = /\bpcurl\s*=\s*["']([^"']*\/pg-)\d+(\/[^"']*)?["']/.exec(html);
   if (!match?.[1]) return undefined;
-  return templatePathname(`${match[1]}{page}${match[2] ?? ""}`);
+  return parseTemplatePathname(`${match[1]}{page}${match[2] ?? ""}`);
 }
 
-function templatePathname(template: string): string {
+function parseTemplatePathname(template: string): string {
   const placeholder = "__MANGAGO_PAGE__";
   const guarded = template.replace(/\{page\}/g, placeholder);
-  const path = pathAndQueryOf(guarded.startsWith("http") ? guarded : `${DOMAIN}${guarded}`);
+  const path = parsePathAndQuery(guarded.startsWith("http") ? guarded : `${DOMAIN}${guarded}`);
   return path.split(placeholder).join("{page}");
 }
 
@@ -106,7 +106,7 @@ export function sojsonV4Decode(source: string): string {
     .join("");
 }
 
-export function findHexEncodedVariable(script: string, variable: string): string | undefined {
+export function parseHexEncodedVariable(script: string, variable: string): string | undefined {
   HEX_VARIABLE_REGEX.lastIndex = 0;
   for (const match of script.matchAll(HEX_VARIABLE_REGEX)) {
     if (match[1] === variable) return match[2];
@@ -114,7 +114,7 @@ export function findHexEncodedVariable(script: string, variable: string): string
   return undefined;
 }
 
-export function extractDescrambleCols(script: string): number {
+export function parseDescrambleCols(script: string): number {
   const value = Number(COLS_REGEX.exec(script)?.[1]);
   return Number.isFinite(value) ? value : 0;
 }
@@ -123,9 +123,9 @@ export function isUsableChapterJs(script: unknown): script is string {
   return (
     typeof script === "string" &&
     script.length > 1000 &&
-    !!findHexEncodedVariable(script, "key") &&
-    !!findHexEncodedVariable(script, "iv") &&
-    extractDescrambleCols(script) > 0 &&
+    !!parseHexEncodedVariable(script, "key") &&
+    !!parseHexEncodedVariable(script, "iv") &&
+    parseDescrambleCols(script) > 0 &&
     script.includes("var renImg = function(img,width,height,id){") &&
     script.includes("key = key.split(")
   );
@@ -288,8 +288,8 @@ export function parseDescrambleKey(key: string, cols: number): DescrambleKey | u
   return { order: trimmed, cols };
 }
 
-export function numericChapterCandidates(target: string): string[] {
-  const path = pathAndQueryOf(target);
+export function buildNumericChapterUrls(target: string): string[] {
+  const path = parsePathAndQuery(target);
   if (!/^\/chapter\/\d+\/\d+/.test(path)) return [];
   const suffix = target.slice(target.indexOf(path));
   return READER_MIRROR_HOSTS.map((host) => `${host}${suffix}`);
@@ -314,7 +314,7 @@ export function canonicalReaderUrl(target: string): string {
   const readerIndex = Math.max(head.lastIndexOf("/read-manga/"), head.lastIndexOf("/chapter/"));
   const working = (readerIndex > 0 ? head.slice(readerIndex) : head) + suffix;
 
-  const path = pathAndQueryOf(working);
+  const path = parsePathAndQuery(working);
   const numeric = /^\/chapter\/\d+\/\d+/.test(path);
   const origin = numeric && mirrorOrigin ? mirrorOrigin : DOMAIN;
 

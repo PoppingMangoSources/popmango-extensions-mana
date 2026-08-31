@@ -54,7 +54,7 @@ const SORT_VALUES: Record<string, string> = {
   [SortID.Alphabetical]: "",
 };
 
-export function sortValueFor(id: string | undefined): string {
+export function sortValue(id: string | undefined): string {
   return SORT_VALUES[id ?? ""] ?? "";
 }
 
@@ -117,7 +117,7 @@ export const GENRE_OPTIONS: Option[] = GENRES.map((genre) => ({
   title: genre,
 }));
 
-export function getGenreTitle(idOrTitle: string): string {
+export function genreTitle(idOrTitle: string): string {
   return (
     GENRE_OPTIONS.find((genre) => genre.id === idOrTitle || genre.title === idOrTitle)?.title ??
     idOrTitle

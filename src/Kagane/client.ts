@@ -25,7 +25,7 @@ function isStaleTokenBody(body: string): boolean {
   return /integrity|token|unauthorized|forbidden/i.test(body.slice(0, 2048));
 }
 
-function headerOf(response: NetworkResponse, name: string): string {
+function headerValue(response: NetworkResponse, name: string): string {
   const headers = response.headers ?? {};
   const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
   return key === undefined ? "" : String(headers[key] ?? "");
@@ -34,10 +34,10 @@ function headerOf(response: NetworkResponse, name: string): string {
 // A JSON 403/503 is an expired token or a rate limit, not a challenge; only a real
 // fingerprint counts, or every row prompts for a WebView that cannot help.
 function isCloudflareChallenge(response: NetworkResponse): boolean {
-  if (headerOf(response, "cf-mitigated").toLowerCase() === "challenge") return true;
+  if (headerValue(response, "cf-mitigated").toLowerCase() === "challenge") return true;
   if (response.status !== 403 && response.status !== 503) return false;
 
-  const contentType = headerOf(response, "content-type").toLowerCase();
+  const contentType = headerValue(response, "content-type").toLowerCase();
   if (contentType.includes("application/json")) return false;
 
   const body = response.data ?? "";
@@ -273,7 +273,7 @@ export class KaganeApi {
 
 function parseJson<T>(response: NetworkResponse, url: string): T {
   if (response.status >= 400) {
-    throw new Error(`${describeError(response.data)} (HTTP ${response.status} for ${url})`);
+    throw new Error(`${errorMessage(response.data)} (HTTP ${response.status} for ${url})`);
   }
 
   try {
@@ -283,7 +283,7 @@ function parseJson<T>(response: NetworkResponse, url: string): T {
   }
 }
 
-function describeError(body: string): string {
+function errorMessage(body: string): string {
   try {
     const parsed: unknown = JSON.parse(body);
     if (typeof parsed === "object" && parsed !== null) {

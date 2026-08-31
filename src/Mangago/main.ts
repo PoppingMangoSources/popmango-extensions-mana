@@ -62,8 +62,8 @@ import {
   STATUS_OPTIONS,
   SortID,
   genreIdFromTitle,
-  getGenreTitle,
-  sortValueFor,
+  genreTitle,
+  sortValue,
   type MangagoListing,
   type DiscoverSection,
 } from "./model.ts";
@@ -72,7 +72,7 @@ import {
   buildGenreBrowseUrl,
   buildLatestUrl,
   buildSearchUrl,
-  contentRatingForGenres,
+  ratingForGenres,
   FEATURED_CONTAINER,
   hasNextPage,
   parseChapters,
@@ -87,15 +87,15 @@ import {
   canonicalReaderUrl,
   decodeImgsrcs,
   deriveDescramblingKeys,
-  extractChapterJsUrl,
-  extractCurlTemplate,
-  extractDescrambleCols,
-  extractImgsrcs,
-  extractPcurlTemplate,
-  extractTotalPages,
-  findHexEncodedVariable,
+  parseChapterJsUrl,
+  parseCurlTemplate,
+  parseDescrambleCols,
+  parseImgsrcs,
+  parsePcurlTemplate,
+  parseTotalPages,
+  parseHexEncodedVariable,
   isUsableChapterJs,
-  numericChapterCandidates,
+  buildNumericChapterUrls,
   parseDescrambleKey,
   resolveChapterJsUrl,
   sojsonV4Decode,
@@ -108,7 +108,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -169,7 +169,7 @@ class MangagoSource
   }
 
   private async hiddenGenreTitles(): Promise<string[]> {
-    return (await this.preferences.strings(PreferenceID.HiddenGenres)).map(getGenreTitle);
+    return (await this.preferences.strings(PreferenceID.HiddenGenres)).map(genreTitle);
   }
 
   private async contentType(): Promise<string> {
@@ -266,8 +266,8 @@ class MangagoSource
 
     const filters = new FilterReader(request);
     const genres = filters.excludable(FilterID.Genres);
-    const included = genres.included.map((id) => getGenreTitle(id));
-    const excluded = genres.excluded.map((id) => getGenreTitle(id));
+    const included = genres.included.map((id) => genreTitle(id));
+    const excluded = genres.excluded.map((id) => genreTitle(id));
 
     if ((await this.contentType()) === "webtoons" && !included.includes("Webtoons")) {
       included.push("Webtoons");
@@ -280,7 +280,7 @@ class MangagoSource
         included,
         excluded: [...excluded, ...(await this.settingsExcludedGenres())],
         page,
-        sort: sortValueFor(resolveSortId(SORT_OPTIONS, request, SortID.Views)),
+        sort: sortValue(resolveSortId(SORT_OPTIONS, request, SortID.Views)),
         ...(statuses.length > 0 ? { statuses } : {}),
       }),
     );
@@ -444,7 +444,7 @@ class MangagoSource
     if (sectionId === "new_chapters") return buildLatestUrl(page);
 
     const included = sectionId.startsWith("top_")
-      ? [getGenreTitle(sectionId.slice("top_".length))]
+      ? [genreTitle(sectionId.slice("top_".length))]
       : [];
 
     return buildGenreBrowseUrl({ included, excluded, page, sort });
@@ -478,7 +478,7 @@ class MangagoSource
     const limited = limit === undefined ? listings : listings.slice(0, limit);
 
     const sectionRating = isTop
-      ? contentRatingForGenres([getGenreTitle(sectionId.slice("top_".length))])
+      ? ratingForGenres([genreTitle(sectionId.slice("top_".length))])
       : undefined;
 
     const results = await this.toHighlights(limited, sectionRating, spec?.style);
@@ -513,7 +513,7 @@ class MangagoSource
 
     return items.map((item) => {
       const rating = item.genres?.length
-        ? contentRatingForGenres(item.genres)
+        ? ratingForGenres(item.genres)
         : (fallbackRating ?? ContentRating.SAFE);
 
       const info: Pair[] = [];
@@ -537,7 +537,7 @@ class MangagoSource
     chapterUrl: string,
   ): Promise<{ html: string; loadedUrl: string }> {
     const canonical = canonicalReaderUrl(chapterUrl);
-    const candidates = [canonical, ...numericChapterCandidates(canonical)].filter(
+    const candidates = [canonical, ...buildNumericChapterUrls(canonical)].filter(
       (candidate, index, all) => all.indexOf(candidate) === index,
     );
 
@@ -556,7 +556,7 @@ class MangagoSource
   }
 
   private async loadCrypto(html: string, loadedUrl: string): Promise<ReaderCrypto> {
-    const src = extractChapterJsUrl(html);
+    const src = parseChapterJsUrl(html);
     if (!src) throw new Error("Could not find chapter.js");
 
     const scriptUrl = resolveChapterJsUrl(src, loadedUrl);
@@ -567,8 +567,8 @@ class MangagoSource
       if (isUsableChapterJs(script)) this.scriptCache.set(scriptUrl, script);
     }
 
-    const keyHex = findHexEncodedVariable(script, "key");
-    const ivHex = findHexEncodedVariable(script, "iv");
+    const keyHex = parseHexEncodedVariable(script, "key");
+    const ivHex = parseHexEncodedVariable(script, "iv");
     if (!keyHex) throw new Error("Could not find the AES key");
     if (!ivHex) throw new Error("Could not find the AES IV");
 
@@ -576,19 +576,19 @@ class MangagoSource
       script,
       key: decodeHex(keyHex),
       iv: decodeHex(ivHex),
-      cols: extractDescrambleCols(script),
+      cols: parseDescrambleCols(script),
     };
   }
 
   private async loadChapterPages(chapterUrl: string): Promise<ChapterPage[]> {
     const { html, loadedUrl } = await this.resolveReaderPage(chapterUrl);
 
-    const blob = extractImgsrcs(html);
+    const blob = parseImgsrcs(html);
     if (!blob) throw new Error("Could not read the chapter's image list");
 
     const crypto = await this.loadCrypto(html, loadedUrl);
     const first = decodeImgsrcs(blob, crypto, true);
-    const totalPages = extractTotalPages(html);
+    const totalPages = parseTotalPages(html);
 
     const complete =
       first.length > 0 &&
@@ -597,7 +597,7 @@ class MangagoSource
 
     if (complete) return this.toPages(first, crypto);
 
-    const template = extractCurlTemplate(html) ?? extractPcurlTemplate(html);
+    const template = parseCurlTemplate(html) ?? parsePcurlTemplate(html);
     if (totalPages <= 0 || !template) return this.toPages(first.filter(Boolean), crypto);
 
     const slots: string[] = Array.from({ length: totalPages }, () => "");
@@ -614,7 +614,7 @@ class MangagoSource
       if (slots[page - 1]) continue;
       try {
         const pageHtml = await this.fetchHtml(buildTemplatePageUrl(template, loadedUrl, page));
-        const pageBlob = extractImgsrcs(pageHtml);
+        const pageBlob = parseImgsrcs(pageHtml);
         if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
       } catch (error) {
         if (error instanceof CloudflareError) throw error;
@@ -625,7 +625,7 @@ class MangagoSource
       if (slots[page - 1]) continue;
       try {
         const pageHtml = await this.fetchHtml(buildTemplatePageUrl(template, loadedUrl, page));
-        const pageBlob = extractImgsrcs(pageHtml);
+        const pageBlob = parseImgsrcs(pageHtml);
         if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
       } catch (error) {
         if (error instanceof CloudflareError) throw error;

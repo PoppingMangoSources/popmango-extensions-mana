@@ -14,13 +14,7 @@ export type SearchBodyOptions = {
 
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
 
-function sourceTypesFor(uploadSource: string): string[] {
-  if (uploadSource === "official") return ["Official"];
-  if (uploadSource === "scanlations") return ["Unofficial", "Mixed"];
-  return ["Official", "Unofficial", "Mixed"];
-}
-
-function includeExclude(
+function buildIncludeExclude(
   included: string[],
   excluded: string[],
   matchAll: boolean,
@@ -44,7 +38,12 @@ export function buildSearchBody(
   filters?: FilterReader,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
-    source_type: sourceTypesFor(options.uploadSource),
+    source_type:
+      options.uploadSource === "official"
+        ? ["Official"]
+        : options.uploadSource === "scanlations"
+          ? ["Unofficial", "Mixed"]
+          : ["Official", "Unofficial", "Mixed"],
     content_lang: options.contentLanguages,
   };
 
@@ -56,10 +55,10 @@ export function buildSearchBody(
   if (contentRating.length > 0) body["content_rating"] = contentRating;
 
   if (!filters) {
-    const genres = includeExclude([], options.excludedGenreIds, false);
+    const genres = buildIncludeExclude([], options.excludedGenreIds, false);
     if (genres) body["genres"] = genres;
 
-    const tags = includeExclude([], options.excludedTagIds, false);
+    const tags = buildIncludeExclude([], options.excludedTagIds, false);
     if (tags) body["tags"] = tags;
     return body;
   }
@@ -74,7 +73,7 @@ export function buildSearchBody(
   if (sources.length > 0) body["source_id"] = sources;
 
   const genreSelection = filters.excludable(FilterID.Genres);
-  const genres = includeExclude(
+  const genres = buildIncludeExclude(
     genreSelection.included,
     [...new Set([...genreSelection.excluded, ...options.excludedGenreIds])],
     filters.toggle(FilterID.MatchAllGenres),
@@ -82,7 +81,7 @@ export function buildSearchBody(
   if (genres) body["genres"] = genres;
 
   const tagSelection = filters.excludable(FilterID.Tags);
-  const tags = includeExclude(
+  const tags = buildIncludeExclude(
     tagSelection.included,
     [...new Set([...tagSelection.excluded, ...options.excludedTagIds])],
     filters.toggle(FilterID.MatchAllTags),
@@ -92,7 +91,7 @@ export function buildSearchBody(
   return body;
 }
 
-export function sortParameter(id: string, ascending: boolean | undefined): string {
+export function buildSortParameter(id: string, ascending: boolean | undefined): string {
   if (!id) return "";
   return ascending === true ? id : `${id},desc`;
 }

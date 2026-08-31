@@ -62,24 +62,24 @@ import {
   type SeriesSummary,
 } from "./model.ts";
 import {
-  descriptorOf,
-  displayTitle,
-  infoRowsOf,
-  latestChapterDate,
-  latestChapterLabel,
+  formatDescriptor,
+  formatTitle,
+  buildInfoRows,
+  parseLatestChapterDate,
+  formatLatestChapter,
   seriesUrl,
-  toChapters,
-  toContent,
-  toHighlight,
+  parseChapters,
+  parseContent,
+  parseHighlight,
   type TitleOptions,
 } from "./parsers.ts";
-import { buildSearchBody, sortParameter, type SearchBodyOptions } from "./search.ts";
+import { buildSearchBody, buildSortParameter, type SearchBodyOptions } from "./search.ts";
 import { buildSettingsSections } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -153,11 +153,11 @@ class KaganeSource
   }
 
   private async genreOptions(): Promise<Option[]> {
-    return toOptions(await this.api.genreNames());
+    return buildOptions(await this.api.genreNames());
   }
 
   private async tagOptions(): Promise<Option[]> {
-    return toOptions(await this.api.tagNames());
+    return buildOptions(await this.api.tagNames());
   }
 
   private async sourceOptions(): Promise<Option[]> {
@@ -281,7 +281,7 @@ class KaganeSource
       body,
       pageOf(request),
       PAGE_SIZE,
-      sortParameter(sortId, request.sort?.ascending),
+      buildSortParameter(sortId, request.sort?.ascending),
     );
   }
 
@@ -292,8 +292,11 @@ class KaganeSource
       this.preferences.flag(PreferenceID.ShowSpoilerTags),
     ]);
 
-    const content = toContent(contentId, details, { ...titleOptions, showSpoilerTags }, (imageId) =>
-      this.api.imageUrl(imageId),
+    const content = parseContent(
+      contentId,
+      details,
+      { ...titleOptions, showSpoilerTags },
+      (imageId) => this.api.imageUrl(imageId),
     );
 
     const trackerId = details.tracker_id;
@@ -319,7 +322,7 @@ class KaganeSource
           items: others.map((entry) => ({
             type: 2 as const,
             id: entry.id,
-            title: displayTitle(entry.title, titleOptions, entry.source_id),
+            title: formatTitle(entry.title, titleOptions, entry.source_id),
             cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
           })),
         },
@@ -334,7 +337,7 @@ class KaganeSource
       this.preferences.strings(PreferenceID.ContentLanguages),
     ]);
 
-    return toChapters(contentId, details, {
+    return parseChapters(contentId, details, {
       chapterTitleMode,
       language: languages[0] ?? DefinedLanguages.ENGLISH,
     });
@@ -411,7 +414,7 @@ class KaganeSource
       body,
       page,
       spec.limit ?? PAGE_SIZE,
-      sortParameter(spec.sort, false),
+      buildSortParameter(spec.sort, false),
       spec.layout,
     );
   }
@@ -430,7 +433,7 @@ class KaganeSource
     ]);
 
     const results: Highlight[] = (response.content ?? []).map((book) =>
-      toHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
+      parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
         ...this.tileExtras(book, layout, genreNames),
       }),
     );
@@ -445,39 +448,39 @@ class KaganeSource
   ): { subtitle?: string; info?: Pair[] } {
     switch (layout) {
       case SectionLayout.Detailed: {
-        const subtitle = descriptorOf(book);
+        const subtitle = formatDescriptor(book);
         return {
           ...(subtitle ? { subtitle } : {}),
-          info: infoRowsOf(book, genreNames),
+          info: buildInfoRows(book, genreNames),
         };
       }
 
       case SectionLayout.ChapterUpdates: {
-        const chapter = latestChapterLabel(book);
+        const chapter = formatLatestChapter(book);
         if (!chapter) {
-          const subtitle = descriptorOf(book);
+          const subtitle = formatDescriptor(book);
           return subtitle ? { subtitle } : {};
         }
         return {
           subtitle: chapter,
-          info: [{ key: chapter, value: relativeTime(latestChapterDate(book)) }],
+          info: [{ key: chapter, value: relativeTime(parseLatestChapterDate(book)) }],
         };
       }
 
       case SectionLayout.Hero: {
-        const subtitle = descriptorOf(book);
+        const subtitle = formatDescriptor(book);
         return subtitle ? { subtitle } : {};
       }
 
       default: {
-        const chapter = latestChapterLabel(book);
+        const chapter = formatLatestChapter(book);
         return chapter ? { subtitle: chapter } : {};
       }
     }
   }
 }
 
-function toOptions(map: Record<string, string> | undefined): Option[] {
+function buildOptions(map: Record<string, string> | undefined): Option[] {
   return Object.entries(map ?? {})
     .map(([id, title]) => ({ id, title }))
     .sort((left, right) => left.title.localeCompare(right.title));

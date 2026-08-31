@@ -35,7 +35,7 @@ export type TitleOptions = {
   sources: Record<string, string>;
 };
 
-export function displayTitle(
+export function formatTitle(
   title: string,
   options: TitleOptions,
   sourceId?: string | null,
@@ -63,7 +63,7 @@ export function chapterUrl(seriesId: string, chapterId: string): string {
   return `${BASE_URL}/series/${seriesId}/reader/${chapterId}`;
 }
 
-function statusOf(raw: string | undefined): PublicationStatus | undefined {
+function parseStatus(raw: string | undefined): PublicationStatus | undefined {
   switch ((raw ?? "").toUpperCase()) {
     case "ONGOING":
       return PublicationStatus.ONGOING;
@@ -78,7 +78,7 @@ function statusOf(raw: string | undefined): PublicationStatus | undefined {
   }
 }
 
-function contentTypeOf(format: string | null | undefined): ContentType | undefined {
+function parseContentType(format: string | null | undefined): ContentType | undefined {
   switch ((format ?? "").toLowerCase()) {
     case "manga":
       return ContentType.MANGA;
@@ -93,7 +93,7 @@ function contentTypeOf(format: string | null | undefined): ContentType | undefin
   }
 }
 
-export function ratingOf(value: string | null | undefined): ContentRating {
+export function parseContentRating(value: string | null | undefined): ContentRating {
   switch ((value ?? "").toLowerCase()) {
     case "safe":
       return ContentRating.SAFE;
@@ -106,7 +106,7 @@ export function ratingOf(value: string | null | undefined): ContentRating {
   }
 }
 
-function statusLabel(book: SeriesSummary): string | undefined {
+function formatStatus(book: SeriesSummary): string | undefined {
   switch ((book.publication_status ?? "").toUpperCase()) {
     case "ONGOING":
       return "Ongoing";
@@ -121,17 +121,17 @@ function statusLabel(book: SeriesSummary): string | undefined {
   }
 }
 
-export function descriptorOf(book: SeriesSummary): string | undefined {
+export function formatDescriptor(book: SeriesSummary): string | undefined {
   const format = book.format?.trim();
   const parts = [
     format && format.toLowerCase() !== "other" ? format.toUpperCase() : undefined,
-    statusLabel(book),
+    formatStatus(book),
   ].filter((part): part is string => Boolean(part));
 
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
-export function latestChapterLabel(book: SeriesSummary): string | undefined {
+export function formatLatestChapter(book: SeriesSummary): string | undefined {
   const latest = book.latest_chapters?.[0];
   if (!latest) return undefined;
 
@@ -143,13 +143,13 @@ export function latestChapterLabel(book: SeriesSummary): string | undefined {
   return latest.title?.trim() || undefined;
 }
 
-export function latestChapterDate(book: SeriesSummary): Date | undefined {
+export function parseLatestChapterDate(book: SeriesSummary): Date | undefined {
   const latest = book.latest_chapters?.[0];
   if (!latest) return undefined;
   return parseDate(latest.available_at ?? latest.created_at);
 }
 
-export function infoRowsOf(book: SeriesSummary, genreNames: Record<string, string>): Pair[] {
+export function buildInfoRows(book: SeriesSummary, genreNames: Record<string, string>): Pair[] {
   const rows: Pair[] = [];
 
   const books = book.current_books;
@@ -166,7 +166,7 @@ export function infoRowsOf(book: SeriesSummary, genreNames: Record<string, strin
   return rows;
 }
 
-export function toHighlight(
+export function parseHighlight(
   book: SeriesSummary,
   options: TitleOptions,
   coverFor: (imageId: string) => string,
@@ -174,16 +174,16 @@ export function toHighlight(
 ): Highlight {
   return {
     id: book.series_id,
-    title: displayTitle(book.title, options, book.source_id),
+    title: formatTitle(book.title, options, book.source_id),
     cover: book.cover_image_id ? coverFor(book.cover_image_id) : "",
     ...(extra?.subtitle ? { subtitle: extra.subtitle } : {}),
     ...(extra?.info && extra.info.length > 0 ? { info: extra.info } : {}),
-    contentRating: ratingOf(book.content_rating),
+    contentRating: parseContentRating(book.content_rating),
     webUrl: seriesUrl(book.series_id),
   };
 }
 
-export function toContent(
+export function parseContent(
   seriesId: string,
   details: DetailsResponse,
   options: TitleOptions & { showSpoilerTags: boolean },
@@ -213,17 +213,17 @@ export function toContent(
   ];
 
   const summary = buildSummary(details, sourceName);
-  const status = statusOf(details.upload_status);
-  const contentType = contentTypeOf(details.format);
+  const status = parseStatus(details.upload_status);
+  const contentType = parseContentType(details.format);
 
   return {
-    title: displayTitle(details.title, options, details.source_id, details.edition_info),
+    title: formatTitle(details.title, options, details.source_id, details.edition_info),
     cover: details.series_covers?.[0]?.image_id ? coverFor(details.series_covers[0]!.image_id) : "",
     summary,
     additionalTitles: alternateTitles,
     tags,
     ...(contentType === undefined ? {} : { contentType }),
-    contentRating: ratingOf(details.content_rating),
+    contentRating: parseContentRating(details.content_rating),
     ...(status === undefined ? {} : { status }),
     webUrl: seriesUrl(seriesId),
     ...(authors.length > 0 || artists.length > 0
@@ -262,7 +262,7 @@ function unique(values: string[]): string[] {
   return values.filter((value, index) => value && values.indexOf(value) === index);
 }
 
-function starRating(details: DetailsResponse): string | undefined {
+function formatRating(details: DetailsResponse): string | undefined {
   const percent =
     typeof details.average_rating === "number" && details.average_rating > 0
       ? details.average_rating
@@ -283,7 +283,7 @@ function formatViews(views: number | null | undefined): string | undefined {
 function buildSummary(details: DetailsResponse, sourceName: string | undefined): string {
   const parts: string[] = [];
 
-  const stats = [starRating(details), formatViews(details.total_views)].filter(Boolean);
+  const stats = [formatRating(details), formatViews(details.total_views)].filter(Boolean);
   // Mana's `Content` has no rating or views field, so they lead the summary.
   if (stats.length > 0) parts.push(stats.join("  ·  "));
 
@@ -306,22 +306,17 @@ function buildSummary(details: DetailsResponse, sourceName: string | undefined):
   return parts.join("\n\n").trim();
 }
 
-function chapterOwnName(title: string): string {
-  let name = title.trim().replace(CHAPTER_METADATA_REGEX, "");
-  name = name.replace(CHAPTER_TRAILING_GROUP_REGEX, "");
-  name = name.replace(CHAPTER_VOLUME_SUFFIX_REGEX, "");
-  name = name.replace(CHAPTER_NUMBER_PREFIX_REGEX, "");
-  return name.replace(/^[\s:.\-–—]+/, "").trim();
-}
-
-function chapterNumberInTitle(title: string): string {
-  return CHAPTER_NUMBER_PREFIX_REGEX.exec(title.trim())?.[1] ?? "";
-}
-
-function chapterName(book: ChapterBook, mode: string): string {
+function formatChapterName(book: ChapterBook, mode: string): string {
   const title = book.title.trim();
-  const name = chapterOwnName(title);
-  const chapterNo = (book.chapter_no ?? "").trim() || chapterNumberInTitle(title);
+  const name = title
+    .replace(CHAPTER_METADATA_REGEX, "")
+    .replace(CHAPTER_TRAILING_GROUP_REGEX, "")
+    .replace(CHAPTER_VOLUME_SUFFIX_REGEX, "")
+    .replace(CHAPTER_NUMBER_PREFIX_REGEX, "")
+    .replace(/^[\s:.\-–—]+/, "")
+    .trim();
+  const chapterNo =
+    (book.chapter_no ?? "").trim() || (CHAPTER_NUMBER_PREFIX_REGEX.exec(title)?.[1] ?? "");
   const volumeNo = (book.volume_no ?? "").trim();
 
   const chapter = chapterNo ? `Ch.${chapterNo}` : "";
@@ -343,7 +338,7 @@ function chapterName(book: ChapterBook, mode: string): string {
   }
 }
 
-function scanlatorOf(book: ChapterBook): string | undefined {
+function parseScanlator(book: ChapterBook): string | undefined {
   const groups = (book.groups ?? []).map((group) => group.title).filter(Boolean);
   let name = groups.join(", ");
 
@@ -355,7 +350,7 @@ function scanlatorOf(book: ChapterBook): string | undefined {
   return name || undefined;
 }
 
-export function toChapters(
+export function parseChapters(
   seriesId: string,
   details: DetailsResponse,
   options: { chapterTitleMode: string; language: string },
@@ -367,7 +362,7 @@ export function toChapters(
   const ordered = [...books].reverse();
 
   return ordered.map((book, index) => {
-    const scanlator = scanlatorOf(book);
+    const scanlator = parseScanlator(book);
     const parsedNumber = Number.parseFloat((book.chapter_no ?? "").replace(/[^\d.]/g, ""));
 
     // sort_no is a position in the series for most formats, not a chapter number.
@@ -381,7 +376,7 @@ export function toChapters(
       chapterId: book.book_id,
       number,
       index,
-      title: chapterName(book, options.chapterTitleMode),
+      title: formatChapterName(book, options.chapterTitleMode),
       date: parseDate(book.created_at) ?? new Date(0),
       language: options.language || DefinedLanguages.ENGLISH,
       webUrl: chapterUrl(seriesId, book.book_id),

@@ -18,7 +18,7 @@ import { canonicalReaderUrl } from "./reader.ts";
 import {
   DOMAIN,
   genreIdFromTitle,
-  getGenreTitle,
+  genreTitle,
   TITLE_VERSION_REGEX,
   type MangagoListing,
 } from "./model.ts";
@@ -27,7 +27,7 @@ export function absoluteUrl(target: string): string {
   return resolveUrl(target, DOMAIN);
 }
 
-function pathnameOf(href: string): string {
+function parsePathname(href: string): string {
   const trimmed = href.trim();
   if (!trimmed) return "";
   const absolute = absoluteUrl(trimmed);
@@ -44,7 +44,7 @@ export function stripTitleVersion(title: string): string {
   return title.replace(TITLE_VERSION_REGEX, "").trim() || title;
 }
 
-export function contentRatingForGenres(genreTitles: string[]): ContentRating {
+export function ratingForGenres(genreTitles: string[]): ContentRating {
   const lower = genreTitles.map((title) => title.trim().toLowerCase());
   if (lower.some((title) => title === "adult" || title === "smut" || title === "yaoi")) {
     return ContentRating.EXPLICIT;
@@ -70,7 +70,7 @@ export function parseListings(html: string, scope?: string): MangagoListing[] {
     const link = item.find("a.thm-effect").first();
     if (link.length === 0) return;
 
-    const id = pathnameOf(link.attr("href") ?? "");
+    const id = parsePathname(link.attr("href") ?? "");
     if (!id || seen.has(id)) return;
 
     const image = link.find("img").first();
@@ -78,7 +78,7 @@ export function parseListings(html: string, scope?: string): MangagoListing[] {
     if (!title) return;
 
     const chapter = item.find(".chapter a, a[href*='/read-manga/'][href*='/c']").first();
-    const chapterPath = chapter.attr("href") ? pathnameOf(chapter.attr("href")!) : "";
+    const chapterPath = chapter.attr("href") ? parsePathname(chapter.attr("href")!) : "";
     const isChapter = chapterPath !== "" && chapterPath !== id;
 
     seen.add(id);
@@ -108,7 +108,7 @@ export function parseLatestUpdates(html: string): MangagoListing[] {
     const href = titleLink.attr("href") ?? "";
     if (!href.includes("/read-manga/")) return;
 
-    const id = pathnameOf(href);
+    const id = parsePathname(href);
     if (!id || seen.has(id)) return;
 
     const title = clean(titleLink.attr("title") ?? titleLink.text());
@@ -119,7 +119,7 @@ export function parseLatestUpdates(html: string): MangagoListing[] {
 
     const chapter = content.find("a.chico").first();
     const subtitle = clean(chapter.text());
-    const chapterId = chapter.attr("href") ? pathnameOf(chapter.attr("href")!) : undefined;
+    const chapterId = chapter.attr("href") ? parsePathname(chapter.attr("href")!) : undefined;
 
     let publishDate: Date | undefined;
     content.find(".blue").each((_index, label) => {
@@ -158,7 +158,7 @@ function eachInfoRow($: CheerioAPI, visit: (label: string, row: Cheerio<AnyNode>
   });
 }
 
-function mangaSummary($: CheerioAPI): string | undefined {
+function parseSummary($: CheerioAPI): string | undefined {
   const node = $(".manga_summary").first();
   node.find("font").remove();
   const value = node.text().trim();
@@ -234,11 +234,11 @@ export function parseContent(
   return {
     title,
     cover: coverUrl(info.find("img").first()),
-    summary: mangaSummary($) ?? "",
+    summary: parseSummary($) ?? "",
     additionalTitles,
     tags,
     contentType: isWebtoon ? ContentType.MANHWA : ContentType.MANGA,
-    contentRating: contentRatingForGenres(tagTitles),
+    contentRating: ratingForGenres(tagTitles),
     ...(status === undefined ? {} : { status }),
     webUrl: absoluteUrl(contentId),
     ...(author || artist
@@ -302,7 +302,7 @@ function isOfficialUpload(value: string): boolean {
   return /\bofficial\b/i.test(value);
 }
 
-function detectGroupFromBracket(title: string): string {
+function parseGroupFromBracket(title: string): string {
   for (const match of title.matchAll(/(?:\[([^\]]{2,80})\]|\(([^()]{2,80})\))/g)) {
     const value = clean(match[1] ?? match[2] ?? "");
     if (!value) continue;
@@ -314,7 +314,7 @@ function detectGroupFromBracket(title: string): string {
   return "";
 }
 
-function firstUploaderCandidate(candidates: string[], chapterTitle: string): string {
+function firstUploader(candidates: string[], chapterTitle: string): string {
   return (
     candidates
       .map((candidate) => clean(candidate))
@@ -327,10 +327,10 @@ function firstUploaderCandidate(candidates: string[], chapterTitle: string): str
   );
 }
 
-function extractUploader($: CheerioAPI, row: Cheerio<AnyNode>): string {
+function parseUploader($: CheerioAPI, row: Cheerio<AnyNode>): string {
   const chapterTitle = clean(row.find("a.chico").first().text());
 
-  const profile = firstUploaderCandidate(
+  const profile = firstUploader(
     row
       .find("a[href*='/home/'], a[href*='/user/'], a[href*='/profile/']")
       .not("a.chico")
@@ -350,13 +350,13 @@ function extractUploader($: CheerioAPI, row: Cheerio<AnyNode>): string {
     .toArray()
     .map((element) => $(element).text());
 
-  return firstUploaderCandidate(candidates, chapterTitle);
+  return firstUploader(candidates, chapterTitle);
 }
 
-function buildScanlator(rawUploader: string, rawTitle: string): string | undefined {
+function formatScanlator(rawUploader: string, rawTitle: string): string | undefined {
   const uploader = clean(rawUploader);
   const normalisedUploader = isOfficialUpload(uploader) ? "Official" : uploader;
-  const group = detectGroupFromBracket(rawTitle) || (isOfficialUpload(rawTitle) ? "Official" : "");
+  const group = parseGroupFromBracket(rawTitle) || (isOfficialUpload(rawTitle) ? "Official" : "");
 
   if (!group) return normalisedUploader || undefined;
   if (!normalisedUploader || group.toLowerCase() === normalisedUploader.toLowerCase()) return group;
@@ -385,14 +385,14 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     if (!href) return;
     if (options.hideRaws && href.includes("/raw/")) return;
 
-    const chapterId = href.startsWith("http") ? canonicalReaderUrl(href) : pathnameOf(href);
+    const chapterId = href.startsWith("http") ? canonicalReaderUrl(href) : parsePathname(href);
     if (!chapterId) return;
 
     const rawTitle = link.text().trim();
     if (!rawTitle) return;
 
     const parsedTitle = parseChapterTitle(rawTitle);
-    const scanlator = buildScanlator(extractUploader($, row), rawTitle);
+    const scanlator = formatScanlator(parseUploader($, row), rawTitle);
     const number = parsedTitle.number ?? parseChapterNumber(rawTitle);
 
     parsed.push({
@@ -439,7 +439,7 @@ export function parseRelated(html: string): MangagoListing[] {
     (_, element) => {
       const link = $(element).find("a.thm-effect").first();
       push(
-        pathnameOf(link.attr("href") ?? ""),
+        parsePathname(link.attr("href") ?? ""),
         clean(link.attr("title") ?? link.text()),
         coverUrl(link.find("img").first()),
       );
@@ -450,7 +450,7 @@ export function parseRelated(html: string): MangagoListing[] {
     const item = $(element);
     const link = item.find('h4 a[href*="/read-manga/"][title]').first();
     push(
-      pathnameOf(link.attr("href") ?? ""),
+      parsePathname(link.attr("href") ?? ""),
       clean(link.attr("title") ?? link.text()),
       coverUrl(item.find("img").first()),
     );
@@ -522,4 +522,4 @@ export function buildLatestUrl(page: number): string {
     .build();
 }
 
-export { getGenreTitle, text };
+export { genreTitle, text };
