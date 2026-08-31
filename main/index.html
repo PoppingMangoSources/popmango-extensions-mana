@@ -332,6 +332,78 @@ main { padding: 2rem 0 1rem; }
 }
 
 
+/* ── Pastel pink accents ─────────────────────────────────────────────────── */
+
+/* The primary action reads pink rather than mango, with the mango kept for the
+   card headings and rules so the page still has warmth in it. */
+.button--mango {
+  background: linear-gradient(120deg, #ffd9ea, #ffb3d3);
+  color: #5c2742;
+}
+.button--berry {
+  background: linear-gradient(120deg, #ffe6f2, #e3d3f7);
+  color: #52334f;
+}
+
+.repository--mango { border-top-color: var(--pink); }
+.repository--mango .repository__kicker { color: #d4568c; }
+.repository__head h3 span { background: #ffe8f2; color: #c9527f; }
+.hero h1 span { color: #f07fae; }
+.eyebrow { color: #d4568c; }
+.source-card__add { background: #ffe4ef; color: #d4568c; }
+.footer__links a { color: #d4568c; }
+
+/* ── Install banner ──────────────────────────────────────────────────────── */
+
+.install { align-items: flex-start; }
+.install__body { display: flex; flex-direction: column; gap: .75rem; min-width: 0; flex: 1 1 auto; }
+
+.install__url {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-width: 0;
+}
+
+/* The address is long and has no spaces, so it has to be allowed to break
+   anywhere — otherwise it pushes the whole banner wider than the page. */
+.install__url code {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: .55rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: .78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.install__copy {
+  flex: 0 0 auto;
+  min-height: 2.4rem;
+  padding: .5rem .95rem;
+  font-size: .82rem;
+}
+
+@media (max-width: 34rem) {
+  .install__url { flex-direction: column; align-items: stretch; }
+  .install__copy { width: 100%; }
+}
+
+/* The base theme tinted the catalog card teal to tell two repositories apart.
+   There is only one here, so it follows the pink accent like everything else. */
+.repository--mango .button--mango {
+  background: linear-gradient(120deg, #ffd9ea, #ffb3d3);
+  color: #5c2742;
+}
+.repository--mango .repository__kicker { color: #d4568c; }
+.repository--mango .repository__head h3 span { background: #ffe8f2; color: #c9527f; }
+.repository--mango .source-card__add { background: #ffe4ef; color: #d4568c; }
+.source-card:hover, .source-card:focus-visible { border-color: #ffb3d3; }
+
 </style>
 </head>
 <body>
@@ -378,11 +450,16 @@ main { padding: 2rem 0 1rem; }
 </section>
 
 <main>
-  <section class="compat" id="install">
+  <section class="compat install" id="install">
     <span class="compat__flower" aria-hidden="true">✿</span>
-    <p><b>Add the repository to Mana.</b> Copy the address below, then open
-    <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.<br>
-    <code id="repo-url">https://poppingmangosources.github.io/popmango-extensions-mana/main</code></p>
+    <div class="install__body">
+      <p><b>Add the repository to Mana.</b> Copy the address, then open
+      <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.</p>
+      <div class="install__url">
+        <code id="repo-url">https://poppingmangosources.github.io/popmango-extensions-mana/main</code>
+        <button class="button button--mango install__copy" type="button" id="copy-hero">Copy</button>
+      </div>
+    </div>
   </section>
 
   <div class="catalog-tools">
@@ -403,10 +480,10 @@ main { padding: 2rem 0 1rem; }
   <span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="42" height="42" role="img" aria-label="PoppingMango"><defs><linearGradient id="mango-gradient-42" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd087"/><stop offset="1" stop-color="#ff9a61"/></linearGradient></defs><circle cx="24" cy="24" r="23" fill="#fff7dc"/><ellipse cx="23" cy="27" rx="13" ry="15" fill="url(#mango-gradient-42)"/><ellipse cx="18" cy="20" rx="3.5" ry="6" fill="#fff" opacity=".42"/><ellipse cx="31" cy="10" rx="7" ry="3.4" fill="#8fce8b" transform="rotate(24 31 10)"/><circle cx="34" cy="17" r="2.4" fill="#fff" opacity=".9"/></svg></span>
   <p><b>PoppingMango Mana Sources</b><br>Novels, manga, manhwa and manhua for the Mana app.</p>
   <p class="footer__links"><a href="https://github.com/PoppingMangoSources/popmango-extensions-mana">GitHub</a></p>
-  <p class="footer__built">Catalog built 2026-08-29</p>
+  <p class="footer__built">Catalog built 2026-08-31</p>
 </footer>
 
-<script id="repo-data" type="application/json">{"name":"PoppingMango Sources","url":"https://poppingmangosources.github.io/popmango-extensions-mana/main","github":"https://github.com/PoppingMangoSources/popmango-extensions-mana","note":"Novels, manga, manhwa and manhua, kept fresh for the Mana app.","sources":[{"id":"mangago","name":"Mangago","version":"1.0.0","description":"Manga, manhwa and doujinshi from mangago.me.","website":"https://www.mangago.me","rating":1,"supportedLanguages":["en_US"],"thumbnail":"assets/icon.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Mangago","environment":"source","intents":6822921,"hash":"1cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d2"}]}</script>
+<script id="repo-data" type="application/json">{"name":"PoppingMango Sources","url":"https://poppingmangosources.github.io/popmango-extensions-mana/main","github":"https://github.com/PoppingMangoSources/popmango-extensions-mana","note":"Novels, manga, manhwa and manhua, kept fresh for the Mana app.","sources":[{"id":"mangago","name":"Mangago","version":"1.1.0","description":"Manga, manhwa and doujinshi from mangago.me.","website":"https://www.mangago.me","rating":1,"supportedLanguages":["en_US"],"thumbnail":"assets/icon.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Mangago","environment":"source","intents":6822921,"hash":"21e245bc21e245bc21e245bc21e245bc21e245bc21e245bc21e245bc21e245bc"}]}</script>
 <script>
 
 (function () {
@@ -506,33 +583,38 @@ main { padding: 2rem 0 1rem; }
       '</div></div>' + body + '</section>';
 
     var copy = document.getElementById("copy-repo");
-    if (copy) copy.addEventListener("click", copyRepoUrl);
+    if (copy) bindCopy(copy);
     updateScrollbars();
   }
 
-  function copyRepoUrl() {
-    var button = document.getElementById("copy-repo");
-    var done = function () {
-      button.textContent = "Copied!";
-      setTimeout(function () { button.textContent = "Copy repository URL"; }, 2000);
-    };
+  // Both copy buttons share this. The label is restored from the button's own
+  // markup so each keeps its own wording after the confirmation clears.
+  function bindCopy(button) {
+    var label = button.textContent;
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(repo.url).then(done, fallbackCopy);
-    } else {
-      fallbackCopy();
-    }
+    button.addEventListener("click", function () {
+      var done = function () {
+        button.textContent = "Copied!";
+        setTimeout(function () { button.textContent = label; }, 2000);
+      };
 
-    function fallbackCopy() {
-      var field = document.getElementById("repo-url");
-      if (!field) return;
-      var range = document.createRange();
-      range.selectNodeContents(field);
-      var selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-      try { document.execCommand("copy"); done(); } catch (error) { /* nothing to do */ }
-    }
+      var fallback = function () {
+        var field = document.getElementById("repo-url");
+        if (!field) return;
+        var range = document.createRange();
+        range.selectNodeContents(field);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        try { document.execCommand("copy"); done(); } catch (error) { /* nothing to do */ }
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(repo.url).then(done, fallback);
+      } else {
+        fallback();
+      }
+    });
   }
 
   function updateScrollbar(container) {
@@ -601,6 +683,9 @@ main { padding: 2rem 0 1rem; }
       })
       .catch(function () { /* The inlined catalog stays on screen. */ });
   }
+
+  var heroCopy = document.getElementById("copy-hero");
+  if (heroCopy) bindCopy(heroCopy);
 
   filterInput.addEventListener("input", render);
   window.addEventListener("resize", updateScrollbars);

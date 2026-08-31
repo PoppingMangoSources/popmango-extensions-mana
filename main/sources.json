@@ -4,7 +4,7 @@
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -21,7 +21,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "1cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d21cbcc0d2"
+      "hash": "21e245bc21e245bc21e245bc21e245bc21e245bc21e245bc21e245bc21e245bc"
     }
   ]
 }
