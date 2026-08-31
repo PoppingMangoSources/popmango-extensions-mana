@@ -45,10 +45,11 @@ becomes available to install.
 ## Sources
 
 <!-- sources:start -->
-**1 source available for Mana.**
+**2 sources available for Mana.**
 
 | Source | Site | Rating | Version |
 | :----- | :--- | :----- | :------ |
+| <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.0 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.2 |
 <!-- sources:end -->
 

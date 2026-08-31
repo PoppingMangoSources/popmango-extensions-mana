@@ -1,4 +1,5 @@
 import {
+  UIButton,
   UIListSection,
   UIMultiPicker,
   UIPicker,
@@ -109,6 +110,18 @@ export type PreferenceField =
       multiline?: boolean;
     }
   | { type: "toggle"; key: string; title: string }
+  /**
+   * An action rather than a stored value, so it carries no key of its own —
+   * `id` only has to be unique within the form.
+   */
+  | {
+      type: "button";
+      id: string;
+      title: string;
+      isDestructive?: boolean;
+      systemImage?: string;
+      action: () => Promise<void>;
+    }
   | { type: "select"; key: string; title: string; options: PreferenceOptions }
   | {
       type: "multiselect";
@@ -171,6 +184,15 @@ async function buildElement(
         didChange: async (value: boolean) => {
           await store.set(field.key, value);
         },
+      });
+
+    case "button":
+      return UIButton({
+        id,
+        title: field.title,
+        ...(field.isDestructive === undefined ? {} : { isDestructive: field.isDestructive }),
+        ...(field.systemImage === undefined ? {} : { systemImage: field.systemImage }),
+        action: field.action,
       });
 
     case "select": {
@@ -241,12 +263,12 @@ export async function buildPreferenceMenu(
     const unavailable: string[] = [];
 
     for (const field of spec.fields) {
-      const element = await buildElement(
-        field,
-        store.keyFor(field.key),
-        await store.get(field.key),
-        store,
-      );
+      // A button stores nothing, so it has an id of its own and no value to read.
+      const element =
+        field.type === "button"
+          ? await buildElement(field, store.keyFor(field.id), undefined, store)
+          : await buildElement(field, store.keyFor(field.key), await store.get(field.key), store);
+
       if (element) children.push(element);
       else unavailable.push(field.title);
     }
