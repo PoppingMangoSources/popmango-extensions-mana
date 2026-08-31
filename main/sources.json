@@ -5,7 +5,7 @@
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
@@ -22,12 +22,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "4be53fc54be53fc54be53fc54be53fc54be53fc54be53fc54be53fc54be53fc5"
+      "hash": "61b5cee761b5cee761b5cee761b5cee761b5cee761b5cee761b5cee761b5cee7"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -44,7 +44,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "6abbf16f6abbf16f6abbf16f6abbf16f6abbf16f6abbf16f6abbf16f6abbf16f"
+      "hash": "1c91b60a1c91b60a1c91b60a1c91b60a1c91b60a1c91b60a1c91b60a1c91b60a"
     }
   ]
 }
