@@ -89,7 +89,15 @@
   re-minting an expired token when an image is actually fetched.
 - Related editions from a title's tracker entry, and deep links from `kagane.to`.
 
-## Mangago (current: v1.1.1)
+## Mangago (current: v1.1.2)
+
+### Added
+
+- `Supernatural Manga Top 10` and `Mystery Manga Top 10` are back. They are rows the
+  mirror carries and the main domain does not, and the previous release dropped them on
+  the mistaken reading that the site had never had them.
+
+## Mangago (v1.1.1)
 
 ### Fixed
 

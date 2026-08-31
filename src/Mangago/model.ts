@@ -169,8 +169,12 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     subtitle: "Your daily dose of the latest updates",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
-  // The eight genre rows the site's own home page carries, in its order and
-  // under its names. It ranks each ten deep and links the rest behind "more".
+  // The genre rows the site's home page carries, under its names and ranked
+  // ten deep, with the rest behind "more". The first eight are the order the
+  // main domain lists them in; Supernatural and Mystery are rows the mirror
+  // carries and the main domain does not. Every one of them is the same
+  // catalogue ranked by comment count, so serving them all from one host
+  // costs nothing and keeps the reader on a single Cloudflare surface.
   ...(
     [
       ["yaoi", "Yaoi"],
@@ -181,6 +185,8 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
       ["josei", "Josei"],
       ["fantasy", "Fantasy"],
       ["school_life", "School Life"],
+      ["supernatural", "Supernatural"],
+      ["mystery", "Mystery"],
     ] as const
   ).map(([id, genre]) => ({
     id: `top_${id}`,
