@@ -1,6 +1,27 @@
 # Changelog
 
-## Kagane (current: v1.0.1)
+## Kagane (current: v1.1.0)
+
+### Added
+
+- `Hidden Gems`, `Trending Today`, `Trending This Week`, `Trending This Month` and
+  `Highest Rated` as home rows of their own. The Paperback source offers the trending
+  windows as a strip of chips; as rows you can see what is climbing without tapping first.
+- Detailed rows now show `MANHWA · Completed` under the title with `Chapters`, `Year` and
+  `Genres` beneath it, and `Latest Updates` shows the newest chapter with how long ago it
+  landed.
+
+### Changed
+
+- Tiles carry the real content rating. The listing states it per title, so a tile no
+  longer has to assume the worst.
+
+### Fixed
+
+- The listing response carries the format, status, genres and newest chapter all along;
+  reading them means the richer rows cost no extra requests.
+
+## Kagane (v1.0.1)
 
 ### Fixed
 
