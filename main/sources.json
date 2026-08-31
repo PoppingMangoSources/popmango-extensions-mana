@@ -1,5 +1,6 @@
 {
   "repositoryName": "PoppingMango Sources",
+  "thumbnail": "assets/Repository.png",
   "sources": [
     {
       "id": "kagane",
@@ -21,7 +22,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "0bade0460bade0460bade0460bade0460bade0460bade0460bade0460bade046"
+      "hash": "0170454c0170454c0170454c0170454c0170454c0170454c0170454c0170454c"
     },
     {
       "id": "mangago",
@@ -43,7 +44,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "568f16b0568f16b0568f16b0568f16b0568f16b0568f16b0568f16b0568f16b0"
+      "hash": "4c517b9b4c517b9b4c517b9b4c517b9b4c517b9b4c517b9b4c517b9b4c517b9b"
     }
   ]
 }
