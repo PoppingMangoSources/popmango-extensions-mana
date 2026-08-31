@@ -146,6 +146,8 @@ The failures this repo has actually shipped, each silent:
 
 - [ ] Icon at `assets/<Name>.png`, `thumbnail` a bare filename — not under `src/`
 - [ ] POST bodies passed as objects, never `JSON.stringify`-ed
+- [ ] `setStatusValidator` set on any client that reads `response.status` — otherwise the
+      host throws on non-2xx first and that code never runs
 - [ ] No hand-written `user-agent` on a client fronting Cloudflare
 - [ ] A JSON API's 403/503 not reported as a challenge without a real fingerprint
 - [ ] Unnumbered chapters renumbered above the main run, not left at `0`

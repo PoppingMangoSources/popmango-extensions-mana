@@ -63,6 +63,10 @@ export class KaganeApi {
   private get http(): NetworkClient {
     this.client ??= new NetworkClientBuilder()
       .setRateLimit(3, 1)
+      // Without this the host throws on any non-2xx before the caller sees the
+      // response, which would make the stale-token retry below unreachable and
+      // replace the API's own error message with a generic one.
+      .setStatusValidator(() => true)
       .addRequestInterceptor(async (request: NetworkRequest) => ({
         ...request,
         headers: {

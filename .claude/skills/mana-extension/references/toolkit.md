@@ -160,6 +160,25 @@ A site needing more than this — a per-URL user agent, an injected cookie — g
 `client.ts` built on `NetworkClientBuilder` directly. Per-request `headers` always win over
 the client defaults.
 
+### A non-2xx response throws before you see it
+
+The host's default status validator accepts only 200–299 and turns everything else into a
+`NetworkError` **after** the response interceptors run but before the caller is handed the
+response. Any code that reads `response.status` to react to a 401, 404 or 429 is therefore
+unreachable, and the server's own error message is replaced by a generic one.
+
+A client that needs to see those statuses — a token to refresh, an error body to quote,
+a 404 to treat as empty — must say so:
+
+```ts
+new NetworkClientBuilder().setStatusValidator(() => true)
+```
+
+Then check the status yourself at the point that cares. Leave it unset when a failed
+request genuinely should throw. Note the host's own Cloudflare check lives inside the
+branch this disables, so a client that opts out needs its own challenge detection —
+which is what the response interceptor above is for.
+
 ### POST bodies are objects, not strings
 
 `NetworkRequest.body` is handed over as an **object**; the host serialises it according to
