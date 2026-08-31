@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.7)
+## Kagane (current: v1.0.8)
+
+### Fixed
+
+- Chapters name the wrong publisher. The site records who uploaded a series on the series
+  itself, not on each chapter, so the group is now resolved from that — an official
+  publisher or a scanlation group — matching what other Kagane clients show. A group named
+  inside a chapter title is appended to it rather than replacing it.
+
+## Kagane (v1.0.7)
 
 ### Fixed
 
