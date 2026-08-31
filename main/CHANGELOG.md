@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.13)
+## Kagane (current: v1.0.14)
+
+### Fixed
+
+- Every chapter failed to open with "Kagane rejected the reader token". The reader token was
+  judged stale when the response body mentioned a token, and a successful response names the
+  field `access_token`, so a good token was always read as a rejected one. Only the status
+  decides now, as other clients for this site do.
+
+## Kagane (v1.0.13)
 
 ### Removed
 
