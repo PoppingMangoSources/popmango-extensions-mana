@@ -21,12 +21,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "416f1660416f1660416f1660416f1660416f1660416f1660416f1660416f1660"
+      "hash": "3fd40c2d3fd40c2d3fd40c2d3fd40c2d3fd40c2d3fd40c2d3fd40c2d3fd40c2d"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -43,7 +43,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "19a4fb5c19a4fb5c19a4fb5c19a4fb5c19a4fb5c19a4fb5c19a4fb5c19a4fb5c"
+      "hash": "6ed908566ed908566ed908566ed908566ed908566ed908566ed908566ed90856"
     }
   ]
 }
