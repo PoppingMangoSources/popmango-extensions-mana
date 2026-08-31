@@ -1,6 +1,13 @@
 # Changelog
 
-## Kagane (current: v1.0.0)
+## Kagane (current: v1.0.1)
+
+### Fixed
+
+- The source icon showed as a placeholder in the app. The toolchain packages only the
+  project-root `assets/` folder, so an icon inside `src/<Name>/` was never shipped.
+
+## Kagane (v1.0.0)
 
 ### Added
 
@@ -17,7 +24,14 @@
   re-minting an expired token when an image is actually fetched.
 - Related editions from a title's tracker entry, and deep links from `kagane.to`.
 
-## Mangago (current: v1.0.2)
+## Mangago (current: v1.0.3)
+
+### Fixed
+
+- The source icon showed as a placeholder in the app, for the same packaging reason as
+  above.
+
+## Mangago (v1.0.2)
 
 ### Fixed
 

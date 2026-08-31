@@ -4,14 +4,14 @@
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
       "supportedLanguages": [
         "en_US"
       ],
-      "thumbnail": "assets/icon.png",
+      "thumbnail": "Kagane.png",
       "developers": [
         {
           "name": "PoppingMango",
@@ -21,19 +21,19 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "04fb65e004fb65e004fb65e004fb65e004fb65e004fb65e004fb65e004fb65e0"
+      "hash": "456a0d5c456a0d5c456a0d5c456a0d5c456a0d5c456a0d5c456a0d5c456a0d5c"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
       "supportedLanguages": [
         "en_US"
       ],
-      "thumbnail": "assets/icon.png",
+      "thumbnail": "Mangago.png",
       "developers": [
         {
           "name": "PoppingMango",
@@ -43,7 +43,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "4f05cf904f05cf904f05cf904f05cf904f05cf904f05cf904f05cf904f05cf90"
+      "hash": "7f8963b37f8963b37f8963b37f8963b37f8963b37f8963b37f8963b37f8963b3"
     }
   ]
 }
