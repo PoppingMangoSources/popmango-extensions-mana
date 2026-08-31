@@ -5,10 +5,8 @@ import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
 export const BASE_URL = "https://kagane.to";
 export const API_URL = `${BASE_URL}/api/v2`;
 
-/** The cache host used when a challenge response does not name one. */
 export const DEFAULT_CACHE_URL = BASE_URL;
 
-/** The site's own page size for a search request. */
 export const PAGE_SIZE = 35;
 
 export const FilterID = {
@@ -37,10 +35,6 @@ export const PreferenceID = {
   ContentLanguages: "content-languages",
 } as const;
 
-/**
- * Sort ids are the API's own `sort` values. The app appends the direction, so
- * these are stored bare and `,desc` is added when the reader picks descending.
- */
 export const SortID = {
   Relevance: "",
   TotalViews: "total_views",
@@ -67,7 +61,6 @@ export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Created, title: "Created At", isOrderable: true },
 ];
 
-/** Ordered least to most explicit; the settings screen offers all four. */
 export const CONTENT_RATINGS = ["Safe", "Suggestive", "Erotica", "Pornographic"];
 
 export const CONTENT_RATING_OPTIONS: Option[] = CONTENT_RATINGS.map((rating) => ({
@@ -79,11 +72,11 @@ export const FORMAT_OPTIONS: Option[] = ["Manga", "Manhwa", "Manhua", "Comic", "
   (format) => ({ id: format, title: format }),
 );
 
-/** The API's own wording — "Abandoned" is what it calls a cancelled series. */
 export const STATUS_OPTIONS: Option[] = [
   { id: "Ongoing", title: "Ongoing" },
   { id: "Completed", title: "Completed" },
   { id: "Hiatus", title: "Hiatus" },
+  // "Abandoned" is the API's word for cancelled.
   { id: "Abandoned", title: "Cancelled" },
 ];
 
@@ -100,10 +93,6 @@ export const CHAPTER_TITLE_MODE_OPTIONS: Option[] = [
   { id: "vol_chapter", title: "Volume + chapter + title — “Vol.1 Ch.5 The Duel”" },
 ];
 
-/**
- * The catalog spans many languages. Only the common ones are offered; the
- * filter is a plain list of the API's own `content_lang` codes.
- */
 export const LANGUAGE_OPTIONS: Option[] = [
   { id: "en", title: "English" },
   { id: "ja", title: "Japanese" },
@@ -126,15 +115,10 @@ export const LANGUAGE_OPTIONS: Option[] = [
   { id: "vi", title: "Vietnamese" },
 ];
 
-/** How a row's tiles are laid out and what they put under the title. */
 export const SectionLayout = {
-  /** Big cover, one at a time. */
   Hero: "hero",
-  /** Cover, title, "Manhwa · Completed", then key/value rows. */
   Detailed: "detailed",
-  /** Cover, title, and the newest chapter with its publish time. */
   ChapterUpdates: "chapter-updates",
-  /** Cover and title only. */
   Simple: "simple",
 } as const;
 
@@ -146,18 +130,10 @@ export type SectionSpecOption = {
   subtitle?: string;
   style: SectionStyle;
   layout: SectionLayoutKind;
-  /** The API sort backing the row. */
   sort: string;
   limit?: number;
 };
 
-/**
- * The home page, mirroring the site's own.
- *
- * The trending windows are rows of their own rather than the strip of chips
- * that only lead somewhere — a reader can see what is climbing today without
- * tapping through first. Everything else keeps the site's names and order.
- */
 export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   {
     id: "popular",
@@ -169,8 +145,6 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   },
   {
     id: "trending_month",
-    // The widest window leads, on the wide two-row card that has room for the
-    // key/value rows; the shorter windows below it are poster tiles.
     title: "Trending This Month",
     style: SectionStyle.DetailedDoubleRowPaged,
     layout: SectionLayout.Detailed,
@@ -201,8 +175,6 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     id: "recently_added",
     title: "Recently Added",
     style: SectionStyle.SimpleSingleRow,
-    // Detailed rather than Simple: a poster tile has room for the format and
-    // status, and a title just added rarely has a chapter label to show.
     layout: SectionLayout.Detailed,
     sort: SortID.Created,
   },
@@ -227,14 +199,12 @@ export type TagDto = { id: string; tag_name: string };
 
 export type SourceDto = {
   source_id: string;
-  /** "Official", "Unofficial" or "Mixed". */
   source_type: string;
   title: string;
 };
 
 export type SourcesDto = { sources?: SourceDto[] };
 
-/** The newest chapter a listing advertises for a series. */
 export type LatestChapterDto = {
   book_id: string;
   title?: string | null;
@@ -244,13 +214,6 @@ export type LatestChapterDto = {
   available_at?: string | null;
 };
 
-/**
- * A listing entry.
- *
- * It carries far more than a title and a cover — format, status, rating, genre
- * ids and the newest chapter — which is what lets every home row be built from
- * one request instead of a detail fetch per card.
- */
 export type SeriesSummaryDto = {
   series_id: string;
   title: string;
@@ -263,7 +226,6 @@ export type SeriesSummaryDto = {
   format?: string | null;
   publication_status?: string | null;
   translated_language?: string | null;
-  /** Genre taxonomy ids, resolved to names through the metadata map. */
   genres?: string[];
   latest_chapters?: LatestChapterDto[];
 };
@@ -327,19 +289,12 @@ export type ChallengeDto = {
 
 export type IntegrityDto = { token: string; exp: number };
 
-/** Genres and tags the search form and settings are built from. */
 export type KaganeMetadata = {
-  /** id → display name */
   genres: Record<string, string>;
-  /** id → display name */
   tags: Record<string, string>;
   sources: SourceDto[];
 };
 
-/**
- * Formats whose own chapter numbering is trustworthy. For everything else the
- * API's `sort_no` is a position in the series, not a chapter number.
- */
 export const SOURCE_CHAPTER_NUMBER_FORMATS = new Set([
   "Dark Horse Comics",
   "Flame Comics",
@@ -347,29 +302,16 @@ export const SOURCE_CHAPTER_NUMBER_FORMATS = new Set([
   "Square Enix Manga",
 ]);
 
-/** A trailing "(...)" or "[...]" the reader can opt to strip from a title. */
 export const TITLE_BRACKET_REGEX = /(\([^()]*\)|\[[^[\]]*\])\s*$/;
 
-/** Trailing "{...}" metadata the site appends to a chapter title. */
 export const CHAPTER_METADATA_REGEX = /(?:\s*\{[^{}]*\})+\s*$/;
 
-/** A scanlation group named inside a chapter title. */
 export const CHAPTER_GROUP_REGEX =
   /^Chapter\s+.*(?:-\s*Volume\s+.*\(([^()]+)\)|\[([^[\]]+)\])\s*$/i;
 
-/**
- * A chapter title that only restates its own number.
- *
- * The site numbers chapters in the title as well as in `chapter_no`, and calls
- * them "Episode" as often as "Chapter". Composing a label on top of that yields
- * "Ch.44 Chapter 44", so the prefix is stripped and the number comes from the
- * one field that is consistent.
- */
 export const CHAPTER_NUMBER_PREFIX_REGEX =
   /^\s*(?:episodes?|chapters?|chap|chp|ch|eps?)\s*\.?\s*#?\s*(\d+(?:\.\d+)?)\s*/i;
 
-/** The volume the site appends to a chapter title, shown by the label instead. */
 export const CHAPTER_VOLUME_SUFFIX_REGEX = /\s*[-–—]?\s*volumes?\s*\.?\s*\d+(?:\.\d+)?\s*$/i;
 
-/** A trailing "(Group)" or "[Group]" — rendered beside the row in its own right. */
 export const CHAPTER_TRAILING_GROUP_REGEX = /\s*(?:\([^()]*\)|\[[^[\]]*\])\s*$/;

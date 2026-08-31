@@ -12,9 +12,7 @@ import {
 } from "./model.ts";
 
 export type SettingsHooks = {
-  /** Genres the site currently publishes, for the hide-list. */
   genres: () => Promise<Option[]>;
-  /** Tags the site currently publishes, for the hide-list. */
   tags: () => Promise<Option[]>;
   resetContentFilters: () => Promise<void>;
   resetAll: () => Promise<void>;

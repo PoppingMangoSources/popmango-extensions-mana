@@ -26,7 +26,6 @@ export function absoluteUrl(target: string): string {
   return resolveUrl(target, DOMAIN);
 }
 
-/** Reduces a link to the path the source uses as an id. */
 function toPathname(href: string): string {
   const trimmed = href.trim();
   if (!trimmed) return "";
@@ -44,10 +43,6 @@ export function stripTitleVersion(title: string): string {
   return title.replace(TITLE_VERSION_REGEX, "").trim() || title;
 }
 
-/**
- * Genre-locked sections carry a known rating, so a discover badge matches what
- * the details page will say.
- */
 export function contentRatingForGenres(genreTitles: string[]): ContentRating {
   const lower = genreTitles.map((title) => title.trim().toLowerCase());
   if (lower.some((title) => title === "adult" || title === "smut" || title === "yaoi")) {
@@ -58,15 +53,8 @@ export function contentRatingForGenres(genreTitles: string[]): ContentRating {
   return ContentRating.SAFE;
 }
 
-/**
- * The site's own "Featured Manga" slider, which only exists on the home page.
- *
- * It is a curated list rather than a sort, so it cannot be reproduced by any
- * `/genre/` browse — the home page has to be fetched for it.
- */
 export const FEATURED_CONTAINER = "#popular_manga_list";
 
-/** The standard grid used by /genre/, search results and related lists. */
 export function parseListings(html: string, scope?: string): MangagoListing[] {
   const $ = load(html);
   const items: MangagoListing[] = [];
@@ -109,18 +97,11 @@ export function hasNextPage(html: string): boolean {
   return load(html)(".current + li > a").length > 0;
 }
 
-/**
- * The /list/latest/ page carries update time, genres and the newest chapter
- * per title, which is what lets the New Chapters section render as a real
- * chapter-updates list rather than a plain cover strip.
- */
 export function parseLatestUpdates(html: string): MangagoListing[] {
   const $ = load(html);
   const items: MangagoListing[] = [];
   const seen = new Set<string>();
 
-  // Mobile and desktop layouts differ, but both wrap the title in `.row-1`
-  // with the other rows as siblings, so anchor on the title for a stable scope.
   $(".row-1 .tit a").each((_, element) => {
     const titleLink = $(element);
     const href = titleLink.attr("href") ?? "";
@@ -169,10 +150,6 @@ export function parseLatestUpdates(html: string): MangagoListing[] {
   return items;
 }
 
-/**
- * Walks a details page's info rows as (lowercased label, row) pairs. The
- * mobile theme uses `.manga_info li`, the desktop one `.manga_right tr`.
- */
 function eachInfoRow($: CheerioAPI, visit: (label: string, row: Cheerio<AnyNode>) => void): void {
   $("#information .manga_info li, #information .manga_right tr").each((_, element) => {
     const row = $(element);
@@ -180,7 +157,6 @@ function eachInfoRow($: CheerioAPI, visit: (label: string, row: Cheerio<AnyNode>
   });
 }
 
-/** `.manga_summary`, with its trailing credit line removed. */
 function mangaSummary($: CheerioAPI): string | undefined {
   const node = $(".manga_summary").first();
   node.find("font").remove();
@@ -232,9 +208,6 @@ export function parseContent(
         .join(", ");
     }
 
-    // Alternative names improve search and tracker matching. The site
-    // separates them with ";", "/" or a newline — but a title can legitimately
-    // contain a comma, so only split on that when neither of the others appear.
     if (label.startsWith("alternative") || label.includes("other name")) {
       const raw = value || row.text().replace(/^[^:]*:/, "");
       const separator = /[;/\n]/.test(raw) ? /[;/\n]+/ : /,/;
@@ -290,7 +263,6 @@ export function parseContent(
   };
 }
 
-/** Splits "Vol.2 Ch.15: The Title" into its number and its title. */
 function parseChapterTitle(input: string): { number?: number; title?: string } {
   const trimmed = input.trim();
   const colon = trimmed.indexOf(":");
@@ -316,13 +288,6 @@ function parseChapterTitle(input: string): { number?: number; title?: string } {
   return { number, title };
 }
 
-/**
- * A chapter's number, read only from an explicit marker or a leading digit.
- *
- * The slug's number is an upload id rather than a chapter number, and a number
- * mid-title ("Season 2 …") is not one either, so anything else stays 0 — the
- * sort's "unnumbered" sentinel.
- */
 function parseChapterNumber(name: string): number {
   const raw =
     /chapter\s*(\d+(?:\.\d+)?)/i.exec(name)?.[1] ??
@@ -357,8 +322,6 @@ function firstUploaderCandidate(candidates: string[], chapterTitle: string): str
         (candidate) =>
           candidate &&
           candidate !== chapterTitle &&
-          // Skip the substring test when the title is empty, or
-          // `candidate.includes("")` rejects every uploader.
           (!chapterTitle || !candidate.includes(chapterTitle)),
       ) ?? ""
   );
@@ -377,8 +340,6 @@ function extractUploader($: CheerioAPI, row: Cheerio<AnyNode>): string {
   );
   if (profile) return profile;
 
-  // The uploader and date cells share the class "no"; the date is always last,
-  // so exclude it positionally rather than by sniffing its content.
   const dateCell = row.find("td").last();
   const candidates = row
     .find(
@@ -424,8 +385,6 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     if (!href) return;
     if (options.hideRaws && href.includes("/raw/")) return;
 
-    // An absolute href is a numeric mirror URL and must stay intact so the id
-    // alone is enough to fetch; a relative one reduces to its path.
     const chapterId = href.startsWith("http") ? canonicalReaderUrl(href) : toPathname(href);
     if (!chapterId) return;
 
@@ -448,14 +407,11 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     });
   });
 
-  // Side stories, extras and epilogues carry no chapter number of their own.
-  // Leaving them at 0 makes the app treat them as the *first* chapters, so
-  // they are renumbered above the main run instead — they are published after
-  // it, and the app picks where to start reading by chapter number.
+  // Extras carry no number; left at 0 they sort ahead of chapter 1 and the app
+  // opens a side story as the beginning.
   const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
   const extras = parsed.filter((chapter) => chapter.number === 0);
   extras.forEach((chapter, position) => {
-    // The site lists newest first, so the earliest row is the latest extra.
     chapter.number = highest + (extras.length - position);
   });
 
@@ -464,13 +420,10 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     return compareScanlators(a, b);
   });
 
-  // Mana wants index 0 on the first-published chapter, so number the reversed
-  // order and hand back the list still sorted newest-first.
   const total = parsed.length;
   return parsed.map((chapter, position) => ({ ...chapter, index: total - 1 - position }));
 }
 
-/** Related titles shown on a details page. */
 export function parseRelated(html: string): MangagoListing[] {
   const $ = load(html);
   const items: MangagoListing[] = [];
@@ -506,7 +459,6 @@ export function parseRelated(html: string): MangagoListing[] {
   return items;
 }
 
-/** Genres the site currently advertises, so a new one shows up without a release. */
 export function parseGenrePanel(html: string): string[] {
   const $ = load(html);
   return [
@@ -524,16 +476,9 @@ export type BrowseOptions = {
   excluded: string[];
   page: number;
   sort: string;
-  /** Selected status ids; both or neither means "any". */
   statuses?: string[];
 };
 
-/**
- * Builds a /genre/ browse URL.
- *
- * The site matches genres by display title — comma-joined in the path for
- * includes, and in `e` for excludes.
- */
 export function buildGenreBrowseUrl(options: BrowseOptions): string {
   const included = [...options.included];
   const excluded = [...new Set(options.excluded)].filter((genre) => !included.includes(genre));

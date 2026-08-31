@@ -1,12 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-/**
- * Turns the API's JSON into the shapes the app renders.
- *
- * Nothing here touches the network, so every display preference the reader can
- * set arrives as an argument rather than being read from the store in place.
- */
-
 import {
   ContentRating,
   ContentType,
@@ -38,16 +31,9 @@ export type TitleOptions = {
   cleanTitle: boolean;
   showSource: boolean;
   showEdition: boolean;
-  /** source_id → display name */
   sources: Record<string, string>;
 };
 
-/**
- * Builds a display title.
- *
- * "Clean title" is deliberately exclusive with the two annotations: it exists
- * to collapse duplicate library entries, which appending a source name undoes.
- */
 export function displayTitle(
   title: string,
   options: TitleOptions,
@@ -55,7 +41,6 @@ export function displayTitle(
   editionInfo?: string | null,
 ): string {
   const trimmed = title.trim();
-  // A trailing bracketed qualifier is what makes duplicate library entries.
   if (options.cleanTitle) return trimmed.replace(TITLE_BRACKET_REGEX, "").trim() || trimmed;
 
   let result = title.trim();
@@ -107,7 +92,6 @@ function contentTypeOf(format: string | null | undefined): ContentType | undefin
   }
 }
 
-/** The listing states each title's rating, so a tile never has to guess. */
 export function ratingOf(value: string | null | undefined): ContentRating {
   switch ((value ?? "").toLowerCase()) {
     case "safe":
@@ -136,7 +120,6 @@ function statusLabel(book: SeriesSummaryDto): string | undefined {
   }
 }
 
-/** "MANHWA · Completed" — the line beneath a title on a detailed row. */
 export function descriptorOf(book: SeriesSummaryDto): string | undefined {
   const format = book.format?.trim();
   const parts = [
@@ -147,7 +130,6 @@ export function descriptorOf(book: SeriesSummaryDto): string | undefined {
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
-/** "Vol.1 Ch.3" / "Ch. 27" for the newest chapter a listing advertises. */
 export function latestChapterLabel(book: SeriesSummaryDto): string | undefined {
   const latest = book.latest_chapters?.[0];
   if (!latest) return undefined;
@@ -166,10 +148,6 @@ export function latestChapterDate(book: SeriesSummaryDto): Date | undefined {
   return parseDate(latest.available_at ?? latest.created_at);
 }
 
-/**
- * The key/value rows a detailed listing shows under the descriptor — the same
- * shape as a "Rating / Chapters / Volumes" block.
- */
 export function infoRowsOf(book: SeriesSummaryDto, genreNames: Record<string, string>): Pair[] {
   const rows: Pair[] = [];
 
@@ -228,7 +206,6 @@ export function toContent(
       id: genre.genre_name,
       title: genre.genre_name,
     })),
-    // The site marks some tags as spoilers and hides them unless asked.
     ...(details.tags ?? [])
       .filter((tag) => options.showSpoilerTags || tag.spoiler !== true)
       .map((tag) => ({ id: tag.tag_name, title: tag.tag_name })),
@@ -283,7 +260,6 @@ function unique(values: string[]): string[] {
   return values.filter((value, index) => value && values.indexOf(value) === index);
 }
 
-/** The API rates out of 100; the site shows that as a score out of ten. */
 function starRating(details: DetailsDto): string | undefined {
   const percent =
     typeof details.average_rating === "number" && details.average_rating > 0
@@ -302,13 +278,11 @@ function formatViews(views: number | null | undefined): string | undefined {
   return `${views} views`;
 }
 
-/** The description, plus the associated names the site lists separately. */
 function buildSummary(details: DetailsDto, sourceName: string | undefined): string {
   const parts: string[] = [];
 
-  // The site states a score and a view count for every series, but Mana's
-  // `Content` has no field for either, so they lead the summary instead.
   const stats = [starRating(details), formatViews(details.total_views)].filter(Boolean);
+  // Mana's `Content` has no rating or views field, so they lead the summary.
   if (stats.length > 0) parts.push(stats.join("  ·  "));
 
   const description = (details.description ?? "").trim();
@@ -330,34 +304,18 @@ function buildSummary(details: DetailsDto, sourceName: string | undefined): stri
   return parts.join("\n\n").trim();
 }
 
-/**
- * What the chapter is actually called, once the site's own numbering is out.
- *
- * A title arrives as "Episode 8", as "Chapter 44 - Volume 9 (Ushi)", or as a
- * real name. The first two only restate what the composed label already says —
- * and the group is rendered beside the row in its own right — so both reduce to
- * nothing, leaving the label free of "Ch.44 Chapter 44 - Volume 9 (Ushi)".
- */
 function chapterOwnName(title: string): string {
   let name = title.trim().replace(CHAPTER_METADATA_REGEX, "");
   name = name.replace(CHAPTER_TRAILING_GROUP_REGEX, "");
   name = name.replace(CHAPTER_VOLUME_SUFFIX_REGEX, "");
   name = name.replace(CHAPTER_NUMBER_PREFIX_REGEX, "");
-  // Whatever joined the number to the name — "Episode 8: The Duel".
   return name.replace(/^[\s:.\-–—]+/, "").trim();
 }
 
-/** The number the site states in the title, for chapters that carry no field. */
 function chapterNumberInTitle(title: string): string {
   return CHAPTER_NUMBER_PREFIX_REGEX.exec(title.trim())?.[1] ?? "";
 }
 
-/**
- * Composes a chapter's display name.
- *
- * The site's own titles are inconsistent — some carry a number, some only a
- * name, some neither — so the reader picks which of the four shapes they want.
- */
 function chapterName(book: ChapterBookDto, mode: string): string {
   const title = book.title.trim();
   const name = chapterOwnName(title);
@@ -379,12 +337,10 @@ function chapterName(book: ChapterBookDto, mode: string): string {
       return join(volume, chapter, name) || title;
 
     default:
-      // The site says "Episode 8" as often as "Chapter 8"; one wording for both.
       return name || (chapterNo ? `Chapter ${chapterNo}` : title);
   }
 }
 
-/** The uploading group, including one named inside the chapter title. */
 function scanlatorOf(book: ChapterBookDto): string | undefined {
   const groups = (book.groups ?? []).map((group) => group.title).filter(Boolean);
   let name = groups.join(", ");
@@ -403,8 +359,6 @@ export function toChapters(
   options: { chapterTitleMode: string; language: string },
 ): Chapter[] {
   const books = details.series_books ?? [];
-  // `sort_no` is a position within the series for most formats; only a few
-  // publish a number that means anything as a chapter number.
   const useSourceNumber = SOURCE_CHAPTER_NUMBER_FORMATS.has(details.format ?? "");
 
   // The API lists newest first; index 0 must be the first published chapter.
@@ -414,6 +368,7 @@ export function toChapters(
     const scanlator = scanlatorOf(book);
     const parsedNumber = Number.parseFloat((book.chapter_no ?? "").replace(/[^\d.]/g, ""));
 
+    // sort_no is a position in the series for most formats, not a chapter number.
     const number = useSourceNumber
       ? (book.sort_no ?? index + 1)
       : Number.isFinite(parsedNumber)

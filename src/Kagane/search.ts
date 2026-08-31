@@ -1,34 +1,19 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-/**
- * The JSON body the search endpoint expects.
- *
- * Every home row and every search goes through here, so the reader's content
- * settings apply uniformly and there is one place to look when a filter does
- * not seem to bite.
- */
-
 import type { FilterReader } from "../common/index.ts";
 import { FilterID } from "./model.ts";
 
 export type SearchBodyOptions = {
   query?: string;
-  /** "all" | "official" | "scanlations" */
   uploadSource: string;
   contentRatings: string[];
   contentLanguages: string[];
-  /** Genre ids hidden through settings, always excluded. */
   excludedGenreIds: string[];
-  /** Tag ids hidden through settings, always excluded. */
   excludedTagIds: string[];
 };
 
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
 
-/**
- * The API's own vocabulary for who uploaded a title. "Scanlations only" is the
- * absence of official uploads rather than a value of its own.
- */
 function sourceTypesFor(uploadSource: string): string[] {
   if (uploadSource === "official") return ["Official"];
   if (uploadSource === "scanlations") return ["Unofficial", "Mixed"];
@@ -40,9 +25,8 @@ function includeExclude(
   excluded: string[],
   matchAll: boolean,
 ): IncludeExclude | undefined {
-  // Asking for something the hide-list hides is the reader overriding their own
-  // setting for one search. Sending it as both a value and an exclusion instead
-  // would just return nothing.
+  // An explicit pick on the form overrides the hide-list for that one search;
+  // sending it as both a value and an exclusion returns nothing.
   const holdBack = new Set(included);
   const exclusions = excluded.filter((id) => !holdBack.has(id));
 
@@ -67,14 +51,11 @@ export function buildSearchBody(
   const query = options.query?.trim();
   if (query) body["title"] = query;
 
-  // The rating filter on the search form wins over the settings default, so a
-  // one-off search can widen what settings normally hide.
   const ratings = filters?.options(FilterID.ContentRating) ?? [];
   const contentRating = ratings.length > 0 ? ratings : options.contentRatings;
   if (contentRating.length > 0) body["content_rating"] = contentRating;
 
   if (!filters) {
-    // A plain browse still honours the hide-lists.
     const genres = includeExclude([], options.excludedGenreIds, false);
     if (genres) body["genres"] = genres;
 
@@ -111,12 +92,6 @@ export function buildSearchBody(
   return body;
 }
 
-/**
- * The `sort` query value.
- *
- * Relevance is the API's default and is expressed by sending nothing;
- * everything else takes an explicit direction, descending unless asked.
- */
 export function sortParameter(id: string, ascending: boolean | undefined): string {
   if (!id) return "";
   return ascending === true ? id : `${id},desc`;

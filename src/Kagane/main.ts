@@ -92,7 +92,6 @@ const config: SourceConfig = {
   owningLinks: ["kagane.to"],
 };
 
-/** How long a series' details are reused across the calls that need them. */
 const DETAIL_CACHE_MS = 60_000;
 
 class KaganeSource
@@ -112,7 +111,6 @@ class KaganeSource
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
   );
 
-  /** The details document shared by `getContent` and `getChapters`. */
   private detailCache: { seriesId: string; details: unknown; at: number } | undefined;
 
   private async strings(key: string): Promise<string[]> {
@@ -129,7 +127,6 @@ class KaganeSource
     return (await this.preferences.get(key)) === true;
   }
 
-  /** Everything the search body needs, read in one pass. */
   private async bodyOptions(query?: string): Promise<SearchBodyOptions> {
     const [uploadSource, contentRatings, contentLanguages, excludedGenreIds, excludedTagIds] =
       await Promise.all([
@@ -320,8 +317,6 @@ class KaganeSource
       this.api.imageUrl(imageId),
     );
 
-    // Other entries the site groups under the same tracker — different
-    // editions, translations, or a colour release of the same series.
     const trackerId = details.tracker_id;
     if (!trackerId) return content;
 
@@ -390,10 +385,6 @@ class KaganeSource
     return { pages };
   }
 
-  /**
-   * Page URLs carry an access token that may have expired between the chapter
-   * being opened and an image actually being fetched, so it is re-minted here.
-   */
   async willRequestImage(imageURL: string): Promise<NetworkRequest> {
     const dataSaver = await this.flag(PreferenceID.DataSaver);
     const url = imageURL.includes("token=")
@@ -434,10 +425,6 @@ class KaganeSource
     return details;
   }
 
-  /**
-   * A home row is the search endpoint with a sort and no title, so it costs
-   * exactly one request — the same one its "view more" page uses.
-   */
   private async loadSection(spec: SectionSpecOption, page: number): Promise<PagedSearchResult> {
     const body = buildSearchBody(await this.bodyOptions());
 
@@ -474,12 +461,6 @@ class KaganeSource
     return { results, isLastPage: response.last !== false || results.length === 0 };
   }
 
-  /**
-   * What a tile shows beneath its title, per layout.
-   *
-   * Everything here comes out of the listing the row already fetched, so a
-   * richer-looking row costs no extra requests.
-   */
   private tileExtras(
     book: SeriesSummaryDto,
     layout: SectionLayoutKind,

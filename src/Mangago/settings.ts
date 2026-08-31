@@ -11,12 +11,6 @@ export function sectionPreferenceKey(sectionId: string): string {
   return `${PreferenceID.SectionPrefix}-${sectionId}`;
 }
 
-/**
- * The settings screen.
- *
- * Every home section gets its own switch, so a reader who only wants New
- * Chapters is not paying for thirteen other requests on every home refresh.
- */
 export function buildSettingsSections(genres: () => Promise<Option[]>): PreferenceSection[] {
   return [
     {

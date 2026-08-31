@@ -1,15 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-/**
- * The reader pipeline.
- *
- * A chapter's image list is an AES-CBC blob whose key, IV and character
- * unscrambling routine all live inside an obfuscated `chapter.js`. Getting to
- * the images means deobfuscating that script, decrypting the blob, undoing the
- * character shuffle, and — for the tiled `cspiclink` images — pulling out the
- * per-image permutation key the reader will hand to Mana's redraw handler.
- */
-
 import { aesCbcDecrypt, base64ToBytes, bytesToUtf8 } from "../common/aes.ts";
 import { resolveUrl } from "../common/index.ts";
 import { DOMAIN, READER_MIRROR_HOSTS } from "./model.ts";
@@ -22,10 +12,6 @@ const COLS_REGEX = /var\s*widthnum\s*=\s*heightnum\s*=\s*(\d+)/;
 const TOTAL_PAGES_REGEX = /total_pages\s*=\s*(\d+)/;
 const KEY_LOCATION_REGEX = /str\.charAt\(\s*(\d+)\s*\)/g;
 
-/**
- * Lines mentioning any of these are DOM/jQuery work rather than key
- * derivation, and would throw if evaluated outside a browser.
- */
 const JS_FILTERS = [
   "jQuery",
   "document",
@@ -36,7 +22,6 @@ const JS_FILTERS = [
   "height",
 ];
 
-/** Ceiling on the WebView fallback, in seconds. */
 const WEBVIEW_TIMEOUT_SECONDS = 8;
 
 const REPLACE_POS_JS = `
@@ -53,9 +38,7 @@ export type ReaderCrypto = {
   cols: number;
 };
 
-/** The tile permutation for one scrambled image. */
 export type DescrambleKey = {
-  /** `cols * cols` destination indices, in source-tile order. */
   order: number[];
   cols: number;
 };
@@ -90,18 +73,12 @@ export function extractTotalPages(html: string): number {
   return 0;
 }
 
-/**
- * The reader-page URL template from `input#curl`, e.g.
- * `/chapter/35134/2096487/{page}/`. A template without `{page}` is unusable,
- * so the caller falls back to the `pcurl` variable.
- */
 export function extractCurlTemplate(html: string): string | undefined {
   const value = /<input[^>]*id=["']curl["'][^>]*value=["']([^"']+)["']/i.exec(html)?.[1]?.trim();
   if (!value || !value.includes("{page}")) return undefined;
   return templatePathname(value);
 }
 
-/** Some pages ship a useless `curl` of "/" and put the real one in `pcurl`. */
 export function extractPcurlTemplate(html: string): string | undefined {
   const match = /\bpcurl\s*=\s*["']([^"']*\/pg-)\d+(\/[^"']*)?["']/.exec(html);
   if (!match?.[1]) return undefined;
@@ -109,19 +86,12 @@ export function extractPcurlTemplate(html: string): string | undefined {
 }
 
 function templatePathname(template: string): string {
-  // Protect the placeholder so path normalisation cannot mangle the braces.
   const placeholder = "__MANGAGO_PAGE__";
   const guarded = template.replace(/\{page\}/g, placeholder);
   const path = pathOf(guarded.startsWith("http") ? guarded : `${DOMAIN}${guarded}`);
   return path.split(placeholder).join("{page}");
 }
 
-/**
- * Deobfuscates a `sojson.v4`-packed script.
- *
- * The payload is a run of decimal character codes separated by letters, framed
- * by a fixed-length prologue and epilogue.
- */
 export function sojsonV4Decode(source: string): string {
   if (!source.startsWith("['sojson.v4']")) {
     throw new Error("chapter.js is not sojson.v4-obfuscated");
@@ -149,7 +119,6 @@ export function extractDescrambleCols(script: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-/** Every marker the decode pipeline needs, checked before a script is trusted. */
 export function isUsableChapterJs(script: unknown): script is string {
   return (
     typeof script === "string" &&
@@ -162,13 +131,6 @@ export function isUsableChapterJs(script: unknown): script is string {
   );
 }
 
-/**
- * Undoes the character shuffle applied to the decrypted image list.
- *
- * The shuffle key is a handful of digits hidden at fixed offsets inside the
- * list itself; the offsets are the arguments of the `str.charAt(n)` calls left
- * in the deobfuscated script.
- */
 export function unscrambleImageList(imageList: string, script: string): string {
   KEY_LOCATION_REGEX.lastIndex = 0;
   const locations = [
@@ -180,13 +142,10 @@ export function unscrambleImageList(imageList: string, script: string): string {
   const keys: number[] = [];
   for (const location of locations) {
     const digit = imageList[location];
-    // A non-digit means the list was never scrambled; leave it alone.
     if (!digit || !/[0-9]/.test(digit)) return imageList;
     keys.push(Number(digit));
   }
 
-  // Each removal shifts every later offset left by one, which is why the
-  // subtraction tracks how many have already been taken out.
   let result = imageList;
   locations.forEach((location, index) => {
     const at = location - index;
@@ -207,7 +166,6 @@ export function unscrambleImageList(imageList: string, script: string): string {
   return chars.join("");
 }
 
-/** Decrypts and unscrambles one reader page's `imgsrcs` blob. */
 export function decodeImgsrcs(blob: string, crypto: ReaderCrypto, keepBlanks = false): string[] {
   const plain = aesCbcDecrypt(base64ToBytes(blob), crypto.key, crypto.iv, "zero");
   const text = bytesToUtf8(plain).replace(/\0+$/g, "").replace(/,+$/g, "");
@@ -217,12 +175,6 @@ export function decodeImgsrcs(blob: string, crypto: ReaderCrypto, keepBlanks = f
   return keepBlanks ? images : images.filter(Boolean);
 }
 
-/**
- * Builds the source that derives an image's tile-permutation key.
- *
- * The routine lives inside `renImg` in the deobfuscated script, interleaved
- * with canvas work that cannot run here — hence the line filter.
- */
 export function buildDescramblingKeyScript(script: string): string {
   const afterRenImg = script.split("var renImg = function(img,width,height,id){")[1];
   if (!afterRenImg) throw new Error("renImg not found in chapter.js");
@@ -244,13 +196,6 @@ function getDescramblingKey(url) {
 }`;
 }
 
-/**
- * Evaluates the derivation script for a batch of image URLs.
- *
- * `Function` is tried first because it needs no host support. When the runtime
- * refuses it, the auxiliary WebView runs the same script instead — the app
- * offers one per source method, and a chapter only needs the one pass.
- */
 export async function deriveDescramblingKeys(
   script: string,
   imageUrls: string[],
@@ -272,9 +217,6 @@ export async function deriveDescramblingKeys(
     });
   };
 
-  // The whole program is built and called in one go. Defining the function in
-  // one evaluation and calling it by name in another is what produces
-  // "Can't find variable: getDescramblingKey" — the two do not share a scope.
   try {
     const factory = (globalThis as { Function?: FunctionConstructor }).Function;
     if (factory) {
@@ -287,36 +229,24 @@ return urls.map(function (url) { return getDescramblingKey(url); });`,
       collect(run(imageUrls));
       if (derived.size > 0) return derived;
     }
-  } catch {
-    // The runtime refuses to build a function from a string; try the WebView.
-  }
+  } catch {}
 
   try {
     collect(await runInWebView(program, imageUrls));
-  } catch {
-    // Leave the images unscrambled rather than failing the chapter.
-  }
+  } catch {}
 
   return derived;
 }
 
-/**
- * Evaluates the derivation program in the auxiliary WebView.
- *
- * The page is navigated first: evaluating in a WebView that has never loaded
- * anything can hang until the host's own timeout, which shows the reader an
- * empty chapter that never resolves. The whole attempt is bounded as well, so
- * a slow page costs a scrambled image rather than a chapter that never opens.
- */
 async function runInWebView(program: string, imageUrls: string[]): Promise<unknown[] | undefined> {
   const factory = (globalThis as { WebViewPage?: typeof WebViewPage }).WebViewPage;
   if (!factory) return undefined;
 
-  // Without a timer there is no way to bound this, and an unbounded hang is
-  // worse than an undescrambled page.
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
   if (!timer) return undefined;
 
+  // evaluate() on a page that never navigated hangs until the host times out,
+  // so goto() first and bound the whole thing.
   const page = await factory.create({ timeout: WEBVIEW_TIMEOUT_SECONDS });
 
   try {
@@ -339,14 +269,6 @@ args[0].map(function (url) { return getDescramblingKey(url); });`,
   }
 }
 
-/**
- * Turns the site's "3a1a0a…" key into the tile order the redraw handler wants.
- *
- * The result has to be a genuine permutation of `cols * cols`: the redraw is a
- * list of copies, so a repeated destination overwrites a tile and a missing one
- * leaves a hole. A key that does not qualify is rejected rather than rendered,
- * because a half-applied permutation looks worse than the untouched image.
- */
 export function parseDescrambleKey(key: string, cols: number): DescrambleKey | undefined {
   if (cols <= 0) return undefined;
 
@@ -366,7 +288,6 @@ export function parseDescrambleKey(key: string, cols: number): DescrambleKey | u
   return { order: trimmed, cols };
 }
 
-/** The mirrors worth trying for a numeric `/chapter/` reader path. */
 export function numericChapterCandidates(target: string): string[] {
   const path = pathOf(target);
   if (!/^\/chapter\/\d+\/\d+/.test(path)) return [];
@@ -374,10 +295,6 @@ export function numericChapterCandidates(target: string): string[] {
   return READER_MIRROR_HOSTS.map((host) => `${host}${suffix}`);
 }
 
-/**
- * Pins a reader URL to a host that will serve it, and repairs the
- * host-doubling that a stale link can produce.
- */
 export function canonicalReaderUrl(target: string): string {
   const queryStart = target.search(/[?#]/);
   let head = queryStart === -1 ? target : target.slice(0, queryStart);
@@ -406,7 +323,6 @@ export function canonicalReaderUrl(target: string): string {
   return `${origin}${pathAndQuery}`;
 }
 
-/** Builds the URL for image index `page`, pinned to the loaded reader's host. */
 export function buildTemplatePageUrl(template: string, loadedUrl: string, page: number): string {
   const origin = readerOrigin(loadedUrl);
   const path = template.replace("{page}", String(page));

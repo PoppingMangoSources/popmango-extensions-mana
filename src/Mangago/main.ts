@@ -115,19 +115,10 @@ const info: SourceInfo = {
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
 
-/** How long the details page is reused across `getContent` and `getChapters`. */
 const DETAIL_CACHE_MS = 60_000;
 
-/** How long the home page is shared between the rows built from it. */
 const HOME_CACHE_MS = 60_000;
 
-/**
- * Ceiling on how long one image may hold the redraw gate.
- *
- * A matched pair releases it in microseconds; this only bounds the case where
- * the app asks whether to redraw and then never asks for the instructions, so
- * it is deliberately short — a stalled gate delays every later image.
- */
 const REDRAW_GATE_TIMEOUT_MS = 3_000;
 
 const config: SourceConfig = {
@@ -153,21 +144,15 @@ class MangagoSource
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
   );
 
-  /** Deobfuscated chapter.js, keyed by its versioned URL. */
   private readonly scriptCache = new Map<string, string>();
-  /** Decoded page lists, keyed by the reader URL that produced them. */
   private readonly pageCache = new Map<string, ChapterPage[]>();
-  /** Tile permutations for the images of chapters opened this session. */
   private readonly descrambleKeys = new Map<string, DescrambleKey>();
-  /** Genres advertised by the site, fetched once per session. */
   private genreOptions: Option[] | undefined;
-  /** The details page shared by `getContent` and `getChapters`. */
   private detailCache: { contentId: string; html: string; at: number } | undefined;
-  /** The home page, shared by the rows built from it. */
   private homeCache: { html: string; at: number } | undefined;
-  /** The image the app most recently asked about, for the redraw handler. */
   private pendingRedraw: DescrambleKey | undefined;
-  /** Serialises the redraw handshake, so pairs cannot interleave. */
+  // The app calls the redraw pair concurrently per image and only the first call
+  // carries the URL, so the handshake is serialised rather than held in a field.
   private redrawQueue: Promise<void> = Promise.resolve();
   private releaseRedraw: (() => void) | undefined;
 
@@ -191,7 +176,6 @@ class MangagoSource
     return typeof value === "string" ? value : "all";
   }
 
-  /** Genres excluded by settings; "Manga only" also hides Webtoons. */
   private async settingsExcludedGenres(): Promise<string[]> {
     const excluded = await this.hiddenGenreTitles();
     if ((await this.contentType()) === "manga") excluded.push("Webtoons");
@@ -202,10 +186,6 @@ class MangagoSource
     return (await this.preferences.get(sectionPreferenceKey(sectionId))) === true;
   }
 
-  /**
-   * The genre list the site currently advertises, falling back to the built-in
-   * one so the search form and settings still render when the fetch fails.
-   */
   private async genres(): Promise<Option[]> {
     if (this.genreOptions) return this.genreOptions;
     try {
@@ -214,9 +194,7 @@ class MangagoSource
         this.genreOptions = titles.map((title) => ({ id: genreIdFromTitle(title), title }));
         return this.genreOptions;
       }
-    } catch {
-      // Fall through to the built-in list.
-    }
+    } catch {}
     this.genreOptions = GENRE_OPTIONS;
     return this.genreOptions;
   }
@@ -254,8 +232,6 @@ class MangagoSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    // Read every switch at once — this runs before the home page can render
-    // anything, so fourteen sequential store reads are fourteen stalls.
     const enabled = await Promise.all(
       DISCOVER_SECTIONS.map((section) => this.sectionEnabled(section.id)),
     );
@@ -265,8 +241,6 @@ class MangagoSource
       title: section.title,
       ...(section.subtitle === undefined ? {} : { subtitle: section.subtitle }),
       style: section.style,
-      // Every row has a "more" on the site, capped or not: the cap is how deep
-      // the row itself ranks, not how much sits behind it.
       viewMoreLink: { request: { page: 1, listId: section.id } },
     }));
   }
@@ -288,8 +262,6 @@ class MangagoSource
     const page = pageOf(request);
     const query = request.query?.trim() ?? "";
 
-    // The site cannot combine free text with the genre filter, so a text
-    // search takes the search endpoint and everything else browses /genre/.
     if (query) {
       const html = await this.fetchHtml(buildSearchUrl(query, page));
       return {
@@ -325,11 +297,6 @@ class MangagoSource
     };
   }
 
-  /**
-   * The details page and the chapter list are the same document, and the app
-   * asks for them one after the other. Holding the last one briefly turns
-   * opening a title from two identical requests into one.
-   */
   private async fetchDetail(contentId: string): Promise<string> {
     const cached = this.detailCache;
     if (cached && cached.contentId === contentId && Date.now() - cached.at < DETAIL_CACHE_MS) {
@@ -412,28 +379,13 @@ class MangagoSource
     }
   }
 
-  /**
-   * The site serves tiled images whose pieces are shuffled by a per-image key,
-   * worked out when the chapter was opened. This is a lookup; the app does the
-   * pixel work itself through {@link redrawImageWithSize}.
-   *
-   * That second call carries the image's size but not its URL, so the key has
-   * to be handed over through a field. A reader decoding several pages at once
-   * would then have each image redrawn with another image's key — which looks
-   * exactly like a failed descramble — so the pair is serialised here.
-   */
   async shouldRedrawImage(url: string): Promise<BooleanState> {
     const key = this.descrambleKeys.get(stripFragment(url));
     if (!key) return { state: false };
 
-    // Take a ticket, then wait for the holder ahead of us. The queue tail is
-    // reassigned before the first await, so callers that arrive while we are
-    // suspended line up behind us instead of all waking on the same promise.
     let release!: () => void;
     const ours = new Promise<void>((resolve) => {
       release = resolve;
-      // A "yes" the app never follows up on must not stall every later image.
-      // Timers are not guaranteed in this runtime, hence the lookup.
       const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown })
         .setTimeout;
       timer?.(resolve, REDRAW_GATE_TIMEOUT_MS);
@@ -485,12 +437,6 @@ class MangagoSource
     return { size, commands };
   }
 
-  /**
-   * The home page, held briefly.
-   *
-   * More than one row can be built from it, and the app resolves each row
-   * separately — without this they would each fetch the same document.
-   */
   private async fetchHome(): Promise<string> {
     const cached = this.homeCache;
     if (cached && Date.now() - cached.at < HOME_CACHE_MS) return cached.html;
@@ -510,10 +456,6 @@ class MangagoSource
     return buildGenreBrowseUrl({ included, excluded, page, sort });
   }
 
-  /**
-   * `capped` distinguishes the home row from the listing behind its "more":
-   * the row ranks ten deep, the listing it links to paginates in full.
-   */
   private async loadSection(
     sectionId: string,
     spec: SectionSpecOption | undefined,
@@ -522,8 +464,6 @@ class MangagoSource
   ): Promise<PagedSearchResult> {
     const limit = capped ? spec?.limit : undefined;
 
-    // The site's own Featured Manga is a curated slider on the home page, not
-    // a sort of the catalogue, so no `/genre/` browse can reproduce it.
     if (sectionId === "featured_manga") {
       const featured = parseListings(await this.fetchHome(), FEATURED_CONTAINER);
       const limited = limit === undefined ? featured : featured.slice(0, limit);
@@ -532,7 +472,6 @@ class MangagoSource
 
     const excluded = await this.settingsExcludedGenres();
     const isTop = sectionId.startsWith("top_");
-    // Popular and the genre tops rank by comment count; everything else by views.
     const sort = sectionId === "popular_manga" || isTop ? "comment_count" : "view";
 
     const html = await this.fetchHtml(this.sectionUrl(sectionId, page, sort, excluded));
@@ -552,15 +491,10 @@ class MangagoSource
 
     return {
       results,
-      // Capped rows and the single-page carousels stop after one page.
       isLastPage: limit !== undefined || !hasNextPage(html),
     };
   }
 
-  /**
-   * The latest-updates page has no exclusion parameter, so the genre settings
-   * are applied to each row's own genre list instead.
-   */
   private async filterNewChapters(items: MangagoListing[]): Promise<MangagoListing[]> {
     const hidden = new Set((await this.settingsExcludedGenres()).map((g) => g.toLowerCase()));
     const webtoonsOnly = (await this.contentType()) === "webtoons";
@@ -605,7 +539,6 @@ class MangagoSource
     });
   }
 
-  /** Fetches the first reader page that actually carries an image list. */
   private async resolveReaderPage(
     chapterUrl: string,
   ): Promise<{ html: string; loadedUrl: string }> {
@@ -637,8 +570,6 @@ class MangagoSource
     let script = this.scriptCache.get(scriptUrl);
     if (!script) {
       script = sojsonV4Decode(await this.fetchHtml(scriptUrl));
-      // Only a script carrying every marker is worth keeping; a bad decode
-      // must not be frozen in for the rest of the session.
       if (isUsableChapterJs(script)) this.scriptCache.set(scriptUrl, script);
     }
 
@@ -655,14 +586,6 @@ class MangagoSource
     };
   }
 
-  /**
-   * Walks a chapter's reader pages into a complete image list.
-   *
-   * The desktop reader usually returns every image on the first page. The
-   * numeric mirror instead serves a window at a time, positioned so that image
-   * N lands in slot N-1, so the gaps are filled by fetching one page per
-   * window rather than one per image.
-   */
   private async loadChapterPages(chapterUrl: string): Promise<ChapterPage[]> {
     const { html, loadedUrl } = await this.resolveReaderPage(chapterUrl);
 
@@ -692,8 +615,6 @@ class MangagoSource
     };
     fill(first);
 
-    // One fetch per window, not per page: the window size is however many
-    // images the first page actually carried.
     const windowSize = Math.max(1, first.filter(Boolean).length);
     for (let page = 1; page <= totalPages; page += windowSize) {
       if (slots[page - 1]) continue;
@@ -702,13 +623,10 @@ class MangagoSource
         const pageBlob = extractImgsrcs(pageHtml);
         if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
       } catch (error) {
-        // A challenge stops every later page too, so a gap is not recoverable.
         if (error instanceof CloudflareError) throw error;
       }
     }
 
-    // A window can still leave holes if the site shifted its boundaries, so
-    // sweep whatever is left one page at a time.
     for (let page = 1; page <= totalPages; page++) {
       if (slots[page - 1]) continue;
       try {
@@ -723,25 +641,18 @@ class MangagoSource
     return this.toPages(slots.filter(Boolean), crypto);
   }
 
-  /** Resolves each image URL and records the tile key for the scrambled ones. */
   private async toPages(images: string[], crypto: ReaderCrypto): Promise<ChapterPage[]> {
     const resolved = images.map((image) => absoluteUrl(image));
     const scrambled = resolved.filter((url) => url.includes("cspiclink"));
 
     if (scrambled.length > 0 && crypto.cols > 0) {
-      // Working out the tile keys means evaluating the site's own JavaScript,
-      // which the runtime may refuse outright. A chapter that opens with
-      // scrambled panels is recoverable; one that never opens is not, so this
-      // can never fail or delay the page list.
       try {
         const keys = await deriveDescramblingKeys(crypto.script, scrambled);
         for (const [url, raw] of keys) {
           const key = parseDescrambleKey(raw, crypto.cols);
           if (key) this.descrambleKeys.set(stripFragment(url), key);
         }
-      } catch {
-        // Leave the panels scrambled.
-      }
+      } catch {}
     }
 
     return resolved.map((url) => ({ url }));

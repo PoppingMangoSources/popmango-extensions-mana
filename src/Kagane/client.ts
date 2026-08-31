@@ -1,14 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-/**
- * The site's JSON API, plus the two tokens that guard the reader.
- *
- * Reading a chapter needs a short-lived *integrity* token, which buys a
- * per-chapter *challenge* carrying an access token and the CDN host to fetch
- * pages from. Both expire, and both are re-fetched on demand rather than on a
- * schedule — the app has no background pass to refresh them in.
- */
-
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
 import { UrlBuilder } from "../common/index.ts";
@@ -27,29 +18,21 @@ import {
   type TrackerDto,
 } from "./model.ts";
 
-/** Statuses the site uses to say "your token is stale", not "no". */
+// The site says "your token is stale" with these, not "no".
 const STALE_TOKEN_STATUSES = new Set([401, 403, 507]);
 
 function isStaleTokenBody(body: string): boolean {
   return /integrity|token|unauthorized|forbidden/i.test(body.slice(0, 2048));
 }
 
-/** Header names vary in case between hosts, so look one up without assuming. */
 function headerOf(response: NetworkResponse, name: string): string {
   const headers = response.headers ?? {};
   const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
   return key === undefined ? "" : String(headers[key] ?? "");
 }
 
-/**
- * Whether a response is genuinely a Cloudflare challenge.
- *
- * The API answers with an ordinary JSON 403 or 503 for an expired reader
- * token, a rate limit, or an outage. Treating those as a challenge puts a
- * "resolve this in a WebView" prompt in front of the reader for something a
- * WebView cannot fix, so a challenge has to look like one: the `cf-mitigated`
- * header, or an HTML body carrying Cloudflare's own markers.
- */
+// A JSON 403/503 is an expired token or a rate limit, not a challenge; only a real
+// fingerprint counts, or every row prompts for a WebView that cannot help.
 function isCloudflareChallenge(response: NetworkResponse): boolean {
   if (headerOf(response, "cf-mitigated").toLowerCase() === "challenge") return true;
   if (response.status !== 403 && response.status !== 503) return false;
@@ -71,13 +54,11 @@ export class KaganeApi {
 
   private integrityToken = "";
   private integrityExpiry = 0;
-  /** In-flight integrity fetch, so a burst of pages asks for one token. */
   private integrityRequest: Promise<string> | undefined;
 
   private metadata: KaganeMetadata | undefined;
   private metadataRequest: Promise<KaganeMetadata> | undefined;
 
-  /** The newest access token, reused until the CDN rejects it. */
   accessToken = "";
 
   private get http(): NetworkClient {
@@ -86,21 +67,17 @@ export class KaganeApi {
       .addRequestInterceptor(async (request: NetworkRequest) => ({
         ...request,
         headers: {
+          // No user-agent: the app's own matches the connection it makes, and a
+          // hand-written one is inconsistent enough to get challenged.
           accept: "application/json",
           "content-type": "application/json",
           origin: BASE_URL,
           referer: `${BASE_URL}/`,
           ...request.headers,
         },
-        // Deliberately no user-agent. The app sends one that matches the
-        // connection it actually makes; overriding it with a hand-written
-        // string makes the request look inconsistent and is what gets it
-        // challenged by Cloudflare in the first place.
       }))
       .addResponseInterceptor(async (response: NetworkResponse) => {
         if (isCloudflareChallenge(response)) throw new CloudflareError(BASE_URL);
-        // A stale token is the caller's to handle, so it has to survive the
-        // interceptor rather than being turned into an error here.
         return response;
       })
       .build();
@@ -112,14 +89,6 @@ export class KaganeApi {
     return parseJson<T>(response, url);
   }
 
-  /**
-   * `body` is handed over as an object, not a string.
-   *
-   * The host serialises it according to the content type; pre-encoding it with
-   * `JSON.stringify` makes the host encode that string in turn, so the server
-   * receives a quoted JSON string where it expects an object and answers 400.
-   * Pass `undefined` for the endpoints that want no body at all.
-   */
   private async postJson<T>(
     url: string,
     body: Record<string, unknown> | undefined,
@@ -127,15 +96,13 @@ export class KaganeApi {
   ): Promise<T> {
     const response = await this.http.post(url, {
       ...(body === undefined ? {} : { body }),
+      // `body` stays an object — the host serialises it, and pre-encoding it here
+      // means the server gets a quoted string and answers 400.
       headers: { "content-type": "application/json", ...headers },
     });
     return parseJson<T>(response, url);
   }
 
-  /**
-   * The search endpoint backs browsing as well as searching — a home row is
-   * this call with a sort and no title.
-   */
   async search(
     body: Record<string, unknown>,
     page: number,
@@ -170,17 +137,10 @@ export class KaganeApi {
     );
   }
 
-  /** Cover and page images are addressed by id under the API's image route. */
   imageUrl(imageId: string): string {
     return new UrlBuilder(API_URL).addPathComponent("image").addPathComponent(imageId).build();
   }
 
-  /**
-   * Genres, tags and sources, fetched once and shared.
-   *
-   * The three are needed together to render the search form, so a failure in
-   * any one of them yields empty lists rather than an unusable form.
-   */
   async getMetadata(): Promise<KaganeMetadata> {
     if (this.metadata) return this.metadata;
     if (this.metadataRequest) return this.metadataRequest;
@@ -214,12 +174,6 @@ export class KaganeApi {
     }
   }
 
-  /**
-   * The integrity token, refreshed when it has expired.
-   *
-   * The site issues it only to a client that has loaded the site itself, so
-   * the homepage is fetched first to pick up whatever cookies that sets.
-   */
   private async getIntegrityToken(force = false): Promise<string> {
     if (!force && this.integrityToken && Date.now() < this.integrityExpiry) {
       return this.integrityToken;
@@ -243,10 +197,6 @@ export class KaganeApi {
     }
   }
 
-  /**
-   * The per-chapter challenge: an access token, the CDN host, and the page
-   * manifest. A rejected integrity token is retried once with a fresh one.
-   */
   async getChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeDto> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("books")
@@ -274,7 +224,6 @@ export class KaganeApi {
     throw new Error("Could not obtain a reader token for this chapter");
   }
 
-  /** The page URL for one image of a chapter, carrying the current token. */
   pageUrl(
     cacheUrl: string,
     chapterId: string,
@@ -297,13 +246,6 @@ export class KaganeApi {
       .build();
   }
 
-  /**
-   * Re-mints the token on a page URL.
-   *
-   * Page URLs are handed to the app once and fetched much later, by which time
-   * the token they carry may have expired; this rebuilds one from the chapter
-   * id embedded in its own path.
-   */
   async refreshPageUrl(imageUrl: string, dataSaver: boolean): Promise<string> {
     const match = /\/api\/v2\/books\/page\/(?:datasaver\/)?([^/?#]+)\/([^/?#]+)/.exec(imageUrl);
     if (!match) return imageUrl;
@@ -338,8 +280,6 @@ function describeError(body: string): string {
       if (typeof record["message"] === "string") return record["message"];
       if (typeof record["error"] === "string") return record["error"];
     }
-  } catch {
-    // Fall through to the generic message.
-  }
+  } catch {}
   return "The server rejected the request";
 }

@@ -4,18 +4,14 @@ import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
 
 export const DOMAIN = "https://www.mangago.me";
 
-/**
- * The reader needs a desktop UA (alongside the `_m_superu` cookie) to return
- * the whole image list in one response; browsing uses a mobile UA, which is
- * what makes chapter links come back as `/read-manga/` URLs.
- */
+// The reader needs a desktop UA to return the whole image list in one response;
+// browsing uses a mobile UA, which is what yields /read-manga/ chapter links.
 export const READER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36";
 
 export const BROWSE_USER_AGENT =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 
-/** Hosts that can serve a numeric `/chapter/` reader; www.mangago.me 404s them. */
 export const READER_MIRROR_HOSTS = [DOMAIN, "https://www.mangago.zone", "https://www.youhim.me"];
 
 export const FilterID = {
@@ -40,10 +36,6 @@ export const PreferenceID = {
   SectionPrefix: "section",
 } as const;
 
-/**
- * The site's own sort values. "Alphabetical" is the absence of a `sortby`
- * parameter rather than a value of its own.
- */
 export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Views, title: "Views", isDefault: true, isOrderable: false },
   { id: SortID.CommentCount, title: "Comment Count", isOrderable: false },
@@ -110,11 +102,6 @@ export const GENRES = [
   "Webtoons",
 ];
 
-/**
- * The site matches a genre by its display title, so an id is only ever an
- * internal handle. Deriving it the same way everywhere is what lets a tag
- * tapped on a details page round-trip back through the genre filter.
- */
 export function genreIdFromTitle(title: string): string {
   return title
     .trim()
@@ -142,7 +129,6 @@ export type SectionSpecOption = {
   title: string;
   subtitle?: string;
   style: SectionStyle;
-  /** "Top N" rows cap their items to N; omitted rows paginate uncapped. */
   limit?: number;
 };
 
@@ -152,7 +138,6 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     title: "Featured Manga",
     subtitle: "The site's own hand-picked slider",
     style: SectionStyle.SimpleHeroPaged,
-    // The slider runs to about a hundred titles; a hero row wants a handful.
     limit: 20,
   },
   {
@@ -162,19 +147,11 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     style: SectionStyle.DetailedSingleRowPaged,
   },
   {
-    // The site calls this "Latest Update"; the id predates that and is kept so
-    // a reader's saved section switches survive the rename.
     id: "new_chapters",
     title: "Latest Update",
     subtitle: "Your daily dose of the latest updates",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
-  // The genre rows the site's home page carries, under its names and ranked
-  // ten deep, with the rest behind "more". The first eight are the order the
-  // main domain lists them in; Supernatural and Mystery are rows the mirror
-  // carries and the main domain does not. Every one of them is the same
-  // catalogue ranked by comment count, so serving them all from one host
-  // costs nothing and keeps the reader on a single Cloudflare surface.
   ...(
     [
       ["yaoi", "Yaoi"],
@@ -191,26 +168,18 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   ).map(([id, genre]) => ({
     id: `top_${id}`,
     title: `${genre} Manga Top 10`,
-    // Poster tiles two rows deep, the title and its newest chapter over the
-    // cover — ten titles stay one swipe away instead of ten.
     style: SectionStyle.SimpleDoubleRow,
     limit: 10,
   })),
 ];
 
-/** Home sections hidden until the reader turns them on. */
 export const DEFAULT_OFF_SECTION_IDS = new Set<string>([]);
 
-/** Legacy section ids an older install may still ask for. */
 export const SECTION_ALIASES: Record<string, string> = {
   popular: "popular_manga",
   latest: "new_chapters",
 };
 
-/**
- * The site has no content-type field; "Webtoons" is its only manhwa/manhua
- * signal, so the type filter includes or excludes that one genre.
- */
 export const CONTENT_TYPE_OPTIONS: Option[] = [
   { id: "all", title: "All" },
   { id: "webtoons", title: "Manhwa / Manhua" },
@@ -230,21 +199,15 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   ),
 };
 
-/** A search/discover tile, plus the extras only some listings carry. */
 export type MangagoListing = {
   id: string;
   title: string;
   cover: string;
   subtitle?: string;
-  /** Reader path of the tile's newest chapter, when the listing shows one. */
   chapterId?: string;
   publishDate?: Date;
   genres?: string[];
 };
 
-/**
- * Version tags the site appends to a title. Stripping them makes duplicate
- * library entries collapse onto one another.
- */
 export const TITLE_VERSION_REGEX =
   /^(?:\s*(?:\([^()]*\)|\{[^{}]*\}|\[(?:(?!\]).)*\]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩)\s*)+|(?:\s*(?:\([^()]*\)|\{[^{}]*\}|\[(?:(?!\]).)*\]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩|\/\s*Official)\s*)+$/gi;

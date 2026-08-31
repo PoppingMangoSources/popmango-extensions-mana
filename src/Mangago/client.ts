@@ -5,11 +5,6 @@ import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from 
 import { ACCEPT_LANGUAGE, HTML_ACCEPT, hostOf, isChallengePage } from "../common/index.ts";
 import { BROWSE_USER_AGENT, DOMAIN, READER_USER_AGENT } from "./model.ts";
 
-/**
- * Headers a browser sends when navigating to a reader page. Combined with a
- * same-origin referer they make a sub-page fetch look like a real navigation,
- * which is what the site serves in full.
- */
 const READER_NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-site": "same-origin",
   "sec-fetch-mode": "navigate",
@@ -17,15 +12,10 @@ const READER_NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-user": "?1",
 };
 
-/** The rotating mirrors that serve the numeric reader (never www.mangago.me). */
 export function isReaderMirrorHost(host: string): boolean {
   return /(?:^|\.)(?:mangago\.zone|youhim\.me)$/i.test(host);
 }
 
-/**
- * True for mangago.me and its reader mirrors, which need the `_m_superu`
- * cookie — and false for the image CDN hosts, which must not receive it.
- */
 function isMangagoHost(target: string): boolean {
   const host = hostOf(target);
   if (!host) return target.startsWith("/");
@@ -44,11 +34,6 @@ export function pathOf(target: string): string {
   return cut >= 0 ? pathAndQuery.slice(0, cut) : pathAndQuery;
 }
 
-/**
- * A reader page (`/read-manga/<slug>/<more>` or numeric `/chapter/<a>/<b>/`)
- * takes the desktop UA; everything else takes the mobile one so chapter links
- * come back as read-manga URLs.
- */
 export function isReaderPageUrl(target: string): boolean {
   const pathname = pathOf(target);
   const readManga = /^\/read-manga\/[^/]+\/(.+)/.exec(pathname);
@@ -56,19 +41,11 @@ export function isReaderPageUrl(target: string): boolean {
   return /^\/chapter\/\d+\/\d+/.test(pathname);
 }
 
-/** The origin serving a URL — its explicit mirror host, else www.mangago.me. */
 export function readerOrigin(target: string): string {
   const host = hostOf(target);
   return host ? `https://${host}` : DOMAIN;
 }
 
-/**
- * One client for the whole source.
- *
- * The per-request UA and referer are decided by the URL rather than by the
- * caller, so a redirect from a numeric reader to its `/read-manga/` form stays
- * on the desktop UA and keeps returning the full image list.
- */
 export function buildMangagoClient(): NetworkClient {
   const interceptRequest = async (request: NetworkRequest): Promise<NetworkRequest> => {
     const reader = isReaderPageUrl(request.url);
@@ -83,8 +60,6 @@ export function buildMangagoClient(): NetworkClient {
         "accept-language": ACCEPT_LANGUAGE,
         "user-agent": reader ? READER_USER_AGENT : BROWSE_USER_AGENT,
         ...(reader ? READER_NAVIGATION_HEADERS : {}),
-        // Anything the caller set explicitly wins, so a forced reader fetch
-        // cannot be downgraded by URL classification of a stale path.
         ...request.headers,
       },
       cookies: isMangagoHost(request.url)
@@ -102,13 +77,9 @@ export function buildMangagoClient(): NetworkClient {
     return response;
   };
 
-  return (
-    new NetworkClientBuilder()
-      // The home page fans out to one request per enabled row, so a one-per-second
-      // budget makes it visibly crawl. Three per second is what the site tolerates.
-      .setRateLimit(3, 1)
-      .addRequestInterceptor(interceptRequest)
-      .addResponseInterceptor(interceptResponse)
-      .build()
-  );
+  return new NetworkClientBuilder()
+    .setRateLimit(3, 1)
+    .addRequestInterceptor(interceptRequest)
+    .addResponseInterceptor(interceptResponse)
+    .build();
 }
