@@ -168,29 +168,27 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     limit: 10,
   },
   {
-    id: "trending_today",
-    // Poster tiles, one row: the format and status ride over the cover, so the
-    // row stays a single swipe.
-    title: "Trending Today",
-    style: SectionStyle.SimpleSingleRow,
-    layout: SectionLayout.Detailed,
-    sort: SortID.ViewsToday,
-  },
-  {
-    id: "trending_week",
-    // The wider two-row card, which has the room to render the key/value rows
-    // the Detailed layout supplies.
-    title: "Trending This Week",
-    style: SectionStyle.DetailedDoubleRowPaged,
-    layout: SectionLayout.Detailed,
-    sort: SortID.ViewsWeek,
-  },
-  {
     id: "trending_month",
+    // The widest window leads, on the wide two-row card that has room for the
+    // key/value rows; the shorter windows below it are poster tiles.
     title: "Trending This Month",
     style: SectionStyle.DetailedDoubleRowPaged,
     layout: SectionLayout.Detailed,
     sort: SortID.ViewsMonth,
+  },
+  {
+    id: "trending_week",
+    title: "Trending This Week",
+    style: SectionStyle.SimpleSingleRow,
+    layout: SectionLayout.Detailed,
+    sort: SortID.ViewsWeek,
+  },
+  {
+    id: "trending_today",
+    title: "Trending Today",
+    style: SectionStyle.SimpleSingleRow,
+    layout: SectionLayout.Detailed,
+    sort: SortID.ViewsToday,
   },
   {
     id: "latest_updates",

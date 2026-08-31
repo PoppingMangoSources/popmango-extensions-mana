@@ -1,6 +1,14 @@
 # Changelog
 
-## Kagane (current: v1.2.1)
+## Kagane (current: v1.2.2)
+
+### Changed
+
+- The trending windows run widest first: `Trending This Month` sits under the hero on the
+  wide two-row card, with `Trending This Week` and `Trending Today` as poster rows beneath
+  it.
+
+## Kagane (v1.2.1)
 
 ### Changed
 
