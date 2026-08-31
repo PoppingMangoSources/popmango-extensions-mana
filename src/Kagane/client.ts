@@ -83,7 +83,7 @@ export class KaganeApi {
     return this.client;
   }
 
-  private async getJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
+  private async fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
     const response = await this.http.get(url, headers ? { headers } : undefined);
     return parseJson<T>(response, url);
   }
@@ -102,7 +102,7 @@ export class KaganeApi {
     return parseJson<T>(response, url);
   }
 
-  async search(
+  async fetchSearch(
     body: Record<string, unknown>,
     page: number,
     size: number,
@@ -120,14 +120,14 @@ export class KaganeApi {
     return this.postJson<SearchResponse>(url, body);
   }
 
-  async series(seriesId: string): Promise<DetailsResponse> {
-    return this.getJson<DetailsResponse>(
+  async fetchSeries(seriesId: string): Promise<DetailsResponse> {
+    return this.fetchJson<DetailsResponse>(
       new UrlBuilder(API_URL).addPathComponent("series").addPathComponent(seriesId).build(),
     );
   }
 
-  async related(trackerId: string): Promise<TrackerResponse> {
-    return this.getJson<TrackerResponse>(
+  async fetchRelated(trackerId: string): Promise<TrackerResponse> {
+    return this.fetchJson<TrackerResponse>(
       new UrlBuilder(API_URL)
         .addPathComponent("trackers")
         .addPathComponent(trackerId)
@@ -140,7 +140,7 @@ export class KaganeApi {
     return new UrlBuilder(API_URL).addPathComponent("image").addPathComponent(imageId).build();
   }
 
-  private list<T>(key: string, load: () => Promise<T>): Promise<T> {
+  private cached<T>(key: string, load: () => Promise<T>): Promise<T> {
     const cached = this.lists.get(key) as Promise<T> | undefined;
     if (cached) return cached;
     const request = load().catch((error: unknown) => {
@@ -151,10 +151,10 @@ export class KaganeApi {
     return request;
   }
 
-  async genreNames(): Promise<Record<string, string>> {
-    return this.list("genres", async () =>
+  async fetchGenreNames(): Promise<Record<string, string>> {
+    return this.cached("genres", async () =>
       Object.fromEntries(
-        (await this.getJson<GenreEntry[]>(`${API_URL}/genres/list`)).map((genre) => [
+        (await this.fetchJson<GenreEntry[]>(`${API_URL}/genres/list`)).map((genre) => [
           genre.id,
           genre.genre_name,
         ]),
@@ -162,10 +162,10 @@ export class KaganeApi {
     ).catch(() => ({}));
   }
 
-  async tagNames(): Promise<Record<string, string>> {
-    return this.list("tags", async () =>
+  async fetchTagNames(): Promise<Record<string, string>> {
+    return this.cached("tags", async () =>
       Object.fromEntries(
-        (await this.getJson<TagEntry[]>(`${API_URL}/tags/list`)).map((tag) => [
+        (await this.fetchJson<TagEntry[]>(`${API_URL}/tags/list`)).map((tag) => [
           tag.id,
           tag.tag_name,
         ]),
@@ -173,8 +173,8 @@ export class KaganeApi {
     ).catch(() => ({}));
   }
 
-  async sources(): Promise<UploadSource[]> {
-    return this.list("sources", async () => {
+  async fetchUploadSources(): Promise<UploadSource[]> {
+    return this.cached("sources", async () => {
       const body = await this.postJson<SourcesResponse>(`${API_URL}/sources/list`, {
         source_types: null,
       });
@@ -182,7 +182,7 @@ export class KaganeApi {
     }).catch(() => []);
   }
 
-  private async getIntegrityToken(force = false): Promise<string> {
+  private async fetchIntegrityToken(force = false): Promise<string> {
     if (!force && this.integrityToken && Date.now() < this.integrityExpiry) {
       return this.integrityToken;
     }
@@ -208,7 +208,7 @@ export class KaganeApi {
     }
   }
 
-  async getChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
+  async fetchChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("books")
       .addPathComponent(chapterId)
@@ -216,7 +216,7 @@ export class KaganeApi {
       .build();
 
     for (const force of [false, true]) {
-      const token = await this.getIntegrityToken(force);
+      const token = await this.fetchIntegrityToken(force);
       const response = await this.http.post(url, {
         body: {},
         headers: { "content-type": "application/json", "x-integrity-token": token },
@@ -265,7 +265,8 @@ export class KaganeApi {
     if (!chapterId || !fileName) return imageUrl;
 
     const origin = /^https?:\/\/[^/?#]+/i.exec(imageUrl)?.[0] ?? DEFAULT_CACHE_URL;
-    const token = this.accessToken || (await this.getChallenge(chapterId, dataSaver)).access_token;
+    const token =
+      this.accessToken || (await this.fetchChallenge(chapterId, dataSaver)).access_token;
 
     return this.pageUrl(origin, chapterId, fileName, token, dataSaver);
   }

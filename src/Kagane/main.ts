@@ -79,7 +79,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -142,7 +142,7 @@ class KaganeSource
       this.preferences.flag(PreferenceID.ShowEditionInTitle),
     ]);
 
-    const sources = showSource ? await this.api.sources() : [];
+    const sources = showSource ? await this.api.fetchUploadSources() : [];
 
     return {
       cleanTitle,
@@ -153,16 +153,16 @@ class KaganeSource
   }
 
   private async genreOptions(): Promise<Option[]> {
-    return buildOptions(await this.api.genreNames());
+    return buildOptions(await this.api.fetchGenreNames());
   }
 
   private async tagOptions(): Promise<Option[]> {
-    return buildOptions(await this.api.tagNames());
+    return buildOptions(await this.api.fetchTagNames());
   }
 
   private async sourceOptions(): Promise<Option[]> {
     const [sources, uploadSource] = await Promise.all([
-      this.api.sources(),
+      this.api.fetchUploadSources(),
       this.preferences.text(PreferenceID.UploadSource, "all"),
     ]);
 
@@ -303,7 +303,7 @@ class KaganeSource
     if (!trackerId) return content;
 
     const related = await this.api
-      .related(trackerId)
+      .fetchRelated(trackerId)
       .then((response) => response.book_series ?? [])
       .catch(() => []);
 
@@ -345,7 +345,7 @@ class KaganeSource
 
   async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
     const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
-    const challenge = await this.api.getChallenge(chapterId, dataSaver);
+    const challenge = await this.api.fetchChallenge(chapterId, dataSaver);
 
     const manifest = challenge.manifest?.pages ?? [];
     if (manifest.length === 0) throw new Error(`Kagane returned no pages for chapter ${chapterId}`);
@@ -396,13 +396,13 @@ class KaganeSource
     }
   }
 
-  private async fetchDetails(seriesId: string): ReturnType<KaganeApi["series"]> {
+  private async fetchDetails(seriesId: string): ReturnType<KaganeApi["fetchSeries"]> {
     const cached = this.detailCache;
     if (cached && cached.seriesId === seriesId && Date.now() - cached.at < DETAIL_CACHE_MS) {
-      return cached.details as Awaited<ReturnType<KaganeApi["series"]>>;
+      return cached.details as Awaited<ReturnType<KaganeApi["fetchSeries"]>>;
     }
 
-    const details = await this.api.series(seriesId);
+    const details = await this.api.fetchSeries(seriesId);
     this.detailCache = { seriesId, details, at: Date.now() };
     return details;
   }
@@ -427,21 +427,21 @@ class KaganeSource
     layout: SectionLayoutKind = SectionLayout.Simple,
   ): Promise<PagedSearchResult> {
     const [response, titleOptions, genreNames] = await Promise.all([
-      this.api.search(body, page, size, sort),
+      this.api.fetchSearch(body, page, size, sort),
       this.titleOptions(),
-      layout === SectionLayout.Detailed ? this.api.genreNames() : {},
+      layout === SectionLayout.Detailed ? this.api.fetchGenreNames() : {},
     ]);
 
     const results: Highlight[] = (response.content ?? []).map((book) =>
       parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
-        ...this.tileExtras(book, layout, genreNames),
+        ...this.buildTileExtras(book, layout, genreNames),
       }),
     );
 
     return { results, isLastPage: response.last !== false || results.length === 0 };
   }
 
-  private tileExtras(
+  private buildTileExtras(
     book: SeriesSummary,
     layout: SectionLayoutKind,
     genreNames: Record<string, string>,
