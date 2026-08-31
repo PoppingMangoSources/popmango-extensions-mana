@@ -108,12 +108,85 @@ function contentTypeOf(format: string | null | undefined): ContentType | undefin
   }
 }
 
+/** The listing states each title's rating, so a tile never has to guess. */
+export function ratingOf(value: string | null | undefined): ContentRating {
+  switch ((value ?? "").toLowerCase()) {
+    case "safe":
+      return ContentRating.SAFE;
+    case "suggestive":
+      return ContentRating.SUGGESTIVE;
+    case "pornographic":
+      return ContentRating.EXPLICIT;
+    default:
+      return ContentRating.MATURE;
+  }
+}
+
+function statusLabel(book: SeriesSummaryDto): string | undefined {
+  switch ((book.publication_status ?? "").toUpperCase()) {
+    case "ONGOING":
+      return "Ongoing";
+    case "COMPLETED":
+      return "Completed";
+    case "HIATUS":
+      return "Hiatus";
+    case "ABANDONED":
+      return "Cancelled";
+    default:
+      return undefined;
+  }
+}
+
+/** "MANHWA · Completed" — the line beneath a title on a detailed row. */
+export function descriptorOf(book: SeriesSummaryDto): string | undefined {
+  const format = book.format?.trim();
+  const parts = [
+    format && format.toLowerCase() !== "other" ? format.toUpperCase() : undefined,
+    statusLabel(book),
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+/** "Vol.1 Ch.3" / "Ch. 27" for the newest chapter a listing advertises. */
+export function latestChapterLabel(book: SeriesSummaryDto): string | undefined {
+  const latest = book.latest_chapters?.[0];
+  if (!latest) return undefined;
+
+  const chapter = latest.chapter_no?.trim();
+  const volume = latest.volume_no?.trim();
+
+  if (chapter) return volume ? `Vol.${volume} Ch.${chapter}` : `Ch. ${chapter}`;
+  if (volume) return `Volume ${volume}`;
+  return latest.title?.trim() || undefined;
+}
+
+export function latestChapterDate(book: SeriesSummaryDto): Date | undefined {
+  const latest = book.latest_chapters?.[0];
+  if (!latest) return undefined;
+  return parseDate(latest.available_at ?? latest.created_at);
+}
+
 /**
- * The catalog spans every rating, and a listing does not say which one a title
- * is. The reader's own rating filter is what narrows the results, so a tile is
- * marked SUGGESTIVE rather than claiming to be safe.
+ * The key/value rows a detailed listing shows under the descriptor — the same
+ * shape as a "Rating / Chapters / Volumes" block.
  */
-const LISTING_RATING = ContentRating.SUGGESTIVE;
+export function infoRowsOf(book: SeriesSummaryDto, genreNames: Record<string, string>): Pair[] {
+  const rows: Pair[] = [];
+
+  const books = book.current_books;
+  if (typeof books === "number" && books > 0) rows.push({ key: "Chapters", value: String(books) });
+
+  if (book.start_year) rows.push({ key: "Year", value: String(book.start_year) });
+
+  const genres = (book.genres ?? [])
+    .map((id) => genreNames[id])
+    .filter((name): name is string => Boolean(name))
+    .slice(0, 2);
+  if (genres.length > 0) rows.push({ key: "Genres", value: genres.join(", ") });
+
+  return rows;
+}
 
 export function toHighlight(
   book: SeriesSummaryDto,
@@ -127,16 +200,9 @@ export function toHighlight(
     cover: book.cover_image_id ? coverFor(book.cover_image_id) : "",
     ...(extra?.subtitle ? { subtitle: extra.subtitle } : {}),
     ...(extra?.info && extra.info.length > 0 ? { info: extra.info } : {}),
-    contentRating: LISTING_RATING,
+    contentRating: ratingOf(book.content_rating),
     webUrl: seriesUrl(book.series_id),
   };
-}
-
-/** The "N books" line a detailed row shows under the title. */
-export function bookCountLabel(book: SeriesSummaryDto): string | undefined {
-  const count = book.current_books;
-  if (typeof count !== "number" || count <= 0) return undefined;
-  return `${count} ${count === 1 ? "book" : "books"}`;
 }
 
 export function toContent(
@@ -180,7 +246,7 @@ export function toContent(
     additionalTitles: alternateTitles,
     tags,
     ...(contentType === undefined ? {} : { contentType }),
-    contentRating: LISTING_RATING,
+    contentRating: ratingOf(details.content_rating),
     ...(status === undefined ? {} : { status }),
     webUrl: seriesUrl(seriesId),
     ...(authors.length > 0 || artists.length > 0

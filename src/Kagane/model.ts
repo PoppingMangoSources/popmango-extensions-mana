@@ -141,22 +141,54 @@ export const LANGUAGE_OPTIONS: Option[] = [
   { id: "vi", title: "Vietnamese" },
 ];
 
+/** How a row's tiles are laid out and what they put under the title. */
+export const SectionLayout = {
+  /** Big cover, one at a time. */
+  Hero: "hero",
+  /** Cover, title, "Manhwa · Completed", then key/value rows. */
+  Detailed: "detailed",
+  /** Cover, title, and the newest chapter with its publish time. */
+  ChapterUpdates: "chapter-updates",
+  /** Cover and title only. */
+  Simple: "simple",
+} as const;
+
+export type SectionLayoutKind = (typeof SectionLayout)[keyof typeof SectionLayout];
+
 export type SectionSpecOption = {
   id: string;
   title: string;
   subtitle?: string;
   style: SectionStyle;
+  layout: SectionLayoutKind;
   /** The API sort backing the row; `undefined` means "read it from settings". */
   sort?: string;
   limit?: number;
 };
 
+/**
+ * The home page.
+ *
+ * The trending windows are rows of their own rather than a strip of chips that
+ * only lead somewhere — a reader on the home page can see what is climbing
+ * today without tapping through first.
+ */
 export const DISCOVER_SECTIONS: SectionSpecOption[] = [
   {
     id: "popular",
     title: "Popular",
     subtitle: "The most-read titles right now",
     style: SectionStyle.SimpleHeroPaged,
+    layout: SectionLayout.Hero,
+    limit: 10,
+  },
+  {
+    id: "hidden_gems",
+    title: "Hidden Gems",
+    subtitle: "Quietly excellent, and easy to miss",
+    style: SectionStyle.DetailedVerticalList,
+    layout: SectionLayout.Detailed,
+    sort: SortID.AverageViews,
     limit: 10,
   },
   {
@@ -164,42 +196,49 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     title: "Latest Updates",
     subtitle: "Your daily dose of the latest updates",
     style: SectionStyle.DetailedVerticalListGrouped,
+    layout: SectionLayout.ChapterUpdates,
     sort: SortID.Updated,
   },
   {
-    id: "newly_added",
-    title: "Newly Added",
-    subtitle: "Fresh in the catalog",
-    style: SectionStyle.SimpleDoubleRow,
-    sort: SortID.Created,
-  },
-  {
-    id: "popular_today",
-    title: "Popular Today",
-    style: SectionStyle.SimpleHero,
+    id: "trending_today",
+    title: "Trending Today",
+    style: SectionStyle.DetailedVerticalList,
+    layout: SectionLayout.Detailed,
     sort: SortID.ViewsToday,
     limit: 10,
   },
   {
-    id: "popular_week",
-    title: "Popular This Week",
+    id: "trending_week",
+    title: "Trending This Week",
     style: SectionStyle.SimpleDoubleRow,
+    layout: SectionLayout.Simple,
     sort: SortID.ViewsWeek,
-    limit: 10,
+    limit: 15,
   },
   {
-    id: "popular_month",
-    title: "Popular This Month",
+    id: "trending_month",
+    title: "Trending This Month",
     style: SectionStyle.SimpleDoubleRow,
+    layout: SectionLayout.Simple,
     sort: SortID.ViewsMonth,
+    limit: 15,
+  },
+  {
+    id: "highest_rated",
+    title: "Highest Rated",
+    subtitle: "The best of the catalogue, all time",
+    style: SectionStyle.DetailedVerticalList,
+    layout: SectionLayout.Detailed,
+    sort: SortID.TotalViews,
     limit: 10,
   },
   {
-    id: "popular_all_time",
-    title: "Popular All Time",
-    style: SectionStyle.DetailedSingleRowPaged,
-    sort: SortID.TotalViews,
-    limit: 20,
+    id: "newly_added",
+    title: "Newly Added",
+    subtitle: "Fresh in the catalogue",
+    style: SectionStyle.SimpleDoubleRow,
+    layout: SectionLayout.Simple,
+    sort: SortID.Created,
   },
 ];
 
@@ -231,6 +270,23 @@ export type SourceDto = {
 
 export type SourcesDto = { sources?: SourceDto[] };
 
+/** The newest chapter a listing advertises for a series. */
+export type LatestChapterDto = {
+  book_id: string;
+  title?: string | null;
+  chapter_no?: string | null;
+  volume_no?: string | null;
+  created_at?: string | null;
+  available_at?: string | null;
+};
+
+/**
+ * A listing entry.
+ *
+ * It carries far more than a title and a cover — format, status, rating, genre
+ * ids and the newest chapter — which is what lets every home row be built from
+ * one request instead of a detail fetch per card.
+ */
 export type SeriesSummaryDto = {
   series_id: string;
   title: string;
@@ -239,6 +295,13 @@ export type SeriesSummaryDto = {
   start_year?: number | null;
   cover_image_id?: string | null;
   alternate_titles?: string[];
+  content_rating?: string | null;
+  format?: string | null;
+  publication_status?: string | null;
+  translated_language?: string | null;
+  /** Genre taxonomy ids, resolved to names through the metadata map. */
+  genres?: string[];
+  latest_chapters?: LatestChapterDto[];
 };
 
 export type SearchDto = {
@@ -274,6 +337,10 @@ export type DetailsDto = {
   edition_info?: string | null;
   tracker_id?: string | null;
   series_covers?: { image_id: string }[];
+  content_rating?: string | null;
+  average_rating?: number | null;
+  bayesian_rating?: number | null;
+  total_views?: number | null;
 };
 
 export type TrackerDto = {

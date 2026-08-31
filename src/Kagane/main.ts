@@ -6,7 +6,6 @@ import {
   SearchExcludableMultiPicker,
   SearchMultiPicker,
   SearchToggle,
-  SectionStyle,
   type Chapter,
   type ChapterData,
   type ChapterPage,
@@ -54,12 +53,18 @@ import {
   PreferenceID,
   SORT_OPTIONS,
   STATUS_OPTIONS,
+  SectionLayout,
   SortID,
+  type SectionLayoutKind,
   type SectionSpecOption,
+  type SeriesSummaryDto,
 } from "./model.ts";
 import {
-  bookCountLabel,
+  descriptorOf,
   displayTitle,
+  infoRowsOf,
+  latestChapterDate,
+  latestChapterLabel,
   seriesUrl,
   toChapters,
   toContent,
@@ -72,7 +77,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.1",
+  version: "1.1.0",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -447,7 +452,7 @@ class KaganeSource
       page,
       spec.limit ?? PAGE_SIZE,
       sortParameter(sortId, false),
-      spec.style,
+      spec.layout,
     );
   }
 
@@ -456,34 +461,95 @@ class KaganeSource
     page: number,
     size: number,
     sort: string,
-    style?: SectionStyle,
+    layout: SectionLayoutKind = SectionLayout.Simple,
   ): Promise<PagedSearchResult> {
-    const [response, titleOptions] = await Promise.all([
+    const [response, titleOptions, metadata] = await Promise.all([
       this.api.search(body, page, size, sort),
       this.titleOptions(),
+      this.api.getMetadata().catch(() => undefined),
     ]);
 
-    const detailed =
-      style === SectionStyle.DetailedVerticalList ||
-      style === SectionStyle.DetailedVerticalListGrouped;
+    const genreNames = metadata?.genres ?? {};
 
-    const results: Highlight[] = (response.content ?? []).map((book) => {
-      const books = bookCountLabel(book);
-      const info: Pair[] = [];
-
-      if (detailed) {
-        if (books) info.push({ key: "Books", value: String(book.current_books) });
-        if (book.start_year) info.push({ key: "Year", value: String(book.start_year) });
-      }
-
-      return toHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
-        ...(books ? { subtitle: books } : {}),
-        info,
-      });
-    });
+    const results: Highlight[] = (response.content ?? []).map((book) =>
+      toHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
+        ...this.tileExtras(book, layout, genreNames),
+      }),
+    );
 
     return { results, isLastPage: response.last !== false || results.length === 0 };
   }
+
+  /**
+   * What a tile shows beneath its title, per layout.
+   *
+   * Everything here comes out of the listing the row already fetched, so a
+   * richer-looking row costs no extra requests.
+   */
+  private tileExtras(
+    book: SeriesSummaryDto,
+    layout: SectionLayoutKind,
+    genreNames: Record<string, string>,
+  ): { subtitle?: string; info?: Pair[] } {
+    switch (layout) {
+      case SectionLayout.Detailed: {
+        const subtitle = descriptorOf(book);
+        return {
+          ...(subtitle ? { subtitle } : {}),
+          info: infoRowsOf(book, genreNames),
+        };
+      }
+
+      case SectionLayout.ChapterUpdates: {
+        const chapter = latestChapterLabel(book);
+        if (!chapter) {
+          const subtitle = descriptorOf(book);
+          return subtitle ? { subtitle } : {};
+        }
+        return {
+          subtitle: chapter,
+          info: [{ key: chapter, value: relativeTime(latestChapterDate(book)) }],
+        };
+      }
+
+      case SectionLayout.Hero: {
+        const subtitle = descriptorOf(book);
+        return subtitle ? { subtitle } : {};
+      }
+
+      default: {
+        const chapter = latestChapterLabel(book);
+        return chapter ? { subtitle: chapter } : {};
+      }
+    }
+  }
+}
+
+/** "3 hours ago", for the update column of a chapter-updates row. */
+function relativeTime(date: Date | undefined): string {
+  if (!date) return "";
+
+  const elapsed = Date.now() - date.getTime();
+  if (elapsed < 0) return "";
+  if (elapsed < 60_000) return "just now";
+
+  const units: [number, string][] = [
+    [60_000, "minute"],
+    [3_600_000, "hour"],
+    [86_400_000, "day"],
+    [604_800_000, "week"],
+    [2_592_000_000, "month"],
+    [31_536_000_000, "year"],
+  ];
+
+  for (let i = units.length - 1; i >= 0; i--) {
+    const [size, name] = units[i]!;
+    if (elapsed >= size) {
+      const count = Math.floor(elapsed / size);
+      return `${count} ${name}${count === 1 ? "" : "s"} ago`;
+    }
+  }
+  return "";
 }
 
 function toOptions(map: Record<string, string> | undefined): Option[] {
