@@ -2,7 +2,17 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.11)
+## Kagane (current: v1.0.12)
+
+### Added
+
+- A challenge is given one silent chance to clear before the reader is asked to solve it.
+  The source loads the site in the auxiliary WebView, which runs the JavaScript challenge,
+  then retries the request once; only if that fails does the manual prompt appear. One
+  WebView is shared across a whole home page, and a cooldown stops a site that challenges
+  everything from opening one per request.
+
+## Kagane (v1.0.11)
 
 ### Fixed
 
@@ -119,7 +129,17 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.8)
+## Mangago (current: v1.0.9)
+
+### Added
+
+- A challenge is given one silent chance to clear before the reader is asked to solve it.
+  The source loads the site in the auxiliary WebView, which runs the JavaScript challenge,
+  then retries the request once; only if that fails does the manual prompt appear. One
+  WebView is shared across a whole home page, and a cooldown stops a site that challenges
+  everything from opening one per request.
+
+## Mangago (v1.0.8)
 
 ### Fixed
 
