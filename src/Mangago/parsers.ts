@@ -476,11 +476,18 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     });
   });
 
-  // Newest first, with unnumbered chapters sinking to the bottom.
+  // Side stories, extras and epilogues carry no chapter number of their own.
+  // Leaving them at 0 makes the app treat them as the *first* chapters, so
+  // they are renumbered above the main run instead — they are published after
+  // it, and the app picks where to start reading by chapter number.
+  const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
+  const extras = parsed.filter((chapter) => chapter.number === 0);
+  extras.forEach((chapter, position) => {
+    // The site lists newest first, so the earliest row is the latest extra.
+    chapter.number = highest + (extras.length - position);
+  });
+
   parsed.sort((a, b) => {
-    if (a.number === 0 && b.number === 0) return compareScanlators(a, b);
-    if (a.number === 0) return 1;
-    if (b.number === 0) return -1;
     if (a.number !== b.number) return b.number - a.number;
     return compareScanlators(a, b);
   });

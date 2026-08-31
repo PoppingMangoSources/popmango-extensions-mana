@@ -320,3 +320,75 @@ main { padding: 2rem 0 1rem; }
   .source-scroll { max-height: min(32rem, 62vh); }
 }
 
+
+/* ── Pastel pink accents ─────────────────────────────────────────────────── */
+
+/* The primary action reads pink rather than mango, with the mango kept for the
+   card headings and rules so the page still has warmth in it. */
+.button--mango {
+  background: linear-gradient(120deg, #ffd9ea, #ffb3d3);
+  color: #5c2742;
+}
+.button--berry {
+  background: linear-gradient(120deg, #ffe6f2, #e3d3f7);
+  color: #52334f;
+}
+
+.repository--mango { border-top-color: var(--pink); }
+.repository--mango .repository__kicker { color: #d4568c; }
+.repository__head h3 span { background: #ffe8f2; color: #c9527f; }
+.hero h1 span { color: #f07fae; }
+.eyebrow { color: #d4568c; }
+.source-card__add { background: #ffe4ef; color: #d4568c; }
+.footer__links a { color: #d4568c; }
+
+/* ── Install banner ──────────────────────────────────────────────────────── */
+
+.install { align-items: flex-start; }
+.install__body { display: flex; flex-direction: column; gap: .75rem; min-width: 0; flex: 1 1 auto; }
+
+.install__url {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-width: 0;
+}
+
+/* The address is long and has no spaces, so it has to be allowed to break
+   anywhere — otherwise it pushes the whole banner wider than the page. */
+.install__url code {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: .55rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: .78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.install__copy {
+  flex: 0 0 auto;
+  min-height: 2.4rem;
+  padding: .5rem .95rem;
+  font-size: .82rem;
+}
+
+@media (max-width: 34rem) {
+  .install__url { flex-direction: column; align-items: stretch; }
+  .install__copy { width: 100%; }
+}
+
+/* The base theme tinted the catalog card teal to tell two repositories apart.
+   There is only one here, so it follows the pink accent like everything else. */
+.repository--mango .button--mango {
+  background: linear-gradient(120deg, #ffd9ea, #ffb3d3);
+  color: #5c2742;
+}
+.repository--mango .repository__kicker { color: #d4568c; }
+.repository--mango .repository__head h3 span { background: #ffe8f2; color: #c9527f; }
+.repository--mango .source-card__add { background: #ffe4ef; color: #d4568c; }
+.source-card:hover, .source-card:focus-visible { border-color: #ffb3d3; }

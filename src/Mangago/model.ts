@@ -200,7 +200,6 @@ export const DISCOVER_SECTIONS: SectionSpecOption[] = [
     style: SectionStyle.SimpleSingleRow,
     limit: 5,
   },
-  { id: "genres", title: "Genres", subtitle: "Browse by genre", style: SectionStyle.Grid },
 ];
 
 /** Home sections hidden until the reader turns them on. */

@@ -201,33 +201,38 @@ function browserScript() {
       '</div></div>' + body + '</section>';
 
     var copy = document.getElementById("copy-repo");
-    if (copy) copy.addEventListener("click", copyRepoUrl);
+    if (copy) bindCopy(copy);
     updateScrollbars();
   }
 
-  function copyRepoUrl() {
-    var button = document.getElementById("copy-repo");
-    var done = function () {
-      button.textContent = "Copied!";
-      setTimeout(function () { button.textContent = "Copy repository URL"; }, 2000);
-    };
+  // Both copy buttons share this. The label is restored from the button's own
+  // markup so each keeps its own wording after the confirmation clears.
+  function bindCopy(button) {
+    var label = button.textContent;
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(repo.url).then(done, fallbackCopy);
-    } else {
-      fallbackCopy();
-    }
+    button.addEventListener("click", function () {
+      var done = function () {
+        button.textContent = "Copied!";
+        setTimeout(function () { button.textContent = label; }, 2000);
+      };
 
-    function fallbackCopy() {
-      var field = document.getElementById("repo-url");
-      if (!field) return;
-      var range = document.createRange();
-      range.selectNodeContents(field);
-      var selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-      try { document.execCommand("copy"); done(); } catch (error) { /* nothing to do */ }
-    }
+      var fallback = function () {
+        var field = document.getElementById("repo-url");
+        if (!field) return;
+        var range = document.createRange();
+        range.selectNodeContents(field);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        try { document.execCommand("copy"); done(); } catch (error) { /* nothing to do */ }
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(repo.url).then(done, fallback);
+      } else {
+        fallback();
+      }
+    });
   }
 
   function updateScrollbar(container) {
@@ -296,6 +301,9 @@ function browserScript() {
       })
       .catch(function () { /* The inlined catalog stays on screen. */ });
   }
+
+  var heroCopy = document.getElementById("copy-hero");
+  if (heroCopy) bindCopy(heroCopy);
 
   filterInput.addEventListener("input", render);
   window.addEventListener("resize", updateScrollbars);
@@ -379,11 +387,16 @@ ${styles()}
 </section>
 
 <main>
-  <section class="compat" id="install">
+  <section class="compat install" id="install">
     <span class="compat__flower" aria-hidden="true">✿</span>
-    <p><b>Add the repository to Mana.</b> Copy the address below, then open
-    <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.<br>
-    <code id="repo-url">${escapeHtml(REPO_URL)}</code></p>
+    <div class="install__body">
+      <p><b>Add the repository to Mana.</b> Copy the address, then open
+      <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.</p>
+      <div class="install__url">
+        <code id="repo-url">${escapeHtml(REPO_URL)}</code>
+        <button class="button button--mango install__copy" type="button" id="copy-hero">Copy</button>
+      </div>
+    </div>
   </section>
 
   <div class="catalog-tools">

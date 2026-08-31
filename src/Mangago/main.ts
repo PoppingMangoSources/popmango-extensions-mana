@@ -63,7 +63,6 @@ import {
   genreIdFromTitle,
   getGenreTitle,
   sortValueFor,
-  type FeaturedDetail,
   type MangagoListing,
   type SectionSpecOption,
 } from "./model.ts";
@@ -76,7 +75,6 @@ import {
   hasNextPage,
   parseChapters,
   parseContent,
-  parseFeaturedDetail,
   parseGenrePanel,
   parseLatestUpdates,
   parseListings,
@@ -108,7 +106,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.0",
+  version: "1.1.0",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -238,30 +236,26 @@ class MangagoSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const sections: PageSection[] = [];
+    // Read every switch at once — this runs before the home page can render
+    // anything, so fourteen sequential store reads are fourteen stalls.
+    const enabled = await Promise.all(
+      DISCOVER_SECTIONS.map((section) => this.sectionEnabled(section.id)),
+    );
 
-    for (const section of DISCOVER_SECTIONS) {
-      if (!(await this.sectionEnabled(section.id))) continue;
-      sections.push({
-        id: section.id,
-        title: section.title,
-        ...(section.subtitle === undefined ? {} : { subtitle: section.subtitle }),
-        style: section.style,
-        // A capped "Top N" row and the genre grid have nothing more to show.
-        ...(section.limit === undefined && section.id !== "genres"
-          ? { viewMoreLink: { request: { page: 1, listId: section.id } } }
-          : {}),
-      });
-    }
-
-    return sections;
+    return DISCOVER_SECTIONS.filter((_, position) => enabled[position]).map((section) => ({
+      id: section.id,
+      title: section.title,
+      ...(section.subtitle === undefined ? {} : { subtitle: section.subtitle }),
+      style: section.style,
+      // A capped "Top N" row has nothing more to show.
+      ...(section.limit === undefined
+        ? { viewMoreLink: { request: { page: 1, listId: section.id } } }
+        : {}),
+    }));
   }
 
   async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     const id = SECTION_ALIASES[sectionID] ?? sectionID;
-
-    if (id === "genres") return { items: await this.genreTiles() };
-
     const spec = DISCOVER_SECTIONS.find((section) => section.id === id);
     const { results } = await this.loadSection(id, spec, 1);
     return { items: results };
@@ -432,27 +426,6 @@ class MangagoSource
 
   // ── discover ─────────────────────────────────────────────────────────────
 
-  private async genreTiles(): Promise<Highlight[]> {
-    const hidden = new Set((await this.settingsExcludedGenres()).map((g) => g.toLowerCase()));
-
-    return (await this.genres())
-      .filter((genre) => !hidden.has(genre.title.toLowerCase()))
-      .map((genre) => ({
-        id: `genre:${genre.id}`,
-        title: genre.title,
-        cover: "",
-        contentRating: contentRatingForGenres([genre.title]),
-        link: {
-          request: {
-            page: 1,
-            filters: {
-              [FilterID.Genres]: { included: [{ id: genre.id, title: genre.title }], excluded: [] },
-            },
-          },
-        },
-      }));
-  }
-
   private sectionUrl(sectionId: string, page: number, sort: string, excluded: string[]): string {
     if (sectionId === "new_chapters") return buildLatestUrl(page);
 
@@ -471,8 +444,6 @@ class MangagoSource
     spec: SectionSpecOption | undefined,
     page: number,
   ): Promise<PagedSearchResult> {
-    if (sectionId === "genres") return { results: await this.genreTiles(), isLastPage: true };
-
     const excluded = await this.settingsExcludedGenres();
     const isTop = sectionId.startsWith("top_");
     // Popular and the genre tops rank by comment count; everything else by views.
@@ -552,39 +523,14 @@ class MangagoSource
   }
 
   /**
-   * The hero row shows rating, status and chapter count beneath the cover, so
-   * the top few titles are enriched from their own detail pages.
+   * The hero row is built from the listing alone.
+   *
+   * Rating, status and chapter count only exist on a title's own detail page,
+   * and fetching eight of those put eight extra round trips in front of the
+   * first thing the reader sees. The row now costs exactly one request.
    */
   private async toFeaturedHighlights(items: MangagoListing[]): Promise<Highlight[]> {
-    const featured = items.slice(0, FEATURED_HERO_LIMIT);
-
-    const details = await Promise.all(
-      featured.map(async (item): Promise<FeaturedDetail> => {
-        try {
-          return parseFeaturedDetail(await this.fetchHtml(absoluteUrl(item.id)));
-        } catch {
-          return {};
-        }
-      }),
-    );
-
-    return featured.map((item, index) => {
-      const detail = details[index] ?? {};
-      const info: Pair[] = [];
-      if (detail.rating) info.push({ key: "Rating", value: detail.rating });
-      if (detail.status) info.push({ key: "Status", value: detail.status });
-      if (detail.chapters) info.push({ key: "Chapters", value: String(detail.chapters) });
-
-      return {
-        id: item.id,
-        title: item.title,
-        cover: item.cover,
-        ...(detail.author || item.subtitle ? { subtitle: detail.author ?? item.subtitle } : {}),
-        ...(info.length > 0 ? { info } : {}),
-        contentRating: ContentRating.SAFE,
-        webUrl: absoluteUrl(item.id),
-      };
-    });
+    return this.toHighlights(items.slice(0, FEATURED_HERO_LIMIT));
   }
 
   // ── reader ───────────────────────────────────────────────────────────────

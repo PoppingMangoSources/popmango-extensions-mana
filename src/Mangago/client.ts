@@ -107,9 +107,13 @@ export function buildMangagoClient(): NetworkClient {
     return response;
   };
 
-  return new NetworkClientBuilder()
-    .setRateLimit(1, 1)
-    .addRequestInterceptor(interceptRequest)
-    .addResponseInterceptor(interceptResponse)
-    .build();
+  return (
+    new NetworkClientBuilder()
+      // The home page fans out to one request per enabled row, so a one-per-second
+      // budget makes it visibly crawl. Three per second is what the site tolerates.
+      .setRateLimit(3, 1)
+      .addRequestInterceptor(interceptRequest)
+      .addResponseInterceptor(interceptResponse)
+      .build()
+  );
 }
