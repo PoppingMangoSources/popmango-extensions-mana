@@ -133,6 +133,101 @@ export function parseJsonish<T>(raw: string): T | undefined {
 }
 
 /**
+ * The text of a node excluding its child elements.
+ *
+ * Info rows are usually `<li><b>Status:</b> Ongoing</li>`, where `.text()`
+ * returns the label glued to the value.
+ */
+export function ownText(node: Cheerio<AnyNode>): string {
+  return clean(
+    node
+      .contents()
+      .toArray()
+      .filter((child) => child.type === "text")
+      .map((child) => ("data" in child ? String(child.data) : ""))
+      .join(" "),
+  );
+}
+
+/**
+ * Extracts a *balanced* JSON region beginning at `marker`.
+ *
+ * A lazy `/\{[\s\S]*?\}/` truncates at the first `}` inside a nested object,
+ * which silently yields half a chapter list. This counts braces instead, and
+ * skips over strings so a brace inside one cannot unbalance the count.
+ */
+export function balancedJson(source: string, marker: string): string | undefined {
+  const from = source.indexOf(marker);
+  if (from < 0) return undefined;
+
+  const start = findOpening(source, from);
+  if (start < 0) return undefined;
+
+  const open = source[start]!;
+  const close = open === "{" ? "}" : "]";
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < source.length; i++) {
+    const character = source[i]!;
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (character === open) depth++;
+    else if (character === close) {
+      depth--;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+
+  return undefined;
+}
+
+function findOpening(source: string, from: number): number {
+  for (let i = from; i < source.length; i++) {
+    const character = source[i];
+    if (character === "{" || character === "[") return i;
+  }
+  return -1;
+}
+
+/**
+ * Finds the inline `<script>` containing `marker` and parses the balanced JSON
+ * region that follows it.
+ *
+ * Covers `window.__DATA__ = {...}` and friends. A single well-formed payload
+ * such as `__NEXT_DATA__` or JSON-LD needs no scanning — parse the script body
+ * directly with {@link parseJsonish}.
+ */
+export function scriptJson<T>($: CheerioAPI, marker: string): T | undefined {
+  for (const element of $("script").toArray()) {
+    const body = $(element).html() ?? "";
+    if (!body.includes(marker)) continue;
+
+    const region = balancedJson(body, marker);
+    if (!region) continue;
+
+    const parsed = parseJsonish<T>(region);
+    if (parsed !== undefined) return parsed;
+  }
+  return undefined;
+}
+
+/**
  * Decodes the HTML entities a site may leave in a JSON-in-HTML payload.
  *
  * Full entity decoding is the DOM parser's job; this covers the handful that

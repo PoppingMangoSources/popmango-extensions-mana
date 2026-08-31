@@ -171,9 +171,24 @@ it visibly crawl.
 | `summaryOf(node)` | turns a `<div>`/`<br>`-heavy synopsis into plain paragraphs |
 | `parseStatus(raw)` / `parseContentType(raw)` | maps a site's wording onto the app's enums, `undefined` when it does not say |
 | `splitList(value)` | author/artist fields, comma or slash separated |
+| `ownText(node)` | text excluding child elements — info rows are `<li><b>Status:</b> Ongoing</li>`, where `.text()` glues the label to the value |
 | `firstText($, ...sel)` / `firstMatch(str, ...re)` | first selector or pattern that matches, for themes that reshuffle markup |
+| `slugify(value)` | tag and genre ids |
 | `decodeEntities(value)` | entities left in JSON-in-HTML payloads |
 | `hasNextPage($, ...sel)` | the common "next page" link shapes |
+
+### JSON hidden in a `<script>`
+
+`scriptJson($, marker)` finds the inline script containing `marker` and parses the JSON
+that follows it. `balancedJson(source, marker)` is the same extraction on a raw string.
+
+Both count braces and skip over string literals, so a `}` inside a string — or a nested
+object — cannot end the region early. **Do not reach for `/\{[\s\S]*?\}/`**: it truncates
+at the first `}` inside the first nested object, which yields half a chapter list and no
+error.
+
+A single well-formed payload such as `__NEXT_DATA__` or `application/ld+json` needs no
+scanning — parse the script body directly with `parseJsonish`.
 
 ## `src/common/dates.ts` — dates and chapter numbers
 

@@ -59,7 +59,7 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `query.ts` | `withQuery`, `encodeForm` |
 | `dates.ts` | `parseDate`, `parseDateOrEpoch`, `parseChapterNumber` |
 | `urls.ts` | `UrlBuilder`, `resolveUrl`, `hostOf`, `originOf` |
-| `html.ts` | `text`, `clean`, `imageSrc`, `summaryOf`, `parseStatus`, `hasNextPage` |
+| `html.ts` | `text`, `clean`, `imageSrc`, `ownText`, `summaryOf`, `parseStatus`, `hasNextPage`, `scriptJson` |
 | `aes.ts` | `aesCbcDecrypt`, `base64ToBytes`, `bytesToUtf8`, `decodeHex` |
 
 A directory becomes a source when one of its files exports `class Target`. That is why
