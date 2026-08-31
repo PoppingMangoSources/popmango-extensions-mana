@@ -152,7 +152,7 @@ The failures this repo has actually shipped, each silent:
 - [ ] `WebViewPage` navigated before `evaluate`, bounded by a timer, closed in `finally`
 - [ ] Redraw state serialised per image, not held in a bare field
 - [ ] Every home row costs one request — check the hero row especially
-- [ ] Version bumped by a **patch** for a fix; a new row or setting is a minor
+- [ ] Version bumped by one **patch** digit — `1.0.1`, never `1.1.0`, whatever changed
 
 ## Performance
 

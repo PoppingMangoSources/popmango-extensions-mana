@@ -39,14 +39,16 @@ class really declares it and that `Target` extends the class you edited.
 
 ## Version
 
-Bump `info.version` in `src/<Name>/main.ts`. Semantic:
+**Only ever bump the patch digit: `1.0.0` → `1.0.1` → `1.0.2`.** Never `1.1.0`, never
+`2.0.0`. Every release is the next patch, whatever it contains — a selector fix, a new
+section, a new preference, a reworked home page. Mixed bump sizes make the history
+confusing and messy to read, and nothing in the app treats a minor bump differently.
 
-- **patch** — a selector fix, no behaviour change
-- **minor** — a new filter, section, or preference
-- **major** — content ids or chapter ids change shape, which invalidates users' libraries
+A new source starts at `1.0.0` and counts up from there.
 
-A change to how chapter *numbers* are assigned is a minor bump, not a patch: it moves where
-the app resumes reading.
+The single exception, which needs asking about first rather than deciding alone: content
+ids or chapter ids changing shape invalidates every reader's library. Raise it before
+shipping it; do not express it by inventing a major bump.
 
 ## CHANGELOG
 

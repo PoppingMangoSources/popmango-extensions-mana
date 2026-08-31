@@ -47,6 +47,13 @@ Run all four gates before calling a change done.
 - The runtime is bare V8/JavaScriptCore: no `fetch`, no `URL`, no `crypto.subtle`, no
   `TextDecoder`. `src/common/` has replacements for each.
 
+## Versioning
+
+Sources only ever bump the patch digit: `1.0.0` → `1.0.1` → `1.0.2`. **Never `1.1.0`, never
+`2.0.0`**, whatever the release contains — a fix, a new section, a new setting, a rewritten
+home page. Mixed bump sizes make the history confusing and messy, and the app treats them
+all alike. A new source starts at `1.0.0`.
+
 ## Git
 
 Commits are authored by Popmango Extensions and unsigned. Commit bodies are one or two
