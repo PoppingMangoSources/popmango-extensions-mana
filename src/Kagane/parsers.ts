@@ -23,9 +23,9 @@ import {
   CHAPTER_VOLUME_SUFFIX_REGEX,
   SOURCE_CHAPTER_NUMBER_FORMATS,
   TITLE_BRACKET_REGEX,
-  type ChapterBookDto,
-  type DetailsDto,
-  type SeriesSummaryDto,
+  type ChapterBook,
+  type DetailsResponse,
+  type SeriesSummary,
 } from "./model.ts";
 
 export type TitleOptions = {
@@ -106,7 +106,7 @@ export function ratingOf(value: string | null | undefined): ContentRating {
   }
 }
 
-function statusLabel(book: SeriesSummaryDto): string | undefined {
+function statusLabel(book: SeriesSummary): string | undefined {
   switch ((book.publication_status ?? "").toUpperCase()) {
     case "ONGOING":
       return "Ongoing";
@@ -121,7 +121,7 @@ function statusLabel(book: SeriesSummaryDto): string | undefined {
   }
 }
 
-export function descriptorOf(book: SeriesSummaryDto): string | undefined {
+export function descriptorOf(book: SeriesSummary): string | undefined {
   const format = book.format?.trim();
   const parts = [
     format && format.toLowerCase() !== "other" ? format.toUpperCase() : undefined,
@@ -131,7 +131,7 @@ export function descriptorOf(book: SeriesSummaryDto): string | undefined {
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
-export function latestChapterLabel(book: SeriesSummaryDto): string | undefined {
+export function latestChapterLabel(book: SeriesSummary): string | undefined {
   const latest = book.latest_chapters?.[0];
   if (!latest) return undefined;
 
@@ -143,13 +143,13 @@ export function latestChapterLabel(book: SeriesSummaryDto): string | undefined {
   return latest.title?.trim() || undefined;
 }
 
-export function latestChapterDate(book: SeriesSummaryDto): Date | undefined {
+export function latestChapterDate(book: SeriesSummary): Date | undefined {
   const latest = book.latest_chapters?.[0];
   if (!latest) return undefined;
   return parseDate(latest.available_at ?? latest.created_at);
 }
 
-export function infoRowsOf(book: SeriesSummaryDto, genreNames: Record<string, string>): Pair[] {
+export function infoRowsOf(book: SeriesSummary, genreNames: Record<string, string>): Pair[] {
   const rows: Pair[] = [];
 
   const books = book.current_books;
@@ -167,7 +167,7 @@ export function infoRowsOf(book: SeriesSummaryDto, genreNames: Record<string, st
 }
 
 export function toHighlight(
-  book: SeriesSummaryDto,
+  book: SeriesSummary,
   options: TitleOptions,
   coverFor: (imageId: string) => string,
   extra?: { subtitle?: string; info?: Pair[] },
@@ -185,7 +185,7 @@ export function toHighlight(
 
 export function toContent(
   seriesId: string,
-  details: DetailsDto,
+  details: DetailsResponse,
   options: TitleOptions & { showSpoilerTags: boolean },
   coverFor: (imageId: string) => string,
 ): Content {
@@ -262,7 +262,7 @@ function unique(values: string[]): string[] {
   return values.filter((value, index) => value && values.indexOf(value) === index);
 }
 
-function starRating(details: DetailsDto): string | undefined {
+function starRating(details: DetailsResponse): string | undefined {
   const percent =
     typeof details.average_rating === "number" && details.average_rating > 0
       ? details.average_rating
@@ -280,7 +280,7 @@ function formatViews(views: number | null | undefined): string | undefined {
   return `${views} views`;
 }
 
-function buildSummary(details: DetailsDto, sourceName: string | undefined): string {
+function buildSummary(details: DetailsResponse, sourceName: string | undefined): string {
   const parts: string[] = [];
 
   const stats = [starRating(details), formatViews(details.total_views)].filter(Boolean);
@@ -318,7 +318,7 @@ function chapterNumberInTitle(title: string): string {
   return CHAPTER_NUMBER_PREFIX_REGEX.exec(title.trim())?.[1] ?? "";
 }
 
-function chapterName(book: ChapterBookDto, mode: string): string {
+function chapterName(book: ChapterBook, mode: string): string {
   const title = book.title.trim();
   const name = chapterOwnName(title);
   const chapterNo = (book.chapter_no ?? "").trim() || chapterNumberInTitle(title);
@@ -343,7 +343,7 @@ function chapterName(book: ChapterBookDto, mode: string): string {
   }
 }
 
-function scanlatorOf(book: ChapterBookDto): string | undefined {
+function scanlatorOf(book: ChapterBook): string | undefined {
   const groups = (book.groups ?? []).map((group) => group.title).filter(Boolean);
   let name = groups.join(", ");
 
@@ -357,7 +357,7 @@ function scanlatorOf(book: ChapterBookDto): string | undefined {
 
 export function toChapters(
   seriesId: string,
-  details: DetailsDto,
+  details: DetailsResponse,
   options: { chapterTitleMode: string; language: string },
 ): Chapter[] {
   const books = details.series_books ?? [];

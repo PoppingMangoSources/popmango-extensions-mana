@@ -27,7 +27,7 @@ export function absoluteUrl(target: string): string {
   return resolveUrl(target, DOMAIN);
 }
 
-function toPathname(href: string): string {
+function pathnameOf(href: string): string {
   const trimmed = href.trim();
   if (!trimmed) return "";
   const absolute = absoluteUrl(trimmed);
@@ -35,7 +35,7 @@ function toPathname(href: string): string {
   return match?.[1] ?? trimmed;
 }
 
-function coverOf(node: Cheerio<AnyNode>): string {
+function coverUrl(node: Cheerio<AnyNode>): string {
   return absoluteUrl(imageSrc(node));
 }
 
@@ -70,7 +70,7 @@ export function parseListings(html: string, scope?: string): MangagoListing[] {
     const link = item.find("a.thm-effect").first();
     if (link.length === 0) return;
 
-    const id = toPathname(link.attr("href") ?? "");
+    const id = pathnameOf(link.attr("href") ?? "");
     if (!id || seen.has(id)) return;
 
     const image = link.find("img").first();
@@ -78,14 +78,14 @@ export function parseListings(html: string, scope?: string): MangagoListing[] {
     if (!title) return;
 
     const chapter = item.find(".chapter a, a[href*='/read-manga/'][href*='/c']").first();
-    const chapterPath = chapter.attr("href") ? toPathname(chapter.attr("href")!) : "";
+    const chapterPath = chapter.attr("href") ? pathnameOf(chapter.attr("href")!) : "";
     const isChapter = chapterPath !== "" && chapterPath !== id;
 
     seen.add(id);
     items.push({
       id,
       title,
-      cover: coverOf(image),
+      cover: coverUrl(image),
       subtitle: isChapter ? clean(chapter.text()) || undefined : undefined,
       chapterId: isChapter ? chapterPath : undefined,
     });
@@ -108,18 +108,18 @@ export function parseLatestUpdates(html: string): MangagoListing[] {
     const href = titleLink.attr("href") ?? "";
     if (!href.includes("/read-manga/")) return;
 
-    const id = toPathname(href);
+    const id = pathnameOf(href);
     if (!id || seen.has(id)) return;
 
     const title = clean(titleLink.attr("title") ?? titleLink.text());
     if (!title) return;
 
     const content = titleLink.closest(".row-1").parent();
-    const cover = coverOf(content.prev().find("img").first());
+    const cover = coverUrl(content.prev().find("img").first());
 
     const chapter = content.find("a.chico").first();
     const subtitle = clean(chapter.text());
-    const chapterId = chapter.attr("href") ? toPathname(chapter.attr("href")!) : undefined;
+    const chapterId = chapter.attr("href") ? pathnameOf(chapter.attr("href")!) : undefined;
 
     let publishDate: Date | undefined;
     content.find(".blue").each((_index, label) => {
@@ -233,7 +233,7 @@ export function parseContent(
 
   return {
     title,
-    cover: coverOf(info.find("img").first()),
+    cover: coverUrl(info.find("img").first()),
     summary: mangaSummary($) ?? "",
     additionalTitles,
     tags,
@@ -385,7 +385,7 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     if (!href) return;
     if (options.hideRaws && href.includes("/raw/")) return;
 
-    const chapterId = href.startsWith("http") ? canonicalReaderUrl(href) : toPathname(href);
+    const chapterId = href.startsWith("http") ? canonicalReaderUrl(href) : pathnameOf(href);
     if (!chapterId) return;
 
     const rawTitle = link.text().trim();
@@ -439,9 +439,9 @@ export function parseRelated(html: string): MangagoListing[] {
     (_, element) => {
       const link = $(element).find("a.thm-effect").first();
       push(
-        toPathname(link.attr("href") ?? ""),
+        pathnameOf(link.attr("href") ?? ""),
         clean(link.attr("title") ?? link.text()),
-        coverOf(link.find("img").first()),
+        coverUrl(link.find("img").first()),
       );
     },
   );
@@ -450,9 +450,9 @@ export function parseRelated(html: string): MangagoListing[] {
     const item = $(element);
     const link = item.find('h4 a[href*="/read-manga/"][title]').first();
     push(
-      toPathname(link.attr("href") ?? ""),
+      pathnameOf(link.attr("href") ?? ""),
       clean(link.attr("title") ?? link.text()),
-      coverOf(item.find("img").first()),
+      coverUrl(item.find("img").first()),
     );
   });
 

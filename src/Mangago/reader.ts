@@ -3,7 +3,7 @@
 import { aesCbcDecrypt, base64ToBytes, bytesToUtf8 } from "../common/aes.ts";
 import { resolveUrl } from "../common/index.ts";
 import { DOMAIN, READER_MIRROR_HOSTS } from "./model.ts";
-import { pathOf, readerOrigin } from "./client.ts";
+import { pathAndQueryOf, readerOrigin } from "./client.ts";
 
 const IMG_SRCS_REGEX = /var\s+imgsrcs\s*=\s*['"]([a-zA-Z0-9+=/]+)['"]/;
 const HEX_VARIABLE_REGEX =
@@ -88,7 +88,7 @@ export function extractPcurlTemplate(html: string): string | undefined {
 function templatePathname(template: string): string {
   const placeholder = "__MANGAGO_PAGE__";
   const guarded = template.replace(/\{page\}/g, placeholder);
-  const path = pathOf(guarded.startsWith("http") ? guarded : `${DOMAIN}${guarded}`);
+  const path = pathAndQueryOf(guarded.startsWith("http") ? guarded : `${DOMAIN}${guarded}`);
   return path.split(placeholder).join("{page}");
 }
 
@@ -289,7 +289,7 @@ export function parseDescrambleKey(key: string, cols: number): DescrambleKey | u
 }
 
 export function numericChapterCandidates(target: string): string[] {
-  const path = pathOf(target);
+  const path = pathAndQueryOf(target);
   if (!/^\/chapter\/\d+\/\d+/.test(path)) return [];
   const suffix = target.slice(target.indexOf(path));
   return READER_MIRROR_HOSTS.map((host) => `${host}${suffix}`);
@@ -314,7 +314,7 @@ export function canonicalReaderUrl(target: string): string {
   const readerIndex = Math.max(head.lastIndexOf("/read-manga/"), head.lastIndexOf("/chapter/"));
   const working = (readerIndex > 0 ? head.slice(readerIndex) : head) + suffix;
 
-  const path = pathOf(working);
+  const path = pathAndQueryOf(working);
   const numeric = /^\/chapter\/\d+\/\d+/.test(path);
   const origin = numeric && mirrorOrigin ? mirrorOrigin : DOMAIN;
 

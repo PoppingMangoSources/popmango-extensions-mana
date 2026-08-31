@@ -124,7 +124,7 @@ export const SectionLayout = {
 
 export type SectionLayoutKind = (typeof SectionLayout)[keyof typeof SectionLayout];
 
-export type SectionSpecOption = {
+export type DiscoverSection = {
   id: string;
   title: string;
   subtitle?: string;
@@ -134,7 +134,7 @@ export type SectionSpecOption = {
   limit?: number;
 };
 
-export const DISCOVER_SECTIONS: SectionSpecOption[] = [
+export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: "popular",
     title: "Popular",
@@ -194,18 +194,18 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.ContentLanguages]: ["en"],
 };
 
-export type GenreDto = { id: string; genre_name: string };
-export type TagDto = { id: string; tag_name: string };
+export type GenreEntry = { id: string; genre_name: string };
+export type TagEntry = { id: string; tag_name: string };
 
-export type SourceDto = {
+export type UploadSource = {
   source_id: string;
   source_type: string;
   title: string;
 };
 
-export type SourcesDto = { sources?: SourceDto[] };
+export type SourcesResponse = { sources?: UploadSource[] };
 
-export type LatestChapterDto = {
+export type LatestChapter = {
   book_id: string;
   title?: string | null;
   chapter_no?: string | null;
@@ -214,7 +214,7 @@ export type LatestChapterDto = {
   available_at?: string | null;
 };
 
-export type SeriesSummaryDto = {
+export type SeriesSummary = {
   series_id: string;
   title: string;
   source_id?: string | null;
@@ -227,17 +227,17 @@ export type SeriesSummaryDto = {
   publication_status?: string | null;
   translated_language?: string | null;
   genres?: string[];
-  latest_chapters?: LatestChapterDto[];
+  latest_chapters?: LatestChapter[];
 };
 
-export type SearchDto = {
-  content?: SeriesSummaryDto[];
+export type SearchResponse = {
+  content?: SeriesSummary[];
   last?: boolean;
   total_elements?: number;
   total_pages?: number;
 };
 
-export type ChapterBookDto = {
+export type ChapterBook = {
   book_id: string;
   series_id?: string | null;
   title: string;
@@ -249,7 +249,7 @@ export type ChapterBookDto = {
   groups?: { title: string }[];
 };
 
-export type DetailsDto = {
+export type DetailsResponse = {
   title: string;
   description?: string | null;
   upload_status?: string;
@@ -259,7 +259,7 @@ export type DetailsDto = {
   genres?: { genre_name: string }[];
   tags?: { tag_name: string; spoiler?: boolean }[];
   series_alternate_titles?: { title: string; label?: string | null }[];
-  series_books?: ChapterBookDto[];
+  series_books?: ChapterBook[];
   edition_info?: string | null;
   tracker_id?: string | null;
   series_covers?: { image_id: string }[];
@@ -269,7 +269,7 @@ export type DetailsDto = {
   total_views?: number | null;
 };
 
-export type TrackerDto = {
+export type TrackerResponse = {
   book_series?: {
     id: string;
     title: string;
@@ -278,16 +278,16 @@ export type TrackerDto = {
   }[];
 };
 
-export type PageDto = { page_no: number; page_id: string; ext?: string | null };
-export type ManifestDto = { pages?: PageDto[] };
+export type ManifestPage = { page_no: number; page_id: string; ext?: string | null };
+export type PageManifest = { pages?: ManifestPage[] };
 
-export type ChallengeDto = {
+export type ChallengeResponse = {
   access_token: string;
   cache_url?: string | null;
-  manifest?: ManifestDto | null;
+  manifest?: PageManifest | null;
 };
 
-export type IntegrityDto = { token: string; exp: number };
+export type IntegrityResponse = { token: string; exp: number };
 
 export const SOURCE_CHAPTER_NUMBER_FORMATS = new Set([
   "Dark Horse Comics",

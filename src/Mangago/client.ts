@@ -22,7 +22,7 @@ function isMangagoHost(target: string): boolean {
   return host === "mangago.me" || host.endsWith(".mangago.me") || isReaderMirrorHost(host);
 }
 
-export function pathOf(target: string): string {
+export function pathAndQueryOf(target: string): string {
   const normalised = target.startsWith("//") ? `https:${target}` : target;
   const absolute = /^https?:\/\/[^/]+(\/[^\s]*)?$/i.exec(normalised);
   const pathAndQuery = absolute
@@ -35,7 +35,7 @@ export function pathOf(target: string): string {
 }
 
 export function isReaderPageUrl(target: string): boolean {
-  const pathname = pathOf(target);
+  const pathname = pathAndQueryOf(target);
   const readManga = /^\/read-manga\/[^/]+\/(.+)/.exec(pathname);
   if (readManga && (readManga[1] ?? "").length > 0) return true;
   return /^\/chapter\/\d+\/\d+/.test(pathname);

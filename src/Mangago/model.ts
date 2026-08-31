@@ -124,7 +124,7 @@ export function getGenreTitle(idOrTitle: string): string {
   );
 }
 
-export type SectionSpecOption = {
+export type DiscoverSection = {
   id: string;
   title: string;
   subtitle?: string;
@@ -132,7 +132,7 @@ export type SectionSpecOption = {
   limit?: number;
 };
 
-export const DISCOVER_SECTIONS: SectionSpecOption[] = [
+export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: "featured_manga",
     title: "Featured Manga",

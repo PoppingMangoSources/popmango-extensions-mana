@@ -58,8 +58,8 @@ import {
   SectionLayout,
   SortID,
   type SectionLayoutKind,
-  type SectionSpecOption,
-  type SeriesSummaryDto,
+  type DiscoverSection,
+  type SeriesSummary,
 } from "./model.ts";
 import {
   descriptorOf,
@@ -79,7 +79,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.3",
+  version: "1.0.4",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -404,7 +404,7 @@ class KaganeSource
     return details;
   }
 
-  private async loadSection(spec: SectionSpecOption, page: number): Promise<PagedSearchResult> {
+  private async loadSection(spec: DiscoverSection, page: number): Promise<PagedSearchResult> {
     const body = buildSearchBody(await this.bodyOptions());
 
     return this.runSearch(
@@ -439,7 +439,7 @@ class KaganeSource
   }
 
   private tileExtras(
-    book: SeriesSummaryDto,
+    book: SeriesSummary,
     layout: SectionLayoutKind,
     genreNames: Record<string, string>,
   ): { subtitle?: string; info?: Pair[] } {

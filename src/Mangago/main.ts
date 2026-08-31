@@ -65,7 +65,7 @@ import {
   getGenreTitle,
   sortValueFor,
   type MangagoListing,
-  type SectionSpecOption,
+  type DiscoverSection,
 } from "./model.ts";
 import {
   absoluteUrl,
@@ -108,7 +108,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.3",
+  version: "1.0.4",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -452,7 +452,7 @@ class MangagoSource
 
   private async loadSection(
     sectionId: string,
-    spec: SectionSpecOption | undefined,
+    spec: DiscoverSection | undefined,
     page: number,
     capped = true,
   ): Promise<PagedSearchResult> {

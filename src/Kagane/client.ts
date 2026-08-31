@@ -7,15 +7,15 @@ import {
   API_URL,
   BASE_URL,
   DEFAULT_CACHE_URL,
-  type ChallengeDto,
-  type DetailsDto,
-  type GenreDto,
-  type IntegrityDto,
-  type SearchDto,
-  type SourceDto,
-  type SourcesDto,
-  type TagDto,
-  type TrackerDto,
+  type ChallengeResponse,
+  type DetailsResponse,
+  type GenreEntry,
+  type IntegrityResponse,
+  type SearchResponse,
+  type UploadSource,
+  type SourcesResponse,
+  type TagEntry,
+  type TrackerResponse,
 } from "./model.ts";
 
 // The site says "your token is stale" with these, not "no".
@@ -107,7 +107,7 @@ export class KaganeApi {
     page: number,
     size: number,
     sort: string,
-  ): Promise<SearchDto> {
+  ): Promise<SearchResponse> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("search")
       .addPathComponent("series")
@@ -117,17 +117,17 @@ export class KaganeApi {
       .setQueryItem("sort", sort)
       .build();
 
-    return this.postJson<SearchDto>(url, body);
+    return this.postJson<SearchResponse>(url, body);
   }
 
-  async series(seriesId: string): Promise<DetailsDto> {
-    return this.getJson<DetailsDto>(
+  async series(seriesId: string): Promise<DetailsResponse> {
+    return this.getJson<DetailsResponse>(
       new UrlBuilder(API_URL).addPathComponent("series").addPathComponent(seriesId).build(),
     );
   }
 
-  async related(trackerId: string): Promise<TrackerDto> {
-    return this.getJson<TrackerDto>(
+  async related(trackerId: string): Promise<TrackerResponse> {
+    return this.getJson<TrackerResponse>(
       new UrlBuilder(API_URL)
         .addPathComponent("trackers")
         .addPathComponent(trackerId)
@@ -154,7 +154,7 @@ export class KaganeApi {
   async genreNames(): Promise<Record<string, string>> {
     return this.list("genres", async () =>
       Object.fromEntries(
-        (await this.getJson<GenreDto[]>(`${API_URL}/genres/list`)).map((genre) => [
+        (await this.getJson<GenreEntry[]>(`${API_URL}/genres/list`)).map((genre) => [
           genre.id,
           genre.genre_name,
         ]),
@@ -165,14 +165,17 @@ export class KaganeApi {
   async tagNames(): Promise<Record<string, string>> {
     return this.list("tags", async () =>
       Object.fromEntries(
-        (await this.getJson<TagDto[]>(`${API_URL}/tags/list`)).map((tag) => [tag.id, tag.tag_name]),
+        (await this.getJson<TagEntry[]>(`${API_URL}/tags/list`)).map((tag) => [
+          tag.id,
+          tag.tag_name,
+        ]),
       ),
     ).catch(() => ({}));
   }
 
-  async sources(): Promise<SourceDto[]> {
+  async sources(): Promise<UploadSource[]> {
     return this.list("sources", async () => {
-      const body = await this.postJson<SourcesDto>(`${API_URL}/sources/list`, {
+      const body = await this.postJson<SourcesResponse>(`${API_URL}/sources/list`, {
         source_types: null,
       });
       return body.sources ?? [];
@@ -188,7 +191,10 @@ export class KaganeApi {
     const request = (async (): Promise<string> => {
       await this.http.get(`${BASE_URL}/`).catch(() => undefined);
 
-      const integrity = await this.postJson<IntegrityDto>(`${BASE_URL}/api/integrity`, undefined);
+      const integrity = await this.postJson<IntegrityResponse>(
+        `${BASE_URL}/api/integrity`,
+        undefined,
+      );
       this.integrityToken = integrity.token;
       this.integrityExpiry = integrity.exp * 1000;
       return this.integrityToken;
@@ -202,7 +208,7 @@ export class KaganeApi {
     }
   }
 
-  async getChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeDto> {
+  async getChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("books")
       .addPathComponent(chapterId)
@@ -221,7 +227,7 @@ export class KaganeApi {
         throw new Error("Kagane rejected the reader token. Try again in a moment.");
       }
 
-      const challenge = parseJson<ChallengeDto>(response, url);
+      const challenge = parseJson<ChallengeResponse>(response, url);
       this.accessToken = challenge.access_token;
       return challenge;
     }

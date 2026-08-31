@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.3)
+## Kagane (current: v1.0.4)
+
+### Changed
+
+- API response types take the house suffix: a top-level response is a `Response`, a nested
+  item drops the tag entirely, replacing fourteen `Dto` names no other repository uses.
+- `SectionSpecOption` is now `DiscoverSection`, which is what it holds.
+
+## Kagane (v1.0.3)
 
 ### Changed
 
@@ -46,7 +54,15 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.3)
+## Mangago (current: v1.0.4)
+
+### Changed
+
+- Helper names follow the repository rules: a helper returning an absolute URL carries a
+  `Url` suffix, and the two path helpers say which one keeps the query string.
+- `SectionSpecOption` is now `DiscoverSection`, which is what it holds.
+
+## Mangago (v1.0.3)
 
 ### Changed
 
