@@ -306,36 +306,19 @@ function buildSummary(details: DetailsResponse, sourceName: string | undefined):
   return parts.join("\n\n").trim();
 }
 
-function formatChapterName(book: ChapterBook, mode: string): string {
-  const title = book.title.trim();
-  const name = title
+/**
+ * The chapter's own name, with the numbering the site repeats in the title
+ * removed — the app composes "Vol.1 Ch.13 - Name" from the fields beside it,
+ * so a title of "Chapter 44 - Volume 9 (Ushi)" would otherwise say it twice.
+ */
+function parseChapterName(title: string): string {
+  return title
     .replace(CHAPTER_METADATA_REGEX, "")
     .replace(CHAPTER_TRAILING_GROUP_REGEX, "")
     .replace(CHAPTER_VOLUME_SUFFIX_REGEX, "")
     .replace(CHAPTER_NUMBER_PREFIX_REGEX, "")
     .replace(/^[\s:.\-–—]+/, "")
     .trim();
-  const chapterNo =
-    (book.chapter_no ?? "").trim() || (CHAPTER_NUMBER_PREFIX_REGEX.exec(title)?.[1] ?? "");
-  const volumeNo = (book.volume_no ?? "").trim();
-
-  const chapter = chapterNo ? `Ch.${chapterNo}` : "";
-  const volume = volumeNo ? `Vol.${volumeNo}` : "";
-  const join = (...parts: string[]): string => parts.filter(Boolean).join(" ");
-
-  switch (mode) {
-    case "always":
-      return join(chapter, name) || title;
-
-    case "vol_local":
-      return join(volume, chapter) || name || title;
-
-    case "vol_chapter":
-      return join(volume, chapter, name) || title;
-
-    default:
-      return name || (chapterNo ? `Chapter ${chapterNo}` : title);
-  }
 }
 
 /**
@@ -365,7 +348,7 @@ function parseScanlator(
 export function parseChapters(
   seriesId: string,
   details: DetailsResponse,
-  options: { chapterTitleMode: string; language: string; sourceName?: string; official?: boolean },
+  options: { language: string; sourceName?: string; official?: boolean },
 ): Chapter[] {
   const books = details.series_books ?? [];
   const useSourceNumber = SOURCE_CHAPTER_NUMBER_FORMATS.has(details.format ?? "");
@@ -375,7 +358,15 @@ export function parseChapters(
 
   return ordered.map((book, index) => {
     const scanlator = parseScanlator(book, options.sourceName, options.official === true);
-    const parsedNumber = Number.parseFloat((book.chapter_no ?? "").replace(/[^\d.]/g, ""));
+    const title = book.title.trim();
+    const parsedNumber = Number.parseFloat(
+      (
+        (book.chapter_no ?? "").trim() ||
+        (CHAPTER_NUMBER_PREFIX_REGEX.exec(title)?.[1] ?? "")
+      ).replace(/[^\d.]/g, ""),
+    );
+    const name = parseChapterName(title);
+    const volume = Number.parseFloat((book.volume_no ?? "").replace(/[^\d.]/g, ""));
 
     // sort_no is a position in the series for most formats, not a chapter number.
     const number = useSourceNumber
@@ -388,7 +379,8 @@ export function parseChapters(
       chapterId: book.book_id,
       number,
       index,
-      title: formatChapterName(book, options.chapterTitleMode),
+      ...(name ? { title: name } : {}),
+      ...(Number.isFinite(volume) ? { volume } : {}),
       date: parseDate(book.created_at) ?? new Date(0),
       language: options.language || DefinedLanguages.ENGLISH,
       webUrl: chapterUrl(seriesId, book.book_id),

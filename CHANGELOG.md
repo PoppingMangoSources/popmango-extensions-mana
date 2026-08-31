@@ -2,7 +2,21 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.9)
+## Kagane (current: v1.0.10)
+
+### Removed
+
+- The `Chapter Title Format` setting. The site records the volume, the chapter number and
+  the name separately, so the app composes the row itself — as other clients for this site
+  do — and there is nothing left for four hand-written shapes to choose between.
+
+### Changed
+
+- Chapters carry their volume, which the source never reported, so a row reads
+  `Vol.1 Ch.11 - Oleg: Apology`. A title that only restates its own numbering is dropped
+  rather than repeated after it.
+
+## Kagane (v1.0.9)
 
 ### Added
 

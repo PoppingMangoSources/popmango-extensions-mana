@@ -31,7 +31,6 @@ export const PreferenceID = {
   CleanTitle: "clean-title",
   ShowSpoilerTags: "show-spoiler-tags",
   DataSaver: "data-saver",
-  ChapterTitleMode: "chapter-title-mode",
   ContentLanguages: "content-languages",
 } as const;
 
@@ -84,13 +83,6 @@ export const UPLOAD_SOURCE_OPTIONS: Option[] = [
   { id: "all", title: "All uploads" },
   { id: "official", title: "Official only" },
   { id: "scanlations", title: "Scanlations only" },
-];
-
-export const CHAPTER_TITLE_MODE_OPTIONS: Option[] = [
-  { id: "optional", title: "Title only — “Chapter 5”" },
-  { id: "always", title: "Chapter + title — “Ch.5 The Duel”" },
-  { id: "vol_local", title: "Volume + chapter — “Vol.1 Ch.5”" },
-  { id: "vol_chapter", title: "Volume + chapter + title — “Vol.1 Ch.5 The Duel”" },
 ];
 
 export const LANGUAGE_OPTIONS: Option[] = [
@@ -190,7 +182,6 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.CleanTitle]: false,
   [PreferenceID.ShowSpoilerTags]: false,
   [PreferenceID.DataSaver]: false,
-  [PreferenceID.ChapterTitleMode]: "optional",
   [PreferenceID.ContentLanguages]: ["en"],
 };
 

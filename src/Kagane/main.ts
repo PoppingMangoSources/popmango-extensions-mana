@@ -79,7 +79,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.9",
+  version: "1.0.10",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -331,9 +331,8 @@ class KaganeSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [details, chapterTitleMode, languages, sources] = await Promise.all([
+    const [details, languages, sources] = await Promise.all([
       this.fetchDetails(contentId),
-      this.preferences.text(PreferenceID.ChapterTitleMode, "optional"),
       this.preferences.strings(PreferenceID.ContentLanguages),
       this.api.fetchUploadSources(),
     ]);
@@ -343,7 +342,6 @@ class KaganeSource
       : undefined;
 
     return parseChapters(contentId, details, {
-      chapterTitleMode,
       language: languages[0] ?? DefinedLanguages.ENGLISH,
       ...(source === undefined
         ? {}

@@ -4,7 +4,6 @@ import type { Option } from "@mana-app/types";
 
 import type { PreferenceSection } from "../common/index.ts";
 import {
-  CHAPTER_TITLE_MODE_OPTIONS,
   CONTENT_RATING_OPTIONS,
   LANGUAGE_OPTIONS,
   PreferenceID,
@@ -88,12 +87,6 @@ export function buildSettingsSections(hooks: SettingsHooks): PreferenceSection[]
       header: "Chapters",
       footer: "Some tags are marked as spoilers by the site and hidden on a title's page.",
       fields: [
-        {
-          type: "select",
-          key: PreferenceID.ChapterTitleMode,
-          title: "Chapter Title Format",
-          options: CHAPTER_TITLE_MODE_OPTIONS,
-        },
         {
           type: "toggle",
           key: PreferenceID.ShowSpoilerTags,
