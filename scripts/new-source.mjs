@@ -77,7 +77,6 @@ for (const entry of fs.readdirSync(TEMPLATE, { withFileTypes: true })) {
   if (entry.isDirectory()) fs.cpSync(from, to, { recursive: true });
   else fs.copyFileSync(from, to);
 }
-fs.mkdirSync(path.join(dest, "assets"), { recursive: true });
 
 // -- rewrite main.ts -------------------------------------------------------
 
@@ -95,6 +94,7 @@ main = main
   .replace(/extends TemplateSource\b/, `extends ${name}Source`)
   .replace(/id: "template",/, `id: "${id}",`)
   .replace(/name: "Template",/, `name: "${name}",`)
+  .replace(/thumbnail: "[^"]*",/, `thumbnail: "${name}.png",`)
   .replace(/version: "[^"]*",/, 'version: "1.0.0",')
   .replace(/description: "[^"]*",/, `description: "${description.replace(/"/g, '\\"')}",`)
   .replace(/owningLinks: \[[^\]]*\],/, `owningLinks: ["${hostOf(url)}"],`);
@@ -136,7 +136,7 @@ if (fs.existsSync(changelogPath)) {
 console.log(`created src/${name}`);
 console.log("");
 console.log("next:");
-console.log(`  1. drop an icon at src/${name}/assets/icon.png`);
+console.log(`  1. drop an icon at assets/${name}.png (project root, not src/)`);
 console.log(`  2. fill in the selectors in src/${name}/main.ts and the filters in model.ts`);
 console.log(`  3. put a real contentId/chapterId in scripts/probes/${name}.json`);
 console.log(`  4. npm run typecheck && npm run build && npm run verify ${name}`);

@@ -34,18 +34,23 @@ for every field, and the pagination signal.
 npm run new-source <Name> --id <id> --url <https://site>
 ```
 
-Then drop an icon at `src/<Name>/assets/icon.png`.
+Then drop an icon at `assets/<Name>.png`.
 
 A source directory holds only what is specific to that site:
 
 ```
+assets/<Name>.png   the icon — project root, NOT inside src/
 src/<Name>/
   client.ts     the site's network client — headers, cookies, rate limit
   model.ts      site constants, filter/sort definitions, section list, API types
   parsers.ts    HTML/JSON parsing
   main.ts       the source class
-  assets/       icon.png
 ```
+
+The toolchain packages **only the project-root `assets/` folder**. An icon left
+in `src/<Name>/assets/` is never copied into `dist/`, and the app quietly draws
+a placeholder instead — so `info.thumbnail` is a bare filename in that folder,
+never a path.
 
 Everything reusable lives in `src/common/` and is **imported, not copied**:
 

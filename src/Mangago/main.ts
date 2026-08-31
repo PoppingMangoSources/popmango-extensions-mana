@@ -106,12 +106,12 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
   supportedLanguages: [DefinedLanguages.ENGLISH],
-  thumbnail: "assets/icon.png",
+  thumbnail: "Mangago.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
 

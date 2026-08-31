@@ -59,17 +59,18 @@ const sources = [...(manifest.sources ?? [])]
 
 // ── icons ──────────────────────────────────────────────────────────────────
 
+// mana-dev copies the project-root assets/ folder into dist/ itself, so the
+// icons are already in place; this only reports one that is missing, which the
+// app would render as a placeholder.
 for (const source of sources) {
-  if (!source.path) continue;
-  const iconFile = source.thumbnail ?? "assets/icon.png";
-  if (/^https?:/i.test(iconFile)) continue;
+  const iconFile = source.thumbnail;
+  if (!iconFile || /^https?:/i.test(iconFile)) continue;
 
-  const from = path.join(ROOT, "src", source.path, iconFile);
-  if (!fs.existsSync(from)) continue;
-
-  const to = path.join(DIST, "sources", source.path, iconFile);
-  fs.mkdirSync(path.dirname(to), { recursive: true });
-  fs.copyFileSync(from, to);
+  if (!fs.existsSync(path.join(DIST, "assets", iconFile))) {
+    process.stderr.write(
+      `[page] ${source.name}: assets/${iconFile} is missing — the app will show a placeholder\n`,
+    );
+  }
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -138,10 +139,10 @@ function browserScript() {
   }
 
   function iconUrl(source) {
-    if (!source.path) return "";
-    var file = source.thumbnail || "assets/icon.png";
+    var file = source.thumbnail;
+    if (!file) return "";
     if (/^https?:/i.test(file)) return file;
-    return "sources/" + source.path + "/" + file;
+    return "assets/" + file;
   }
 
   function ratingFor(source) {

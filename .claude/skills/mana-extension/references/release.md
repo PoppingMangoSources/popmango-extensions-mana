@@ -71,11 +71,15 @@ the count on the README badge from `dist/sources.json`. Do not hand-edit that ta
 
 ## Assets
 
-`info.thumbnail` must be `assets/icon.png` (or `.jpg`) and the file must exist at
-`src/<Name>/assets/`. `scripts/build-page.js` copies it into `dist/sources/<Name>/`; a
-missing or misnamed file renders a placeholder on the published page. A full URL also works.
+`info.thumbnail` is a **bare filename inside the project-root `assets/` folder** —
+`"Kagane.png"`, not `"assets/icon.png"` and not a path. The toolchain copies only that
+folder into `dist/`; an icon under `src/<Name>/assets/` is never packaged, and the app
+falls back to a placeholder without reporting anything. A full URL also works.
 
-For the README row, drop a matching icon at `media/sources/<name-lowercased>.png` —
+`npm run verify <Name>` fails when `dist/assets/<thumbnail>` is missing, which is the
+check that catches this.
+
+For the README row, drop a second copy at `media/sources/<name-lowercased>.png` —
 `scripts/update-readme.mjs` looks for exactly that path and omits the image if it is absent.
 
 ## Publishing
@@ -98,6 +102,6 @@ branch only exists after the first successful workflow run.
 - [ ] `info.version` bumped
 - [ ] CHANGELOG entry, heading version matching `info.version`
 - [ ] `npm run readme` run, table and badge current
-- [ ] `src/<Name>/assets/icon.*` exists and matches `info.thumbnail`
+- [ ] `assets/<Name>.png` exists and matches `info.thumbnail`
 - [ ] `media/sources/<name>.png` exists for the README row
 - [ ] `scripts/probes/<Name>.json` has a real `contentId`

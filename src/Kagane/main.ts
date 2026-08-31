@@ -72,12 +72,12 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
   supportedLanguages: [DefinedLanguages.ENGLISH],
-  thumbnail: "assets/icon.png",
+  thumbnail: "Kagane.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
 

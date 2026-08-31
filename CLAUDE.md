@@ -14,7 +14,8 @@ adding or fixing a source; the failure modes here are mostly silent.
 | Path | What it holds |
 | :--- | :------------ |
 | `src/common/` | The shared runtime: networking, forms, dates, URLs, HTML helpers, AES |
-| `src/<Source>/` | One folder per source — `client.ts`, `model.ts`, `parsers.ts`, `main.ts`, `assets/` |
+| `src/<Source>/` | One folder per source — `client.ts`, `model.ts`, `parsers.ts`, `main.ts` |
+| `assets/` | Source icons, named `<Source>.png` — the only folder the toolchain packages |
 | `scripts/` | Build, page generation, README generation, verification harness |
 | `scripts/probes/` | Per-source fixtures naming a title and chapter for `npm run verify` |
 | `scripts/site/` | The published page's stylesheet |

@@ -83,7 +83,7 @@ const info: SourceInfo = {
   website: BASE_URL,
   rating: CatalogRating.SAFE,
   supportedLanguages: [DefinedLanguages.ENGLISH],
-  thumbnail: "assets/icon.png",
+  thumbnail: "Template.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
 

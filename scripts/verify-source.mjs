@@ -177,11 +177,20 @@ async function verify(name, probe, verbose) {
   await step(results, "info", async () => {
     assert(target.info?.id, "info.id missing");
     assert(target.info?.version, "info.version missing");
+    // The toolchain packages only the project-root assets/ folder, so a
+    // thumbnail is a bare filename in it. Checking the built file exists is
+    // what catches an icon that silently renders as a placeholder in the app.
     const thumb = target.info.thumbnail ?? "";
-    assert(
-      !thumb || thumb.startsWith("http") || thumb.includes("/"),
-      `thumbnail "${thumb}" is not under assets/ — the repo page will show a placeholder`,
-    );
+    if (thumb && !thumb.startsWith("http")) {
+      assert(
+        !thumb.includes("/"),
+        `thumbnail "${thumb}" must be a filename in assets/, not a path`,
+      );
+      assert(
+        fs.existsSync(path.join(ROOT, "dist", "assets", thumb)),
+        `dist/assets/${thumb} is missing — put the icon in the project-root assets/ folder`,
+      );
+    }
     return `${target.info.id} v${target.info.version}`;
   });
 
