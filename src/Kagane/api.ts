@@ -11,7 +11,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { ACCEPT_LANGUAGE, JSON_ACCEPT, USER_AGENT, UrlBuilder } from "../common/index.ts";
+import { UrlBuilder } from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
@@ -34,6 +34,38 @@ function isStaleTokenBody(body: string): boolean {
   return /integrity|token|unauthorized|forbidden/i.test(body.slice(0, 2048));
 }
 
+/** Header names vary in case between hosts, so look one up without assuming. */
+function headerOf(response: NetworkResponse, name: string): string {
+  const headers = response.headers ?? {};
+  const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
+  return key === undefined ? "" : String(headers[key] ?? "");
+}
+
+/**
+ * Whether a response is genuinely a Cloudflare challenge.
+ *
+ * The API answers with an ordinary JSON 403 or 503 for an expired reader
+ * token, a rate limit, or an outage. Treating those as a challenge puts a
+ * "resolve this in a WebView" prompt in front of the reader for something a
+ * WebView cannot fix, so a challenge has to look like one: the `cf-mitigated`
+ * header, or an HTML body carrying Cloudflare's own markers.
+ */
+function isCloudflareChallenge(response: NetworkResponse): boolean {
+  if (headerOf(response, "cf-mitigated").toLowerCase() === "challenge") return true;
+  if (response.status !== 403 && response.status !== 503) return false;
+
+  const contentType = headerOf(response, "content-type").toLowerCase();
+  if (contentType.includes("application/json")) return false;
+
+  const body = response.data ?? "";
+  const looksHtml = contentType.includes("text/html") || /^\s*(?:<!doctype html|<html)/i.test(body);
+
+  return (
+    looksHtml &&
+    /cf-browser-verification|cf-challenge|cf-chl-|_cf_chl_opt|Just a moment/i.test(body)
+  );
+}
+
 export class KaganeApi {
   private client: NetworkClient | undefined;
 
@@ -54,19 +86,21 @@ export class KaganeApi {
       .addRequestInterceptor(async (request: NetworkRequest) => ({
         ...request,
         headers: {
-          accept: JSON_ACCEPT,
-          "accept-language": ACCEPT_LANGUAGE,
-          "user-agent": USER_AGENT,
+          accept: "application/json",
+          "content-type": "application/json",
           origin: BASE_URL,
           referer: `${BASE_URL}/`,
           ...request.headers,
         },
+        // Deliberately no user-agent. The app sends one that matches the
+        // connection it actually makes; overriding it with a hand-written
+        // string makes the request look inconsistent and is what gets it
+        // challenged by Cloudflare in the first place.
       }))
       .addResponseInterceptor(async (response: NetworkResponse) => {
-        // A stale token is handled by the caller, so it must survive the
-        // interceptor rather than being turned into a Cloudflare error here.
-        if (STALE_TOKEN_STATUSES.has(response.status)) return response;
-        if (response.status === 503) throw new CloudflareError(BASE_URL);
+        if (isCloudflareChallenge(response)) throw new CloudflareError(BASE_URL);
+        // A stale token is the caller's to handle, so it has to survive the
+        // interceptor rather than being turned into an error here.
         return response;
       })
       .build();

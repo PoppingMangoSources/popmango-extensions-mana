@@ -1,6 +1,19 @@
 # Changelog
 
-## Kagane (current: v1.1.0)
+## Kagane (current: v1.1.1)
+
+### Fixed
+
+- Every home row asked to resolve a Cloudflare challenge. Two causes: the client sent a
+  hand-written user agent, which does not match the connection the app actually makes and
+  is what gets a request challenged in the first place — the app's own is now used — and
+  any 503 was being reported as a challenge.
+- A challenge is now recognised by the `cf-mitigated` header or an HTML body carrying
+  Cloudflare's markers. The API answers with an ordinary JSON 403 or 503 for an expired
+  reader token, a rate limit or an outage, and none of those are something a WebView can
+  resolve.
+
+## Kagane (v1.1.0)
 
 ### Added
 
