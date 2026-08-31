@@ -112,13 +112,21 @@ export class KaganeApi {
     return parseJson<T>(response, url);
   }
 
+  /**
+   * `body` is handed over as an object, not a string.
+   *
+   * The host serialises it according to the content type; pre-encoding it with
+   * `JSON.stringify` makes the host encode that string in turn, so the server
+   * receives a quoted JSON string where it expects an object and answers 400.
+   * Pass `undefined` for the endpoints that want no body at all.
+   */
   private async postJson<T>(
     url: string,
-    body: unknown,
+    body: Record<string, unknown> | undefined,
     headers?: Record<string, string>,
   ): Promise<T> {
     const response = await this.http.post(url, {
-      body: JSON.stringify(body ?? {}),
+      ...(body === undefined ? {} : { body }),
       headers: { "content-type": "application/json", ...headers },
     });
     return parseJson<T>(response, url);
@@ -130,7 +138,12 @@ export class KaganeApi {
    * The search endpoint backs browsing as well as searching — a home row is
    * this call with a sort and no title.
    */
-  async search(body: unknown, page: number, size: number, sort: string): Promise<SearchDto> {
+  async search(
+    body: Record<string, unknown>,
+    page: number,
+    size: number,
+    sort: string,
+  ): Promise<SearchDto> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("search")
       .addPathComponent("series")
@@ -220,7 +233,7 @@ export class KaganeApi {
     const request = (async (): Promise<string> => {
       await this.http.get(`${BASE_URL}/`).catch(() => undefined);
 
-      const integrity = await this.postJson<IntegrityDto>(`${BASE_URL}/api/integrity`, {});
+      const integrity = await this.postJson<IntegrityDto>(`${BASE_URL}/api/integrity`, undefined);
       this.integrityToken = integrity.token;
       this.integrityExpiry = integrity.exp * 1000;
       return this.integrityToken;
@@ -248,7 +261,7 @@ export class KaganeApi {
     for (const force of [false, true]) {
       const token = await this.getIntegrityToken(force);
       const response = await this.http.post(url, {
-        body: "{}",
+        body: {},
         headers: { "content-type": "application/json", "x-integrity-token": token },
       });
 
