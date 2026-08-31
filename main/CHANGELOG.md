@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.6)
+## Kagane (current: v1.0.7)
+
+### Fixed
+
+- An expired reader token was reported as a raw network error instead of being refreshed.
+  The host rejects any non-2xx response before the caller sees it unless the client says
+  otherwise, which made the retry unreachable and replaced the site's own error messages
+  with a generic one. Both work now.
+
+## Kagane (v1.0.6)
 
 ### Changed
 
