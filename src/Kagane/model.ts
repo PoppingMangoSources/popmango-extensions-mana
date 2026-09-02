@@ -7,7 +7,8 @@ export const API_URL = `${BASE_URL}/api/v2`;
 
 export const DEFAULT_CACHE_URL = BASE_URL;
 
-export const PAGE_SIZE = 35;
+// The size the site's own rows ask for.
+export const PAGE_SIZE = 50;
 
 export const FilterID = {
   Sort: "sort",
@@ -19,6 +20,7 @@ export const FilterID = {
   Tags: "tags",
   MatchAllTags: "match_all_tags",
   Sources: "source_id",
+  ExactMatch: "exact_match",
 } as const;
 
 export const PreferenceID = {

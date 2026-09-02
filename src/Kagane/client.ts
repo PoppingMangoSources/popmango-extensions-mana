@@ -113,6 +113,7 @@ export class KaganeApi {
     page: number,
     size: number,
     sort: string,
+    exactMatch = false,
   ): Promise<SearchResponse> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("search")
@@ -120,6 +121,8 @@ export class KaganeApi {
       // The API pages from zero.
       .setQueryItem("page", String(Math.max(0, page - 1)))
       .setQueryItem("size", String(size));
+
+    if (exactMatch) url.setQueryItem("exact_match", "true");
 
     // Relevance is the default and is asked for by leaving the parameter off entirely.
     if (sort) url.setQueryItem("sort", sort);

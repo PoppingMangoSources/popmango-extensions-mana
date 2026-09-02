@@ -26,7 +26,19 @@ First release. Manga, manhwa and manhua from mkissa.to:
   routed to within the page. The wait clears a cold challenge rather than giving up under
   it.
 
-## Kagane (current: v1.0.4)
+## Kagane (current: v1.0.5)
+
+### Added
+
+- An `Exact Match` switch on the search form. The site supports it and it matches a title
+  as typed rather than loosely, which helps for short or common names.
+
+### Changed
+
+- Listings ask for fifty titles a page instead of thirty-five, the size the site's own rows
+  use, so scrolling reaches further before another request.
+
+## Kagane (v1.0.4)
 
 ### Changed
 

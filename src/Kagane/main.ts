@@ -83,7 +83,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -213,6 +213,11 @@ class KaganeSource
           ? [SearchMultiPickerSheet({ id: FilterID.Sources, title: "Sources", options: sources })]
           : []),
         SearchToggle({
+          id: FilterID.ExactMatch,
+          title: "Exact Match",
+          subtitle: "Match the title as typed rather than loosely",
+        }),
+        SearchToggle({
           id: FilterID.MatchAllGenres,
           title: "Match All Genres",
           subtitle: "Require every selected genre rather than any of them",
@@ -301,6 +306,8 @@ class KaganeSource
       pageOf(request),
       PAGE_SIZE,
       buildSortParameter(sortId, request.sort?.ascending),
+      SectionLayout.Simple,
+      filters.toggle(FilterID.ExactMatch),
     );
   }
 
@@ -454,9 +461,10 @@ class KaganeSource
     size: number,
     sort: string,
     layout: SectionLayoutKind = SectionLayout.Simple,
+    exactMatch = false,
   ): Promise<PagedSearchResult> {
     const [response, titleOptions, genreNames] = await Promise.all([
-      this.api.fetchSearch(body, page, size, sort),
+      this.api.fetchSearch(body, page, size, sort, exactMatch),
       this.titleOptions(),
       layout === SectionLayout.Detailed ? this.api.fetchGenreNames() : {},
     ]);
