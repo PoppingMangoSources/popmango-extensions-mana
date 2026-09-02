@@ -11,8 +11,10 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - Search across the site's sixty-eight genres with include and exclude, a country filter,
   and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
 - Settings for image quality and adult content.
-- The reader signs its own page request, so no browser is needed to read a chapter; the
-  reader page is a fallback for when the site rotates its bundle.
+- The page list is taken from the site's own reader, which is the only place it is
+  delivered: the series page is loaded, its parser is claimed, and the chapter is then
+  routed to within the page. The wait clears a cold challenge rather than giving up under
+  it.
 
 ## Kagane (current: v1.0.0)
 

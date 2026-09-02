@@ -13,6 +13,10 @@ const CHALLENGE_PATTERNS: readonly RegExp[] = [
   /__cf_chl_/i,
   /<title>\s*Just a moment/i,
   /\.open\(\s*["']POST["']\s*,\s*["']\/_v["']\)/,
+  // The two ids the app's own handler keys on, and the widget an interactive round adds.
+  /challenge-error-title/i,
+  /challenge-error-text/i,
+  /cf-turnstile-response/i,
 ];
 
 /**

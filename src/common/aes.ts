@@ -63,7 +63,7 @@ function mul(a: number, b: number): number {
 const RCON = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d];
 
 /** Expands the key into `4 * (rounds + 1)` words, held flat as bytes. */
-export function expandAesKey(key: Uint8Array): { schedule: Uint8Array; rounds: number } {
+function expandAesKey(key: Uint8Array): { schedule: Uint8Array; rounds: number } {
   const nk = key.length / 4;
   if (nk !== 4 && nk !== 6 && nk !== 8) {
     throw new Error(`Unsupported AES key length: ${key.length} bytes`);
@@ -135,55 +135,6 @@ function invMixColumns(state: Uint8Array): void {
     state[base + 2] = mul(a0, 0x0d) ^ mul(a1, 0x09) ^ mul(a2, 0x0e) ^ mul(a3, 0x0b);
     state[base + 3] = mul(a0, 0x0b) ^ mul(a1, 0x0d) ^ mul(a2, 0x09) ^ mul(a3, 0x0e);
   }
-}
-
-function shiftRows(state: Uint8Array): void {
-  const copy = state.slice();
-  for (let r = 1; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
-      state[r + 4 * c] = copy[r + 4 * ((c + r) % 4)]!;
-    }
-  }
-}
-
-function subBytes(state: Uint8Array): void {
-  for (let i = 0; i < 16; i++) state[i] = SBOX[state[i]!]!;
-}
-
-function mixColumns(state: Uint8Array): void {
-  for (let c = 0; c < 4; c++) {
-    const base = 4 * c;
-    const a0 = state[base]!;
-    const a1 = state[base + 1]!;
-    const a2 = state[base + 2]!;
-    const a3 = state[base + 3]!;
-
-    state[base] = mul(a0, 2) ^ mul(a1, 3) ^ a2 ^ a3;
-    state[base + 1] = a0 ^ mul(a1, 2) ^ mul(a2, 3) ^ a3;
-    state[base + 2] = a0 ^ a1 ^ mul(a2, 2) ^ mul(a3, 3);
-    state[base + 3] = mul(a0, 3) ^ a1 ^ a2 ^ mul(a3, 2);
-  }
-}
-
-export function aesEncryptBlock(
-  block: Uint8Array,
-  schedule: Uint8Array,
-  rounds: number,
-): Uint8Array {
-  const state = block.slice();
-
-  addRoundKey(state, schedule, 0);
-  for (let round = 1; round < rounds; round++) {
-    subBytes(state);
-    shiftRows(state);
-    mixColumns(state);
-    addRoundKey(state, schedule, round);
-  }
-  subBytes(state);
-  shiftRows(state);
-  addRoundKey(state, schedule, rounds);
-
-  return state;
 }
 
 function decryptBlock(block: Uint8Array, schedule: Uint8Array, rounds: number): Uint8Array {

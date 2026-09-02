@@ -77,6 +77,7 @@ import {
   parsePageUrls,
   seriesUrl,
 } from "./parsers.ts";
+import { fetchPagesFromReader } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
@@ -335,43 +336,17 @@ class MkissaSource
   async getChapterData(contentId: string, chapterId: string): Promise<ChapterData> {
     const quality = await this.preferences.text(PreferenceID.ImageQuality, "original");
 
-    const signed = await this.api.fetchChapterPages(contentId, chapterId);
-    const pages = signed ? parsePageUrls(signed, quality) : await this.pagesFromReader(chapterId);
+    const data = await fetchPagesFromReader(contentId, chapterId);
+    const pages = data ? parsePageUrls(data, quality) : [];
 
     if (pages.length === 0) {
-      throw new Error(`Mkissa returned no pages for chapter ${chapterId}`);
+      throw new Error(
+        `Mkissa returned no pages for chapter ${chapterId}. The site serves its page list ` +
+          "to the reader only, so try again in a moment.",
+      );
     }
 
     return { pages: pages.map((url) => ({ url })) };
-  }
-
-  /**
-   * The signed request is the reliable path. This is the fallback for when the site rotates
-   * its bundle and the build id here goes stale: the reader itself still renders the pages.
-   */
-  private async pagesFromReader(chapterId: string): Promise<string[]> {
-    const factory = (globalThis as { WebViewPage?: typeof WebViewPage }).WebViewPage;
-    if (!factory) return [];
-
-    const page = await factory.create({ timeout: 20 });
-    try {
-      await page.goto(`${BASE_URL}/manga/${chapterId}`, { waitUntil: "load" });
-      return await page.evaluateScript<string[]>(
-        `(function () {
-           var seen = [];
-           var nodes = document.querySelectorAll("img");
-           for (var i = 0; i < nodes.length; i++) {
-             var src = nodes[i].currentSrc || nodes[i].src || nodes[i].getAttribute("data-src");
-             if (src && /\\/manga\\//.test(src) && seen.indexOf(src) === -1) seen.push(src);
-           }
-           return seen;
-         })();`,
-      );
-    } catch {
-      return [];
-    } finally {
-      await page.close().catch(() => undefined);
-    }
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
