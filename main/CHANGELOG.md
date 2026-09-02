@@ -2,7 +2,20 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## FlameComics (current: v1.0.0)
+## FlameComics (current: v1.0.1)
+
+### Added
+
+- A Featured row carrying the site's own front-page carousel. A slide pointing at a novel
+  rather than a comic is left out.
+- Every row shows the publication status beside the like count.
+
+### Changed
+
+- The like count is labelled `Likes ♥` rather than a bare heart.
+- Popular moved to a detailed two-row layout now that Featured holds the top of the page.
+
+## FlameComics (v1.0.0)
 
 First release. Manhwa, manhua and manga from flamecomics.xyz:
 
@@ -115,7 +128,15 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.1)
+## Mangago (current: v1.0.2)
+
+### Fixed
+
+- Notices and unnumbered side stories sat above the newest chapter. Numbering them past the
+  end of the run kept them out of the resume position but put them at the top of the list;
+  they now sit beneath it, and an unread title still starts at its first real chapter.
+
+## Mangago (v1.0.1)
 
 ### Changed
 
