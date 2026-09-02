@@ -128,7 +128,14 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.2)
+## Mangago (current: v1.0.3)
+
+### Changed
+
+- Unnumbered chapters are ordered among themselves the way the numbered run is — official
+  uploads first, then by uploader — rather than being left in page order.
+
+## Mangago (v1.0.2)
 
 ### Fixed
 

@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5480a1a25480a1a25480a1a25480a1a25480a1a25480a1a25480a1a25480a1a2"
+      "hash": "5276cf215276cf215276cf215276cf215276cf215276cf215276cf215276cf21"
     },
     {
       "id": "kagane",
@@ -44,12 +44,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "231789a1231789a1231789a1231789a1231789a1231789a1231789a1231789a1"
+      "hash": "210db759210db759210db759210db759210db759210db759210db759210db759"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -66,7 +66,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "3131c9dc3131c9dc3131c9dc3131c9dc3131c9dc3131c9dc3131c9dc3131c9dc"
+      "hash": "7a08ef297a08ef297a08ef297a08ef297a08ef297a08ef297a08ef297a08ef29"
     }
   ]
 }
