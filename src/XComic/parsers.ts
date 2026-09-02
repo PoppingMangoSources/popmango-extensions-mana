@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
+import { load } from "cheerio";
 import {
   ContentRating,
   ContentType,
@@ -8,6 +9,7 @@ import {
   type Chapter,
   type Content,
   type Highlight,
+  type Option,
   type Pair,
   type Tag,
 } from "@mana-app/types";
@@ -18,11 +20,12 @@ import {
   relativeTime,
   resolveUrl,
   summaryFromHtml,
+  text,
 } from "../common/index.ts";
 import {
-  BASE_URL,
   CONTENT_RATING_GENRES,
   TYPE_OPTIONS,
+  baseUrl,
   type ChapterData,
   type ComicData,
   type NamedNode,
@@ -30,7 +33,7 @@ import {
 
 function absoluteUrl(target: string | null | undefined): string {
   const value = (target ?? "").trim();
-  return value ? resolveUrl(value, BASE_URL) : "";
+  return value ? resolveUrl(value, baseUrl()) : "";
 }
 
 function seriesUrl(comic: ComicData): string {
@@ -114,11 +117,20 @@ function formatType(type: string | null | undefined): string {
   return TYPE_OPTIONS.find((option) => option.id === value)?.title ?? value;
 }
 
+/** How a reader's title settings rewrite the site's own name for a series. */
+export type TitleCleaner = (title: string) => string;
+
+const asIs: TitleCleaner = (title) => title;
+
 /**
  * Every listing endpoint already returns the type, genres and last chapter alongside the
  * cover, so the tile carries them without a second request.
  */
-export function parseHighlight(comic: ComicData, latest?: ChapterData): Highlight {
+export function parseHighlight(
+  comic: ComicData,
+  latest?: ChapterData,
+  cleanTitle: TitleCleaner = asIs,
+): Highlight {
   const number = formatChapterNumber(latest ?? comic.chapterNodes_last?.[0]?.data);
   const uploaded = latest ? parseTimestamp(latest.dateModify ?? latest.datePublic) : undefined;
   const type = formatType(comic.type);
@@ -134,7 +146,7 @@ export function parseHighlight(comic: ComicData, latest?: ChapterData): Highligh
 
   return {
     id: comic.id,
-    title: decodeEntities(clean(comic.name)),
+    title: cleanTitle(decodeEntities(clean(comic.name))),
     cover: absoluteUrl(comic.urlCover),
     ...(subtitle ? { subtitle } : {}),
     ...(info.length > 0 ? { info } : {}),
@@ -143,7 +155,7 @@ export function parseHighlight(comic: ComicData, latest?: ChapterData): Highligh
   };
 }
 
-export function parseContent(comic: ComicData): Content {
+export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs): Content {
   const tags: Tag[] = [...(comic.genres ?? []), ...(comic.tags ?? [])]
     .map((name) => clean(name))
     .filter(Boolean)
@@ -160,7 +172,7 @@ export function parseContent(comic: ComicData): Content {
   if (publishers.length > 0) info.push({ key: "Publishers", value: publishers.join(", ") });
 
   return {
-    title: decodeEntities(clean(comic.name)),
+    title: cleanTitle(decodeEntities(clean(comic.name))),
     cover: absoluteUrl(comic.urlCover),
     summary: summaryFromHtml(comic.summary?.html ?? ""),
     additionalTitles: (comic.altNames ?? [])
@@ -225,6 +237,50 @@ export function parseChapters(entries: readonly ChapterData[], language: string)
     ...chapter,
     index: positions.get(chapter.chapterId) ?? chapter.index,
   }));
+}
+
+export type FilterTaxonomy = {
+  genres: Option[];
+  types: Option[];
+  demographics: Option[];
+  contentRatings: Option[];
+};
+
+/**
+ * The search page carries every filter the site offers as `<details>` groups whose
+ * options hold their API value in a bare `:` attribute. Reading them there is one
+ * request for the complete lists, where the API exposes none of them.
+ */
+export function parseFilterTaxonomy(html: string): FilterTaxonomy {
+  const taxonomy: FilterTaxonomy = { genres: [], types: [], demographics: [], contentRatings: [] };
+  const $ = load(html);
+
+  $("details.group").each((_, element) => {
+    const group = $(element);
+    const heading = text(group.find("summary").first()).toLowerCase();
+
+    const bucket: keyof FilterTaxonomy | undefined = heading.includes("genre")
+      ? "genres"
+      : heading.includes("type")
+        ? "types"
+        : heading.includes("demographic")
+          ? "demographics"
+          : heading.includes("content rating")
+            ? "contentRatings"
+            : undefined;
+    if (!bucket) return;
+
+    const seen = new Set(taxonomy[bucket].map((option) => option.id));
+    group.find("div[\\:]").each((__, node) => {
+      const id = ($(node).attr(":") ?? "").trim();
+      const title = decodeEntities(text($(node).find("span").first()));
+      if (!id || !title || seen.has(id)) return;
+      seen.add(id);
+      taxonomy[bucket].push({ id, title });
+    });
+  });
+
+  return taxonomy;
 }
 
 export function parsePageUrls(urls: readonly string[]): string[] {

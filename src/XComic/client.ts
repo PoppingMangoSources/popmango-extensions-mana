@@ -2,8 +2,8 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { isChallengePage, withChallengeRetry } from "../common/index.ts";
-import { API_URL, BASE_URL, type GraphQLResponse } from "./model.ts";
+import { HTML_ACCEPT, isChallengePage, withChallengeRetry } from "../common/index.ts";
+import { apiUrl, baseUrl, type GraphQLResponse } from "./model.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
   const headers = response.headers ?? {};
@@ -25,16 +25,14 @@ export class XComicApi {
       .addRequestInterceptor(async (request: NetworkRequest) => ({
         ...request,
         headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          origin: BASE_URL,
-          referer: `${BASE_URL}/`,
+          origin: baseUrl(),
+          referer: `${baseUrl()}/`,
           ...request.headers,
         },
       }))
       .addResponseInterceptor(async (response: NetworkResponse) => {
         // The API host cannot render the interstitial, so the challenge points at the site.
-        if (isCloudflareChallenge(response)) throw new CloudflareError(BASE_URL);
+        if (isCloudflareChallenge(response)) throw new CloudflareError(baseUrl());
         return response;
       })
       .build();
@@ -42,11 +40,25 @@ export class XComicApi {
   }
 
   async query<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-    const key = `${query}|${JSON.stringify(variables)}`;
+    const key = `${baseUrl()}|${query}|${JSON.stringify(variables)}`;
+    return this.share(key, () => this.runQuery<T>(query, variables));
+  }
+
+  /** The filter taxonomy lives in the search page's markup rather than the API. */
+  async page(url: string): Promise<string> {
+    return this.share(`GET ${url}`, () =>
+      withChallengeRetry(baseUrl(), async () => {
+        const response = await this.http.get(url, { headers: { accept: HTML_ACCEPT } });
+        return this.body(response);
+      }),
+    );
+  }
+
+  private share<T>(key: string, run: () => Promise<T>): Promise<T> {
     const running = this.inFlight.get(key) as Promise<T> | undefined;
     if (running) return running;
 
-    const request = this.run<T>(query, variables).finally(() => {
+    const request = run().finally(() => {
       if (this.inFlight.get(key) === request) this.inFlight.delete(key);
     });
 
@@ -54,25 +66,18 @@ export class XComicApi {
     return request;
   }
 
-  private async run<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-    return withChallengeRetry(BASE_URL, async () => {
-      const response = await this.http.post(API_URL, { body: { query, variables } });
+  private async runQuery<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    return withChallengeRetry(baseUrl(), async () => {
+      const response = await this.http.post(apiUrl(), {
+        headers: { accept: "application/json", "content-type": "application/json" },
+        body: { query, variables },
+      });
 
-      // A refusal is only a challenge when the interstitial itself comes back; the API
-      // answers an ordinary block with the same status and no challenge markup.
-      if (
-        (response.status === 403 || response.status === 503) &&
-        isChallengePage(response.data ?? "")
-      ) {
-        throw new CloudflareError(BASE_URL);
-      }
-      if (response.status >= 400) {
-        throw new Error(`XComic rejected the request (HTTP ${response.status})`);
-      }
+      const body = this.body(response);
 
       let parsed: GraphQLResponse<T>;
       try {
-        parsed = JSON.parse(response.data) as GraphQLResponse<T>;
+        parsed = JSON.parse(body) as GraphQLResponse<T>;
       } catch {
         throw new Error("XComic returned a response that was not JSON");
       }
@@ -84,5 +89,20 @@ export class XComicApi {
 
       return parsed.data;
     });
+  }
+
+  private body(response: NetworkResponse): string {
+    const data = response.data ?? "";
+
+    // A refusal is only a challenge when the interstitial itself comes back; the site
+    // answers an ordinary block with the same status and no challenge markup.
+    if ((response.status === 403 || response.status === 503) && isChallengePage(data)) {
+      throw new CloudflareError(baseUrl());
+    }
+    if (response.status >= 400) {
+      throw new Error(`XComic rejected the request (HTTP ${response.status})`);
+    }
+
+    return data;
   }
 }

@@ -5,12 +5,13 @@ import {
   ContentRating,
   DefinedLanguages,
   SearchExcludableMultiPicker,
+  SearchExcludableMultiPickerSheet,
   SearchGroup,
   SearchMultiPicker,
   SearchMultiPickerSheet,
   SearchPicker,
+  SearchPickerSheet,
   SearchTextField,
-  SearchToggle,
   type Chapter,
   type ChapterData as ChapterPages,
   type Content,
@@ -18,7 +19,6 @@ import {
   type DeepLinkContext,
   type Form,
   type Highlight,
-  type Option,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -49,7 +49,9 @@ import { XComicApi } from "./client.ts";
 import {
   BASE_URL,
   BROWSE_QUERY,
-  CHAPTERS_QUERY,
+  CHAPTERS_FULL_QUERY,
+  CHAPTERS_UNIQUE_QUERY,
+  CHAPTER_FULL_PAGE_SIZE,
   CHAPTER_PAGES_QUERY,
   CHAPTER_PAGE_SIZE,
   COMIC_QUERY,
@@ -57,21 +59,29 @@ import {
   CHAPTER_COUNT_OPTIONS,
   DEMOGRAPHIC_OPTIONS,
   DISCOVER_SECTIONS,
+  FORMAT_OPTIONS,
   FilterID,
+  GENRE_MODE_OPTIONS,
   LANGUAGE_OPTIONS,
   LATEST_UPLOADS_QUERY,
-  ORIGINAL_STATUS_OPTIONS,
+  LETTER_MODE_OPTIONS,
+  MIRROR_OPTIONS,
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
   PreferenceID,
   RECENTLY_ADDED_QUERY,
   RECENTLY_ADDED_SIZE,
   SORT_OPTIONS,
+  STATUS_OPTIONS,
   SectionID,
   SortID,
+  TITLE_VERSION_REGEX,
   TYPE_OPTIONS,
+  setBaseUrl,
+  searchPageUrl,
   type BrowseResponse,
   type BrowseSelect,
+  type ChapterListPage,
   type ChapterListResponse,
   type ChapterPagesResponse,
   type ComicNodeResponse,
@@ -81,16 +91,19 @@ import {
 import {
   parseChapters,
   parseContent,
+  parseFilterTaxonomy,
   parseHighlight,
   parseLanguage,
   parsePageUrls,
+  type FilterTaxonomy,
+  type TitleCleaner,
 } from "./parsers.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "xcomic",
   name: "XComic",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -102,7 +115,15 @@ const info: SourceInfo = {
 const config: SourceConfig = {
   disableUpdateChecks: false,
   cloudflareResolutionURL: BASE_URL,
-  owningLinks: ["xcomic.me"],
+  owningLinks: MIRROR_OPTIONS.map((option) => option.title),
+};
+
+/** What the filter form falls back to when the search page cannot be read. */
+const BUNDLED_TAXONOMY: FilterTaxonomy = {
+  genres: [],
+  types: TYPE_OPTIONS,
+  demographics: DEMOGRAPHIC_OPTIONS,
+  contentRatings: CONTENT_RATING_OPTIONS,
 };
 
 class XComicSource
@@ -117,7 +138,7 @@ class XComicSource
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
   );
 
-  private genreOptions: Option[] | undefined;
+  private taxonomyPromise: Promise<FilterTaxonomy> | undefined;
   // The two feeds page by cursor while the app counts pages, so the cursor for the next
   // page is remembered as each one is read. Paging is sequential, so this keeps up.
   private readonly feedCursors = new Map<string, number>();
@@ -126,57 +147,71 @@ class XComicSource
     return SORT_OPTIONS;
   }
 
-  /** The site publishes no genre list, so it is gathered from a page of browse results. */
-  private async genres(): Promise<Option[]> {
-    if (this.genreOptions) return this.genreOptions;
+  /**
+   * The API exposes no filter lists, but the search page's markup holds all of them.
+   * It is read once per session, and the bundled lists stand in if that read fails.
+   */
+  private taxonomy(): Promise<FilterTaxonomy> {
+    this.taxonomyPromise ??= this.readTaxonomy().catch(() => {
+      // Drop the failed memo so the next form open retries rather than staying bare.
+      this.taxonomyPromise = undefined;
+      return BUNDLED_TAXONOMY;
+    });
+    return this.taxonomyPromise;
+  }
 
-    try {
-      const data = await this.api.query<BrowseResponse>(BROWSE_QUERY, {
-        select: this.browseSelect({ page: 1, size: PAGE_SIZE, sort: SortID.Score }),
-      });
+  private async readTaxonomy(): Promise<FilterTaxonomy> {
+    await this.applyMirror();
+    const parsed = parseFilterTaxonomy(await this.api.page(searchPageUrl()));
 
-      const seen = new Set<string>();
-      for (const node of data.get_comic_browse_items ?? []) {
-        for (const genre of node.data.genres ?? []) {
-          const name = genre.trim();
-          if (name) seen.add(name);
-        }
-      }
-
-      if (seen.size > 0) {
-        this.genreOptions = [...seen]
-          .sort((left, right) => left.localeCompare(right))
-          .map((title) => ({ id: title.toLowerCase(), title }));
-        return this.genreOptions;
-      }
-    } catch {}
-
-    this.genreOptions = [];
-    return this.genreOptions;
+    return {
+      genres: parsed.genres,
+      types: parsed.types.length > 0 ? parsed.types : BUNDLED_TAXONOMY.types,
+      demographics:
+        parsed.demographics.length > 0 ? parsed.demographics : BUNDLED_TAXONOMY.demographics,
+      contentRatings:
+        parsed.contentRatings.length > 0 ? parsed.contentRatings : BUNDLED_TAXONOMY.contentRatings,
+    };
   }
 
   async getSearchForm(): Promise<SearchForm> {
-    const genres = await this.genres();
+    const taxonomy = await this.taxonomy();
 
     return buildSearchForm({
       header: "Filters",
       footer: "Anything left empty falls back to the defaults in Settings.",
       fields: [
-        SearchMultiPicker({ id: FilterID.Types, title: "Types", options: TYPE_OPTIONS }),
         SearchMultiPicker({
           id: FilterID.ContentRatings,
-          title: "Content Ratings",
-          options: CONTENT_RATING_OPTIONS,
+          title: "Content Rating",
+          options: taxonomy.contentRatings,
         }),
+        SearchMultiPicker({ id: FilterID.Types, title: "Types", options: taxonomy.types }),
         SearchMultiPicker({
           id: FilterID.Demographics,
           title: "Demographics",
-          options: DEMOGRAPHIC_OPTIONS,
+          options: taxonomy.demographics,
         }),
-        SearchToggle({
-          id: FilterID.MatchAllGenres,
-          title: "Match All Genres",
-          subtitle: "Require every selected genre rather than any of them",
+        SearchExcludableMultiPickerSheet({
+          id: FilterID.Formats,
+          title: "Formats",
+          options: FORMAT_OPTIONS,
+        }),
+        SearchGroup({
+          id: "genre_matching",
+          title: "Genre Matching",
+          children: [
+            SearchPicker({
+              id: FilterID.IncludeMode,
+              title: "Include Mode",
+              options: GENRE_MODE_OPTIONS,
+            }),
+            SearchPicker({
+              id: FilterID.ExcludeMode,
+              title: "Exclude Mode",
+              options: GENRE_MODE_OPTIONS,
+            }),
+          ],
         }),
         SearchGroup({
           id: "status",
@@ -184,15 +219,15 @@ class XComicSource
           children: [
             SearchPicker({
               id: FilterID.OriginalStatus,
-              title: "Original Work",
-              options: ORIGINAL_STATUS_OPTIONS,
+              title: "Original Work Status",
+              options: STATUS_OPTIONS,
             }),
             SearchPicker({
               id: FilterID.UploadStatus,
-              title: "Uploads",
-              options: ORIGINAL_STATUS_OPTIONS,
+              title: "Upload Status",
+              options: STATUS_OPTIONS,
             }),
-            SearchPicker({
+            SearchPickerSheet({
               id: FilterID.ChapterCount,
               title: "Chapter Count",
               options: CHAPTER_COUNT_OPTIONS,
@@ -200,7 +235,7 @@ class XComicSource
             SearchTextField({
               id: FilterID.Year,
               title: "Year",
-              placeholder: "2015, or 2005-2009",
+              placeholder: "2015, or 1901-2027",
             }),
           ],
         }),
@@ -210,23 +245,29 @@ class XComicSource
           children: [
             SearchMultiPickerSheet({
               id: FilterID.OriginalLanguages,
-              title: "Original",
+              title: "Original Work Language",
               options: LANGUAGE_OPTIONS,
             }),
             SearchMultiPickerSheet({
               id: FilterID.TranslatedLanguages,
-              title: "Translated",
+              title: "Translated Language",
               options: LANGUAGE_OPTIONS,
             }),
           ],
         }),
+        SearchPicker({
+          id: FilterID.LetterMode,
+          title: "Letter Matching Mode (Slow)",
+          subtitle: "Match the query as a prefix instead of searching the index",
+          options: LETTER_MODE_OPTIONS,
+        }),
       ],
-      ...(genres.length > 0
+      ...(taxonomy.genres.length > 0
         ? {
             tags: SearchExcludableMultiPicker({
               id: FilterID.Genres,
               title: "Genres",
-              options: genres,
+              options: taxonomy.genres,
             }),
             tagsHeader: "Genres",
           }
@@ -238,8 +279,42 @@ class XComicSource
   async getPreferenceMenu(): Promise<Form> {
     return buildPreferenceMenu(
       this.preferences,
-      buildSettingsSections(() => this.genres()),
+      buildSettingsSections({
+        genres: async () => (await this.taxonomy()).genres,
+        types: async () => (await this.taxonomy()).types,
+        contentRatings: async () => (await this.taxonomy()).contentRatings,
+      }),
     );
+  }
+
+  /** Every request path starts here so the mirror setting is in force before a URL is built. */
+  private async applyMirror(): Promise<void> {
+    setBaseUrl(await this.preferences.text(PreferenceID.Mirror, BASE_URL));
+  }
+
+  /** Reader-configured title rewriting, resolved once per call rather than per row. */
+  private async titleCleaner(): Promise<TitleCleaner> {
+    const [strip, custom] = await Promise.all([
+      this.preferences.flag(PreferenceID.RemoveTitleVersion),
+      this.preferences.text(PreferenceID.CustomTitleRegex, ""),
+    ]);
+
+    let extra: RegExp | undefined;
+    if (custom) {
+      // A reader can type anything here; an unparseable pattern must not break browsing.
+      try {
+        extra = new RegExp(custom, "g");
+      } catch {}
+    }
+
+    if (!strip && !extra) return (title) => title;
+
+    return (title) => {
+      let value = title;
+      if (extra) value = value.replace(extra, "");
+      if (strip) value = value.replace(TITLE_VERSION_REGEX, "");
+      return value.replace(/\s+/g, " ").trim() || title;
+    };
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
@@ -262,19 +337,23 @@ class XComicSource
     page: number,
     context?: SourceContext,
   ): Promise<PagedSearchResult> {
+    await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
 
     if (sectionId === SectionID.LatestUploads) {
-      const data = await this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
-        // This feed pages by cursor; it rejects a `page` outright.
-        select: { size: PAGE_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
-      });
+      const [data, cleanTitle] = await Promise.all([
+        this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
+          // This feed pages by cursor; it rejects a `page` outright.
+          select: { size: PAGE_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
+        }),
+        this.titleCleaner(),
+      ]);
 
       const feed = data.get_comic_latestUploads;
       const results = (feed?.items ?? []).flatMap((entry): Highlight[] => {
         const comic = entry.comic?.data;
         if (!comic) return [];
-        return [parseHighlight(comic, entry.chapters?.[0]?.data)];
+        return [parseHighlight(comic, entry.chapters?.[0]?.data, cleanTitle)];
       });
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
@@ -282,12 +361,20 @@ class XComicSource
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
-      const data = await this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
-        select: { size: RECENTLY_ADDED_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
-      });
+      const [data, cleanTitle] = await Promise.all([
+        this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
+          select: {
+            size: RECENTLY_ADDED_SIZE,
+            ...(cursor === undefined ? {} : { before: cursor }),
+          },
+        }),
+        this.titleCleaner(),
+      ]);
 
       const feed = data.get_comic_recentlyAdded;
-      const results = (feed?.items ?? []).map((node) => parseHighlight(node.data));
+      const results = (feed?.items ?? []).map((node) =>
+        parseHighlight(node.data, undefined, cleanTitle),
+      );
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
       return { results, isLastPage: feed?.before == null || results.length === 0 };
@@ -309,8 +396,11 @@ class XComicSource
       return this.loadSection(request.listId, pageOf(request), request.context);
     }
 
+    await this.applyMirror();
+
     const filters = new FilterReader(request);
     const genres = filters.excludable(FilterID.Genres);
+    const formats = filters.excludable(FilterID.Formats);
     const defaults = await this.preferenceDefaults(request.context);
     const [yearMin, yearMax] = parseYearRange(filters.text(FilterID.Year));
 
@@ -324,19 +414,23 @@ class XComicSource
         size: PAGE_SIZE,
         sort: resolveSortId(SORT_OPTIONS, request, SortID.Score),
         word: request.query?.trim() ?? "",
+        // The site files formats among its genres, so both selections travel together.
+        where: filters.option(FilterID.LetterMode) === "letter" ? "letter" : "browse",
         incTypes: chosenTypes.length > 0 ? chosenTypes : defaults.incTypes,
         incContentRatings: chosenRatings.length > 0 ? chosenRatings : defaults.incContentRatings,
         incTLangs: chosenLanguages.length > 0 ? chosenLanguages : defaults.incTLangs,
         incOLangs: filters.options(FilterID.OriginalLanguages),
         incDemographics: filters.options(FilterID.Demographics),
-        incGenres: genres.included,
-        excGenres: [...new Set([...genres.excluded, ...defaults.excGenres])],
-        incGenresMode: filters.toggle(FilterID.MatchAllGenres) ? "and" : "or",
+        incGenres: [...genres.included, ...formats.included],
+        excGenres: [...new Set([...genres.excluded, ...formats.excluded, ...defaults.excGenres])],
+        incGenresMode: filters.option(FilterID.IncludeMode) || "and",
+        excGenresMode: filters.option(FilterID.ExcludeMode) || "or",
         origStatus: filters.option(FilterID.OriginalStatus) || null,
         siteStatus: filters.option(FilterID.UploadStatus) || null,
         chapCount: filters.option(FilterID.ChapterCount),
         releaseYearMin: yearMin,
         releaseYearMax: yearMax,
+        ignoreGlobalGenres: await this.preferences.flag(PreferenceID.IgnoreGenreBlocklist),
       }),
     );
   }
@@ -400,51 +494,90 @@ class XComicSource
       chapCount: "",
       // The site applies its own account-level filters unless told to stand aside.
       ignoreGlobalULangs: true,
-      ignoreGlobalGenres: true,
+      ignoreGlobalGenres: false,
       ignoreGlobalBlocks: true,
       ...rest,
     };
   }
 
   private async browse(select: BrowseSelect): Promise<PagedSearchResult> {
-    const data = await this.api.query<BrowseResponse>(BROWSE_QUERY, { select });
+    const [data, cleanTitle] = await Promise.all([
+      this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
+      this.titleCleaner(),
+    ]);
     const nodes = data.get_comic_browse_items ?? [];
 
     return {
-      results: nodes.map((node) => parseHighlight(node.data)),
+      results: nodes.map((node) => parseHighlight(node.data, undefined, cleanTitle)),
       isLastPage: nodes.length < select.size,
     };
   }
 
   async getContent(contentId: string): Promise<Content> {
-    const data = await this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId });
+    await this.applyMirror();
+
+    const [data, cleanTitle] = await Promise.all([
+      this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
+      this.titleCleaner(),
+    ]);
     const comic = data.get_comicNode?.data;
     if (!comic) throw new Error(`XComic has no title with id ${contentId}`);
 
-    return parseContent(comic);
+    return parseContent(comic, cleanTitle);
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [comic, chapters] = await Promise.all([
+    await this.applyMirror();
+
+    const deduplicate = await this.preferences.flag(PreferenceID.DeduplicateChapters);
+    const size = deduplicate ? CHAPTER_PAGE_SIZE : CHAPTER_FULL_PAGE_SIZE;
+
+    const [comic, first] = await Promise.all([
       this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
-      this.api.query<ChapterListResponse>(CHAPTERS_QUERY, {
-        // The chapter list keys on snake_case and names its own order.
-        select: {
-          comic_id: contentId,
-          page: 1,
-          size: CHAPTER_PAGE_SIZE,
-          sortby: "chapter_desc",
-        },
-      }),
+      this.chapterPage(contentId, 1, deduplicate, size),
     ]);
 
-    const language = parseLanguage(comic.get_comicNode?.data.translatedLanguage);
-    const entries = (chapters.get_comic_chapterList_uniqList?.items ?? []).map((item) => item.data);
+    const entries = (first?.items ?? []).map((item) => item.data);
 
+    // The full list runs to several pages on a long series; the deduplicated one
+    // almost never does, so the extra pages are only ever fetched when they exist.
+    const total = first?.paging?.total ?? entries.length;
+    if (total > size && (first?.paging?.next ?? 0) !== 0) {
+      const pages = Math.ceil(total / size);
+      const rest = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, offset) =>
+          this.chapterPage(contentId, offset + 2, deduplicate, size),
+        ),
+      );
+      for (const page of rest) {
+        entries.push(...(page?.items ?? []).map((item) => item.data));
+      }
+    }
+
+    const language = parseLanguage(comic.get_comicNode?.data.translatedLanguage);
     return parseChapters(entries, language);
   }
 
+  private async chapterPage(
+    contentId: string,
+    page: number,
+    deduplicate: boolean,
+    size: number,
+  ): Promise<ChapterListPage | null | undefined> {
+    const data = await this.api.query<ChapterListResponse>(
+      deduplicate ? CHAPTERS_UNIQUE_QUERY : CHAPTERS_FULL_QUERY,
+      {
+        // The chapter list keys on snake_case and names its own order.
+        select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
+      },
+    );
+
+    return deduplicate ? data.get_comic_chapterList_uniqList : data.get_comic_chapterList_fullList;
+  }
+
   async getChapterData(_contentId: string, chapterId: string): Promise<ChapterPages> {
+    await this.applyMirror();
+
     const data = await this.api.query<ChapterPagesResponse>(CHAPTER_PAGES_QUERY, {
       id: chapterId,
     });

@@ -3,20 +3,32 @@
 import type { Option } from "@mana-app/types";
 
 import type { PreferenceSection } from "../common/index.ts";
-import {
-  CONTENT_RATING_OPTIONS,
-  DISCOVER_SECTIONS,
-  LANGUAGE_OPTIONS,
-  PreferenceID,
-  TYPE_OPTIONS,
-} from "./model.ts";
+import { DISCOVER_SECTIONS, LANGUAGE_OPTIONS, MIRROR_OPTIONS, PreferenceID } from "./model.ts";
 
 export function sectionPreferenceKey(sectionId: string): string {
   return `${PreferenceID.SectionPrefix}-${sectionId}`;
 }
 
-export function buildSettingsSections(genres: () => Promise<Option[]>): PreferenceSection[] {
+export type TaxonomyLists = {
+  genres: () => Promise<Option[]>;
+  types: () => Promise<Option[]>;
+  contentRatings: () => Promise<Option[]>;
+};
+
+export function buildSettingsSections(taxonomy: TaxonomyLists): PreferenceSection[] {
   return [
+    {
+      header: "Site",
+      footer: "Both mirrors serve the same library; switch if one of them is unreachable.",
+      fields: [
+        {
+          type: "select" as const,
+          key: PreferenceID.Mirror,
+          title: "Preferred Mirror",
+          options: MIRROR_OPTIONS,
+        },
+      ],
+    },
     {
       header: "Content",
       footer: "Applies to the home page, browsing and search.",
@@ -25,14 +37,14 @@ export function buildSettingsSections(genres: () => Promise<Option[]>): Preferen
           type: "multiselect" as const,
           key: PreferenceID.ContentRatings,
           title: "Content Ratings",
-          options: CONTENT_RATING_OPTIONS,
+          options: taxonomy.contentRatings,
           minSelectionCount: 1,
         },
         {
           type: "multiselect" as const,
           key: PreferenceID.ContentTypes,
           title: "Types",
-          options: TYPE_OPTIONS,
+          options: taxonomy.types,
           minSelectionCount: 1,
         },
         {
@@ -46,7 +58,44 @@ export function buildSettingsSections(genres: () => Promise<Option[]>): Preferen
           type: "multiselect" as const,
           key: PreferenceID.ExcludedGenres,
           title: "Hide Genres",
-          options: genres,
+          options: taxonomy.genres,
+        },
+        {
+          type: "toggle" as const,
+          key: PreferenceID.IgnoreGenreBlocklist,
+          title: "Ignore Site Genre Blocklist",
+        },
+      ],
+    },
+    {
+      header: "Titles",
+      footer:
+        "Version tags are markers like '(Official)' or '(Yaoi)'. Titles already saved to your " +
+        "library keep the name they were added under until you refresh them.",
+      fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.RemoveTitleVersion,
+          title: "Remove Version Information From Entry Titles",
+        },
+        {
+          type: "text" as const,
+          key: PreferenceID.CustomTitleRegex,
+          title: "Custom Regex To Be Removed From Title",
+          placeholder: "e.g. \\s*\\(Official\\)$",
+        },
+      ],
+    },
+    {
+      header: "Chapters",
+      footer:
+        "A deduplicated list keeps one entry per chapter number. Turning this off shows every " +
+        "upload, including a second group's take on a chapter already listed.",
+      fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.DeduplicateChapters,
+          title: "Deduplicate Chapter List",
         },
       ],
     },

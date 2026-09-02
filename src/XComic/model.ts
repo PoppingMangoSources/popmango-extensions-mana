@@ -5,10 +5,37 @@ import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
 import type { PageSectionSpec } from "../common/index.ts";
 
 export const BASE_URL = "https://xcomic.me";
-export const API_URL = `${BASE_URL}/query/`;
+
+/** The site answers on either host; a reader on a blocked network picks the other. */
+export const MIRROR_OPTIONS: Option[] = [
+  { id: "https://xcomic.me", title: "xcomic.me" },
+  { id: "https://xcomic.net", title: "xcomic.net" },
+];
+
+// Every URL the source builds goes through here so the mirror setting reaches the
+// parsers, which have no way to await a preference read of their own.
+let activeBaseUrl: string = BASE_URL;
+
+export function baseUrl(): string {
+  return activeBaseUrl;
+}
+
+export function setBaseUrl(url: string): void {
+  activeBaseUrl = MIRROR_OPTIONS.some((option) => option.id === url) ? url : BASE_URL;
+}
+
+export function apiUrl(): string {
+  return `${activeBaseUrl}/query/`;
+}
+
+export function searchPageUrl(): string {
+  return `${activeBaseUrl}/search`;
+}
 
 export const PAGE_SIZE = 36;
 export const CHAPTER_PAGE_SIZE = 1000;
+// The full list repeats every scanlator's upload, so it is read in smaller pages.
+export const CHAPTER_FULL_PAGE_SIZE = 100;
 export const RECENTLY_ADDED_SIZE = 50;
 
 export const FilterID = {
@@ -17,20 +44,27 @@ export const FilterID = {
   Demographics: "demographics",
   Genres: "genres",
   Formats: "formats",
-  MatchAllGenres: "match_all_genres",
+  IncludeMode: "include_mode",
+  ExcludeMode: "exclude_mode",
   OriginalStatus: "original_status",
   UploadStatus: "upload_status",
   ChapterCount: "chapter_count",
   Year: "year",
   OriginalLanguages: "original_languages",
   TranslatedLanguages: "translated_languages",
+  LetterMode: "letter_mode",
 } as const;
 
 export const PreferenceID = {
+  Mirror: "mirror",
   ContentRatings: "content-ratings",
   ContentTypes: "content-types",
   ExcludedGenres: "excluded-genres",
   Languages: "languages",
+  RemoveTitleVersion: "remove-title-version",
+  CustomTitleRegex: "custom-title-regex",
+  IgnoreGenreBlocklist: "ignore-genre-blocklist",
+  DeduplicateChapters: "deduplicate-chapters",
   SectionPrefix: "section",
 } as const;
 
@@ -99,7 +133,10 @@ export const DEMOGRAPHIC_OPTIONS: Option[] = [
   { id: "non_human", title: "Non-human" },
 ];
 
-export const ORIGINAL_STATUS_OPTIONS: Option[] = [
+// A picker cannot be cleared once set, so every one of them opens with its own
+// "everything" row rather than relying on nothing being chosen.
+export const STATUS_OPTIONS: Option[] = [
+  { id: "", title: "All" },
   { id: "pending", title: "Pending" },
   { id: "ongoing", title: "Ongoing" },
   { id: "completed", title: "Completed" },
@@ -107,29 +144,157 @@ export const ORIGINAL_STATUS_OPTIONS: Option[] = [
   { id: "cancelled", title: "Cancelled" },
 ];
 
+export const FORMAT_OPTIONS: Option[] = [
+  { id: "4_koma", title: "4 Koma" },
+  { id: "adaptation", title: "Adaptation" },
+  { id: "anthology", title: "Anthology" },
+  { id: "award_winning", title: "Award Winning" },
+  { id: "doujinshi", title: "Doujinshi" },
+  { id: "fan_colored", title: "Fan Colored" },
+  { id: "full_color", title: "Full Color" },
+  { id: "long_strip", title: "Long Strip" },
+  { id: "official_colored", title: "Official Colored" },
+  { id: "oneshot", title: "Oneshot" },
+  { id: "web_comic", title: "Web Comic" },
+  { id: "webtoon", title: "Webtoon" },
+];
+
+export const GENRE_MODE_OPTIONS: Option[] = [
+  { id: "and", title: "AND" },
+  { id: "or", title: "OR" },
+];
+
+export const LETTER_MODE_OPTIONS: Option[] = [
+  { id: "", title: "Disabled" },
+  { id: "letter", title: "Enabled" },
+];
+
 export const CHAPTER_COUNT_OPTIONS: Option[] = [
+  { id: "", title: "Any" },
+  { id: "0", title: "0" },
   { id: "1", title: "1+" },
   { id: "10", title: "10+" },
   { id: "20", title: "20+" },
   { id: "30", title: "30+" },
+  { id: "40", title: "40+" },
   { id: "50", title: "50+" },
+  { id: "60", title: "60+" },
+  { id: "70", title: "70+" },
+  { id: "80", title: "80+" },
+  { id: "90", title: "90+" },
   { id: "100", title: "100+" },
   { id: "200", title: "200+" },
+  { id: "300", title: "300+" },
+  { id: "1-9", title: "1~9" },
+  { id: "10-19", title: "10~19" },
+  { id: "20-29", title: "20~29" },
+  { id: "30-39", title: "30~39" },
+  { id: "40-49", title: "40~49" },
+  { id: "50-59", title: "50~59" },
+  { id: "60-69", title: "60~69" },
+  { id: "70-79", title: "70~79" },
+  { id: "80-89", title: "80~89" },
+  { id: "90-99", title: "90~99" },
+  { id: "100-199", title: "100~199" },
+  { id: "200-299", title: "200~299" },
 ];
 
+// The site's own language codes: underscored regional variants, and `_t` for
+// anything it does not name.
 export const LANGUAGE_OPTIONS: Option[] = [
   { id: "en", title: "English" },
-  { id: "ja", title: "Japanese" },
-  { id: "ko", title: "Korean" },
-  { id: "zh", title: "Chinese" },
-  { id: "es", title: "Spanish" },
   { id: "fr", title: "French" },
-  { id: "de", title: "German" },
   { id: "pt", title: "Portuguese" },
-  { id: "ru", title: "Russian" },
+  { id: "pt_br", title: "Portuguese (BR)" },
+  { id: "es", title: "Spanish" },
+  { id: "es_419", title: "Spanish (LA)" },
+  { id: "ko", title: "Korean" },
+  { id: "ja", title: "Japanese" },
   { id: "id", title: "Indonesian" },
-  { id: "vi", title: "Vietnamese" },
+  { id: "zh", title: "Chinese" },
+  { id: "ru", title: "Russian" },
+  { id: "ab", title: "Abkhazian" },
+  { id: "af", title: "Afrikaans" },
+  { id: "sq", title: "Albanian" },
+  { id: "ar", title: "Arabic" },
+  { id: "hy", title: "Armenian" },
+  { id: "az", title: "Azerbaijani" },
+  { id: "eu", title: "Basque" },
+  { id: "be", title: "Belarusian" },
+  { id: "bn", title: "Bengali" },
+  { id: "bs", title: "Bosnian" },
+  { id: "bg", title: "Bulgarian" },
+  { id: "my", title: "Burmese" },
+  { id: "km", title: "Cambodian" },
+  { id: "ca", title: "Catalan" },
+  { id: "ceb", title: "Cebuano" },
+  { id: "cv", title: "Chuvash" },
+  { id: "hr", title: "Croatian" },
+  { id: "cs", title: "Czech" },
+  { id: "da", title: "Danish" },
+  { id: "nl", title: "Dutch" },
+  { id: "eo", title: "Esperanto" },
+  { id: "et", title: "Estonian" },
+  { id: "fil", title: "Filipino" },
+  { id: "fi", title: "Finnish" },
+  { id: "gl", title: "Galician" },
+  { id: "ka", title: "Georgian" },
+  { id: "de", title: "German" },
+  { id: "el", title: "Greek" },
+  { id: "gn", title: "Guarani" },
+  { id: "gu", title: "Gujarati" },
+  { id: "ht", title: "Haitian Creole" },
+  { id: "he", title: "Hebrew" },
+  { id: "hi", title: "Hindi" },
+  { id: "hu", title: "Hungarian" },
+  { id: "is", title: "Icelandic" },
+  { id: "ig", title: "Igbo" },
+  { id: "ga", title: "Irish" },
+  { id: "it", title: "Italian" },
+  { id: "jv", title: "Javanese" },
+  { id: "kk", title: "Kazakh" },
+  { id: "ku", title: "Kurdish" },
+  { id: "ky", title: "Kyrgyz" },
+  { id: "lo", title: "Laothian" },
+  { id: "la", title: "Latin" },
+  { id: "lv", title: "Latvian" },
+  { id: "lt", title: "Lithuanian" },
+  { id: "mg", title: "Malagasy" },
+  { id: "ms", title: "Malay" },
+  { id: "ml", title: "Malayalam" },
+  { id: "mt", title: "Maltese" },
+  { id: "mi", title: "Maori" },
+  { id: "mr", title: "Marathi" },
+  { id: "mo", title: "Moldavian" },
+  { id: "mn", title: "Mongolian" },
+  { id: "ne", title: "Nepali" },
+  { id: "no", title: "Norwegian" },
+  { id: "ny", title: "Nyanja" },
+  { id: "ps", title: "Pashto" },
+  { id: "fa", title: "Persian" },
+  { id: "pl", title: "Polish" },
+  { id: "ro", title: "Romanian" },
+  { id: "sr", title: "Serbian" },
+  { id: "sh", title: "Serbo-Croatian" },
+  { id: "st", title: "Sesotho" },
+  { id: "si", title: "Sinhalese" },
+  { id: "sk", title: "Slovak" },
+  { id: "sl", title: "Slovenian" },
+  { id: "so", title: "Somali" },
+  { id: "ss", title: "Swati" },
+  { id: "sv", title: "Swedish" },
+  { id: "ta", title: "Tamil" },
+  { id: "te", title: "Telugu" },
   { id: "th", title: "Thai" },
+  { id: "ti", title: "Tigrinya" },
+  { id: "to", title: "Tonga" },
+  { id: "tr", title: "Turkish" },
+  { id: "tk", title: "Turkmen" },
+  { id: "uk", title: "Ukrainian" },
+  { id: "uz", title: "Uzbek" },
+  { id: "vi", title: "Vietnamese" },
+  { id: "zu", title: "Zulu" },
+  { id: "_t", title: "Other" },
 ];
 
 export const SectionID = {
@@ -193,14 +358,26 @@ export const DEFAULT_CONTENT_RATINGS = ["safe", "suggestive", "erotica", "pornog
 export const DEFAULT_CONTENT_TYPES = TYPE_OPTIONS.map((option) => option.id);
 
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
+  [PreferenceID.Mirror]: BASE_URL,
   [PreferenceID.ContentRatings]: DEFAULT_CONTENT_RATINGS,
   [PreferenceID.ContentTypes]: DEFAULT_CONTENT_TYPES,
   [PreferenceID.ExcludedGenres]: [] as string[],
   [PreferenceID.Languages]: ["en"],
+  [PreferenceID.RemoveTitleVersion]: false,
+  [PreferenceID.CustomTitleRegex]: "",
+  [PreferenceID.IgnoreGenreBlocklist]: false,
+  [PreferenceID.DeduplicateChapters]: true,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),
 };
+
+/**
+ * Bracketed edition markers the site appends to a title — `(Official)`, `[Yaoi]`,
+ * `《…》` and the rest — stripped when the reader asks for plain titles.
+ */
+export const TITLE_VERSION_REGEX =
+  /\([^()]*\)|\{[^{}]*\}|\[(?:(?!\]).)*\]|«[^»]*»|〘[^〙]*〙|「[^」]*」|『[^』]*』|≪[^≫]*≫|﹛[^﹜]*﹜|〖[^〖〗]*〗|《[^》]*》|⌜.+?⌝|⟨[^⟩]*⟩|\/ ?Official/gi;
 
 /** Genres the site files under a rating, used to infer one for a listing. */
 export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
@@ -258,9 +435,8 @@ query get_comicNode($id: ID!) {
   }
 }`;
 
-export const CHAPTERS_QUERY = `
-query get_comic_chapterList_uniqList($select: Select_Comic_ChapterList_UniqList) {
-  get_comic_chapterList_uniqList(select: $select) {
+const CHAPTER_FIELDS = `
+    paging { next total }
     items {
       data {
         id serial chaNum dname title urlPath
@@ -269,7 +445,19 @@ query get_comic_chapterList_uniqList($select: Select_Comic_ChapterList_UniqList)
         groupNodes { data { name } }
         userNode { data { name } }
       }
-    }
+    }`;
+
+/** The server-deduplicated list: one entry per chapter number, newest source wins. */
+export const CHAPTERS_UNIQUE_QUERY = `
+query get_comic_chapterList_uniqList($select: Select_Comic_ChapterList_UniqList) {
+  get_comic_chapterList_uniqList(select: $select) {${CHAPTER_FIELDS}
+  }
+}`;
+
+/** Every upload, including a second scanlator's take on a chapter already listed. */
+export const CHAPTERS_FULL_QUERY = `
+query get_comic_chapterList_fullList($select: Select_Comic_ChapterList_FullList) {
+  get_comic_chapterList_fullList(select: $select) {${CHAPTER_FIELDS}
   }
 }`;
 
@@ -339,8 +527,14 @@ export type RecentlyAddedResponse = {
 
 export type ComicNodeResponse = { get_comicNode?: ComicNode | null };
 
+export type ChapterListPage = {
+  paging?: { next?: number | null; total?: number | null } | null;
+  items?: { data: ChapterData }[] | null;
+};
+
 export type ChapterListResponse = {
-  get_comic_chapterList_uniqList?: { items?: { data: ChapterData }[] } | null;
+  get_comic_chapterList_uniqList?: ChapterListPage | null;
+  get_comic_chapterList_fullList?: ChapterListPage | null;
 };
 
 export type ChapterPagesResponse = {
@@ -349,7 +543,8 @@ export type ChapterPagesResponse = {
 
 /** The `select` object the browse query takes; every field is sent, nulls included. */
 export type BrowseSelect = {
-  where: "browse";
+  // "letter" runs the site's slower prefix match instead of its usual index search.
+  where: "browse" | "letter";
   page: number;
   size: number;
   init: number;
