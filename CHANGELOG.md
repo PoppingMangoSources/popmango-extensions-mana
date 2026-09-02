@@ -26,7 +26,15 @@ First release. Manga, manhwa and manhua from mkissa.to:
   routed to within the page. The wait clears a cold challenge rather than giving up under
   it.
 
-## Kagane (current: v1.0.1)
+## Kagane (current: v1.0.2)
+
+### Fixed
+
+- Every row in Latest Updates reported the same age. A timestamp was read for its date and
+  its time of day thrown away, so each chapter was dated midnight rather than when it
+  landed. Chapters now show the age the site shows.
+
+## Kagane (v1.0.1)
 
 ### Fixed
 

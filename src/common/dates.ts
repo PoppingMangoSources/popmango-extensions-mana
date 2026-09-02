@@ -83,6 +83,7 @@ export function parseDate(raw: string | undefined | null): Date | undefined {
   return (
     parseKeyword(text) ??
     parseRelative(text) ??
+    parseIso(text) ??
     parseTimestamp(text) ??
     parseNamedMonth(text) ??
     parseNumeric(text) ??
@@ -158,6 +159,23 @@ function parseNamedMonth(text: string): Date | undefined {
  * the first number cannot be a day, which is the safer default given how few
  * of these sites are US-hosted.
  */
+/**
+ * A full ISO-8601 timestamp is handed to the engine, which honours its time and zone.
+ * Without this the numeric reader below matches the date half and snaps the whole thing
+ * to midnight, so every row reports the same age.
+ */
+function parseIso(text: string): Date | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(text)) return undefined;
+
+  // A timestamp with no zone is UTC on these APIs, not the reader's local time.
+  const normalised = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(text)
+    ? text.replace(" ", "T")
+    : `${text.replace(" ", "T")}Z`;
+
+  const date = new Date(normalised);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
 function parseNumeric(text: string): Date | undefined {
   const iso = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(text);
   if (iso !== null) {
