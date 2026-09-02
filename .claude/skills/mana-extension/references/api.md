@@ -177,6 +177,30 @@ depends on the field type**, which is why `FilterReader` exists.
 Nothing warns you about any of these: `mana-dev` bundles with esbuild, which strips types
 without checking them. `npm run typecheck` is the gate that catches it.
 
+
+### The auxiliary WebView
+
+`WebViewPage.create()` gives one WebView per source method, and it only offers `goto`,
+`evaluate`, `evaluateScript` and `close`. There is **no HTML injection, no `loadData`, no
+JS bridge and no page-started hook**, so the Paperback and Tachiyomi trick of rewriting a
+page's HTML to install a hook before its own scripts run does not port.
+
+What does port: load a page, install a hook with `evaluateScript`, then make the page fetch
+something. A single-page app routed to within the page keeps the same JavaScript context,
+so a hook installed after the first load still catches the second request. State parked on
+`window` survives between `evaluateScript` calls for as long as no full navigation happens.
+
+### What the built bundle carries
+
+`mana-dev` bundles `@mana-app/types` into the `.mana` file, including its own
+`NetworkClientBuilder`, whose `build()` returns `new NetworkClient(this)` against the
+*global* `NetworkClient`. When driving a built bundle in a sandbox, stub the global
+`NetworkClient` — stubbing the builder does nothing, because the bundle brings its own.
+
+The runtime also ships polyfills for `buffer`, `process`, `events`, `path` and `util`,
+embedded by `watcher/scripts/bundle-polyfills.js`. Nothing there covers `crypto.subtle`,
+`fetch` or `URL`.
+
 ## Content shapes
 
 `Content` extends `BaseItem` (`title`, `cover`, `contentRating?`, `webUrl?`) with

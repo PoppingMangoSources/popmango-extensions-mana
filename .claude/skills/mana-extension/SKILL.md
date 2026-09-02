@@ -160,6 +160,12 @@ The failures this repo has actually shipped, each silent:
       lists to sheets on its own, and `SearchTagsSection` is always inline
 - [ ] `context.allowedContentRatings` honoured through the site's own filtering, not by
       dropping rows after the fact
+- [ ] A challenge judged cleared by the site's own scripts appearing, never by markers
+      being absent — and one wanting a person handed over at once
+- [ ] `setStatusValidator` lets 403 and 503 reach the source, or a challenge cannot be told
+      from an ordinary error
+- [ ] Identical requests in flight share one promise, so a refresh does not ask twice
+- [ ] No cap on a section that already matches the default page size
 - [ ] Version bumped by one **patch** digit — `1.0.1`, never `1.1.0`, whatever changed
 
 ## Performance

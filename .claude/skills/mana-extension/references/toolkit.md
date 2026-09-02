@@ -214,6 +214,50 @@ Rate limit: **3 requests per second is the default worth starting from.** The ho
 fans out to one request per enabled section through this one client, so a 1/s budget makes
 it visibly crawl.
 
+## `src/common/cloudflare.ts` — challenges
+
+`withChallengeRetry(resolutionUrl, request)` runs a request and, on a `CloudflareError`,
+gives the auxiliary WebView one chance to clear the challenge before letting the error
+reach the reader. Wrap the source's single request chokepoint in it; everything else
+follows.
+
+What the other Mana repositories do, and why this is shaped the way it is:
+
+- **Neither reference source treats a WebView as a way to beat Cloudflare.** karrot's
+  Batcave throws `CloudflareError(resolutionUrl)` on 403/503 and leaves it to the app.
+  Seyden's Comix opens a WebView for its own reasons and *aborts* the moment it sees a
+  challenge. The app's own handler is what solves them.
+- **Judge success by the site loading, never by markers going away.** A blank page, a
+  network failure and a solved challenge all have no challenge markers. Comix waits for
+  the site's own bundle — `script[type=module][src*="/dist/main-"]` — and our probe looks
+  for `/_next/`, `/dist/` or `/static/` scripts. Absence of evidence is not the signal.
+- **Split the markers by whether a person is needed.** `#challenge-error-title`,
+  `#challenge-error-text`, `input[name="cf-turnstile-response"]`, `.cf-turnstile` and
+  `#cf-chl-widget` mean the challenge is waiting for a human — hand over at once rather
+  than making the reader sit through the budget. A title of `Just a moment…`, a
+  `script[src*="/cdn-cgi/challenge-platform/"]` or a defined `globalThis._cf_chl_opt` may
+  still finish on its own, so those are worth waiting for.
+- **A cold challenge measures fifteen to twenty seconds.** A budget under that abandons the
+  attempt while it is still working, which reads as the bypass doing nothing. `goto`
+  resolving is not the signal either — it fires when the *challenge* page loads.
+- **Any successful request clears the cooldown.** Without that, one failed attempt on the
+  home page sends every later screen straight to the manual prompt for the whole cooldown.
+
+`setStatusValidator` has to let 403 and 503 through, or the host throws before the source
+can tell a challenge from an ordinary error. Comix uses
+`status >= 200 && status < 400 || status === 403 || status === 503`.
+
+For a JSON API, a 403 or 503 is usually an expired token or a rate limit rather than a
+challenge. Require a real fingerprint before reporting one, or every row prompts for a
+WebView that cannot help.
+
+## Sharing requests in flight
+
+A refresh fires every home row at once and a retry repeats them. Key a request on its URL
+plus its body, keep the promise in a `Map` while it runs, and hand the same promise to any
+identical call that arrives meanwhile — three concurrent loads of one section then cost a
+single request. Delete the key in `finally` so the next refresh fetches afresh.
+
 ## `src/common/html.ts` — parsing helpers
 
 | Helper | Why it is not just cheerio |
