@@ -2,7 +2,17 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.0)
+## Mkissa (current: v1.0.1)
+
+### Changed
+
+- The page list is read from the site's own reader rather than from a signed request. The
+  signing was rejected in practice, and the hashing and cipher written for it are gone with
+  it. The series page is loaded, its parser claimed, and the chapter then routed to within
+  the page, which is where the site delivers the list.
+- A challenge is given one chance to clear before the reader is asked to solve it.
+
+## Mkissa (v1.0.0)
 
 First release. Manga, manhwa and manhua from mkissa.to:
 
@@ -16,7 +26,18 @@ First release. Manga, manhwa and manhua from mkissa.to:
   routed to within the page. The wait clears a cold challenge rather than giving up under
   it.
 
-## Kagane (current: v1.0.0)
+## Kagane (current: v1.0.1)
+
+### Fixed
+
+- A Cloudflare challenge went straight to the manual prompt. The source now loads the site
+  in the auxiliary WebView and waits for the challenge to run itself out before retrying,
+  which takes fifteen to twenty seconds from cold. An earlier attempt at this treated the
+  challenge page finishing loading as the challenge being solved, and gave up after twelve
+  seconds; it now waits for the challenge markers to actually clear. A cooldown keeps a site
+  that challenges everything from spending that budget on every request.
+
+## Kagane (v1.0.0)
 
 First release. The numbering before this one covered a testing round inside the repository,
 before anyone else had installed the source, so it starts again from zero.
