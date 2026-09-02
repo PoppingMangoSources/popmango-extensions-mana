@@ -63,7 +63,7 @@ function mul(a: number, b: number): number {
 const RCON = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d];
 
 /** Expands the key into `4 * (rounds + 1)` words, held flat as bytes. */
-function expandKey(key: Uint8Array): { schedule: Uint8Array; rounds: number } {
+export function expandAesKey(key: Uint8Array): { schedule: Uint8Array; rounds: number } {
   const nk = key.length / 4;
   if (nk !== 4 && nk !== 6 && nk !== 8) {
     throw new Error(`Unsupported AES key length: ${key.length} bytes`);
@@ -137,6 +137,55 @@ function invMixColumns(state: Uint8Array): void {
   }
 }
 
+function shiftRows(state: Uint8Array): void {
+  const copy = state.slice();
+  for (let r = 1; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      state[r + 4 * c] = copy[r + 4 * ((c + r) % 4)]!;
+    }
+  }
+}
+
+function subBytes(state: Uint8Array): void {
+  for (let i = 0; i < 16; i++) state[i] = SBOX[state[i]!]!;
+}
+
+function mixColumns(state: Uint8Array): void {
+  for (let c = 0; c < 4; c++) {
+    const base = 4 * c;
+    const a0 = state[base]!;
+    const a1 = state[base + 1]!;
+    const a2 = state[base + 2]!;
+    const a3 = state[base + 3]!;
+
+    state[base] = mul(a0, 2) ^ mul(a1, 3) ^ a2 ^ a3;
+    state[base + 1] = a0 ^ mul(a1, 2) ^ mul(a2, 3) ^ a3;
+    state[base + 2] = a0 ^ a1 ^ mul(a2, 2) ^ mul(a3, 3);
+    state[base + 3] = mul(a0, 3) ^ a1 ^ a2 ^ mul(a3, 2);
+  }
+}
+
+export function aesEncryptBlock(
+  block: Uint8Array,
+  schedule: Uint8Array,
+  rounds: number,
+): Uint8Array {
+  const state = block.slice();
+
+  addRoundKey(state, schedule, 0);
+  for (let round = 1; round < rounds; round++) {
+    subBytes(state);
+    shiftRows(state);
+    mixColumns(state);
+    addRoundKey(state, schedule, round);
+  }
+  subBytes(state);
+  shiftRows(state);
+  addRoundKey(state, schedule, rounds);
+
+  return state;
+}
+
 function decryptBlock(block: Uint8Array, schedule: Uint8Array, rounds: number): Uint8Array {
   const state = block.slice();
 
@@ -173,7 +222,7 @@ export function aesCbcDecrypt(
   }
   if (iv.length !== 16) throw new Error(`Invalid IV length ${iv.length} (expected 16)`);
 
-  const { schedule, rounds } = expandKey(key);
+  const { schedule, rounds } = expandAesKey(key);
   const output = new Uint8Array(ciphertext.length);
 
   let previous = iv;
@@ -223,6 +272,49 @@ const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
  * `atob` is polyfilled in the runtime but yields a binary string; decoding
  * directly avoids the extra copy, and keeps this working if it ever is not.
  */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i]!;
+    const b1 = bytes[i + 1];
+    const b2 = bytes[i + 2];
+    out += BASE64_ALPHABET[b0 >> 2];
+    out += BASE64_ALPHABET[((b0 & 3) << 4) | ((b1 ?? 0) >> 4)];
+    out += b1 === undefined ? "=" : BASE64_ALPHABET[((b1 & 15) << 2) | ((b2 ?? 0) >> 6)];
+    out += b2 === undefined ? "=" : BASE64_ALPHABET[b2 & 63];
+  }
+  return out;
+}
+
+export function utf8ToBytes(value: string): Uint8Array {
+  const out: number[] = [];
+  for (let i = 0; i < value.length; i++) {
+    let code = value.charCodeAt(i);
+    // A surrogate pair is one code point; combine it before encoding.
+    if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
+      const low = value.charCodeAt(i + 1);
+      if (low >= 0xdc00 && low <= 0xdfff) {
+        code = 0x10000 + ((code - 0xd800) << 10) + (low - 0xdc00);
+        i++;
+      }
+    }
+
+    if (code < 0x80) out.push(code);
+    else if (code < 0x800) out.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    else if (code < 0x10000) {
+      out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+    } else {
+      out.push(
+        0xf0 | (code >> 18),
+        0x80 | ((code >> 12) & 0x3f),
+        0x80 | ((code >> 6) & 0x3f),
+        0x80 | (code & 0x3f),
+      );
+    }
+  }
+  return new Uint8Array(out);
+}
+
 export function base64ToBytes(value: string): Uint8Array {
   const clean = value.replace(/[^A-Za-z0-9+/=]/g, "").replace(/=+$/, "");
   const output = new Uint8Array(Math.floor((clean.length * 3) / 4));

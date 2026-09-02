@@ -16,3 +16,6 @@ export * from "./preferences.ts";
 export * from "./dates.ts";
 export * from "./urls.ts";
 export * from "./html.ts";
+export * from "./aes.ts";
+export * from "./sha256.ts";
+export * from "./gcm.ts";

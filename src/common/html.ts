@@ -96,11 +96,8 @@ export function decodeEntities(value: string): string {
     );
 }
 
-/** Turns a `<div>`-heavy synopsis into the plain paragraphs the app renders. */
-export function summaryOf(node: Cheerio<AnyNode>): string {
-  const html = node.html() ?? "";
-  if (!html) return text(node);
-
+/** Turns a tag-heavy synopsis into the plain paragraphs the app renders. */
+export function summaryFromHtml(html: string): string {
   return decodeEntities(
     html
       .replace(/<\s*br\s*\/?\s*>/gi, "\n")
@@ -112,6 +109,11 @@ export function summaryOf(node: Cheerio<AnyNode>): string {
     .filter((line) => line.length > 0)
     .join("\n\n")
     .trim();
+}
+
+export function summaryOf(node: Cheerio<AnyNode>): string {
+  const html = node.html() ?? "";
+  return html ? summaryFromHtml(html) : text(node);
 }
 
 /** True when the page still offers a link to a further page of results. */
