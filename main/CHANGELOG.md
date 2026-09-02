@@ -2,7 +2,14 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.7)
+## Kagane (current: v1.0.8)
+
+### Changed
+
+- The hero row carries fifty titles, the same as every other row, so the cap that existed
+  only to shorten it is gone.
+
+## Kagane (v1.0.7)
 
 ### Fixed
 
