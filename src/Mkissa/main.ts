@@ -83,7 +83,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "mkissa",
   name: "Mkissa",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manga, manhwa and manhua from mkissa.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,

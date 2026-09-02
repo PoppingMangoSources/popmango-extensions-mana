@@ -2,6 +2,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
+import { withChallengeRetry } from "../common/index.ts";
 import { API_URL, BASE_URL, type GraphQLResponse } from "./model.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
@@ -39,6 +40,10 @@ export class MkissaApi {
 
   /** Runs a GraphQL operation over POST, which needs no signature. */
   async fetchGraphQL<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    return withChallengeRetry(BASE_URL, () => this.runGraphQL<T>(query, variables));
+  }
+
+  private async runGraphQL<T>(query: string, variables: Record<string, unknown>): Promise<T> {
     const response = await this.http.post(API_URL, {
       body: { query, variables },
       headers: { "content-type": "application/json" },
