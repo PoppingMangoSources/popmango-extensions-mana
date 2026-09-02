@@ -448,7 +448,6 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
   return parsed.map((chapter) => ({ ...chapter, index: indexOf.get(chapter) ?? 0 }));
 }
 
-
 export function parseRelated(html: string): MangagoListing[] {
   const $ = load(html);
   const items: MangagoListing[] = [];
