@@ -6,7 +6,9 @@ import type { WebViewPageInstance } from "@mana-app/types";
 // still working, which reads as the bypass doing nothing at all.
 const BUDGET_SECONDS = 40;
 const POLL_INTERVAL_MS = 500;
-const COOLDOWN_MS = 60_000;
+// Long enough that a site challenging everything does not spend the budget per request,
+// short enough that the next screen the reader opens still gets an attempt of its own.
+const COOLDOWN_MS = 15_000;
 
 /**
  * Reports whether the challenge is still on screen, using the markers the app's own
@@ -60,6 +62,18 @@ async function runAttempt(url: string): Promise<boolean> {
 }
 
 /**
+ * Clears the cooldown, so the next challenge gets a fresh attempt.
+ *
+ * Called whenever a request succeeds: the clearance the reader just solved by hand — or
+ * that a previous attempt won — means the failure the cooldown was throttling is over.
+ * Without this, one failed attempt on the home page sent every later screen straight to
+ * the manual prompt.
+ */
+export function noteChallengeCleared(): void {
+  lastAttemptAt = 0;
+}
+
+/**
  * Loads the site in the auxiliary WebView and waits for a JavaScript-only challenge to
  * run itself out, which is what mints the clearance cookie.
  *
@@ -87,10 +101,15 @@ export async function withChallengeRetry<T>(
   request: () => Promise<T>,
 ): Promise<T> {
   try {
-    return await request();
+    const result = await request();
+    noteChallengeCleared();
+    return result;
   } catch (error) {
     if (!(error instanceof CloudflareError)) throw error;
     if (!(await passChallenge(resolutionUrl))) throw error;
-    return request();
+
+    const result = await request();
+    noteChallengeCleared();
+    return result;
   }
 }

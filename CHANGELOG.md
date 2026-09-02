@@ -26,7 +26,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   routed to within the page. The wait clears a cold challenge rather than giving up under
   it.
 
-## Kagane (current: v1.0.2)
+## Kagane (current: v1.0.3)
+
+### Fixed
+
+- A challenge was only cleared automatically on the home page. One failed attempt there
+  silenced the bypass for a full minute, so opening a title, a search or the reader in that
+  window went straight to the manual prompt without trying. The wait between attempts is
+  shorter now, and any request that succeeds clears it — so once a challenge is solved, by
+  hand or otherwise, the next one is answered automatically again.
+
+## Kagane (v1.0.2)
 
 ### Fixed
 
