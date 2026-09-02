@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "2472e33b2472e33b2472e33b2472e33b2472e33b2472e33b2472e33b2472e33b"
+      "hash": "0c9711c00c9711c00c9711c00c9711c00c9711c00c9711c00c9711c00c9711c0"
     },
     {
       "id": "kagane",
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "0cf634510cf634510cf634510cf634510cf634510cf634510cf634510cf63451"
+      "hash": "3e00290c3e00290c3e00290c3e00290c3e00290c3e00290c3e00290c3e00290c"
     },
     {
       "id": "mangago",
@@ -66,12 +66,12 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "513dc3dc513dc3dc513dc3dc513dc3dc513dc3dc513dc3dc513dc3dc513dc3dc"
+      "hash": "7db8473f7db8473f7db8473f7db8473f7db8473f7db8473f7db8473f7db8473f"
     },
     {
       "id": "xcomic",
       "name": "XComic",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Manga, manhwa, manhua and comics from xcomic.me.",
       "website": "https://xcomic.me",
       "rating": 2,
@@ -88,7 +88,7 @@
       "path": "XComic",
       "environment": "source",
       "intents": 6298633,
-      "hash": "17c25b9817c25b9817c25b9817c25b9817c25b9817c25b9817c25b9817c25b98"
+      "hash": "2a56e3772a56e3772a56e3772a56e3772a56e3772a56e3772a56e3772a56e377"
     }
   ]
 }
