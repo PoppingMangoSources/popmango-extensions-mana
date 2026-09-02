@@ -26,7 +26,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   routed to within the page. The wait clears a cold challenge rather than giving up under
   it.
 
-## Kagane (current: v1.0.5)
+## Kagane (current: v1.0.6)
+
+### Fixed
+
+- Waiting out a challenge judged itself by the challenge markers disappearing, which a
+  blank or failed page also satisfies. It now waits for the site's own scripts to appear,
+  which is the only thing that proves the real page loaded.
+- A challenge that has asked for a person is handed over at once instead of being waited
+  out first, so the prompt arrives in under a second rather than after the full budget.
+
+## Kagane (v1.0.5)
 
 ### Added
 

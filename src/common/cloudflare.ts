@@ -10,18 +10,31 @@ const POLL_INTERVAL_MS = 500;
 // short enough that the next screen the reader opens still gets an attempt of its own.
 const COOLDOWN_MS = 15_000;
 
+/** Most of these sites are Next.js apps, so their own bundle is the proof of a real page. */
+const SITE_LOADED = 'script[src*="/_next/"], script[src*="/dist/"], script[src*="/static/"]';
+
 /**
- * Reports whether the challenge is still on screen, using the markers the app's own
- * handler keys on. `goto` resolving is not the signal — it fires when the challenge
- * page loads, which is the beginning of the wait rather than the end of it.
+ * Classifies the loaded page as the site itself, a challenge that will need a person, a
+ * challenge that may still finish on its own, or a page that has not settled yet.
+ *
+ * `goto` resolving is not the signal — it fires when the challenge page loads, which is
+ * the start of the wait rather than the end.
  */
 const PROBE = `(function () {
-  if (/^just a moment/i.test((document.title || "").trim())) return "challenge";
-  if (document.querySelector(
-    '#challenge-error-title, #challenge-error-text, #challenge-running, #challenge-stage,' +
-    'input[name="cf-turnstile-response"], .cf-turnstile, #cf-chl-widget'
-  )) return "challenge";
-  return "clear";
+  var markers = [];
+  if (/^just a moment/i.test((document.title || "").trim())) markers.push("title");
+  if (document.querySelector('script[src*="/cdn-cgi/challenge-platform/"]')) markers.push("script");
+  if (typeof globalThis._cf_chl_opt !== "undefined") markers.push("options");
+
+  // These two only appear once the challenge wants a person, so there is nothing to wait for.
+  if (document.querySelector('#challenge-error-title, #challenge-error-text, input[name="cf-turnstile-response"], .cf-turnstile, #cf-chl-widget')) {
+    return "interactive";
+  }
+
+  // The site's own scripts having loaded is the only positive proof the page is real;
+  // markers merely being absent also describes a blank or failed page.
+  if (document.querySelector(args[0])) return "site";
+  return markers.length > 0 ? "challenge" : "waiting";
 })();`;
 
 // One WebView may be active per source, so a home page of many rows shares one attempt.
@@ -36,7 +49,7 @@ function delay(ms: number): Promise<void> {
   });
 }
 
-async function runAttempt(url: string): Promise<boolean> {
+async function runAttempt(url: string, siteSelector: string): Promise<boolean> {
   const factory = (globalThis as { WebViewPage?: typeof WebViewPage }).WebViewPage;
   if (!factory) return false;
 
@@ -47,8 +60,12 @@ async function runAttempt(url: string): Promise<boolean> {
 
     const deadline = Date.now() + BUDGET_SECONDS * 1000;
     while (Date.now() < deadline) {
-      const state = await page.evaluateScript<string>(PROBE).catch(() => "challenge");
-      if (state === "clear") return true;
+      const state = await page.evaluateScript<string>(PROBE, [siteSelector]).catch(() => "waiting");
+
+      if (state === "site") return true;
+      // A challenge that has asked for a person will not finish on its own; handing it
+      // straight over beats making the reader wait out the whole budget first.
+      if (state === "interactive") return false;
       await delay(POLL_INTERVAL_MS);
     }
 
@@ -81,11 +98,11 @@ export function noteChallengeCleared(): void {
  * attempt runs out of time — the caller then surfaces it for the reader to solve by hand.
  * A cooldown stops a site that challenges everything from spending the budget per request.
  */
-export async function passChallenge(url: string): Promise<boolean> {
+export async function passChallenge(url: string, siteSelector = SITE_LOADED): Promise<boolean> {
   if (inFlight) return inFlight;
   if (Date.now() - lastAttemptAt < COOLDOWN_MS) return false;
 
-  const attempt = runAttempt(url);
+  const attempt = runAttempt(url, siteSelector);
   inFlight = attempt.finally(() => {
     inFlight = undefined;
   });
@@ -99,6 +116,7 @@ export async function passChallenge(url: string): Promise<boolean> {
 export async function withChallengeRetry<T>(
   resolutionUrl: string,
   request: () => Promise<T>,
+  siteSelector?: string,
 ): Promise<T> {
   try {
     const result = await request();
@@ -106,7 +124,7 @@ export async function withChallengeRetry<T>(
     return result;
   } catch (error) {
     if (!(error instanceof CloudflareError)) throw error;
-    if (!(await passChallenge(resolutionUrl))) throw error;
+    if (!(await passChallenge(resolutionUrl, siteSelector))) throw error;
 
     const result = await request();
     noteChallengeCleared();
