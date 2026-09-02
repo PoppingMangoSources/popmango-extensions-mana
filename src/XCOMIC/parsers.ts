@@ -70,9 +70,12 @@ function parseContentType(type: string | null | undefined): ContentType | undefi
       return ContentType.MANHWA;
     case "manhua":
       return ContentType.MANHUA;
+    case "oel":
     case "cartoon":
     case "western":
       return ContentType.COMIC;
+    case "novel":
+      return ContentType.NOVEL;
     default:
       return undefined;
   }
@@ -126,6 +129,19 @@ function formatGenre(genre: string | null | undefined): string {
     .trim();
 }
 
+/** Six figures of follows would push everything else off the row. */
+function compactCount(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value < 0) return "";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
+}
+
+/** The site marks its own rating with a filled star, so the tiles do too. */
+function formatScore(score: number | null | undefined): string {
+  return score == null || !Number.isFinite(score) || score <= 0 ? "" : `★ ${score.toFixed(1)}`;
+}
+
 /** How a reader's title settings rewrite the site's own name for a series. */
 export type TitleCleaner = (title: string) => string;
 
@@ -146,19 +162,29 @@ export function parseHighlight(
   // Two genres: the third wraps and pushes the tile out of its row.
   const genres = (comic.genres ?? []).slice(0, 2).map(formatGenre).filter(Boolean);
 
+  const follows = compactCount(comic.follows);
+  const comments = compactCount(comic.comments_total);
+
   const info: Pair[] = [];
   if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
   if (genres.length > 0) {
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
   if (type) info.push({ key: "Type", value: type });
+  if (follows) info.push({ key: "Follows", value: follows });
+  if (comments) info.push({ key: "Comments", value: comments });
+
+  const subtitle = [number ? `Chapter ${number}` : "", formatScore(comic.score_val)]
+    .filter(Boolean)
+    .join(" | ");
 
   return {
     id: comic.id,
     title: cleanTitle(decodeEntities(clean(comic.name))),
     cover: absoluteUrl(comic.urlCover),
-    ...(number ? { subtitle: `Chapter ${number}` } : {}),
-    ...(info.length > 0 ? { info } : {}),
+    ...(subtitle ? { subtitle } : {}),
+    // A tile stretches its whole row past about four lines, so the rest is dropped.
+    ...(info.length > 0 ? { info: info.slice(0, 4) } : {}),
     contentRating: parseRating(comic),
     webUrl: seriesUrl(comic),
   };
@@ -175,9 +201,16 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
   const contentType = parseContentType(comic.type);
   const creators = [...names(comic.authorNodes), ...names(comic.artistNodes)];
 
+  // The stat line the site prints under the title, in its own order.
   const info: Pair[] = [];
-  if (comic.score_val != null) info.push({ key: "Score", value: comic.score_val.toFixed(2) });
+  const score = formatScore(comic.score_val);
+  if (score) info.push({ key: "Score", value: score });
   if (comic.follows != null) info.push({ key: "Follows", value: String(comic.follows) });
+  if (comic.reviews != null) info.push({ key: "Reviews", value: String(comic.reviews) });
+  if (comic.comments_total != null) {
+    info.push({ key: "Comments", value: String(comic.comments_total) });
+  }
+  if (comic.chaps_normal != null) info.push({ key: "Chapters", value: String(comic.chaps_normal) });
   const publishers = names(comic.publisherNodes);
   if (publishers.length > 0) info.push({ key: "Publishers", value: publishers.join(", ") });
 

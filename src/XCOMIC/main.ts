@@ -5,7 +5,6 @@ import {
   ContentRating,
   DefinedLanguages,
   SearchExcludableMultiPicker,
-  SearchExcludableMultiPickerSheet,
   SearchGroup,
   SearchMultiPicker,
   SearchMultiPickerSheet,
@@ -59,7 +58,6 @@ import {
   CHAPTER_COUNT_OPTIONS,
   DEMOGRAPHIC_OPTIONS,
   DISCOVER_SECTIONS,
-  FORMAT_OPTIONS,
   FilterID,
   GENRE_MODE_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -103,7 +101,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -191,11 +189,6 @@ class XCOMICSource
           id: FilterID.Demographics,
           title: "Demographics",
           options: taxonomy.demographics,
-        }),
-        SearchExcludableMultiPickerSheet({
-          id: FilterID.Formats,
-          title: "Formats",
-          options: FORMAT_OPTIONS,
         }),
         SearchGroup({
           id: "genre_matching",
@@ -400,7 +393,6 @@ class XCOMICSource
 
     const filters = new FilterReader(request);
     const genres = filters.excludable(FilterID.Genres);
-    const formats = filters.excludable(FilterID.Formats);
     const defaults = await this.preferenceDefaults(request.context);
     const [yearMin, yearMax] = parseYearRange(filters.text(FilterID.Year));
 
@@ -421,8 +413,10 @@ class XCOMICSource
         incTLangs: chosenLanguages.length > 0 ? chosenLanguages : defaults.incTLangs,
         incOLangs: filters.options(FilterID.OriginalLanguages),
         incDemographics: filters.options(FilterID.Demographics),
-        incGenres: [...genres.included, ...formats.included],
-        excGenres: [...new Set([...genres.excluded, ...formats.excluded, ...defaults.excGenres])],
+        // The site files its formats — Full Color, 4 Koma, Doujinshi — among its genres,
+        // so the one list covers both.
+        incGenres: genres.included,
+        excGenres: [...new Set([...genres.excluded, ...defaults.excGenres])],
         incGenresMode: filters.option(FilterID.IncludeMode) || "and",
         excGenresMode: filters.option(FilterID.ExcludeMode) || "or",
         origStatus: filters.option(FilterID.OriginalStatus) || null,

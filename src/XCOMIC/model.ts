@@ -44,7 +44,6 @@ export const FilterID = {
   ContentRatings: "content_ratings",
   Demographics: "demographics",
   Genres: "genres",
-  Formats: "formats",
   IncludeMode: "include_mode",
   ExcludeMode: "exclude_mode",
   OriginalStatus: "original_status",
@@ -108,13 +107,12 @@ export const SORT_OPTIONS: SortOption[] = [
 ];
 
 export const TYPE_OPTIONS: Option[] = [
-  { id: "manga", title: "Manga" },
   { id: "manhwa", title: "Manhwa" },
+  { id: "manga", title: "Manga" },
   { id: "manhua", title: "Manhua" },
-  { id: "cartoon", title: "Cartoon" },
-  { id: "western", title: "Western" },
-  { id: "artbook", title: "Artbook" },
-  { id: "imageset", title: "Imageset" },
+  { id: "other", title: "Other" },
+  { id: "oel", title: "OEL" },
+  { id: "novel", title: "Novel" },
 ];
 
 export const CONTENT_RATING_OPTIONS: Option[] = [
@@ -126,12 +124,15 @@ export const CONTENT_RATING_OPTIONS: Option[] = [
 
 export const DEMOGRAPHIC_OPTIONS: Option[] = [
   { id: "shounen", title: "Shounen" },
-  { id: "shoujo", title: "Shoujo" },
   { id: "seinen", title: "Seinen" },
+  { id: "shoujo", title: "Shoujo" },
   { id: "josei", title: "Josei" },
+  { id: "male_demographic_with_female_lead", title: "Male Demographic with Female Lead" },
   { id: "kodomo", title: "Kodomo" },
-  { id: "silver_golden", title: "Silver & Golden" },
-  { id: "non_human", title: "Non-human" },
+  { id: "male_demographic_with_female_author", title: "Male Demographic with Female Author" },
+  { id: "female_demographic_with_male_lead", title: "Female Demographic with Male Lead" },
+  { id: "male_oriented", title: "Male Oriented" },
+  { id: "female_oriented", title: "Female Oriented" },
 ];
 
 // A picker cannot be cleared once set, so every one of them opens with its own
@@ -143,21 +144,6 @@ export const STATUS_OPTIONS: Option[] = [
   { id: "completed", title: "Completed" },
   { id: "hiatus", title: "Hiatus" },
   { id: "cancelled", title: "Cancelled" },
-];
-
-export const FORMAT_OPTIONS: Option[] = [
-  { id: "4_koma", title: "4 Koma" },
-  { id: "adaptation", title: "Adaptation" },
-  { id: "anthology", title: "Anthology" },
-  { id: "award_winning", title: "Award Winning" },
-  { id: "doujinshi", title: "Doujinshi" },
-  { id: "fan_colored", title: "Fan Colored" },
-  { id: "full_color", title: "Full Color" },
-  { id: "long_strip", title: "Long Strip" },
-  { id: "official_colored", title: "Official Colored" },
-  { id: "oneshot", title: "Oneshot" },
-  { id: "web_comic", title: "Web Comic" },
-  { id: "webtoon", title: "Webtoon" },
 ];
 
 export const GENRE_MODE_OPTIONS: Option[] = [
@@ -301,10 +287,12 @@ export const LANGUAGE_OPTIONS: Option[] = [
 export const SectionID = {
   TopRated: "top_rated",
   Views24Hours: "views_24h",
+  MostFollows: "most_follows",
   Views7Days: "views_7d",
+  LatestUploads: "latest_uploads",
   ViewsTotal: "views_total",
   MostChapters: "most_chapters",
-  LatestUploads: "latest_uploads",
+  MostReviews: "most_reviews",
   RecentlyAdded: "recently_added",
 } as const;
 
@@ -324,6 +312,12 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: "Most Viewed (24 Hours)",
     style: SectionStyle.DetailedDoubleRowPaged,
     sort: SortID.Views24Hours,
+  },
+  {
+    id: SectionID.MostFollows,
+    title: "Most Follows",
+    style: SectionStyle.DetailedDoubleRowPaged,
+    sort: SortID.Follows,
   },
   {
     id: SectionID.Views7Days,
@@ -347,6 +341,12 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: "Most Chapters",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.Chapters,
+  },
+  {
+    id: SectionID.MostReviews,
+    title: "Most Reviews",
+    style: SectionStyle.SimpleSingleRow,
+    sort: SortID.Reviews,
   },
   {
     id: SectionID.RecentlyAdded,
@@ -387,12 +387,17 @@ export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
   pornographic: ["hentai", "pornographic"],
 };
 
+/** What every listing tile needs, so a row never costs a second request to fill in. */
+const LISTING_FIELDS = `
+      id name urlPath urlCover
+      translatedLanguage type contentRating genres tags
+      score_val follows reviews comments_total chaps_normal`;
+
 export const BROWSE_QUERY = `
 query get_comic_browse_items($select: Comic_Browse_Select) {
   get_comic_browse_items(select: $select) {
-    data {
-      id name altNames urlPath urlCover
-      translatedLanguage type contentRating genres tags
+    data {${LISTING_FIELDS}
+      altNames
       summary { html }
       chapterNodes_last(amount: 1) { data { serial chaNum } }
     }
@@ -404,7 +409,8 @@ query get_comic_latestUploads($select: Comic_LatestUploads_Select) {
   get_comic_latestUploads(select: $select) {
     before
     items {
-      comic { data { id name urlPath urlCover translatedLanguage type contentRating genres tags } }
+      comic { data {${LISTING_FIELDS}
+      } }
       chapters(amount: 1) { data { id serial chaNum urlPath dateCreate dateModify datePublic } }
     }
   }
@@ -414,7 +420,8 @@ export const RECENTLY_ADDED_QUERY = `
 query get_comic_recentlyAdded($select: Comic_RecentlyAdded_Select) {
   get_comic_recentlyAdded(select: $select) {
     before
-    items { data { id name urlPath urlCover translatedLanguage type contentRating genres tags } }
+    items { data {${LISTING_FIELDS}
+    } }
   }
 }`;
 
@@ -431,7 +438,7 @@ query get_comicNode($id: ID!) {
       publisherNodes { data { name } }
       summary { html }
       urlPath urlCover
-      score_val follows chaps_normal
+      score_val follows reviews comments_total chaps_normal
     }
   }
 }`;
@@ -492,6 +499,8 @@ export type ComicData = {
   summary?: { html?: string | null } | null;
   score_val?: number | null;
   follows?: number | null;
+  reviews?: number | null;
+  comments_total?: number | null;
   chaps_normal?: number | null;
   chapterNodes_last?: { data?: ChapterData | null }[] | null;
 };
