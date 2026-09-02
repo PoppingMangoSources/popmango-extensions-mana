@@ -2,7 +2,23 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.14)
+## Kagane (current: v1.0.15)
+
+### Changed
+
+- Built against the app's current source API. The host stopped turning a long option list
+  into a sheet on its own, so the two lists the server fills ask for one: `Sources` and
+  `Tags` open a chip sheet instead of unrolling sixty and several hundred rows inline. The
+  two tag controls sit in a collapsed group.
+
+### Added
+
+- The app can state which content ratings it will accept. When it does, the request is
+  narrowed to those before it is sent, so a row no longer arrives full of titles the app
+  then hides. Kagane's own four ratings map onto the app's, with Erotica reported as
+  mature. When the saved preference and the app's policy do not overlap, the policy wins.
+
+## Kagane (v1.0.14)
 
 ### Fixed
 
@@ -146,7 +162,20 @@ Manga, manhwa, manhua and comics from kagane.to, with the site's own home rows, 
 search form, hide-lists for genres and tags, and the integrity-token dance the reader
 needs.
 
-## Mangago (current: v1.0.10)
+## Mangago (current: v1.0.11)
+
+### Changed
+
+- Built against the app's current source API. Nothing in the form relied on the presentation
+  rules that changed: the genre chips stay inline, which is what that section is for.
+
+### Added
+
+- The app can state which content ratings it will accept. The site filters by genre rather
+  than by rating, so a policy is applied by excluding the genres that carry a disallowed
+  rating through the site's own exclusion parameter, which keeps the paging intact.
+
+## Mangago (v1.0.10)
 
 ### Removed
 
