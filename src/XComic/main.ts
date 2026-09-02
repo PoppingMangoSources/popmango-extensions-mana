@@ -74,7 +74,6 @@ import {
   type BrowseSelect,
   type ChapterListResponse,
   type ChapterPagesResponse,
-  type ComicData,
   type ComicNodeResponse,
   type LatestUploadsResponse,
   type RecentlyAddedResponse,
@@ -91,7 +90,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XComic",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -119,6 +118,9 @@ class XComicSource
   );
 
   private genreOptions: Option[] | undefined;
+  // The two feeds page by cursor while the app counts pages, so the cursor for the next
+  // page is remembered as each one is read. Paging is sequential, so this keeps up.
+  private readonly feedCursors = new Map<string, number>();
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -134,8 +136,8 @@ class XComicSource
       });
 
       const seen = new Set<string>();
-      for (const comic of data.get_comic_browse_items?.data ?? []) {
-        for (const genre of comic.genres ?? []) {
+      for (const node of data.get_comic_browse_items ?? []) {
+        for (const genre of node.data.genres ?? []) {
           const name = genre.trim();
           if (name) seen.add(name);
         }
@@ -260,30 +262,35 @@ class XComicSource
     page: number,
     context?: SourceContext,
   ): Promise<PagedSearchResult> {
+    const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
+
     if (sectionId === SectionID.LatestUploads) {
       const data = await this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
-        select: { page, size: PAGE_SIZE },
+        // This feed pages by cursor; it rejects a `page` outright.
+        select: { size: PAGE_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
       });
 
-      const results = (data.get_comic_latestUploads?.items ?? []).flatMap((entry): Highlight[] => {
+      const feed = data.get_comic_latestUploads;
+      const results = (feed?.items ?? []).flatMap((entry): Highlight[] => {
         const comic = entry.comic?.data;
         if (!comic) return [];
         return [parseHighlight(comic, entry.chapters?.[0]?.data)];
       });
 
-      return { results, isLastPage: results.length < PAGE_SIZE };
+      if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
+      return { results, isLastPage: feed?.before == null || results.length === 0 };
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
       const data = await this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
-        select: { page, size: RECENTLY_ADDED_SIZE },
+        select: { size: RECENTLY_ADDED_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
       });
 
-      const results = (data.get_comic_recentlyAdded?.items ?? []).flatMap((entry): Highlight[] =>
-        entry.data ? [parseHighlight(entry.data)] : [],
-      );
+      const feed = data.get_comic_recentlyAdded;
+      const results = (feed?.items ?? []).map((node) => parseHighlight(node.data));
 
-      return { results, isLastPage: results.length < RECENTLY_ADDED_SIZE };
+      if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
+      return { results, isLastPage: feed?.before == null || results.length === 0 };
     }
 
     const spec = sectionById(DISCOVER_SECTIONS, sectionId);
@@ -327,7 +334,7 @@ class XComicSource
         incGenresMode: filters.toggle(FilterID.MatchAllGenres) ? "and" : "or",
         origStatus: filters.option(FilterID.OriginalStatus) || null,
         siteStatus: filters.option(FilterID.UploadStatus) || null,
-        chapCount: filters.option(FilterID.ChapterCount) || null,
+        chapCount: filters.option(FilterID.ChapterCount),
         releaseYearMin: yearMin,
         releaseYearMax: yearMax,
       }),
@@ -366,11 +373,15 @@ class XComicSource
   private browseSelect(overrides: Partial<BrowseSelect> & { sort: string }): BrowseSelect {
     const { sort, ...rest } = overrides;
 
+    const page = rest.page ?? 1;
+    const size = rest.size ?? PAGE_SIZE;
+
     return {
       where: "browse",
-      page: 1,
-      size: PAGE_SIZE,
-      init: 0,
+      page,
+      size,
+      // The offset of this page into the whole result set.
+      init: (page - 1) * size,
       sortby: sort,
       word: "",
       incOLangs: [],
@@ -386,7 +397,7 @@ class XComicSource
       releaseYearMax: null,
       origStatus: null,
       siteStatus: null,
-      chapCount: null,
+      chapCount: "",
       // The site applies its own account-level filters unless told to stand aside.
       ignoreGlobalULangs: true,
       ignoreGlobalGenres: true,
@@ -397,11 +408,11 @@ class XComicSource
 
   private async browse(select: BrowseSelect): Promise<PagedSearchResult> {
     const data = await this.api.query<BrowseResponse>(BROWSE_QUERY, { select });
-    const comics = data.get_comic_browse_items?.data ?? [];
+    const nodes = data.get_comic_browse_items ?? [];
 
     return {
-      results: comics.map((comic: ComicData) => parseHighlight(comic)),
-      isLastPage: comics.length < select.size,
+      results: nodes.map((node) => parseHighlight(node.data)),
+      isLastPage: nodes.length < select.size,
     };
   }
 
@@ -417,16 +428,17 @@ class XComicSource
     const [comic, chapters] = await Promise.all([
       this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
       this.api.query<ChapterListResponse>(CHAPTERS_QUERY, {
+        // The chapter list keys on snake_case and names its own order.
         select: {
-          comicId: contentId,
+          comic_id: contentId,
           page: 1,
           size: CHAPTER_PAGE_SIZE,
-          chapNumRange: [null, null],
+          sortby: "chapter_desc",
         },
       }),
     ]);
 
-    const language = parseLanguage(comic.get_comicNode?.data?.translatedLanguage);
+    const language = parseLanguage(comic.get_comicNode?.data.translatedLanguage);
     const entries = (chapters.get_comic_chapterList_uniqList?.items ?? []).map((item) => item.data);
 
     return parseChapters(entries, language);

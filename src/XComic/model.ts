@@ -154,21 +154,16 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   },
   {
     id: SectionID.Views24Hours,
-    title: "Most Views Today",
+    title: "Trending Today",
+    subtitle: "Most read in the last day",
     style: SectionStyle.DetailedDoubleRowPaged,
     sort: SortID.Views24Hours,
   },
   {
     id: SectionID.Views7Days,
-    title: "Most Views This Week",
+    title: "Trending This Week",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.Views7Days,
-  },
-  {
-    id: SectionID.ViewsTotal,
-    title: "Most Views All Time",
-    style: SectionStyle.SimpleSingleRow,
-    sort: SortID.ViewsTotal,
   },
   {
     id: SectionID.LatestUploads,
@@ -177,8 +172,15 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
+    id: SectionID.ViewsTotal,
+    title: "Most Read of All Time",
+    style: SectionStyle.SimpleSingleRow,
+    sort: SortID.ViewsTotal,
+  },
+  {
     id: SectionID.RecentlyAdded,
     title: "Recently Added",
+    subtitle: "New to the site",
     style: SectionStyle.SimpleSingleRow,
   },
 ];
@@ -218,6 +220,7 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
 export const LATEST_UPLOADS_QUERY = `
 query get_comic_latestUploads($select: Comic_LatestUploads_Select) {
   get_comic_latestUploads(select: $select) {
+    before
     items {
       comic { data { id name urlPath urlCover translatedLanguage type contentRating genres tags } }
       chapters(amount: 1) { data { id serial chaNum urlPath dateCreate dateModify datePublic } }
@@ -228,6 +231,7 @@ query get_comic_latestUploads($select: Comic_LatestUploads_Select) {
 export const RECENTLY_ADDED_QUERY = `
 query get_comic_recentlyAdded($select: Comic_RecentlyAdded_Select) {
   get_comic_recentlyAdded(select: $select) {
+    before
     items { data { id name urlPath urlCover translatedLanguage type contentRating genres tags } }
   }
 }`;
@@ -314,19 +318,22 @@ export type ChapterData = {
   userNode?: NamedNode | null;
 };
 
-export type BrowseResponse = { get_comic_browse_items?: { data?: ComicData[] | null } | null };
+export type ComicNode = { data: ComicData };
+
+export type BrowseResponse = { get_comic_browse_items?: ComicNode[] | null };
 
 export type LatestUploadsResponse = {
   get_comic_latestUploads?: {
-    items?: { comic?: { data?: ComicData | null } | null; chapters?: { data: ChapterData }[] }[];
+    before?: number | null;
+    items?: { comic?: ComicNode | null; chapters?: { data: ChapterData }[] | null }[] | null;
   } | null;
 };
 
 export type RecentlyAddedResponse = {
-  get_comic_recentlyAdded?: { items?: { data?: ComicData | null }[] } | null;
+  get_comic_recentlyAdded?: { before?: number | null; items?: ComicNode[] | null } | null;
 };
 
-export type ComicNodeResponse = { get_comicNode?: { data?: ComicData | null } | null };
+export type ComicNodeResponse = { get_comicNode?: ComicNode | null };
 
 export type ChapterListResponse = {
   get_comic_chapterList_uniqList?: { items?: { data: ChapterData }[] } | null;
@@ -357,7 +364,7 @@ export type BrowseSelect = {
   releaseYearMax: number | null;
   origStatus: string | null;
   siteStatus: string | null;
-  chapCount: string | null;
+  chapCount: string;
   ignoreGlobalULangs: boolean;
   ignoreGlobalGenres: boolean;
   ignoreGlobalBlocks: boolean;

@@ -2,7 +2,22 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## XComic (current: v1.0.0)
+## XComic (current: v1.0.1)
+
+### Fixed
+
+- Every row on the home page failed or came back empty. The first release invented the
+  shape of four API requests rather than using the site's own: the two feeds page by
+  cursor and reject a page number outright, the chapter list keys on `comic_id` and names
+  its own order, browse needs the offset of the page it is asking for, and its results
+  arrive as a list of nodes rather than one wrapper. All four match the site now.
+
+### Changed
+
+- The home page is laid out like the other sources here: a hero, a detailed pair for
+  today's trending, then this week, the grouped chapter feed, all-time, and recently added.
+
+## XComic (v1.0.0)
 
 First release. Manga, manhwa, manhua and comics from xcomic.me:
 
