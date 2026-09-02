@@ -446,13 +446,7 @@ class KaganeSource
   ): Promise<PagedSearchResult> {
     const body = buildSearchBody(await this.bodyOptions(undefined, context));
 
-    return this.runSearch(
-      body,
-      page,
-      PAGE_SIZE,
-      buildSortParameter(spec.sort, false),
-      spec.layout,
-    );
+    return this.runSearch(body, page, PAGE_SIZE, buildSortParameter(spec.sort, false), spec.layout);
   }
 
   private async runSearch(

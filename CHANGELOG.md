@@ -2,6 +2,19 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## FlameComics (current: v1.0.0)
+
+First release. Manhwa, manhua and manga from flamecomics.xyz:
+
+- Three home rows — Popular, Latest Updates and Staff Picks — all served from the one
+  payload the site's own homepage uses, so the whole page costs a single request. Each
+  carries the site's like count as a heart.
+- The site has no search endpoint, so its full catalogue is fetched once and filtered here:
+  categories with include, exclude and match-all, publisher, author and artist the same
+  way, plus type, status, year, language and country, and six sort orders.
+- Chapters are read from the series payload that already carries them, and page images
+  come from the CDN with the token the site uses as a cache-buster.
+
 ## Kagane (current: v1.0.8)
 
 ### Changed
