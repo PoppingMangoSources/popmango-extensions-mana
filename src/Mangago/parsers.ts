@@ -426,30 +426,28 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     });
   });
 
-  // Notices and side stories carry no number. Numbering them above the run put them at
-  // the top of the list; they belong at the end of it, and never at index 0, which is
-  // where the app resumes an unread title.
-  const numbered = parsed.filter((chapter) => chapter.number !== 0);
-  const extras = parsed.filter((chapter) => chapter.number === 0);
+  // The site lists chapters in upload order, which is what other clients show, so the
+  // page order is kept. `index` is computed separately because the app resumes an unread
+  // title at index 0, which has to be the first numbered chapter rather than a notice.
+  const byNumber = [...parsed]
+    .filter((chapter) => chapter.number !== 0)
+    .sort((left, right) => {
+      if (left.number !== right.number) return left.number - right.number;
+      return compareScanlators(right, left);
+    });
 
-  const byNumber = (left: Chapter, right: Chapter): number => {
-    if (left.number !== right.number) return right.number - left.number;
-    return compareScanlators(left, right);
-  };
-
-  numbered.sort(byNumber);
-  // Same tie-break the numbered run uses, since every extra shares the number zero.
-  extras.sort(compareScanlators);
-
-  // The list reads newest first with the extras beneath it, while `index` counts up from
-  // the earliest numbered chapter and leaves the extras above the run.
-  const ordered = [...numbered, ...extras];
   const indexOf = new Map<Chapter, number>();
-  numbered.forEach((chapter, position) => indexOf.set(chapter, numbered.length - 1 - position));
-  extras.forEach((chapter, position) => indexOf.set(chapter, numbered.length + position));
+  byNumber.forEach((chapter, position) => indexOf.set(chapter, position));
 
-  return ordered.map((chapter) => ({ ...chapter, index: indexOf.get(chapter) ?? 0 }));
+  // Unnumbered notices sit past the end of the run so they are never the resume point.
+  let next = byNumber.length;
+  for (const chapter of parsed) {
+    if (!indexOf.has(chapter)) indexOf.set(chapter, next++);
+  }
+
+  return parsed.map((chapter) => ({ ...chapter, index: indexOf.get(chapter) ?? 0 }));
 }
+
 
 export function parseRelated(html: string): MangagoListing[] {
   const $ = load(html);

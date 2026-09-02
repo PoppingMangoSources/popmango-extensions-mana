@@ -51,7 +51,7 @@ becomes available to install.
 | :----- | :--- | :----- | :------ |
 | **FlameComics** | [flamecomics.xyz](https://flamecomics.xyz) | Safe | v1.0.1 |
 | <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.8 |
-| <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.3 |
+| <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.4 |
 <!-- sources:end -->
 
 ## Reporting a problem
