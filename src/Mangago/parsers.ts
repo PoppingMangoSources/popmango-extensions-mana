@@ -438,6 +438,8 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
   };
 
   numbered.sort(byNumber);
+  // Same tie-break the numbered run uses, since every extra shares the number zero.
+  extras.sort(compareScanlators);
 
   // The list reads newest first with the extras beneath it, while `index` counts up from
   // the earliest numbered chapter and leaves the extras above the run.
