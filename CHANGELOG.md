@@ -26,7 +26,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   routed to within the page. The wait clears a cold challenge rather than giving up under
   it.
 
-## Kagane (current: v1.0.3)
+## Kagane (current: v1.0.4)
+
+### Changed
+
+- Popular now ranks by average views rather than total views, which is what the site's own
+  all-time row does. Totals leave a long-running series parked at the top; averages let
+  something newer climb.
+- A search with no explicit order leaves the sort parameter off, as the site does, instead
+  of sending it empty.
+
+## Kagane (v1.0.3)
 
 ### Fixed
 

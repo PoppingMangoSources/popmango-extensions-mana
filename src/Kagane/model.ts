@@ -132,7 +132,9 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: "Popular",
     style: SectionStyle.SimpleHeroPaged,
     layout: SectionLayout.Hero,
-    sort: SortID.TotalViews,
+    // The site's own all-time row averages views rather than totalling them, which keeps a
+    // long-running series from sitting on top forever.
+    sort: SortID.AverageViews,
     limit: 10,
   },
   {

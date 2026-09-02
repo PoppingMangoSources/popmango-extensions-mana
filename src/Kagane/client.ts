@@ -119,11 +119,12 @@ export class KaganeApi {
       .addPathComponent("series")
       // The API pages from zero.
       .setQueryItem("page", String(Math.max(0, page - 1)))
-      .setQueryItem("size", String(size))
-      .setQueryItem("sort", sort)
-      .build();
+      .setQueryItem("size", String(size));
 
-    return this.postJson<SearchResponse>(url, body);
+    // Relevance is the default and is asked for by leaving the parameter off entirely.
+    if (sort) url.setQueryItem("sort", sort);
+
+    return this.postJson<SearchResponse>(url.build(), body);
   }
 
   async fetchSeries(seriesId: string): Promise<DetailsResponse> {
