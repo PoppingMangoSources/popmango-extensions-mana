@@ -86,7 +86,16 @@ export function categoriesOf(item: SeriesListItem | SeriesDetail): string[] {
   return (source ?? []).map((entry) => entry.trim()).filter(Boolean);
 }
 
-export function parseHighlight(item: SeriesListItem): Highlight {
+/**
+ * What a tile puts under the title. Rows about new chapters name the chapter; the poster
+ * rows have no chapter to speak of, so they carry the type and the site's like count.
+ */
+export type HighlightSubtitle = "chapter" | "stats";
+
+export function parseHighlight(
+  item: SeriesListItem,
+  style: HighlightSubtitle = "chapter",
+): Highlight {
   const categories = categoriesOf(item);
   const latest = item.chapters?.[0];
 
@@ -101,11 +110,18 @@ export function parseHighlight(item: SeriesListItem): Highlight {
   if (item.status) info.push({ key: "Status", value: item.status });
   if (item.likes != null) info.push({ key: "Likes ♥", value: String(item.likes) });
 
+  const subtitle =
+    style === "stats"
+      ? [item.type, item.likes == null ? "" : `♥ ${item.likes}`].filter(Boolean).join(" • ")
+      : latest
+        ? `Chapter ${formatChapterNumber(latest.chapter)}`
+        : "";
+
   return {
     id: String(item.series_id),
     title: clean(item.title),
     cover: buildCoverUrl(item),
-    ...(latest ? { subtitle: `Chapter ${formatChapterNumber(latest.chapter)}` } : {}),
+    ...(subtitle ? { subtitle } : {}),
     ...(info.length > 0 ? { info } : {}),
     contentRating: parseRating(categories),
     webUrl: seriesUrl(item.series_id),

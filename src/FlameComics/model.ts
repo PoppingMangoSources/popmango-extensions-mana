@@ -53,9 +53,9 @@ export const SORT_OPTIONS: SortOption[] = [
 
 export const SectionID = {
   Popular: "popular",
-  Featured: "featured",
-  Latest: "latest",
   StaffPicks: "staff_picks",
+  Latest: "latest",
+  Featured: "featured",
 } as const;
 
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
@@ -66,9 +66,9 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.SimpleHeroPaged,
   },
   {
-    id: SectionID.Featured,
-    title: "Featured",
-    subtitle: "The site's own front-page carousel",
+    id: SectionID.StaffPicks,
+    title: "Staff Picks",
+    subtitle: "Chosen by the people who run the site",
     style: SectionStyle.SimpleSingleRow,
   },
   {
@@ -78,9 +78,9 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
-    id: SectionID.StaffPicks,
-    title: "Staff Picks",
-    subtitle: "Chosen by the people who run the site",
+    id: SectionID.Featured,
+    title: "Featured",
+    subtitle: "The site's own front-page carousel",
     style: SectionStyle.DetailedDoubleRowPaged,
   },
 ];

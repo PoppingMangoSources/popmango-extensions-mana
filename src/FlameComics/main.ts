@@ -65,6 +65,7 @@ import {
   parseFilterOptions,
   parseHighlight,
   seriesUrl,
+  type HighlightSubtitle,
 } from "./parsers.ts";
 import { filterSeries, sortSeries } from "./search.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
@@ -72,7 +73,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -174,6 +175,10 @@ class FlameComicsSource
   private async sectionItems(sectionID: string): Promise<Highlight[]> {
     const { pageProps } = await this.api.fetchHome();
 
+    // The poster rows have no chapter line, so they name the type and the like count.
+    const style: HighlightSubtitle =
+      sectionID === SectionID.Popular || sectionID === SectionID.StaffPicks ? "stats" : "chapter";
+
     if (sectionID === SectionID.Featured) {
       // A slide only carries banner artwork, so the portrait cover and the chapter line are
       // taken from the same payload's own blocks whenever the series appears in one.
@@ -189,7 +194,7 @@ class FlameComicsSource
       return (pageProps.carousel ?? [])
         .map((slide) => {
           const entry = slide.series_id == null ? undefined : listed.get(slide.series_id);
-          return entry ? parseHighlight(entry) : parseCarouselHighlight(slide);
+          return entry ? parseHighlight(entry, style) : parseCarouselHighlight(slide);
         })
         .filter((item): item is Highlight => item !== undefined);
     }
@@ -209,7 +214,7 @@ class FlameComicsSource
       for (const entry of block.series ?? []) {
         if (seen.has(entry.series_id)) continue;
         seen.add(entry.series_id);
-        items.push(parseHighlight(entry));
+        items.push(parseHighlight(entry, style));
       }
     }
 

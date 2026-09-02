@@ -117,6 +117,15 @@ function formatType(type: string | null | undefined): string {
   return TYPE_OPTIONS.find((option) => option.id === value)?.title ?? value;
 }
 
+/** Listings send genres as slugs — `girls_love`, `full_color` — not as their labels. */
+function formatGenre(genre: string | null | undefined): string {
+  return clean(genre ?? "")
+    .split("_")
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ")
+    .trim();
+}
+
 /** How a reader's title settings rewrite the site's own name for a series. */
 export type TitleCleaner = (title: string) => string;
 
@@ -134,13 +143,13 @@ export function parseHighlight(
   const number = formatChapterNumber(latest ?? comic.chapterNodes_last?.[0]?.data);
   const uploaded = latest ? parseTimestamp(latest.dateModify ?? latest.datePublic) : undefined;
   const type = formatType(comic.type);
-  const genres = (comic.genres ?? []).map((genre) => decodeEntities(clean(genre))).filter(Boolean);
+  const genre = formatGenre(comic.genres?.[0]);
 
+  // The subtitle already names the chapter and the type, so neither is repeated here.
+  // One genre is enough: three of them wrap and push the tile out of its row.
   const info: Pair[] = [];
-  // Only the upload feed carries a date; elsewhere the subtitle already names the chapter.
-  if (number && uploaded) info.push({ key: `Chapter ${number}`, value: relativeTime(uploaded) });
-  if (type) info.push({ key: "Type", value: type });
-  if (genres.length > 0) info.push({ key: "Genres", value: genres.slice(0, 3).join(", ") });
+  if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
+  if (genre) info.push({ key: "Genre", value: genre });
 
   const subtitle = [number ? `Chapter ${number}` : "", type].filter(Boolean).join(" • ");
 
@@ -159,7 +168,8 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
   const tags: Tag[] = [...(comic.genres ?? []), ...(comic.tags ?? [])]
     .map((name) => clean(name))
     .filter(Boolean)
-    .map((name) => ({ id: name.toLowerCase(), title: name }));
+    // The id stays the site's own slug, which is what the genre filter matches on.
+    .map((name) => ({ id: name.toLowerCase(), title: formatGenre(name) }));
 
   const status = parseStatus(comic.originalStatus);
   const contentType = parseContentType(comic.type);

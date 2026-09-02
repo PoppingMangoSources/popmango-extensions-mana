@@ -213,6 +213,8 @@ export class KaganeApi {
     if (this.integrityRequest) return this.integrityRequest;
 
     const request = (async (): Promise<string> => {
+      // The site hands out its cookies here, so this warms the session the token is
+      // minted against — including the clearance a challenge just wrote.
       await this.http.get(`${BASE_URL}/`).catch(() => undefined);
 
       const integrity = await this.postJson<IntegrityResponse>(
@@ -227,9 +229,21 @@ export class KaganeApi {
     this.integrityRequest = request;
     try {
       return await request;
+    } catch (error) {
+      // A token minted before a challenge belongs to the session the challenge replaced,
+      // so it is dropped rather than replayed. Keeping it is what left the reader stuck
+      // until the source was closed and its cache cleared by hand.
+      this.forgetTokens();
+      throw error;
     } finally {
       this.integrityRequest = undefined;
     }
+  }
+
+  private forgetTokens(): void {
+    this.integrityToken = "";
+    this.integrityExpiry = 0;
+    this.accessToken = "";
   }
 
   async fetchChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
@@ -246,7 +260,12 @@ export class KaganeApi {
           body: {},
           headers: { "content-type": "application/json", "x-integrity-token": token },
         }),
-      );
+      ).catch((error: unknown) => {
+        // A challenge here replaces the session both tokens were minted against, so
+        // neither survives it; the next open mints them afresh rather than reusing them.
+        if (error instanceof CloudflareError) this.forgetTokens();
+        throw error;
+      });
 
       if (STALE_TOKEN_STATUSES.has(response.status)) {
         if (!force) continue;

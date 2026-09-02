@@ -37,9 +37,12 @@ const PROBE = `(function () {
   return markers.length > 0 ? "challenge" : "waiting";
 })();`;
 
+// Two, so a request that raced the clearance cookie being written still gets a turn.
+const RETRY_ATTEMPTS = 2;
+
 // One WebView may be active per source, so a home page of many rows shares one attempt.
 let inFlight: Promise<boolean> | undefined;
-let lastAttemptAt = 0;
+let lastFailureAt = 0;
 
 function delay(ms: number): Promise<void> {
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
@@ -62,32 +65,32 @@ async function runAttempt(url: string, siteSelector: string): Promise<boolean> {
     while (Date.now() < deadline) {
       const state = await page.evaluateScript<string>(PROBE, [siteSelector]).catch(() => "waiting");
 
-      if (state === "site") return true;
+      if (state === "site") {
+        noteChallengeCleared();
+        return true;
+      }
       // A challenge that has asked for a person will not finish on its own; handing it
       // straight over beats making the reader wait out the whole budget first.
-      if (state === "interactive") return false;
+      if (state === "interactive") break;
       await delay(POLL_INTERVAL_MS);
     }
+  } catch {}
 
-    return false;
-  } catch {
-    return false;
-  } finally {
-    lastAttemptAt = Date.now();
-    await page?.close().catch(() => undefined);
-  }
+  // Only a failure earns the cooldown. Arming it after a win left it standing whenever
+  // the retry that followed did not itself succeed, which sent the next screen — the
+  // reader, most visibly — straight to the manual prompt with no attempt of its own.
+  lastFailureAt = Date.now();
+  await page?.close().catch(() => undefined);
+  return false;
 }
 
 /**
- * Clears the cooldown, so the next challenge gets a fresh attempt.
- *
- * Called whenever a request succeeds: the clearance the reader just solved by hand — or
- * that a previous attempt won — means the failure the cooldown was throttling is over.
- * Without this, one failed attempt on the home page sent every later screen straight to
- * the manual prompt.
+ * Records that the site is answering again — the WebView cleared the challenge, the
+ * reader solved the prompt by hand, or it simply lapsed — so the next one to appear gets
+ * an attempt of its own instead of waiting out a cooldown earned by an older failure.
  */
 function noteChallengeCleared(): void {
-  lastAttemptAt = 0;
+  lastFailureAt = 0;
 }
 
 /**
@@ -100,7 +103,7 @@ function noteChallengeCleared(): void {
  */
 async function passChallenge(url: string, siteSelector = SITE_LOADED): Promise<boolean> {
   if (inFlight) return inFlight;
-  if (Date.now() - lastAttemptAt < COOLDOWN_MS) return false;
+  if (Date.now() - lastFailureAt < COOLDOWN_MS) return false;
 
   const attempt = runAttempt(url, siteSelector);
   inFlight = attempt.finally(() => {
@@ -110,24 +113,27 @@ async function passChallenge(url: string, siteSelector = SITE_LOADED): Promise<b
 }
 
 /**
- * Runs `request`, and on a challenge gives the WebView one chance to clear it before
- * letting the error through to the reader.
+ * Runs `request`, and on a challenge clears it before letting the error through.
+ *
+ * The retry loop is what keeps a solved challenge from stranding the screen that raised
+ * it: a clearance minted by the WebView here, by another row, or by the reader answering
+ * the app's own prompt all land in the same cookie store, so the request is simply asked
+ * again rather than surfacing a failure the reader has to back out of to escape.
  */
 export async function withChallengeRetry<T>(
   resolutionUrl: string,
   request: () => Promise<T>,
   siteSelector?: string,
 ): Promise<T> {
-  try {
-    const result = await request();
-    noteChallengeCleared();
-    return result;
-  } catch (error) {
-    if (!(error instanceof CloudflareError)) throw error;
-    if (!(await passChallenge(resolutionUrl, siteSelector))) throw error;
-
-    const result = await request();
-    noteChallengeCleared();
-    return result;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const result = await request();
+      noteChallengeCleared();
+      return result;
+    } catch (error) {
+      if (!(error instanceof CloudflareError)) throw error;
+      if (attempt >= RETRY_ATTEMPTS) throw error;
+      if (!(await passChallenge(resolutionUrl, siteSelector))) throw error;
+    }
   }
 }
