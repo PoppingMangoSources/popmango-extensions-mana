@@ -286,13 +286,13 @@ export const LANGUAGE_OPTIONS: Option[] = [
 
 export const SectionID = {
   TopRated: "top_rated",
+  MostReviews: "most_reviews",
   Views24Hours: "views_24h",
-  MostFollows: "most_follows",
   Views7Days: "views_7d",
   LatestUploads: "latest_uploads",
   ViewsTotal: "views_total",
   MostChapters: "most_chapters",
-  MostReviews: "most_reviews",
+  MostFollows: "most_follows",
   RecentlyAdded: "recently_added",
 } as const;
 
@@ -308,16 +308,16 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     sort: SortID.Score,
   },
   {
+    id: SectionID.MostReviews,
+    title: "Most Reviews",
+    style: SectionStyle.DetailedDoubleRowPaged,
+    sort: SortID.Reviews,
+  },
+  {
     id: SectionID.Views24Hours,
     title: "Most Viewed (24 Hours)",
     style: SectionStyle.DetailedDoubleRowPaged,
     sort: SortID.Views24Hours,
-  },
-  {
-    id: SectionID.MostFollows,
-    title: "Most Follows",
-    style: SectionStyle.DetailedDoubleRowPaged,
-    sort: SortID.Follows,
   },
   {
     id: SectionID.Views7Days,
@@ -343,10 +343,10 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     sort: SortID.Chapters,
   },
   {
-    id: SectionID.MostReviews,
-    title: "Most Reviews",
+    id: SectionID.MostFollows,
+    title: "Most Follows",
     style: SectionStyle.SimpleSingleRow,
-    sort: SortID.Reviews,
+    sort: SortID.Follows,
   },
   {
     id: SectionID.RecentlyAdded,
@@ -497,7 +497,8 @@ export type ComicData = {
   artistNodes?: NamedNode[] | null;
   publisherNodes?: NamedNode[] | null;
   summary?: { html?: string | null } | null;
-  score_val?: number | null;
+  // The API has been seen sending this as a string as well as a number.
+  score_val?: number | string | null;
   follows?: number | null;
   reviews?: number | null;
   comments_total?: number | null;

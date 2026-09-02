@@ -3,6 +3,7 @@
 import {
   CatalogRating,
   ContentRating,
+  SectionStyle,
   DefinedLanguages,
   SearchExcludableMultiPicker,
   SearchGroup,
@@ -101,7 +102,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -346,7 +347,7 @@ class XCOMICSource
       const results = (feed?.items ?? []).flatMap((entry): Highlight[] => {
         const comic = entry.comic?.data;
         if (!comic) return [];
-        return [parseHighlight(comic, entry.chapters?.[0]?.data, cleanTitle)];
+        return [parseHighlight(comic, { latest: entry.chapters?.[0]?.data, cleanTitle })];
       });
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
@@ -365,9 +366,7 @@ class XCOMICSource
       ]);
 
       const feed = data.get_comic_recentlyAdded;
-      const results = (feed?.items ?? []).map((node) =>
-        parseHighlight(node.data, undefined, cleanTitle),
-      );
+      const results = (feed?.items ?? []).map((node) => parseHighlight(node.data, { cleanTitle }));
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
       return { results, isLastPage: feed?.before == null || results.length === 0 };
@@ -381,6 +380,7 @@ class XCOMICSource
         sort: spec?.sort ?? SortID.Score,
         ...(await this.preferenceDefaults(context)),
       }),
+      spec?.style === SectionStyle.SimpleHeroPaged,
     );
   }
 
@@ -494,7 +494,7 @@ class XCOMICSource
     };
   }
 
-  private async browse(select: BrowseSelect): Promise<PagedSearchResult> {
+  private async browse(select: BrowseSelect, hero = false): Promise<PagedSearchResult> {
     const [data, cleanTitle] = await Promise.all([
       this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
       this.titleCleaner(),
@@ -502,7 +502,7 @@ class XCOMICSource
     const nodes = data.get_comic_browse_items ?? [];
 
     return {
-      results: nodes.map((node) => parseHighlight(node.data, undefined, cleanTitle)),
+      results: nodes.map((node) => parseHighlight(node.data, { cleanTitle, hero })),
       isLastPage: nodes.length < select.size,
     };
   }

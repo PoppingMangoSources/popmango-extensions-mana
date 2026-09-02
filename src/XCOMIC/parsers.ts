@@ -24,7 +24,6 @@ import {
 } from "../common/index.ts";
 import {
   CONTENT_RATING_GENRES,
-  TYPE_OPTIONS,
   baseUrl,
   type ChapterData,
   type ComicData,
@@ -113,13 +112,6 @@ function formatChapterNumber(chapter: ChapterData | null | undefined): string | 
   return /(?:chapter|ch\.?)[\s_]*(\d+(?:\.\d+)?)/i.exec(chapter?.dname ?? "")?.[1];
 }
 
-/** The site's own label for a type, as the listing endpoints send it lowercased. */
-function formatType(type: string | null | undefined): string {
-  const value = clean(type ?? "").toLowerCase();
-  if (!value) return "";
-  return TYPE_OPTIONS.find((option) => option.id === value)?.title ?? value;
-}
-
 /** Listings send genres as slugs — `girls_love`, `full_color` — not as their labels. */
 function formatGenre(genre: string | null | undefined): string {
   return clean(genre ?? "")
@@ -137,9 +129,14 @@ function compactCount(value: number | null | undefined): string {
   return String(value);
 }
 
-/** The site marks its own rating with a filled star, so the tiles do too. */
-function formatScore(score: number | null | undefined): string {
-  return score == null || !Number.isFinite(score) || score <= 0 ? "" : `★ ${score.toFixed(1)}`;
+/**
+ * The site marks its own rating with a filled star, so the tiles do too. The listing
+ * endpoints have been seen quoting the number, hence the coercion.
+ */
+function formatScore(score: number | string | null | undefined): string {
+  const value = typeof score === "string" ? Number.parseFloat(score) : score;
+  if (value == null || !Number.isFinite(value) || value <= 0) return "";
+  return `★ ${value.toFixed(1)}`;
 }
 
 /** How a reader's title settings rewrite the site's own name for a series. */
@@ -147,21 +144,26 @@ export type TitleCleaner = (title: string) => string;
 
 const asIs: TitleCleaner = (title) => title;
 
+export type HighlightOptions = {
+  latest?: ChapterData;
+  cleanTitle?: TitleCleaner;
+  /** A hero card shows no info rows, so its stats have to ride along in the subtitle. */
+  hero?: boolean;
+};
+
 /**
- * Every listing endpoint already returns the type, genres and last chapter alongside the
- * cover, so the tile carries them without a second request.
+ * Every listing endpoint already returns the score, genres, follows and last chapter
+ * alongside the cover, so the tile carries them without a second request.
  */
-export function parseHighlight(
-  comic: ComicData,
-  latest?: ChapterData,
-  cleanTitle: TitleCleaner = asIs,
-): Highlight {
+export function parseHighlight(comic: ComicData, options: HighlightOptions = {}): Highlight {
+  const { latest, cleanTitle = asIs, hero = false } = options;
+
   const number = formatChapterNumber(latest ?? comic.chapterNodes_last?.[0]?.data);
   const uploaded = latest ? parseTimestamp(latest.dateModify ?? latest.datePublic) : undefined;
-  const type = formatType(comic.type);
   // Two genres: the third wraps and pushes the tile out of its row.
   const genres = (comic.genres ?? []).slice(0, 2).map(formatGenre).filter(Boolean);
 
+  const score = formatScore(comic.score_val);
   const follows = compactCount(comic.follows);
   const comments = compactCount(comic.comments_total);
 
@@ -170,11 +172,11 @@ export function parseHighlight(
   if (genres.length > 0) {
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
-  if (type) info.push({ key: "Type", value: type });
-  if (follows) info.push({ key: "Follows", value: follows });
-  if (comments) info.push({ key: "Comments", value: comments });
+  if (score) info.push({ key: "Rating", value: score });
+  if (follows) info.push({ key: "Follows", value: `♥ ${follows}` });
+  if (comments) info.push({ key: "Comments", value: `💬 ${comments}` });
 
-  const subtitle = [number ? `Chapter ${number}` : "", formatScore(comic.score_val)]
+  const subtitle = [number ? `Chapter ${number}` : "", hero ? score : ""]
     .filter(Boolean)
     .join(" | ");
 
@@ -184,7 +186,7 @@ export function parseHighlight(
     cover: absoluteUrl(comic.urlCover),
     ...(subtitle ? { subtitle } : {}),
     // A tile stretches its whole row past about four lines, so the rest is dropped.
-    ...(info.length > 0 ? { info: info.slice(0, 4) } : {}),
+    ...(hero || info.length === 0 ? {} : { info: info.slice(0, 4) }),
     contentRating: parseRating(comic),
     webUrl: seriesUrl(comic),
   };
