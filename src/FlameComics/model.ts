@@ -52,6 +52,7 @@ export const SORT_OPTIONS: SortOption[] = [
 ];
 
 export const SectionID = {
+  Featured: "featured",
   Popular: "popular",
   Latest: "latest",
   StaffPicks: "staff_picks",
@@ -59,10 +60,16 @@ export const SectionID = {
 
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
+    id: SectionID.Featured,
+    title: "Featured",
+    subtitle: "The site's own front-page carousel",
+    style: SectionStyle.SimpleHeroPaged,
+  },
+  {
     id: SectionID.Popular,
     title: "Popular",
     subtitle: "What the site is putting forward",
-    style: SectionStyle.SimpleHeroPaged,
+    style: SectionStyle.DetailedDoubleRowPaged,
   },
   {
     id: SectionID.Latest,
@@ -123,11 +130,21 @@ export type HomepageBlock = {
   series: SeriesListItem[];
 };
 
+export type CarouselSlide = {
+  series_id: number | null;
+  novel_id?: number | null;
+  title: string;
+  image: string;
+  categories?: string[];
+  link?: string | null;
+};
+
 export type HomepageResponse = {
   pageProps: {
     popularEntries: { blocks: HomepageBlock[] };
     latestEntries: { blocks: HomepageBlock[] };
     staffPicks: { blocks: HomepageBlock[] };
+    carousel?: CarouselSlide[];
   };
 };
 

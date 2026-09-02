@@ -17,6 +17,7 @@ import { clean, relativeTime, summaryFromHtml } from "../common/index.ts";
 import {
   BASE_URL,
   CDN_URL,
+  type CarouselSlide,
   type ChapterDetail,
   type SeriesDetail,
   type SeriesListItem,
@@ -85,22 +86,20 @@ export function categoriesOf(item: SeriesListItem | SeriesDetail): string[] {
   return (source ?? []).map((entry) => entry.trim()).filter(Boolean);
 }
 
-/** Every row carries the like count, which the site itself shows as a heart. */
-function heartsFor(likes: number | undefined): Pair[] {
-  return likes == null ? [] : [{ key: "♥", value: String(likes) }];
-}
-
 export function parseHighlight(item: SeriesListItem): Highlight {
   const categories = categoriesOf(item);
   const latest = item.chapters?.[0];
 
-  const info: Pair[] = [...heartsFor(item.likes)];
+  // Every listing carries the status and the like count the site shows as a heart.
+  const info: Pair[] = [];
   if (latest) {
-    info.unshift({
+    info.push({
       key: `Chapter ${formatChapterNumber(latest.chapter)}`,
       value: relativeTime(new Date(latest.release_date * 1000)),
     });
   }
+  if (item.status) info.push({ key: "Status", value: item.status });
+  if (item.likes != null) info.push({ key: "Likes ♥", value: String(item.likes) });
 
   return {
     id: String(item.series_id),
@@ -110,6 +109,19 @@ export function parseHighlight(item: SeriesListItem): Highlight {
     ...(info.length > 0 ? { info } : {}),
     contentRating: parseRating(categories),
     webUrl: seriesUrl(item.series_id),
+  };
+}
+
+/** A carousel slide names a series but carries its own artwork under a separate folder. */
+export function parseCarouselHighlight(slide: CarouselSlide): Highlight | undefined {
+  if (slide.series_id == null) return undefined;
+
+  return {
+    id: String(slide.series_id),
+    title: clean(slide.title),
+    cover: `${CDN_URL}/uploads/images/carousel/${slide.image}`,
+    contentRating: parseRating(slide.categories ?? []),
+    webUrl: seriesUrl(slide.series_id),
   };
 }
 

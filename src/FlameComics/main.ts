@@ -53,7 +53,6 @@ import {
   SectionID,
   SortID,
   type ChapterReaderResponse,
-  type HomepageResponse,
   type SearchCriteria,
   type SeriesDetailResponse,
   type SeriesListItem,
@@ -62,6 +61,7 @@ import {
   buildPageUrl,
   parseChapters,
   parseContent,
+  parseCarouselHighlight,
   parseFilterOptions,
   parseHighlight,
   seriesUrl,
@@ -72,7 +72,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -174,7 +174,13 @@ class FlameComicsSource
   private async sectionItems(sectionID: string): Promise<Highlight[]> {
     const { pageProps } = await this.api.fetchHome();
 
-    const container: keyof HomepageResponse["pageProps"] =
+    if (sectionID === SectionID.Featured) {
+      return (pageProps.carousel ?? [])
+        .map(parseCarouselHighlight)
+        .filter((item): item is Highlight => item !== undefined);
+    }
+
+    const container: "popularEntries" | "staffPicks" | "latestEntries" =
       sectionID === SectionID.Popular
         ? "popularEntries"
         : sectionID === SectionID.StaffPicks

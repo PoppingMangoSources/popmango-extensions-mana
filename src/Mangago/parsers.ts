@@ -426,21 +426,27 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     });
   });
 
-  // Extras carry no number; left at 0 they sort ahead of chapter 1 and the app
-  // opens a side story as the beginning.
-  const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
+  // Notices and side stories carry no number. Numbering them above the run put them at
+  // the top of the list; they belong at the end of it, and never at index 0, which is
+  // where the app resumes an unread title.
+  const numbered = parsed.filter((chapter) => chapter.number !== 0);
   const extras = parsed.filter((chapter) => chapter.number === 0);
-  extras.forEach((chapter, position) => {
-    chapter.number = highest + (extras.length - position);
-  });
 
-  parsed.sort((a, b) => {
-    if (a.number !== b.number) return b.number - a.number;
-    return compareScanlators(a, b);
-  });
+  const byNumber = (left: Chapter, right: Chapter): number => {
+    if (left.number !== right.number) return right.number - left.number;
+    return compareScanlators(left, right);
+  };
 
-  const total = parsed.length;
-  return parsed.map((chapter, position) => ({ ...chapter, index: total - 1 - position }));
+  numbered.sort(byNumber);
+
+  // The list reads newest first with the extras beneath it, while `index` counts up from
+  // the earliest numbered chapter and leaves the extras above the run.
+  const ordered = [...numbered, ...extras];
+  const indexOf = new Map<Chapter, number>();
+  numbered.forEach((chapter, position) => indexOf.set(chapter, numbered.length - 1 - position));
+  extras.forEach((chapter, position) => indexOf.set(chapter, numbered.length + position));
+
+  return ordered.map((chapter) => ({ ...chapter, index: indexOf.get(chapter) ?? 0 }));
 }
 
 export function parseRelated(html: string): MangagoListing[] {
