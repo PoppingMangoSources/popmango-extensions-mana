@@ -83,7 +83,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.7",
+  version: "1.0.8",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -449,7 +449,7 @@ class KaganeSource
     return this.runSearch(
       body,
       page,
-      spec.limit ?? PAGE_SIZE,
+      PAGE_SIZE,
       buildSortParameter(spec.sort, false),
       spec.layout,
     );

@@ -125,7 +125,6 @@ export type DiscoverSection = {
   style: SectionStyle;
   layout: SectionLayoutKind;
   sort: string;
-  limit?: number;
 };
 
 export const DISCOVER_SECTIONS: DiscoverSection[] = [
@@ -136,7 +135,6 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     layout: SectionLayout.Hero,
     // All-time, by cumulative views. The averaged sorts read as a monthly chart.
     sort: SortID.TotalViews,
-    limit: 20,
   },
   {
     id: "trending_month",
