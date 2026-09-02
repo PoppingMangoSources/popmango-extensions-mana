@@ -3,21 +3,21 @@ import {
   SearchSortSection,
   SearchTagsSection,
   type SearchForm,
-  type SearchListField,
+  type SearchListItem,
   type SearchOptionField,
   type SearchRequest,
   type SearchSection,
-  type SearchSortStyle,
 } from "@mana-app/types";
 
 type SearchFormSpec = {
-  fields?: readonly SearchListField[];
+  // A `SearchGroup` is allowed here alongside plain fields; the host renders one as a
+  // collapsed disclosure and each child keeps its own filter id.
+  fields?: readonly SearchListItem[];
   header?: string;
   footer?: string;
   tags?: SearchOptionField;
   tagsHeader?: string;
   sortHeader?: string;
-  sortStyle?: SearchSortStyle;
   includeSort?: boolean;
 };
 
@@ -46,10 +46,7 @@ export function buildSearchForm(spec: SearchFormSpec): SearchForm {
 
   if (spec.includeSort !== false) {
     sections.push(
-      SearchSortSection({
-        ...(spec.sortHeader === undefined ? {} : { header: spec.sortHeader }),
-        ...(spec.sortStyle === undefined ? {} : { style: spec.sortStyle }),
-      }),
+      SearchSortSection(spec.sortHeader === undefined ? {} : { header: spec.sortHeader }),
     );
   }
 

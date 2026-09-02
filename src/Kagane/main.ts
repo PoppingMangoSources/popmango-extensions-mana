@@ -4,7 +4,10 @@ import {
   CatalogRating,
   DefinedLanguages,
   SearchExcludableMultiPicker,
+  SearchExcludableMultiPickerSheet,
+  SearchGroup,
   SearchMultiPicker,
+  SearchMultiPickerSheet,
   SearchToggle,
   type Chapter,
   type ChapterData,
@@ -28,6 +31,7 @@ import {
   type SearchRequest,
   type SortOption,
   type SourceConfig,
+  type SourceContext,
   type SourceInfo,
   type SourcePreferenceProvider,
 } from "@mana-app/types";
@@ -79,7 +83,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.14",
+  version: "1.0.15",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -115,7 +119,7 @@ class KaganeSource
 
   private detailCache: { seriesId: string; details: unknown; at: number } | undefined;
 
-  private async bodyOptions(query?: string): Promise<SearchBodyOptions> {
+  private async bodyOptions(query?: string, context?: SourceContext): Promise<SearchBodyOptions> {
     const [uploadSource, contentRatings, contentLanguages, excludedGenreIds, excludedTagIds] =
       await Promise.all([
         this.preferences.text(PreferenceID.UploadSource, "all"),
@@ -132,6 +136,9 @@ class KaganeSource
       contentLanguages: contentLanguages.length > 0 ? contentLanguages : ["en"],
       excludedGenreIds,
       excludedTagIds,
+      ...(context?.allowedContentRatings === undefined
+        ? {}
+        : { allowedRatings: context.allowedContentRatings }),
     };
   }
 
@@ -200,8 +207,10 @@ class KaganeSource
         }),
         SearchMultiPicker({ id: FilterID.Format, title: "Format", options: FORMAT_OPTIONS }),
         SearchMultiPicker({ id: FilterID.Status, title: "Status", options: STATUS_OPTIONS }),
+        // The host no longer turns a long option list into a sheet on its own, so the
+        // two lists the server fills — hundreds of tags, dozens of sources — ask for one.
         ...(sources.length > 0
-          ? [SearchMultiPicker({ id: FilterID.Sources, title: "Sources", options: sources })]
+          ? [SearchMultiPickerSheet({ id: FilterID.Sources, title: "Sources", options: sources })]
           : []),
         SearchToggle({
           id: FilterID.MatchAllGenres,
@@ -210,12 +219,22 @@ class KaganeSource
         }),
         ...(tags.length > 0
           ? [
-              SearchToggle({
-                id: FilterID.MatchAllTags,
-                title: "Match All Tags",
-                subtitle: "Require every selected tag rather than any of them",
+              SearchGroup({
+                id: "tag-filters",
+                title: "Tags",
+                children: [
+                  SearchToggle({
+                    id: FilterID.MatchAllTags,
+                    title: "Match All Tags",
+                    subtitle: "Require every selected tag rather than any of them",
+                  }),
+                  SearchExcludableMultiPickerSheet({
+                    id: FilterID.Tags,
+                    title: "Tags",
+                    options: tags,
+                  }),
+                ],
               }),
-              SearchExcludableMultiPicker({ id: FilterID.Tags, title: "Tags", options: tags }),
             ]
           : []),
       ],
@@ -257,20 +276,20 @@ class KaganeSource
     return toPageSections(DISCOVER_SECTIONS);
   }
 
-  async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
+  async resolvePageSection(link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     const spec = sectionById(DISCOVER_SECTIONS, sectionID);
     if (!spec) return { items: [] };
 
-    const { results } = await this.loadSection(spec, 1);
+    const { results } = await this.loadSection(spec, 1, link.context);
     return { items: results };
   }
 
   async search(request: SearchRequest): Promise<PagedSearchResult> {
     const spec = sectionById(DISCOVER_SECTIONS, request.listId);
-    if (spec) return this.loadSection(spec, pageOf(request));
+    if (spec) return this.loadSection(spec, pageOf(request), request.context);
 
     const filters = new FilterReader(request);
-    const body = buildSearchBody(await this.bodyOptions(request.query), filters);
+    const body = buildSearchBody(await this.bodyOptions(request.query, request.context), filters);
 
     const requestedSort = request.sort?.id ?? "";
     const sortId = SORT_OPTIONS.some((option) => option.id === requestedSort)
@@ -413,8 +432,12 @@ class KaganeSource
     return details;
   }
 
-  private async loadSection(spec: DiscoverSection, page: number): Promise<PagedSearchResult> {
-    const body = buildSearchBody(await this.bodyOptions());
+  private async loadSection(
+    spec: DiscoverSection,
+    page: number,
+    context?: SourceContext,
+  ): Promise<PagedSearchResult> {
+    const body = buildSearchBody(await this.bodyOptions(undefined, context));
 
     return this.runSearch(
       body,

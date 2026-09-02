@@ -44,14 +44,26 @@ export function stripTitleVersion(title: string): string {
   return title.replace(TITLE_VERSION_REGEX, "").trim() || title;
 }
 
+const RATED_GENRES: [ContentRating, string[]][] = [
+  [ContentRating.EXPLICIT, ["Adult", "Smut", "Yaoi"]],
+  [ContentRating.MATURE, ["Mature", "Bara"]],
+  [ContentRating.SUGGESTIVE, ["Ecchi"]],
+];
+
 export function ratingForGenres(genreTitles: string[]): ContentRating {
-  const lower = genreTitles.map((title) => title.trim().toLowerCase());
-  if (lower.some((title) => title === "adult" || title === "smut" || title === "yaoi")) {
-    return ContentRating.EXPLICIT;
+  const lower = new Set(genreTitles.map((title) => title.trim().toLowerCase()));
+  for (const [rating, genres] of RATED_GENRES) {
+    if (genres.some((genre) => lower.has(genre.toLowerCase()))) return rating;
   }
-  if (lower.some((title) => title === "mature" || title === "bara")) return ContentRating.MATURE;
-  if (lower.some((title) => title === "ecchi")) return ContentRating.SUGGESTIVE;
   return ContentRating.SAFE;
+}
+
+// The site filters by genre, not by rating, so a host policy is honoured by excluding the
+// genres that carry a disallowed rating — which keeps the paging intact.
+export function genresAboveRatingPolicy(allowed: readonly ContentRating[] | undefined): string[] {
+  if (!allowed) return [];
+  const permitted = new Set(allowed);
+  return RATED_GENRES.filter(([rating]) => !permitted.has(rating)).flatMap(([, genres]) => genres);
 }
 
 export const FEATURED_CONTAINER = "#popular_manga_list";

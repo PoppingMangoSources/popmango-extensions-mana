@@ -1,6 +1,6 @@
 # The `@mana-app/types` surface and the runtime that consumes it
 
-Verified against `@mana-app/types@0.0.24` and `@mana-app/dev@0.1.13` by reading the
+Verified against `@mana-app/types@0.0.25` and `@mana-app/dev@0.1.14` by reading the
 type declarations and the runtime embedded in `mana-dev`.
 
 ## How the app decides what your source can do
@@ -128,6 +128,34 @@ A `SearchForm` is `{ sections: SearchSection[] }`, built from three section buil
 `SearchTextField`, `SearchStepper`, `SearchDatePicker`. All are exported from
 `@mana-app/types`. `buildSearchForm` in `forms/search.ts` assembles them.
 
+**The builder chooses the presentation.** There is no presentation argument, and the host
+no longer promotes a long option list to a sheet on its own — a field with five hundred
+options renders as five hundred inline rows unless you ask for a sheet:
+
+| Builder | Presentation | Submits |
+| --- | --- | --- |
+| `SearchPicker` | list, single | `Option` |
+| `SearchMenuPicker` | compact menu | `Option` |
+| `SearchPickerSheet` | sheet, single | `Option` |
+| `SearchMultiPicker` | list, multi | `Option[]` |
+| `SearchMultiPickerSheet` | sheet, multi | `Option[]` |
+| `SearchExcludableMultiPicker` | list, include/exclude | `{ included, excluded }` |
+| `SearchExcludableMultiPickerSheet` | sheet, include/exclude | `{ included, excluded }` |
+
+Any list the server fills — genres, tags, scanlation sources — takes a sheet builder.
+`SearchTagsSection` is always inline chips and ignores sheet builders, so it suits a fixed
+list of a few dozen and nothing larger.
+
+`SearchGroup({ id, title, children })` groups fields visually inside a `SearchListSection`.
+It has no submitted value of its own and cannot nest. Note what it compiles to: the section
+flattens the group's children into `children` and records `groups: [{ id, title, fieldIds }]`
+alongside — so a group is a rendering hint, and each child keeps its own filter id.
+
+`SearchRequest.context` and `PageLink.context` carry `allowedContentRatings`, the ratings
+the host will accept for this request. It is absent when the host states no policy. Honour
+it through the site's own filtering — a rating parameter, or the genres that imply one —
+never by dropping rows after the fact, which leaves short and ragged pages.
+
 `SearchRequest.filters` values are `FilterPrimitives`:
 `string | boolean | number | Option | Option[] | ExcludableMultiSelectProp`. **The shape
 depends on the field type**, which is why `FilterReader` exists.
@@ -142,6 +170,9 @@ depends on the field type**, which is why `FilterReader` exists.
 | `Content.isNSFW: boolean` | `contentRating: ContentRating` (`SAFE`/`SUGGESTIVE`/`MATURE`/`EXPLICIT`) |
 | `SourceConfig.disableTagNavigation` | nothing — the key was removed |
 | `SourceInfo.rating` as NSFW enum | `CatalogRating` (`SAFE`/`MIXED`/`EXPLICIT`) |
+| `SearchPickerPresentation.PAGE` | the matching standard builder (`SearchPicker`, …) |
+| `SearchPickerPresentation.PICKER` | `SearchMenuPicker` |
+| `SearchSortSection({ style })` | `SearchSortSection({ header?, footer? })` — `style` was removed |
 
 Nothing warns you about any of these: `mana-dev` bundles with esbuild, which strips types
 without checking them. `npm run typecheck` is the gate that catches it.

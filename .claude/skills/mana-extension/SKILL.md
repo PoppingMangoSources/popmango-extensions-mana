@@ -156,6 +156,10 @@ The failures this repo has actually shipped, each silent:
 - [ ] `WebViewPage` navigated before `evaluate`, bounded by a timer, closed in `finally`
 - [ ] Redraw state serialised per image, not held in a bare field
 - [ ] Every home row costs one request — check the hero row especially
+- [ ] A server-filled option list uses a `*Sheet` builder — the host stopped promoting long
+      lists to sheets on its own, and `SearchTagsSection` is always inline
+- [ ] `context.allowedContentRatings` honoured through the site's own filtering, not by
+      dropping rows after the fact
 - [ ] Version bumped by one **patch** digit — `1.0.1`, never `1.1.0`, whatever changed
 
 ## Performance

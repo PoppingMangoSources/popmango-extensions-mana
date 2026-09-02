@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
+import { ContentRating } from "@mana-app/types";
+
 import type { FilterReader } from "../common/index.ts";
-import { FilterID } from "./model.ts";
+import { CONTENT_RATINGS, FilterID } from "./model.ts";
 
 export type SearchBodyOptions = {
   query?: string;
@@ -10,7 +12,38 @@ export type SearchBodyOptions = {
   contentLanguages: string[];
   excludedGenreIds: string[];
   excludedTagIds: string[];
+  allowedRatings?: readonly ContentRating[];
 };
+
+// Kagane names four ratings of its own; Erotica has no exact counterpart, and MATURE is
+// the closest rung the app offers below EXPLICIT.
+const RATING_EQUIVALENTS: Record<string, ContentRating> = {
+  Safe: ContentRating.SAFE,
+  Suggestive: ContentRating.SUGGESTIVE,
+  Erotica: ContentRating.MATURE,
+  Pornographic: ContentRating.EXPLICIT,
+};
+
+function applyRatingPolicy(
+  ratings: string[],
+  allowed: readonly ContentRating[] | undefined,
+): string[] {
+  if (!allowed) return ratings;
+
+  const permitted = new Set(allowed);
+  const allows = (rating: string): boolean => {
+    const equivalent = RATING_EQUIVALENTS[rating];
+    return equivalent !== undefined && permitted.has(equivalent);
+  };
+
+  const kept = (ratings.length > 0 ? ratings : CONTENT_RATINGS).filter(allows);
+  if (kept.length > 0) return kept;
+
+  // The saved choice and the host policy do not overlap. Sending nothing asks the API for
+  // everything, so fall back to the policy itself rather than to the narrower preference.
+  const policy = CONTENT_RATINGS.filter(allows);
+  return policy.length > 0 ? policy : ["Safe"];
+}
 
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
 
@@ -51,7 +84,10 @@ export function buildSearchBody(
   if (query) body["title"] = query;
 
   const ratings = filters?.options(FilterID.ContentRating) ?? [];
-  const contentRating = ratings.length > 0 ? ratings : options.contentRatings;
+  const contentRating = applyRatingPolicy(
+    ratings.length > 0 ? ratings : options.contentRatings,
+    options.allowedRatings,
+  );
   if (contentRating.length > 0) body["content_rating"] = contentRating;
 
   if (!filters) {

@@ -32,6 +32,7 @@ import {
   type SearchRequest,
   type SortOption,
   type SourceConfig,
+  type SourceContext,
   type SourceInfo,
   type SourcePreferenceProvider,
 } from "@mana-app/types";
@@ -72,6 +73,7 @@ import {
   buildGenreBrowseUrl,
   buildLatestUrl,
   buildSearchUrl,
+  genresAboveRatingPolicy,
   ratingForGenres,
   FEATURED_CONTAINER,
   hasNextPage,
@@ -108,7 +110,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.10",
+  version: "1.0.11",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -176,9 +178,10 @@ class MangagoSource
     return this.preferences.text(PreferenceID.ContentType, "all");
   }
 
-  private async settingsExcludedGenres(): Promise<string[]> {
+  private async settingsExcludedGenres(context?: SourceContext): Promise<string[]> {
     const excluded = await this.hiddenGenreTitles();
     if ((await this.contentType()) === "manga") excluded.push("Webtoons");
+    excluded.push(...genresAboveRatingPolicy(context?.allowedContentRatings));
     return excluded;
   }
 
@@ -239,10 +242,10 @@ class MangagoSource
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }
 
-  async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
+  async resolvePageSection(link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     const id = SECTION_ALIASES[sectionID] ?? sectionID;
     const spec = sectionById(DISCOVER_SECTIONS, id);
-    const { results } = await this.loadSection(id, spec, 1);
+    const { results } = await this.loadSection(id, spec, 1, true, link.context);
     return { items: results };
   }
 
@@ -250,7 +253,7 @@ class MangagoSource
     const listId = request.listId ? (SECTION_ALIASES[request.listId] ?? request.listId) : undefined;
     if (listId) {
       const spec = sectionById(DISCOVER_SECTIONS, listId);
-      if (spec) return this.loadSection(listId, spec, pageOf(request), false);
+      if (spec) return this.loadSection(listId, spec, pageOf(request), false, request.context);
     }
 
     const page = pageOf(request);
@@ -278,7 +281,7 @@ class MangagoSource
     const html = await this.fetchHtml(
       buildGenreBrowseUrl({
         included,
-        excluded: [...excluded, ...(await this.settingsExcludedGenres())],
+        excluded: [...excluded, ...(await this.settingsExcludedGenres(request.context))],
         page,
         sort: sortValue(resolveSortId(SORT_OPTIONS, request, SortID.Views)),
         ...(statuses.length > 0 ? { statuses } : {}),
@@ -455,6 +458,7 @@ class MangagoSource
     spec: DiscoverSection | undefined,
     page: number,
     capped = true,
+    context?: SourceContext,
   ): Promise<PagedSearchResult> {
     const limit = capped ? spec?.limit : undefined;
 
@@ -464,7 +468,7 @@ class MangagoSource
       return { results: await this.toHighlights(limited), isLastPage: true };
     }
 
-    const excluded = await this.settingsExcludedGenres();
+    const excluded = await this.settingsExcludedGenres(context);
     const isTop = sectionId.startsWith("top_");
     const sort = sectionId === "popular_manga" || isTop ? "comment_count" : "view";
 
@@ -472,7 +476,7 @@ class MangagoSource
 
     const listings =
       sectionId === "new_chapters"
-        ? await this.filterNewChapters(parseLatestUpdates(html))
+        ? await this.filterNewChapters(parseLatestUpdates(html), context)
         : parseListings(html);
 
     const limited = limit === undefined ? listings : listings.slice(0, limit);
@@ -489,8 +493,13 @@ class MangagoSource
     };
   }
 
-  private async filterNewChapters(items: MangagoListing[]): Promise<MangagoListing[]> {
-    const hidden = new Set((await this.settingsExcludedGenres()).map((g) => g.toLowerCase()));
+  private async filterNewChapters(
+    items: MangagoListing[],
+    context?: SourceContext,
+  ): Promise<MangagoListing[]> {
+    const hidden = new Set(
+      (await this.settingsExcludedGenres(context)).map((g) => g.toLowerCase()),
+    );
     const webtoonsOnly = (await this.contentType()) === "webtoons";
     if (hidden.size === 0 && !webtoonsOnly) return items;
 
