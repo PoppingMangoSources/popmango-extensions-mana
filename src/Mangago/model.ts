@@ -168,7 +168,7 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   ).map(([id, genre]) => ({
     id: `top_${id}`,
     title: `${genre} Manga Top 10`,
-    style: SectionStyle.SimpleDoubleRow,
+    style: SectionStyle.SimpleSingleRow,
     limit: 10,
   })),
 ];

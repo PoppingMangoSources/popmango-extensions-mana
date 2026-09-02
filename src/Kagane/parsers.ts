@@ -361,10 +361,11 @@ export function parseChapters(
   const books = details.series_books ?? [];
   const useSourceNumber = SOURCE_CHAPTER_NUMBER_FORMATS.has(details.format ?? "");
 
-  // The API lists newest first; index 0 must be the first published chapter.
+  // The API lists newest first, but only roughly: a late upload of an early chapter sits
+  // out of place. Numbering comes from the reversed array, and `index` from the sort below.
   const ordered = [...books].reverse();
 
-  return ordered.map((book, index) => {
+  const chapters = ordered.map((book, index) => {
     const scanlator = parseScanlator(book, options.sourceName, options.official === true);
     const title = book.title.trim();
     const parsedNumber = Number.parseFloat(
@@ -395,4 +396,15 @@ export function parseChapters(
       ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
     };
   });
+
+  // `index` decides where the app resumes and index 0 must be the earliest chapter. Taken
+  // from the array it followed upload order, so a late re-upload of an early chapter left
+  // an unread series opening partway through.
+  return chapters
+    .sort((left, right) => {
+      if (left.number !== right.number) return left.number - right.number;
+      return left.date.getTime() - right.date.getTime();
+    })
+    .map((chapter, index) => ({ ...chapter, index }))
+    .reverse();
 }
