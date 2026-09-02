@@ -22,7 +22,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "7cd658967cd658967cd658967cd658967cd658967cd658967cd658967cd65896"
+      "hash": "7cfd0fa07cfd0fa07cfd0fa07cfd0fa07cfd0fa07cfd0fa07cfd0fa07cfd0fa0"
     },
     {
       "id": "mangago",
@@ -44,29 +44,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "20908f1b20908f1b20908f1b20908f1b20908f1b20908f1b20908f1b20908f1b"
-    },
-    {
-      "id": "mkissa",
-      "name": "Mkissa",
-      "version": "1.0.1",
-      "description": "Manga, manhwa and manhua from mkissa.to.",
-      "website": "https://mkissa.to",
-      "rating": 1,
-      "supportedLanguages": [
-        "en_US"
-      ],
-      "thumbnail": "Mkissa.png",
-      "developers": [
-        {
-          "name": "PoppingMango",
-          "github": "https://github.com/PoppingMangoSources"
-        }
-      ],
-      "path": "Mkissa",
-      "environment": "source",
-      "intents": 6298633,
-      "hash": "29fc167229fc167229fc167229fc167229fc167229fc167229fc167229fc1672"
+      "hash": "2069d54e2069d54e2069d54e2069d54e2069d54e2069d54e2069d54e2069d54e"
     }
   ]
 }

@@ -2,30 +2,6 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.1)
-
-### Changed
-
-- The page list is read from the site's own reader rather than from a signed request. The
-  signing was rejected in practice, and the hashing and cipher written for it are gone with
-  it. The series page is loaded, its parser claimed, and the chapter then routed to within
-  the page, which is where the site delivers the list.
-- A challenge is given one chance to clear before the reader is asked to solve it.
-
-## Mkissa (v1.0.0)
-
-First release. Manga, manhwa and manhua from mkissa.to:
-
-- Five home rows — Popular, Popular This Week, Popular This Month, Latest Updates and
-  Recommended — each of which can be turned off in settings.
-- Search across the site's sixty-eight genres with include and exclude, a country filter,
-  and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
-- Settings for image quality and adult content.
-- The page list is taken from the site's own reader, which is the only place it is
-  delivered: the series page is loaded, its parser is claimed, and the chapter is then
-  routed to within the page. The wait clears a cold challenge rather than giving up under
-  it.
-
 ## Kagane (current: v1.0.6)
 
 ### Fixed
