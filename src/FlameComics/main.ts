@@ -73,7 +73,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.0.3",
+  version: "1.0.4",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -176,8 +176,13 @@ class FlameComicsSource
     const { pageProps } = await this.api.fetchHome();
 
     // The poster rows have no chapter line, so they name the type and the like count.
+    // The carousel is left bare — its artwork already carries the title.
     const style: HighlightSubtitle =
-      sectionID === SectionID.Popular || sectionID === SectionID.StaffPicks ? "stats" : "chapter";
+      sectionID === SectionID.Featured
+        ? "none"
+        : sectionID === SectionID.Popular || sectionID === SectionID.StaffPicks
+          ? "stats"
+          : "chapter";
 
     if (sectionID === SectionID.Featured) {
       // A slide only carries banner artwork, so the portrait cover and the chapter line are

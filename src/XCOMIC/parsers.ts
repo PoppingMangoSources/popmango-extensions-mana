@@ -143,21 +143,21 @@ export function parseHighlight(
   const number = formatChapterNumber(latest ?? comic.chapterNodes_last?.[0]?.data);
   const uploaded = latest ? parseTimestamp(latest.dateModify ?? latest.datePublic) : undefined;
   const type = formatType(comic.type);
-  const genre = formatGenre(comic.genres?.[0]);
+  // Two genres: the third wraps and pushes the tile out of its row.
+  const genres = (comic.genres ?? []).slice(0, 2).map(formatGenre).filter(Boolean);
 
-  // The subtitle already names the chapter and the type, so neither is repeated here.
-  // One genre is enough: three of them wrap and push the tile out of its row.
   const info: Pair[] = [];
   if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
-  if (genre) info.push({ key: "Genre", value: genre });
-
-  const subtitle = [number ? `Chapter ${number}` : "", type].filter(Boolean).join(" • ");
+  if (genres.length > 0) {
+    info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
+  }
+  if (type) info.push({ key: "Type", value: type });
 
   return {
     id: comic.id,
     title: cleanTitle(decodeEntities(clean(comic.name))),
     cover: absoluteUrl(comic.urlCover),
-    ...(subtitle ? { subtitle } : {}),
+    ...(number ? { subtitle: `Chapter ${number}` } : {}),
     ...(info.length > 0 ? { info } : {}),
     contentRating: parseRating(comic),
     webUrl: seriesUrl(comic),

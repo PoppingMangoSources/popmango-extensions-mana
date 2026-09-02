@@ -45,7 +45,7 @@ import {
   toPageSections,
   type PreferenceValue,
 } from "../common/index.ts";
-import { XComicApi } from "./client.ts";
+import { XCOMICApi } from "./client.ts";
 import {
   BASE_URL,
   BROWSE_QUERY,
@@ -102,13 +102,13 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "xcomic",
-  name: "XComic",
-  version: "1.0.4",
+  name: "XCOMIC",
+  version: "1.0.0",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
   supportedLanguages: [DefinedLanguages.ENGLISH],
-  thumbnail: "XComic.png",
+  thumbnail: "XCOMIC.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
 
@@ -126,13 +126,13 @@ const BUNDLED_TAXONOMY: FilterTaxonomy = {
   contentRatings: CONTENT_RATING_OPTIONS,
 };
 
-class XComicSource
+class XCOMICSource
   implements ContentSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
 {
   readonly info = info;
   readonly config = config;
 
-  private readonly api = new XComicApi();
+  private readonly api = new XCOMICApi();
   private readonly preferences = new PreferenceStore(
     info.id,
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
@@ -521,7 +521,7 @@ class XComicSource
       this.titleCleaner(),
     ]);
     const comic = data.get_comicNode?.data;
-    if (!comic) throw new Error(`XComic has no title with id ${contentId}`);
+    if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);
 
     return parseContent(comic, cleanTitle);
   }
@@ -583,7 +583,7 @@ class XComicSource
     });
 
     const pages = parsePageUrls(data.get_chapterNode?.data?.imageUrls ?? []);
-    if (pages.length === 0) throw new Error(`XComic returned no pages for chapter ${chapterId}`);
+    if (pages.length === 0) throw new Error(`XCOMIC returned no pages for chapter ${chapterId}`);
 
     return { pages: pages.map((url) => ({ url })) };
   }
@@ -621,4 +621,4 @@ function parseYearRange(value: string): [number | null, number | null] {
   return single ? [Number(single[1]), Number(single[1])] : [null, null];
 }
 
-export class Target extends XComicSource {}
+export class Target extends XCOMICSource {}

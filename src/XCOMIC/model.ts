@@ -6,10 +6,11 @@ import type { PageSectionSpec } from "../common/index.ts";
 
 export const BASE_URL = "https://xcomic.me";
 
-/** The site answers on either host; a reader on a blocked network picks the other. */
+/** The site answers on any of these hosts; a reader on a blocked network picks another. */
 export const MIRROR_OPTIONS: Option[] = [
   { id: "https://xcomic.me", title: "xcomic.me" },
   { id: "https://xcomic.net", title: "xcomic.net" },
+  { id: "https://comik.to", title: "comik.to" },
 ];
 
 // Every URL the source builds goes through here so the mirror setting reaches the

@@ -89,8 +89,9 @@ export function categoriesOf(item: SeriesListItem | SeriesDetail): string[] {
 /**
  * What a tile puts under the title. Rows about new chapters name the chapter; the poster
  * rows have no chapter to speak of, so they carry the type and the site's like count.
+ * The carousel names nothing — its artwork already carries the title.
  */
-export type HighlightSubtitle = "chapter" | "stats";
+export type HighlightSubtitle = "chapter" | "stats" | "none";
 
 export function parseHighlight(
   item: SeriesListItem,
@@ -108,12 +109,12 @@ export function parseHighlight(
     });
   }
   if (item.status) info.push({ key: "Status", value: item.status });
-  if (item.likes != null) info.push({ key: "Likes ♥", value: String(item.likes) });
+  if (item.likes != null) info.push({ key: "Likes", value: `♥ ${item.likes}` });
 
   const subtitle =
     style === "stats"
-      ? [item.type, item.likes == null ? "" : `♥ ${item.likes}`].filter(Boolean).join(" • ")
-      : latest
+      ? [item.type, item.likes == null ? "" : `♥ ${item.likes}`].filter(Boolean).join(" | ")
+      : style === "chapter" && latest
         ? `Chapter ${formatChapterNumber(latest.chapter)}`
         : "";
 

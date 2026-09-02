@@ -81,7 +81,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.Featured,
     title: "Featured",
     subtitle: "The site's own front-page carousel",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    style: SectionStyle.SimpleSingleRow,
   },
 ];
 

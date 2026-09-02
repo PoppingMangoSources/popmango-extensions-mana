@@ -11,7 +11,7 @@ function isCloudflareChallenge(response: NetworkResponse): boolean {
   return key !== undefined && String(headers[key] ?? "").toLowerCase() === "challenge";
 }
 
-export class XComicApi {
+export class XCOMICApi {
   private client: NetworkClient | undefined;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
@@ -79,13 +79,13 @@ export class XComicApi {
       try {
         parsed = JSON.parse(body) as GraphQLResponse<T>;
       } catch {
-        throw new Error("XComic returned a response that was not JSON");
+        throw new Error("XCOMIC returned a response that was not JSON");
       }
 
       if (parsed.errors?.length) {
         throw new Error(parsed.errors.map((error) => error.message).join("\n"));
       }
-      if (!parsed.data) throw new Error("XComic returned no data");
+      if (!parsed.data) throw new Error("XCOMIC returned no data");
 
       return parsed.data;
     });
@@ -100,7 +100,7 @@ export class XComicApi {
       throw new CloudflareError(baseUrl());
     }
     if (response.status >= 400) {
-      throw new Error(`XComic rejected the request (HTTP ${response.status})`);
+      throw new Error(`XCOMIC rejected the request (HTTP ${response.status})`);
     }
 
     return data;
