@@ -2,7 +2,21 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Kagane (current: v1.0.6)
+## Kagane (current: v1.0.7)
+
+### Fixed
+
+- The hero row ranked by averaged views, which reads as a monthly chart rather than an
+  all-time one. It counts total views again, as other clients for this site do, and shows
+  twenty titles instead of ten.
+
+### Changed
+
+- Identical requests already in flight share one response, so a refresh that fires every
+  row at once, or a retry after a challenge, no longer asks the server the same question
+  several times over.
+
+## Kagane (v1.0.6)
 
 ### Fixed
 
@@ -81,7 +95,14 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.0)
+## Mangago (current: v1.0.1)
+
+### Changed
+
+- Helpers used only inside their own file are no longer exported, and two byte encoders
+  that no source still calls are gone.
+
+## Mangago (v1.0.0)
 
 First release, renumbered on the same basis as above.
 
