@@ -2,7 +2,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { withChallengeRetry } from "../common/index.ts";
+import { isChallengePage, withChallengeRetry } from "../common/index.ts";
 import { API_URL, BASE_URL, type GraphQLResponse } from "./model.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
@@ -58,7 +58,12 @@ export class XComicApi {
     return withChallengeRetry(BASE_URL, async () => {
       const response = await this.http.post(API_URL, { body: { query, variables } });
 
-      if (response.status === 403 || response.status === 503) {
+      // A refusal is only a challenge when the interstitial itself comes back; the API
+      // answers an ordinary block with the same status and no challenge markup.
+      if (
+        (response.status === 403 || response.status === 503) &&
+        isChallengePage(response.data ?? "")
+      ) {
         throw new CloudflareError(BASE_URL);
       }
       if (response.status >= 400) {

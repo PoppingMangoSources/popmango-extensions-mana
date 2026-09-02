@@ -52,24 +52,24 @@ export const SORT_OPTIONS: SortOption[] = [
 ];
 
 export const SectionID = {
-  Featured: "featured",
   Popular: "popular",
+  Featured: "featured",
   Latest: "latest",
   StaffPicks: "staff_picks",
 } as const;
 
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
-    id: SectionID.Featured,
-    title: "Featured",
-    subtitle: "The site's own front-page carousel",
-    style: SectionStyle.SimpleHeroPaged,
-  },
-  {
     id: SectionID.Popular,
     title: "Popular",
     subtitle: "What the site is putting forward",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    style: SectionStyle.SimpleHeroPaged,
+  },
+  {
+    id: SectionID.Featured,
+    title: "Featured",
+    subtitle: "The site's own front-page carousel",
+    style: SectionStyle.SimpleSingleRow,
   },
   {
     id: SectionID.Latest,

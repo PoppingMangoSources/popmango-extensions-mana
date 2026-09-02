@@ -49,10 +49,10 @@ becomes available to install.
 
 | Source | Site | Rating | Version |
 | :----- | :--- | :----- | :------ |
-| **FlameComics** | [flamecomics.xyz](https://flamecomics.xyz) | Safe | v1.0.1 |
+| <img src="media/sources/flamecomics.png" width="22" align="top"/> **FlameComics** | [flamecomics.xyz](https://flamecomics.xyz) | Safe | v1.0.2 |
 | <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.8 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.4 |
-| <img src="media/sources/xcomic.png" width="22" align="top"/> **XComic** | [xcomic.me](https://xcomic.me) | 18+ | v1.0.1 |
+| <img src="media/sources/xcomic.png" width="22" align="top"/> **XComic** | [xcomic.me](https://xcomic.me) | 18+ | v1.0.2 |
 <!-- sources:end -->
 
 ## Reporting a problem

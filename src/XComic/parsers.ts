@@ -22,17 +22,18 @@ import {
 import {
   BASE_URL,
   CONTENT_RATING_GENRES,
+  TYPE_OPTIONS,
   type ChapterData,
   type ComicData,
   type NamedNode,
 } from "./model.ts";
 
-export function absoluteUrl(target: string | null | undefined): string {
+function absoluteUrl(target: string | null | undefined): string {
   const value = (target ?? "").trim();
   return value ? resolveUrl(value, BASE_URL) : "";
 }
 
-export function seriesUrl(comic: ComicData): string {
+function seriesUrl(comic: ComicData): string {
   return absoluteUrl(comic.urlPath || `/comic/${comic.id}`);
 }
 
@@ -44,7 +45,7 @@ function names(nodes: NamedNode[] | null | undefined): string[] {
 }
 
 /** The site states a rating, but only sometimes; its genres say the rest. */
-export function parseRating(comic: ComicData): ContentRating {
+function parseRating(comic: ComicData): ContentRating {
   const stated = (comic.contentRating ?? "").toLowerCase();
   const genres = (comic.genres ?? []).map((genre) => genre.trim().toLowerCase());
 
@@ -58,7 +59,7 @@ export function parseRating(comic: ComicData): ContentRating {
   return ContentRating.SAFE;
 }
 
-export function parseContentType(type: string | null | undefined): ContentType | undefined {
+function parseContentType(type: string | null | undefined): ContentType | undefined {
   switch ((type ?? "").toLowerCase()) {
     case "manga":
       return ContentType.MANGA;
@@ -90,7 +91,7 @@ function parseStatus(status: string | null | undefined): PublicationStatus | und
 }
 
 /** Timestamps arrive as seconds or milliseconds depending on the field. */
-export function parseTimestamp(value: number | string | null | undefined): Date | undefined {
+function parseTimestamp(value: number | string | null | undefined): Date | undefined {
   const number = typeof value === "string" ? Number.parseInt(value, 10) : value;
   if (number == null || !Number.isFinite(number) || number <= 0) return undefined;
 
@@ -98,7 +99,7 @@ export function parseTimestamp(value: number | string | null | undefined): Date 
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export function formatChapterNumber(chapter: ChapterData | null | undefined): string | undefined {
+function formatChapterNumber(chapter: ChapterData | null | undefined): string | undefined {
   const raw = chapter?.chaNum ?? chapter?.serial;
   const value = typeof raw === "string" ? Number.parseFloat(raw) : raw;
   if (value != null && Number.isFinite(value)) return String(value);
@@ -106,24 +107,36 @@ export function formatChapterNumber(chapter: ChapterData | null | undefined): st
   return /(?:chapter|ch\.?)[\s_]*(\d+(?:\.\d+)?)/i.exec(chapter?.dname ?? "")?.[1];
 }
 
-export function parseHighlight(
-  comic: ComicData,
-  latest?: ChapterData,
-  extra: Pair[] = [],
-): Highlight {
+/** The site's own label for a type, as the listing endpoints send it lowercased. */
+function formatType(type: string | null | undefined): string {
+  const value = clean(type ?? "").toLowerCase();
+  if (!value) return "";
+  return TYPE_OPTIONS.find((option) => option.id === value)?.title ?? value;
+}
+
+/**
+ * Every listing endpoint already returns the type, genres and last chapter alongside the
+ * cover, so the tile carries them without a second request.
+ */
+export function parseHighlight(comic: ComicData, latest?: ChapterData): Highlight {
   const number = formatChapterNumber(latest ?? comic.chapterNodes_last?.[0]?.data);
   const uploaded = latest ? parseTimestamp(latest.dateModify ?? latest.datePublic) : undefined;
+  const type = formatType(comic.type);
+  const genres = (comic.genres ?? []).map((genre) => decodeEntities(clean(genre))).filter(Boolean);
 
   const info: Pair[] = [];
-  if (number)
-    info.push({ key: `Chapter ${number}`, value: uploaded ? relativeTime(uploaded) : "" });
-  info.push(...extra);
+  // Only the upload feed carries a date; elsewhere the subtitle already names the chapter.
+  if (number && uploaded) info.push({ key: `Chapter ${number}`, value: relativeTime(uploaded) });
+  if (type) info.push({ key: "Type", value: type });
+  if (genres.length > 0) info.push({ key: "Genres", value: genres.slice(0, 3).join(", ") });
+
+  const subtitle = [number ? `Chapter ${number}` : "", type].filter(Boolean).join(" • ");
 
   return {
     id: comic.id,
     title: decodeEntities(clean(comic.name)),
     cover: absoluteUrl(comic.urlCover),
-    ...(number ? { subtitle: `Chapter ${number}` } : {}),
+    ...(subtitle ? { subtitle } : {}),
     ...(info.length > 0 ? { info } : {}),
     contentRating: parseRating(comic),
     webUrl: seriesUrl(comic),
@@ -195,9 +208,18 @@ export function parseChapters(entries: readonly ChapterData[], language: string)
     };
   });
 
-  // index 0 must be the earliest chapter, or the app resumes partway through.
-  const byNumber = [...parsed].sort((left, right) => left.number - right.number);
-  const positions = new Map(byNumber.map((chapter, position) => [chapter.chapterId, position]));
+  // index 0 must be the earliest numbered chapter, or the app resumes partway through.
+  // Anything the site left unnumbered — a notice or an extra — is indexed after the run.
+  const positions = new Map<string, number>();
+  [...parsed]
+    .filter((chapter) => chapter.number !== 0)
+    .sort((left, right) => left.number - right.number)
+    .forEach((chapter, position) => positions.set(chapter.chapterId, position));
+
+  let next = positions.size;
+  for (const chapter of parsed) {
+    if (!positions.has(chapter.chapterId)) positions.set(chapter.chapterId, next++);
+  }
 
   return parsed.map((chapter) => ({
     ...chapter,

@@ -137,6 +137,7 @@ export const SectionID = {
   Views24Hours: "views_24h",
   Views7Days: "views_7d",
   ViewsTotal: "views_total",
+  MostChapters: "most_chapters",
   LatestUploads: "latest_uploads",
   RecentlyAdded: "recently_added",
 } as const;
@@ -144,43 +145,46 @@ export const SectionID = {
 /** A home row is the browse query under one sort, except the two that have endpoints. */
 export type DiscoverSection = PageSectionSpec & { sort?: string };
 
+// Titles are the site's own, as the other clients for it use them.
 export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: SectionID.TopRated,
     title: "Top Rated",
-    subtitle: "The site's highest scored",
     style: SectionStyle.SimpleHeroPaged,
     sort: SortID.Score,
   },
   {
     id: SectionID.Views24Hours,
-    title: "Trending Today",
-    subtitle: "Most read in the last day",
+    title: "Most Viewed (24 Hours)",
     style: SectionStyle.DetailedDoubleRowPaged,
     sort: SortID.Views24Hours,
   },
   {
     id: SectionID.Views7Days,
-    title: "Trending This Week",
+    title: "Most Viewed (7 Days)",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.Views7Days,
   },
   {
     id: SectionID.LatestUploads,
     title: "Latest Uploads",
-    subtitle: "Fresh chapters as they land",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
     id: SectionID.ViewsTotal,
-    title: "Most Read of All Time",
+    title: "Most Viewed (All Time)",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.ViewsTotal,
   },
   {
+    id: SectionID.MostChapters,
+    title: "Most Chapters",
+    style: SectionStyle.SimpleSingleRow,
+    sort: SortID.Chapters,
+  },
+  {
     id: SectionID.RecentlyAdded,
     title: "Recently Added",
-    subtitle: "New to the site",
     style: SectionStyle.SimpleSingleRow,
   },
 ];
