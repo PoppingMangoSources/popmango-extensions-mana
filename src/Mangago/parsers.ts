@@ -39,7 +39,7 @@ function coverUrl(node: Cheerio<AnyNode>): string {
   return absoluteUrl(imageSrc(node));
 }
 
-export function stripTitleVersion(title: string): string {
+function stripTitleVersion(title: string): string {
   TITLE_VERSION_REGEX.lastIndex = 0;
   return title.replace(TITLE_VERSION_REGEX, "").trim() || title;
 }

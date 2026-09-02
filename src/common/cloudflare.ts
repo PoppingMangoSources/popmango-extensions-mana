@@ -86,7 +86,7 @@ async function runAttempt(url: string, siteSelector: string): Promise<boolean> {
  * Without this, one failed attempt on the home page sent every later screen straight to
  * the manual prompt.
  */
-export function noteChallengeCleared(): void {
+function noteChallengeCleared(): void {
   lastAttemptAt = 0;
 }
 
@@ -98,7 +98,7 @@ export function noteChallengeCleared(): void {
  * attempt runs out of time — the caller then surfaces it for the reader to solve by hand.
  * A cooldown stops a site that challenges everything from spending the budget per request.
  */
-export async function passChallenge(url: string, siteSelector = SITE_LOADED): Promise<boolean> {
+async function passChallenge(url: string, siteSelector = SITE_LOADED): Promise<boolean> {
   if (inFlight) return inFlight;
   if (Date.now() - lastAttemptAt < COOLDOWN_MS) return false;
 

@@ -12,7 +12,7 @@ const READER_NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-user": "?1",
 };
 
-export function isReaderMirrorHost(host: string): boolean {
+function isReaderMirrorHost(host: string): boolean {
   return /(?:^|\.)(?:mangago\.zone|youhim\.me)$/i.test(host);
 }
 
@@ -34,7 +34,7 @@ export function parsePathAndQuery(target: string): string {
   return cut >= 0 ? pathAndQuery.slice(0, cut) : pathAndQuery;
 }
 
-export function isReaderPageUrl(target: string): boolean {
+function isReaderPageUrl(target: string): boolean {
   const pathname = parsePathAndQuery(target);
   const readManga = /^\/read-manga\/[^/]+\/(.+)/.exec(pathname);
   if (readManga && (readManga[1] ?? "").length > 0) return true;

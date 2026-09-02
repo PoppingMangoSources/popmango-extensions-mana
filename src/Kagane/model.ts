@@ -134,10 +134,9 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: "Popular",
     style: SectionStyle.SimpleHeroPaged,
     layout: SectionLayout.Hero,
-    // The site's own all-time row averages views rather than totalling them, which keeps a
-    // long-running series from sitting on top forever.
-    sort: SortID.AverageViews,
-    limit: 10,
+    // All-time, by cumulative views. The averaged sorts read as a monthly chart.
+    sort: SortID.TotalViews,
+    limit: 20,
   },
   {
     id: "trending_month",

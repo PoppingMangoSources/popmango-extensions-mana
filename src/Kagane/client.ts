@@ -55,6 +55,9 @@ export class KaganeApi {
   private integrityRequest: Promise<string> | undefined;
 
   private readonly lists = new Map<string, Promise<unknown>>();
+  // A refresh fires every row at once and a retry repeats them; identical calls in flight
+  // share one response rather than knocking on Cloudflare twice for the same page.
+  private readonly searches = new Map<string, Promise<SearchResponse>>();
 
   accessToken = "";
 
@@ -127,7 +130,18 @@ export class KaganeApi {
     // Relevance is the default and is asked for by leaving the parameter off entirely.
     if (sort) url.setQueryItem("sort", sort);
 
-    return this.postJson<SearchResponse>(url.build(), body);
+    const target = url.build();
+    const key = `${target}|${JSON.stringify(body)}`;
+
+    const inFlight = this.searches.get(key);
+    if (inFlight) return inFlight;
+
+    const request = this.postJson<SearchResponse>(target, body).finally(() => {
+      if (this.searches.get(key) === request) this.searches.delete(key);
+    });
+
+    this.searches.set(key, request);
+    return request;
   }
 
   async fetchSeries(seriesId: string): Promise<DetailsResponse> {

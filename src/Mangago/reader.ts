@@ -131,7 +131,7 @@ export function isUsableChapterJs(script: unknown): script is string {
   );
 }
 
-export function unscrambleImageList(imageList: string, script: string): string {
+function unscrambleImageList(imageList: string, script: string): string {
   KEY_LOCATION_REGEX.lastIndex = 0;
   const locations = [
     ...new Set([...script.matchAll(KEY_LOCATION_REGEX)].map((match) => Number(match[1]))),
@@ -175,7 +175,7 @@ export function decodeImgsrcs(blob: string, crypto: ReaderCrypto, keepBlanks = f
   return keepBlanks ? images : images.filter(Boolean);
 }
 
-export function buildDescramblingKeyScript(script: string): string {
+function buildDescramblingKeyScript(script: string): string {
   const afterRenImg = script.split("var renImg = function(img,width,height,id){")[1];
   if (!afterRenImg) throw new Error("renImg not found in chapter.js");
 

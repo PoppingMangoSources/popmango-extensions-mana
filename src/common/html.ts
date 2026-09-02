@@ -97,7 +97,7 @@ export function decodeEntities(value: string): string {
 }
 
 /** Turns a tag-heavy synopsis into the plain paragraphs the app renders. */
-export function summaryFromHtml(html: string): string {
+function summaryFromHtml(html: string): string {
   return decodeEntities(
     html
       .replace(/<\s*br\s*\/?\s*>/gi, "\n")

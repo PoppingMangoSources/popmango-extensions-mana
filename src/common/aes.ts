@@ -223,49 +223,6 @@ const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
  * `atob` is polyfilled in the runtime but yields a binary string; decoding
  * directly avoids the extra copy, and keeps this working if it ever is not.
  */
-export function bytesToBase64(bytes: Uint8Array): string {
-  let out = "";
-  for (let i = 0; i < bytes.length; i += 3) {
-    const b0 = bytes[i]!;
-    const b1 = bytes[i + 1];
-    const b2 = bytes[i + 2];
-    out += BASE64_ALPHABET[b0 >> 2];
-    out += BASE64_ALPHABET[((b0 & 3) << 4) | ((b1 ?? 0) >> 4)];
-    out += b1 === undefined ? "=" : BASE64_ALPHABET[((b1 & 15) << 2) | ((b2 ?? 0) >> 6)];
-    out += b2 === undefined ? "=" : BASE64_ALPHABET[b2 & 63];
-  }
-  return out;
-}
-
-export function utf8ToBytes(value: string): Uint8Array {
-  const out: number[] = [];
-  for (let i = 0; i < value.length; i++) {
-    let code = value.charCodeAt(i);
-    // A surrogate pair is one code point; combine it before encoding.
-    if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
-      const low = value.charCodeAt(i + 1);
-      if (low >= 0xdc00 && low <= 0xdfff) {
-        code = 0x10000 + ((code - 0xd800) << 10) + (low - 0xdc00);
-        i++;
-      }
-    }
-
-    if (code < 0x80) out.push(code);
-    else if (code < 0x800) out.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
-    else if (code < 0x10000) {
-      out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
-    } else {
-      out.push(
-        0xf0 | (code >> 18),
-        0x80 | ((code >> 12) & 0x3f),
-        0x80 | ((code >> 6) & 0x3f),
-        0x80 | (code & 0x3f),
-      );
-    }
-  }
-  return new Uint8Array(out);
-}
-
 export function base64ToBytes(value: string): Uint8Array {
   const clean = value.replace(/[^A-Za-z0-9+/=]/g, "").replace(/=+$/, "");
   const output = new Uint8Array(Math.floor((clean.length * 3) / 4));

@@ -63,7 +63,7 @@ export const STATUS_OPTIONS: Option[] = [
   { id: "o", title: "Ongoing" },
 ];
 
-export const GENRES = [
+const GENRES = [
   "Yaoi",
   "Comedy",
   "Shounen Ai",
@@ -173,7 +173,7 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   })),
 ];
 
-export const DEFAULT_OFF_SECTION_IDS = new Set<string>([]);
+const DEFAULT_OFF_SECTION_IDS = new Set<string>([]);
 
 export const SECTION_ALIASES: Record<string, string> = {
   popular: "popular_manga",
