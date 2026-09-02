@@ -2,6 +2,20 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## XComic (current: v1.0.0)
+
+First release. Manga, manhwa, manhua and comics from xcomic.me:
+
+- Six home rows — Top Rated, Most Views for today, this week and all time, Latest Uploads
+  and Recently Added — each of which can be turned off in settings.
+- The site's full advanced search: types, content ratings, demographics, genres with
+  include, exclude and match-all, original and upload status, chapter count, a year or a
+  year range, and original and translated languages, with nineteen sort orders.
+- Settings for content ratings, types, translated languages and a genre hide-list, which
+  stand in for anything the search form leaves blank.
+- Chapters keep the site's own order and name their scanlator, whether that is an official
+  source, a group, or the person who uploaded it.
+
 ## FlameComics (current: v1.0.1)
 
 ### Added
