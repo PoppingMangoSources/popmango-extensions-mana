@@ -128,7 +128,16 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.3)
+## Mangago (current: v1.0.4)
+
+### Changed
+
+- Chapters are listed in the order the site uploaded them, which is what other clients for
+  this site show, instead of being re-sorted by number. Notices therefore sit where they
+  were posted rather than being gathered at either end. An unread title still starts at its
+  first numbered chapter.
+
+## Mangago (v1.0.3)
 
 ### Changed
 
