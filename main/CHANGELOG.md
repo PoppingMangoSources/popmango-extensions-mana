@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaUpdates (current: v1.0.0)
+## MangaUpdates (current: v1.0.1)
+
+### Fixed
+
+- Checked every call against the site's published API description. A write refused for
+  being inside the five-second window is now waited out and sent again rather than lost,
+  signing in no longer carries the session it is replacing, the account screen no longer
+  reads contribution counts as though they were reading counts, and Drama CD joins the
+  types the search offers (v1.0.1).
 
 ### Added
 
