@@ -5,7 +5,7 @@
     {
       "id": "flamecomics",
       "name": "FlameComics",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Manhwa, manhua and manga from flamecomics.xyz.",
       "website": "https://flamecomics.xyz",
       "rating": 0,
@@ -22,12 +22,12 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "1b7bec3e1b7bec3e1b7bec3e1b7bec3e1b7bec3e1b7bec3e1b7bec3e1b7bec3e"
+      "hash": "699e9884699e9884699e9884699e9884699e9884699e9884699e9884699e9884"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
@@ -44,12 +44,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "7f648ddf7f648ddf7f648ddf7f648ddf7f648ddf7f648ddf7f648ddf7f648ddf"
+      "hash": "6779d63f6779d63f6779d63f6779d63f6779d63f6779d63f6779d63f6779d63f"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -66,12 +66,12 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "72ccb73572ccb73572ccb73572ccb73572ccb73572ccb73572ccb73572ccb735"
+      "hash": "2288541022885410228854102288541022885410228854102288541022885410"
     },
     {
       "id": "xcomic",
       "name": "XCOMIC",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Manga, manhwa, manhua and comics from xcomic.me.",
       "website": "https://xcomic.me",
       "rating": 2,
@@ -88,7 +88,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "7e658d717e658d717e658d717e658d717e658d717e658d717e658d717e658d71"
+      "hash": "667ad5dd667ad5dd667ad5dd667ad5dd667ad5dd667ad5dd667ad5dd667ad5dd"
     }
   ]
 }
