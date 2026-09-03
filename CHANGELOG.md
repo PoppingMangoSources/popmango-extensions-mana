@@ -10,9 +10,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.2)
+## MangaUpdates (current: v1.0.3)
 
 ### Fixed
+
+- Signing in said nothing, so the only way to tell it had worked was to leave Settings and
+  come back — and pressing the button again signed in all over again. The app rebuilds
+  that screen only when it is opened and gives a source no way to redraw it or raise a
+  notice, so the button now reports who it signed in as, and a second press says the
+  account is already signed in rather than repeating the request (v1.0.3).
 
 - The Sign In button did nothing but report both fields empty. The app runs every form
   callback on its own, so the typed username and password were gone by the time the

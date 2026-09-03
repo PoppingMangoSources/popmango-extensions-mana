@@ -88,7 +88,7 @@ import {
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -194,9 +194,21 @@ class MangaUpdatesTracker
             UIButton({
               id: "sign-in",
               title: "Sign In",
+              // The runtime hands a source ObjectStore, SecureStore and a network client
+              // and nothing else — there is no way to redraw this screen or raise a
+              // notice, and it is only rebuilt when it is opened. A thrown message is the
+              // one thing that reaches the reader while they are still looking at it, so
+              // both outcomes are reported that way even though the app calls each a
+              // failed preference update.
               action: async () => {
+                const existing = decodeSession(await readToken());
+                if (existing) throw new Error(`Already signed in as ${existing.username}.`);
+
                 const { username, password } = await readPendingCredentials();
                 await this.handleBasicAuth(username, password);
+
+                const handle = decodeSession(await readToken())?.username ?? username;
+                throw new Error(`Signed in as ${handle}. Reopen Settings to manage it.`);
               },
             }),
           ],
