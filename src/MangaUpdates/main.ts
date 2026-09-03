@@ -73,12 +73,22 @@ import {
   type SeriesSearchResponse,
 } from "./model.ts";
 import { parseContent, parseHighlight } from "./parsers.ts";
-import { clearToken, decodeSession, readToken, writeToken } from "./session.ts";
+import {
+  clearToken,
+  decodeSession,
+  forgetPassword,
+  forgetPendingCredentials,
+  readPendingCredentials,
+  readToken,
+  rememberPassword,
+  rememberUsername,
+  writeToken,
+} from "./session.ts";
 
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -125,10 +135,6 @@ class MangaUpdatesTracker
   private genreOptions: Option[] | undefined;
   private lists: Promise<ListDefinition[]> | undefined;
 
-  // Held only until the sign-in button is pressed. The password is never written to a
-  // store — the session token the site returns is the whole of what is worth keeping.
-  private credentials = { username: "", password: "" };
-
   // ===================== Authentication =====================
 
   /**
@@ -160,7 +166,7 @@ class MangaUpdatesTracker
       };
     }
 
-    this.credentials = { username: "", password: "" };
+    const pending = await readPendingCredentials();
 
     return {
       sections: [
@@ -168,31 +174,28 @@ class MangaUpdatesTracker
           header: "Account",
           footer:
             "Sign in with your mangaupdates.com username and password. The password is " +
-            "used once to obtain a session and is never stored.",
+            "held only until it has been offered to the site, and the session it returns " +
+            "is what is kept.",
           children: [
             UITextField({
               id: "username",
               title: "Username",
-              value: "",
-              didChange: async (value: string) => {
-                this.credentials.username = value;
-              },
+              value: pending.username,
+              didChange: rememberUsername,
             }),
             UITextField({
               id: "password",
               title: "Password",
+              // Never rendered back: the field starts empty even when one is being held.
               value: "",
               secure: true,
-              didChange: async (value: string) => {
-                this.credentials.password = value;
-              },
+              didChange: rememberPassword,
             }),
             UIButton({
               id: "sign-in",
               title: "Sign In",
               action: async () => {
-                const { username, password } = this.credentials;
-                this.credentials = { username: "", password: "" };
+                const { username, password } = await readPendingCredentials();
                 await this.handleBasicAuth(username, password);
               },
             }),
@@ -204,7 +207,9 @@ class MangaUpdatesTracker
 
   async handleBasicAuth(identifier: string, password: string): Promise<void> {
     const username = identifier.trim();
-    if (!username || !password) throw new Error("Enter your MangaUpdates username and password.");
+    // Said apart, because "fill both in" is no help to someone who filled one in.
+    if (!username) throw new Error("Enter your MangaUpdates username.");
+    if (!password) throw new Error("Enter the password for that account.");
 
     const response = await this.api
       .call<LoginResponse>("/account/login", "PUT", {
@@ -212,7 +217,9 @@ class MangaUpdatesTracker
         withoutSession: true,
         body: { username, password },
       })
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
+        // A refused password is not worth holding on to, whatever refused it.
+        await forgetPassword();
         // Being told to sign in is unhelpful while signing in; the details are the problem.
         if (error instanceof UnauthorizedError) {
           throw new Error("MangaUpdates did not accept that username and password.");
@@ -221,9 +228,13 @@ class MangaUpdatesTracker
       });
 
     const token = response.context?.session_token;
-    if (!token) throw new Error("MangaUpdates did not return a session for those details.");
+    if (!token) {
+      await forgetPassword();
+      throw new Error("MangaUpdates did not return a session for those details.");
+    }
 
     await writeToken(token);
+    await forgetPendingCredentials();
     // A new account has its own lists, so anything remembered for the last one is stale.
     this.lists = undefined;
   }
@@ -264,6 +275,7 @@ class MangaUpdatesTracker
     // Best effort: the local token is dropped either way, or the reader cannot sign out.
     await this.api.call("/account/logout", "POST").catch(() => undefined);
     await clearToken();
+    await forgetPendingCredentials();
     this.lists = undefined;
   }
 

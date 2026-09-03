@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import { base64ToBytes, bytesToUtf8 } from "../common/index.ts";
-import { SESSION_KEY } from "./model.ts";
+import { PENDING_PASSWORD_KEY, PENDING_USERNAME_KEY, SESSION_KEY } from "./model.ts";
 
 /** What the site puts in the session token's payload; the rest is not ours to read. */
 type SessionPayload = {
@@ -29,6 +29,41 @@ export async function writeToken(token: string): Promise<void> {
 
 export async function clearToken(): Promise<void> {
   await SecureStore.remove(SESSION_KEY);
+}
+
+/**
+ * The half-typed sign-in.
+ *
+ * Each form callback the app makes is its own trip into the source, so a field's value
+ * has to be written down when it changes or the button that reads it finds nothing. The
+ * password goes to the keychain rather than the database, and is dropped the moment it
+ * has been offered to the site.
+ */
+export async function rememberUsername(username: string): Promise<void> {
+  await ObjectStore.set(PENDING_USERNAME_KEY, username);
+}
+
+export async function rememberPassword(password: string): Promise<void> {
+  await SecureStore.set(PENDING_PASSWORD_KEY, password);
+}
+
+export async function readPendingCredentials(): Promise<{ username: string; password: string }> {
+  const [username, password] = await Promise.all([
+    ObjectStore.string(PENDING_USERNAME_KEY).catch(() => undefined),
+    SecureStore.string(PENDING_PASSWORD_KEY).catch(() => undefined),
+  ]);
+  return { username: (username ?? "").trim(), password: password ?? "" };
+}
+
+export async function forgetPassword(): Promise<void> {
+  await SecureStore.remove(PENDING_PASSWORD_KEY).catch(() => undefined);
+}
+
+export async function forgetPendingCredentials(): Promise<void> {
+  await Promise.all([
+    ObjectStore.remove(PENDING_USERNAME_KEY).catch(() => undefined),
+    forgetPassword(),
+  ]);
 }
 
 /**

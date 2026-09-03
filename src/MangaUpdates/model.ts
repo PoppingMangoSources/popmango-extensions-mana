@@ -10,6 +10,14 @@ export const API_URL = "https://api.mangaupdates.com/v1";
 /** The session token is a JWT, so it belongs in the keychain rather than the database. */
 export const SESSION_KEY = "mangaupdates.session-token";
 
+/**
+ * What the sign-in fields have been given so far. The app runs each form callback on its
+ * own, so anything the source only holds in memory is gone by the time the button is
+ * pressed — these have to outlive the keystroke that set them.
+ */
+export const PENDING_USERNAME_KEY = "mangaupdates.pending-username";
+export const PENDING_PASSWORD_KEY = "mangaupdates.pending-password";
+
 export const PAGE_SIZE = 25;
 export const SECTION_SIZE = 20;
 
