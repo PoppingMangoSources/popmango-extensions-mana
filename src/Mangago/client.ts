@@ -2,7 +2,13 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { ACCEPT_LANGUAGE, HTML_ACCEPT, hostOf, isChallengePage } from "../common/index.ts";
+import {
+  ACCEPT_LANGUAGE,
+  HTML_ACCEPT,
+  challengedUrl,
+  hostOf,
+  isChallengePage,
+} from "../common/index.ts";
 import { BROWSE_USER_AGENT, DOMAIN, READER_USER_AGENT } from "./model.ts";
 
 const READER_NAVIGATION_HEADERS: Record<string, string> = {
@@ -69,17 +75,30 @@ export function buildMangagoClient(): NetworkClient {
   };
 
   const interceptResponse = async (response: NetworkResponse): Promise<NetworkResponse> => {
+    // The challenged URL is what the app opens for the reader; Cloudflare answers it
+    // with the interstitial, and the clearance it mints covers the whole domain.
     const mitigated = response.headers?.["cf-mitigated"];
-    if (mitigated === "challenge" || response.status === 403 || response.status === 503) {
-      throw new CloudflareError(DOMAIN);
+    if (
+      mitigated === "challenge" ||
+      response.status === 403 ||
+      response.status === 503 ||
+      isChallengePage(response.data)
+    ) {
+      throw new CloudflareError(challengedUrl(response, DOMAIN));
     }
-    if (isChallengePage(response.data)) throw new CloudflareError(DOMAIN);
     return response;
   };
 
-  return new NetworkClientBuilder()
-    .setRateLimit(3, 1)
-    .addRequestInterceptor(interceptRequest)
-    .addResponseInterceptor(interceptResponse)
-    .build();
+  return (
+    new NetworkClientBuilder()
+      .setRateLimit(3, 1)
+      // Without this the host throws on 403 and 503 before the interceptor above sees them,
+      // which left every challenge reported as a plain network error.
+      .setStatusValidator(
+        (status) => (status >= 200 && status < 400) || status === 403 || status === 503,
+      )
+      .addRequestInterceptor(interceptRequest)
+      .addResponseInterceptor(interceptResponse)
+      .build()
+  );
 }

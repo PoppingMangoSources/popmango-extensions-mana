@@ -2,7 +2,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { UrlBuilder, withChallengeRetry } from "../common/index.ts";
+import { UrlBuilder, challengedUrl, withChallengeRetry } from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
@@ -81,7 +81,11 @@ export class KaganeApi {
         },
       }))
       .addResponseInterceptor(async (response: NetworkResponse) => {
-        if (isCloudflareChallenge(response)) throw new CloudflareError(BASE_URL);
+        // The challenged URL is what the app opens for the reader; Cloudflare answers it
+        // with the interstitial, and the clearance it mints covers the whole domain.
+        if (isCloudflareChallenge(response)) {
+          throw new CloudflareError(challengedUrl(response, BASE_URL));
+        }
         return response;
       })
       .build();

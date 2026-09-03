@@ -23,6 +23,19 @@ const CHALLENGE_PATTERNS: readonly RegExp[] = [
  * Cloudflare's interstitial answers with a normal 200 as often as it answers
  * with a 403, so the body has to be sniffed as well as the status code.
  */
+/**
+ * The URL to hand the reader for a challenge, which is the one that was challenged.
+ *
+ * Cloudflare answers that URL with the interstitial rather than the endpoint's own
+ * response, so opening it shows the puzzle to solve — and the clearance it mints is
+ * scoped to the whole domain, so it covers every other request the source makes. The
+ * site root is only the fallback, for a response that did not record its request.
+ */
+export function challengedUrl(response: NetworkResponse, fallback: string): string {
+  const url = response.request?.url;
+  return typeof url === "string" && url ? url : fallback;
+}
+
 export function isChallengePage(html: string): boolean {
   if (!html) return false;
   const head = html.slice(0, 4096);
@@ -104,7 +117,7 @@ export function buildClient(options: ClientOptions): NetworkClient {
 
   const interceptResponse = async (response: NetworkResponse): Promise<NetworkResponse> => {
     if (response.status === 403 || response.status === 503 || isChallengePage(response.data)) {
-      throw new CloudflareError(resolutionUrl);
+      throw new CloudflareError(challengedUrl(response, resolutionUrl));
     }
     if (json && response.status >= 400) {
       throw new Error(

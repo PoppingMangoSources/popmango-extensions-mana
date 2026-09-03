@@ -2,7 +2,12 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { HTML_ACCEPT, isChallengePage, withChallengeRetry } from "../common/index.ts";
+import {
+  HTML_ACCEPT,
+  challengedUrl,
+  isChallengePage,
+  withChallengeRetry,
+} from "../common/index.ts";
 import { apiUrl, baseUrl, type GraphQLResponse } from "./model.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
@@ -32,7 +37,11 @@ export class XCOMICApi {
       }))
       .addResponseInterceptor(async (response: NetworkResponse) => {
         // The API host cannot render the interstitial, so the challenge points at the site.
-        if (isCloudflareChallenge(response)) throw new CloudflareError(baseUrl());
+        // The challenged URL is what the app opens for the reader; Cloudflare answers it
+        // with the interstitial, and the clearance it mints covers the whole domain.
+        if (isCloudflareChallenge(response)) {
+          throw new CloudflareError(challengedUrl(response, baseUrl()));
+        }
         return response;
       })
       .build();
@@ -97,7 +106,7 @@ export class XCOMICApi {
     // A refusal is only a challenge when the interstitial itself comes back; the site
     // answers an ordinary block with the same status and no challenge markup.
     if ((response.status === 403 || response.status === 503) && isChallengePage(data)) {
-      throw new CloudflareError(baseUrl());
+      throw new CloudflareError(challengedUrl(response, baseUrl()));
     }
     if (response.status >= 400) {
       throw new Error(`XCOMIC rejected the request (HTTP ${response.status})`);
