@@ -2,13 +2,17 @@
 
 import type { WebViewPageInstance } from "@mana-app/types";
 
-// A cold challenge measures 15-20 seconds. Anything under that gives up while it is
-// still working, which reads as the bypass doing nothing at all.
-const BUDGET_SECONDS = 40;
-const POLL_INTERVAL_MS = 500;
-// Long enough that a site challenging everything does not spend the budget per request,
-// short enough that the next screen the reader opens still gets an attempt of its own.
-const COOLDOWN_MS = 15_000;
+// The page itself may take a while to answer; the challenge on it is judged separately.
+const PAGE_TIMEOUT_SECONDS = 30;
+// A cold challenge measures 15-20 seconds. Under that gives up while it is still working,
+// which reads as the bypass doing nothing; far over it just delays the manual prompt.
+const CHALLENGE_BUDGET_MS = 20_000;
+// Fast enough that a challenge which clears in a few hundred milliseconds is noticed at
+// once. The probe is a `querySelector` against an already-parsed document, so it is cheap.
+const POLL_INTERVAL_MS = 25;
+
+// Two, so a request that raced the clearance cookie being written still gets a turn.
+const RETRY_ATTEMPTS = 2;
 
 /** Most of these sites are Next.js apps, so their own bundle is the proof of a real page. */
 const SITE_LOADED = 'script[src*="/_next/"], script[src*="/dist/"], script[src*="/static/"]';
@@ -37,12 +41,8 @@ const PROBE = `(function () {
   return markers.length > 0 ? "challenge" : "waiting";
 })();`;
 
-// Two, so a request that raced the clearance cookie being written still gets a turn.
-const RETRY_ATTEMPTS = 2;
-
 // One WebView may be active per source, so a home page of many rows shares one attempt.
 let inFlight: Promise<boolean> | undefined;
-let lastFailureAt = 0;
 
 function delay(ms: number): Promise<void> {
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
@@ -58,52 +58,42 @@ async function runAttempt(url: string, siteSelector: string): Promise<boolean> {
 
   let page: WebViewPageInstance | undefined;
   try {
-    page = await factory.create({ timeout: BUDGET_SECONDS });
-    await page.goto(url, { waitUntil: "load", timeout: BUDGET_SECONDS });
+    page = await factory.create({ timeout: PAGE_TIMEOUT_SECONDS });
+    // The challenge runs before the document is finished, so waiting on `load` only
+    // delays the first probe — and on a challenge page `load` may never arrive at all.
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_SECONDS });
 
-    const deadline = Date.now() + BUDGET_SECONDS * 1000;
+    const deadline = Date.now() + CHALLENGE_BUDGET_MS;
     while (Date.now() < deadline) {
       const state = await page.evaluateScript<string>(PROBE, [siteSelector]).catch(() => "waiting");
 
-      if (state === "site") {
-        noteChallengeCleared();
-        return true;
-      }
+      if (state === "site") return true;
       // A challenge that has asked for a person will not finish on its own; handing it
       // straight over beats making the reader wait out the whole budget first.
       if (state === "interactive") break;
       await delay(POLL_INTERVAL_MS);
     }
-  } catch {}
+  } catch {
+    // A WebView that will not open or navigate is not something a retry here can fix;
+    // the reader is handed the challenge instead.
+  } finally {
+    await page?.close().catch(() => undefined);
+  }
 
-  // Only a failure earns the cooldown. Arming it after a win left it standing whenever
-  // the retry that followed did not itself succeed, which sent the next screen — the
-  // reader, most visibly — straight to the manual prompt with no attempt of its own.
-  lastFailureAt = Date.now();
-  await page?.close().catch(() => undefined);
   return false;
-}
-
-/**
- * Records that the site is answering again — the WebView cleared the challenge, the
- * reader solved the prompt by hand, or it simply lapsed — so the next one to appear gets
- * an attempt of its own instead of waiting out a cooldown earned by an older failure.
- */
-function noteChallengeCleared(): void {
-  lastFailureAt = 0;
 }
 
 /**
  * Loads the site in the auxiliary WebView and waits for a JavaScript-only challenge to
  * run itself out, which is what mints the clearance cookie.
  *
- * Returns false when there is no WebView, when the challenge needs a person, or when the
- * attempt runs out of time — the caller then surfaces it for the reader to solve by hand.
- * A cooldown stops a site that challenges everything from spending the budget per request.
+ * Concurrent callers share one attempt — a home page of nine rows meets the same
+ * challenge nine times over and needs only one WebView to answer it. There is no
+ * cooldown beyond that: a screen opened after an earlier failure gets its own attempt,
+ * because the challenge it met is a new one and may well be the kind that self-solves.
  */
 async function passChallenge(url: string, siteSelector = SITE_LOADED): Promise<boolean> {
   if (inFlight) return inFlight;
-  if (Date.now() - lastFailureAt < COOLDOWN_MS) return false;
 
   const attempt = runAttempt(url, siteSelector);
   inFlight = attempt.finally(() => {
@@ -127,9 +117,7 @@ export async function withChallengeRetry<T>(
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     try {
-      const result = await request();
-      noteChallengeCleared();
-      return result;
+      return await request();
     } catch (error) {
       if (!(error instanceof CloudflareError)) throw error;
       if (attempt >= RETRY_ATTEMPTS) throw error;
