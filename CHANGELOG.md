@@ -10,7 +10,26 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.5)
+## MangaUpdates (current: v1.0.6)
+
+### Fixed
+
+- Tracking a title still failed with "Response could not be serialized". v1.0.5 tried to
+  recognise the host's own wording for a response it could not read, which was the wrong
+  thing to depend on. The lookup that asks whether a title is on any of your lists now
+  treats any failure as "it is not", the way the reference implementation does — the site
+  answers that question with a body-less 404 the host cannot read, and nothing in a source
+  can tell that apart from any other failure. The cost is that a lookup lost to a bad
+  connection reads as untracked rather than as an error (v1.0.6).
+
+### Changed
+
+- The Account screen now states where it stands rather than leaving it to be inferred: a
+  Status row reading "Signed in as ..." or "Not signed in", a Sign Out button that names
+  the account, and a footer saying outright that the screen cannot redraw itself and has
+  to be reopened to confirm a sign-in or sign-out. Nothing a source does can put a message
+  on that screen while the reader is looking at it, so it says so instead of pretending
+  otherwise (v1.0.6).
 
 ### Added
 

@@ -18,20 +18,17 @@ type CallOptions = {
   /** A write, which the site rate limits far harder than reads. */
   mutation?: boolean;
   /**
-   * What a body-less answer to this call means. The host reads a response before the
-   * source is shown its status and fails the whole call when there is nothing to read,
-   * so where the site answers with an empty body the meaning has to be named here:
-   * "absent" for the 404 that says nothing is there, "refused" for the 401 that says
-   * the credentials were not accepted.
+   * Signing in. The host deserialises a response before the source is shown any status
+   * and fails the whole call when there is nothing to read, and the site's only body-less
+   * answer to a login is the 401 that refuses the details — so here, and only here, an
+   * unreadable answer has a single meaning worth naming.
    */
-  emptyMeans?: "absent" | "refused";
+  unreadableMeansRefused?: boolean;
 };
 
 /**
- * How the host reports a response it could not read.
- *
- * A status validator does not help: the body is deserialised before any status reaches
- * the source, so a body-less 404 fails here rather than arriving as a 404.
+ * How the host reports a response it could not read — best effort, since the wording is
+ * the host's own. Nothing that matters is allowed to depend on this matching.
  */
 const UNREADABLE = /could not be serialized|nil or zero length/i;
 
@@ -48,8 +45,8 @@ class ThrottledError extends Error {
   }
 }
 
-/** The site answers a missing list entry with 404, which is an answer rather than a fault. */
-export class NotFoundError extends Error {}
+/** A 404 that did carry a body, so its status was readable. */
+class NotFoundError extends Error {}
 
 export class UnauthorizedError extends Error {
   constructor() {
@@ -138,11 +135,8 @@ export class MangaUpdatesApi {
         if (error instanceof NetworkError && typeof error.res?.status === "number") {
           return error.res;
         }
-        // An unreadable answer to one of those reads carries the meaning the 404 behind it
-        // could not: the title is on none of the reader's lists, or carries no rating.
-        if (options.emptyMeans && UNREADABLE.test(messageOf(error))) {
-          if (options.emptyMeans === "refused") throw new UnauthorizedError();
-          throw new NotFoundError(`MangaUpdates has nothing at ${url}`);
+        if (options.unreadableMeansRefused && UNREADABLE.test(messageOf(error))) {
+          throw new UnauthorizedError();
         }
         throw error;
       });

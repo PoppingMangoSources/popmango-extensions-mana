@@ -49,7 +49,7 @@ import {
   sectionById,
   toPageSections,
 } from "../common/index.ts";
-import { MangaUpdatesApi, NotFoundError, UnauthorizedError } from "./client.ts";
+import { MangaUpdatesApi, UnauthorizedError } from "./client.ts";
 import {
   BASE_URL,
   DEFAULT_STATUS,
@@ -90,7 +90,7 @@ import {
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -196,9 +196,14 @@ class MangaUpdatesTracker
   }
 
   /**
-   * The account screen. Mana can drive `handleBasicAuth` from its own prompt, but a
-   * tracker is useless signed out, so the source carries a sign-in of its own rather
-   * than depending on where the app chooses to put one.
+   * The account screen.
+   *
+   * Nothing here can announce itself. A source is given a store and a network client and
+   * no way to redraw this screen or raise a notice, and the app builds it only when it is
+   * opened — so a press changes the account and leaves the screen showing the old one. The
+   * state is therefore written out in full every time it is built, and the screen says
+   * plainly that it has to be reopened. `getSetupMenu` above is the sign-in that does
+   * confirm itself, because the app owns that screen and closes it.
    */
   async getPreferenceMenu(): Promise<Form> {
     const user = await this.getAuthenticatedUser();
@@ -208,14 +213,22 @@ class MangaUpdatesTracker
         sections: [
           UIListSection({
             header: "Account",
-            footer: `Signed in as ${user.handle}.`,
+            footer:
+              `Signed in as ${user.handle}. Signing out takes effect immediately, but ` +
+              "this screen cannot redraw itself — close Settings and open it again to see " +
+              "it change.",
             children: [
+              UITextField({
+                id: "status",
+                title: "Status",
+                value: `Signed in as ${user.handle}`,
+              }),
               UIButton({
                 id: "sign-out",
-                title: "Sign Out",
+                title: `Sign Out of ${user.handle}`,
                 isDestructive: true,
-                // Reported the same way as signing in, and for the same reason: the screen
-                // is not rebuilt underneath the reader, so pressing this has to say so.
+                // Nothing surfaces from here, so the outcome goes to the log rather than
+                // the reader. What the reader gets is the state written above.
                 action: async () => {
                   const signedIn = decodeSession(await readToken());
                   if (!signedIn) throw new Error("Already signed out.");
@@ -237,10 +250,16 @@ class MangaUpdatesTracker
         UIListSection({
           header: "Account",
           footer:
-            "Sign in with your mangaupdates.com username and password. The password is " +
-            "held only until it has been offered to the site, and the session it returns " +
-            "is what is kept.",
+            "Not signed in. Enter your mangaupdates.com username and password, then press " +
+            "Sign In — this screen cannot redraw itself, so close Settings and open it " +
+            "again to confirm it worked. The password is held only until it has been " +
+            "offered to the site, and the session it returns is what is kept.",
           children: [
+            UITextField({
+              id: "status",
+              title: "Status",
+              value: "Not signed in",
+            }),
             UITextField({
               id: "username",
               title: "Username",
@@ -258,12 +277,9 @@ class MangaUpdatesTracker
             UIButton({
               id: "sign-in",
               title: "Sign In",
-              // The runtime hands a source ObjectStore, SecureStore and a network client
-              // and nothing else — there is no way to redraw this screen or raise a
-              // notice, and it is only rebuilt when it is opened. A thrown message is the
-              // one thing that reaches the reader while they are still looking at it, so
-              // both outcomes are reported that way even though the app calls each a
-              // failed preference update.
+              // The outcome cannot reach the reader from here — a thrown message only
+              // reaches the app's log — so the guard below is what this is for: pressing
+              // twice must not sign in twice.
               action: async () => {
                 const existing = decodeSession(await readToken());
                 if (existing) throw new Error(`Already signed in as ${existing.username}.`);
@@ -291,7 +307,7 @@ class MangaUpdatesTracker
       .call<LoginResponse>("/account/login", "PUT", {
         anonymous: true,
         withoutSession: true,
-        emptyMeans: "refused",
+        unreadableMeansRefused: true,
         body: { username, password },
       })
       .catch(async (error: unknown) => {
@@ -583,9 +599,7 @@ class MangaUpdatesTracker
     const [entry, lists, rating] = await Promise.all([
       this.readEntry(id),
       this.listDefinitions(),
-      this.api
-        .call<RatingResponse>(`/series/${seriesId(id)}/rating`, "GET", { emptyMeans: "absent" })
-        .catch(() => undefined),
+      this.api.call<RatingResponse>(`/series/${seriesId(id)}/rating`, "GET").catch(() => undefined),
     ]);
 
     // A reader's own lists are offered under their own names; the five built-in types
@@ -683,15 +697,21 @@ class MangaUpdatesTracker
 
   // ===================== Tracking internals =====================
 
+  /**
+   * Whether the title is on any of the reader's lists.
+   *
+   * The site says "it is not" with a 404 carrying no body, which the host cannot read: it
+   * fails the whole request rather than reporting a status, and what it says about that
+   * failure is its own business. Nothing here can tell that apart from any other failure,
+   * so it is not attempted — a session that was refused still surfaces, and everything
+   * else means the title is not tracked. That is what the reference implementation does.
+   */
   private async readEntry(id: string): Promise<ListEntry | undefined> {
     try {
-      return await this.api.call<ListEntry>(`/lists/series/${seriesId(id)}`, "GET", {
-        emptyMeans: "absent",
-      });
+      return await this.api.call<ListEntry>(`/lists/series/${seriesId(id)}`, "GET");
     } catch (error) {
-      // Untracked is the common case, and it is reported as a missing record.
-      if (error instanceof NotFoundError) return undefined;
-      throw error;
+      if (error instanceof UnauthorizedError) throw error;
+      return undefined;
     }
   }
 
