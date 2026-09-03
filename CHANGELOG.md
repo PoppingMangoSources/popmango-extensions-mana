@@ -2,7 +2,41 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## XComic (current: v1.0.1)
+## MangaUpdates (current: v1.0.0)
+
+### Added
+
+- Initial release. Signs in with a MangaUpdates username and password, and tracks a
+  title's list, chapter, volume and score against the account.
+- Browse rows for Trending Now, Popular Manga, Popular Manhwa and Top Rated, and a search
+  form covering genres, types, release state, licensing, year and reader categories.
+- Reading progress never moves backwards, and writes are spaced so the site's one-write
+  every-five-seconds limit does not silently drop them.
+
+## XCOMIC (current: v1.0.5)
+
+### Changed
+
+- Every source hands the app the URL that was actually challenged by Cloudflare rather
+  than the site root, so the prompt opens the page that is blocked (v1.0.5).
+- Rows are named as the site's own sort control names them, and both language pickers
+  carry all 107 codes the site publishes rather than 93 (v1.0.3).
+- Most Reviews leads the detailed rows and Most Follows sits under Most Chapters; tiles
+  carry the rating in place of the type, with follows and comments marked by their own
+  glyphs (v1.0.2).
+- Renamed from XComic, restarted at v1.0.0, and gained a `comik.to` mirror (v1.0.0).
+
+### Added
+
+- The score, follows, reviews and comment counts the site publishes now reach the tiles
+  and the detail page, and Most Follows and Most Reviews rows were added (v1.0.1).
+
+### Fixed
+
+- The Formats filter was removed: the site files its formats among its genres, and eight
+  of its twelve hardcoded ids did not exist on the site at all (v1.0.1).
+
+## XComic (v1.0.1)
 
 ### Fixed
 
@@ -31,7 +65,15 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.1)
+## FlameComics (current: v1.0.6)
+
+### Changed
+
+- Popular leads as the hero with Staff Picks below it, both naming the type and the like
+  count; the Featured carousel is a single row with no subtitle (v1.0.4).
+- Tiles write the heart against the count — `Likes  ♥ 141` (v1.0.4).
+
+## FlameComics (v1.0.1)
 
 ### Added
 
@@ -57,7 +99,17 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.8)
+## Kagane (current: v1.0.11)
+
+### Fixed
+
+- A challenge met while a request was in flight is retried instead of surfacing, and the
+  cooldown that left a later screen with no attempt at all is gone (v1.0.10).
+- The reader's integrity and access tokens are dropped when a challenge replaces the
+  session they were minted against, which is what previously left the reader stuck until
+  the source was closed and its cache cleared by hand (v1.0.9).
+
+## Kagane (v1.0.8)
 
 ### Changed
 
@@ -157,7 +209,14 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.4)
+## Mangago (current: v1.0.5)
+
+### Fixed
+
+- Cloudflare challenges were reported as plain network errors: without a status validator
+  the host threw on 403 before the check that classifies them could run (v1.0.5).
+
+## Mangago (v1.0.4)
 
 ### Changed
 

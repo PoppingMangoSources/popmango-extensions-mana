@@ -1,0 +1,132 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+
+import { withQuery, type QueryParams } from "../common/index.ts";
+import { API_URL, MUTATION_INTERVAL_MS } from "./model.ts";
+import { readToken } from "./session.ts";
+
+type Method = "GET" | "POST" | "PUT" | "DELETE";
+
+type CallOptions = {
+  query?: QueryParams;
+  body?: unknown;
+  /** Reads that work signed out; anything else is refused before it leaves the device. */
+  anonymous?: boolean;
+  /** A write, which the site rate limits far harder than reads. */
+  mutation?: boolean;
+};
+
+/** The site answers a missing list entry with 404, which is an answer rather than a fault. */
+export class NotFoundError extends Error {}
+
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("Sign in to MangaUpdates from the source's settings to use tracking.");
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
+  if (!timer) return Promise.resolve();
+  return new Promise((resolve) => {
+    timer(() => resolve(), ms);
+  });
+}
+
+export class MangaUpdatesApi {
+  private client: NetworkClient | undefined;
+
+  // Writes are chained rather than fired together: the site allows one every five
+  // seconds, and a rejected write silently loses the reader's progress.
+  private mutations: Promise<unknown> = Promise.resolve();
+  private lastMutationAt = 0;
+
+  private get http(): NetworkClient {
+    this.client ??= new NetworkClientBuilder()
+      .setRateLimit(5, 1)
+      // 401 and 404 both carry meaning here, so they have to reach the caller rather
+      // than being turned into a generic transport failure by the host.
+      .setStatusValidator((status) => status < 500)
+      .addRequestInterceptor(async (request: NetworkRequest) => ({
+        ...request,
+        headers: { accept: "application/json", ...request.headers },
+      }))
+      .build();
+    return this.client;
+  }
+
+  async call<T>(path: string, method: Method, options: CallOptions = {}): Promise<T> {
+    if (!options.mutation) return this.run<T>(path, method, options);
+
+    const run = this.mutations.then(async () => {
+      const since = Date.now() - this.lastMutationAt;
+      if (since < MUTATION_INTERVAL_MS) await delay(MUTATION_INTERVAL_MS - since);
+
+      try {
+        return await this.run<T>(path, method, options);
+      } finally {
+        this.lastMutationAt = Date.now();
+      }
+    });
+
+    // The chain must survive a failed write, or every later one inherits the rejection.
+    this.mutations = run.catch(() => undefined);
+    return run;
+  }
+
+  private async run<T>(path: string, method: Method, options: CallOptions): Promise<T> {
+    const token = await readToken();
+    if (!token && !options.anonymous) throw new UnauthorizedError();
+
+    const url = withQuery(`${API_URL}${path}`, options.query);
+    const headers: Record<string, string> = {};
+    if (token) headers.authorization = `Bearer ${token}`;
+    if (options.body !== undefined) headers["content-type"] = "application/json";
+
+    const response = await this.http.request({
+      url,
+      method,
+      headers,
+      // The host serialises the body; pre-encoding it sends the server a quoted string.
+      ...(options.body === undefined ? {} : { body: options.body }),
+    });
+
+    return this.parse<T>(response, url);
+  }
+
+  private parse<T>(response: NetworkResponse, url: string): T {
+    // Only 401 means the session is the problem. A 403 is the site — or something between
+    // it and the reader — refusing the request, and calling that "sign in" misdirects.
+    if (response.status === 401) throw new UnauthorizedError();
+    if (response.status === 404) throw new NotFoundError(`MangaUpdates has nothing at ${url}`);
+
+    if (response.status >= 400) {
+      throw new Error(`${reason(response.data)} (HTTP ${response.status})`);
+    }
+
+    // A few writes answer 200 with an empty body rather than a JSON envelope.
+    const body = (response.data ?? "").trim();
+    if (!body) return undefined as T;
+
+    try {
+      return JSON.parse(body) as T;
+    } catch {
+      throw new Error(`MangaUpdates returned a response that was not JSON (${url})`);
+    }
+  }
+}
+
+function reason(body: string): string {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (typeof parsed === "object" && parsed !== null) {
+      const record = parsed as Record<string, unknown>;
+      for (const key of ["reason", "error", "message"]) {
+        const value = record[key];
+        if (typeof value === "string" && value) return value;
+      }
+    }
+  } catch {}
+  return "MangaUpdates rejected the request";
+}
