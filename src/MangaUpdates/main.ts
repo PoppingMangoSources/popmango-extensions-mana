@@ -78,7 +78,7 @@ import { clearToken, decodeSession, readToken, writeToken } from "./session.ts";
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -209,6 +209,7 @@ class MangaUpdatesTracker
     const response = await this.api
       .call<LoginResponse>("/account/login", "PUT", {
         anonymous: true,
+        withoutSession: true,
         body: { username, password },
       })
       .catch((error: unknown) => {
@@ -238,15 +239,15 @@ class MangaUpdatesTracker
       const handle = profile.username ?? session?.username ?? "";
       if (!handle) return null;
 
-      const stats = profile.stats ?? {};
-      const counts = Object.entries(stats)
-        .filter(([, value]) => typeof value === "number" && value > 0)
-        .map(([key, value]) => `${key.split("_").join(" ")}: ${String(value)}`);
+      // The profile's `stats` are contribution counts — releases added, series edited —
+      // which say nothing about what the account is reading, so they stay off this screen.
+      const joined = (profile.time_joined?.as_string ?? "").trim();
+      const info = joined ? [`Member since ${joined}`] : [];
 
       return {
         handle,
         ...(profile.avatar?.url ? { avatar: profile.avatar.url } : {}),
-        ...(counts.length > 0 ? { info: counts } : {}),
+        ...(info.length > 0 ? { info } : {}),
       };
     } catch (error) {
       // A rejected token is a signed-out account; anything else is a passing failure and

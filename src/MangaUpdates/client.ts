@@ -13,9 +13,18 @@ type CallOptions = {
   body?: unknown;
   /** Reads that work signed out; anything else is refused before it leaves the device. */
   anonymous?: boolean;
+  /** Signing in: a stale session must not travel alongside the credentials replacing it. */
+  withoutSession?: boolean;
   /** A write, which the site rate limits far harder than reads. */
   mutation?: boolean;
 };
+
+/** The site's answer to a write sent inside its five-second window. */
+class ThrottledError extends Error {
+  constructor() {
+    super("MangaUpdates is spacing out writes; try again in a moment.");
+  }
+}
 
 /** The site answers a missing list entry with 404, which is an answer rather than a fault. */
 export class NotFoundError extends Error {}
@@ -65,6 +74,12 @@ export class MangaUpdatesApi {
 
       try {
         return await this.run<T>(path, method, options);
+      } catch (error) {
+        // 412 is the site saying the five seconds had not elapsed — its clock, not ours,
+        // decides that, so the one honest response is to wait it out and send again.
+        if (!(error instanceof ThrottledError)) throw error;
+        await delay(MUTATION_INTERVAL_MS);
+        return await this.run<T>(path, method, options);
       } finally {
         this.lastMutationAt = Date.now();
       }
@@ -81,7 +96,7 @@ export class MangaUpdatesApi {
 
     const url = withQuery(`${API_URL}${path}`, options.query);
     const headers: Record<string, string> = {};
-    if (token) headers.authorization = `Bearer ${token}`;
+    if (token && !options.withoutSession) headers.authorization = `Bearer ${token}`;
     if (options.body !== undefined) headers["content-type"] = "application/json";
 
     const response = await this.http.request({
@@ -100,6 +115,7 @@ export class MangaUpdatesApi {
     // it and the reader — refusing the request, and calling that "sign in" misdirects.
     if (response.status === 401) throw new UnauthorizedError();
     if (response.status === 404) throw new NotFoundError(`MangaUpdates has nothing at ${url}`);
+    if (response.status === 412) throw new ThrottledError();
 
     if (response.status >= 400) {
       throw new Error(`${reason(response.data)} (HTTP ${response.status})`);

@@ -79,6 +79,7 @@ export const STATUS_OPTIONS: Option[] = [
 
 export const DEFAULT_STATUS = "read";
 
+/** The site's own type enum, in full — anything outside it is rejected by the search. */
 export const TYPE_OPTIONS: Option[] = [
   { id: "Manga", title: "Manga" },
   { id: "Manhwa", title: "Manhwa" },
@@ -96,6 +97,7 @@ export const TYPE_OPTIONS: Option[] = [
   { id: "French", title: "French" },
   { id: "Spanish", title: "Spanish" },
   { id: "OEL", title: "OEL" },
+  { id: "Drama CD", title: "Drama CD" },
 ];
 
 export const LICENSED_OPTIONS: Option[] = [
@@ -185,11 +187,9 @@ export type Series = {
   type?: string;
   year?: string;
   licensed?: boolean;
-  completed?: boolean;
   bayesian_rating?: number;
   rating_votes?: number;
   latest_chapter?: number;
-  forum_id?: number;
   url?: string;
 };
 
@@ -224,7 +224,6 @@ export type Profile = {
   url?: string;
   avatar?: { url?: string };
   time_joined?: { as_string?: string };
-  stats?: Record<string, number | undefined>;
 };
 
 export type Genre = { genre?: string };
