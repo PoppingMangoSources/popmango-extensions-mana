@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "000a5f1e000a5f1e000a5f1e000a5f1e000a5f1e000a5f1e000a5f1e000a5f1e"
+      "hash": "0848388e0848388e0848388e0848388e0848388e0848388e0848388e0848388e"
     },
     {
       "id": "kagane",
@@ -44,12 +44,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "022f217c022f217c022f217c022f217c022f217c022f217c022f217c022f217c"
+      "hash": "0623761206237612062376120623761206237612062376120623761206237612"
     },
     {
       "id": "mangaupdates",
       "name": "MangaUpdates",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "description": "Track your reading against mangaupdates.com.",
       "website": "https://www.mangaupdates.com",
       "rating": 1,
@@ -65,8 +65,8 @@
       ],
       "path": "MangaUpdates",
       "environment": "tracker",
-      "intents": 20978793,
-      "hash": "3ae6c48d3ae6c48d3ae6c48d3ae6c48d3ae6c48d3ae6c48d3ae6c48d3ae6c48d"
+      "intents": 20978795,
+      "hash": "77210ae077210ae077210ae077210ae077210ae077210ae077210ae077210ae0"
     },
     {
       "id": "mangago",
@@ -88,7 +88,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "4720a3c74720a3c74720a3c74720a3c74720a3c74720a3c74720a3c74720a3c7"
+      "hash": "3ece0c553ece0c553ece0c553ece0c553ece0c553ece0c553ece0c553ece0c55"
     },
     {
       "id": "xcomic",
@@ -110,7 +110,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "032e21a8032e21a8032e21a8032e21a8032e21a8032e21a8032e21a8032e21a8"
+      "hash": "0524786f0524786f0524786f0524786f0524786f0524786f0524786f0524786f"
     }
   ]
 }

@@ -10,9 +10,27 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.4)
+## MangaUpdates (current: v1.0.5)
+
+### Added
+
+- A sign-in screen the app owns rather than one built out of a button in settings. It is
+  submitted in one go instead of typed into, and the app closes it itself once the site
+  accepts the details — which is the confirmation a source cannot give itself, since it
+  has no way to redraw its own settings (v1.0.5).
 
 ### Fixed
+
+- Tracking a title still failed with "Response could not be serialized, input data was nil
+  or zero length" after v1.0.4. Refusing the status was not enough: the host reads a
+  response body before it shows the source any status, so a body-less 404 — which is how
+  the site says a title is on none of your lists — never reaches a status check at all.
+  The failure itself is now read as that answer, on the two reads where an empty response
+  is the site's real reply, and on signing in where it means the details were refused
+  (v1.0.5).
+- Signing out said nothing either, so it had the same problem as signing in: it now names
+  the account it signed out of, and a second press says the account is already signed out
+  (v1.0.5).
 
 - Tracking any title failed with "Response could not be serialized, input data was nil or
   zero length". The site answers 401, 404 and 412 with no body at all — a 404 being how it
