@@ -1,6 +1,6 @@
 {
   "repositoryName": "PoppingMango Sources",
-  "thumbnail": "assets/Repository.png",
+  "thumbnail": "https://poppingmangosources.github.io/popmango-extensions-mana/assets/Repository.png",
   "sources": [
     {
       "id": "flamecomics",
@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5a7c1ccc5a7c1ccc5a7c1ccc5a7c1ccc5a7c1ccc5a7c1ccc5a7c1ccc5a7c1ccc"
+      "hash": "31a30d4231a30d4231a30d4231a30d4231a30d4231a30d4231a30d4231a30d42"
     },
     {
       "id": "kagane",
@@ -44,12 +44,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "5ca0df625ca0df625ca0df625ca0df625ca0df625ca0df625ca0df625ca0df62"
+      "hash": "33c7cf9e33c7cf9e33c7cf9e33c7cf9e33c7cf9e33c7cf9e33c7cf9e33c7cf9e"
     },
     {
       "id": "mangaupdates",
       "name": "MangaUpdates",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Track your reading against mangaupdates.com.",
       "website": "https://www.mangaupdates.com",
       "rating": 1,
@@ -66,7 +66,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978793,
-      "hash": "44bdf9cb44bdf9cb44bdf9cb44bdf9cb44bdf9cb44bdf9cb44bdf9cb44bdf9cb"
+      "hash": "5e81478c5e81478c5e81478c5e81478c5e81478c5e81478c5e81478c5e81478c"
     },
     {
       "id": "mangago",
@@ -88,7 +88,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "5e6d9e525e6d9e525e6d9e525e6d9e525e6d9e525e6d9e525e6d9e525e6d9e52"
+      "hash": "78b951e978b951e978b951e978b951e978b951e978b951e978b951e978b951e9"
     },
     {
       "id": "xcomic",
@@ -110,7 +110,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5d9fdf8d5d9fdf8d5d9fdf8d5d9fdf8d5d9fdf8d5d9fdf8d5d9fdf8d5d9fdf8d"
+      "hash": "34c6cfe734c6cfe734c6cfe734c6cfe734c6cfe734c6cfe734c6cfe734c6cfe7"
     }
   ]
 }

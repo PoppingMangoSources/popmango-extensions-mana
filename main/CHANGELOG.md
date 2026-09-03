@@ -2,10 +2,22 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaUpdates (current: v1.0.1)
+## Repository
 
 ### Fixed
 
+- The repository's own icon never loaded in the app. It was published as the relative
+  path `assets/Repository.png`, which the app has no base to resolve against, so it now
+  names the published file in full.
+
+## MangaUpdates (current: v1.0.2)
+
+### Fixed
+
+- The Sign In button did nothing but report both fields empty. The app runs every form
+  callback on its own, so the typed username and password were gone by the time the
+  button read them; they are now written down as they are typed — the password to the
+  keychain, and dropped the moment the site has been given it (v1.0.2).
 - Checked every call against the site's published API description. A write refused for
   being inside the five-second window is now waited out and sent again rather than lost,
   signing in no longer carries the session it is replacing, the account screen no longer
@@ -21,7 +33,7 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - Reading progress never moves backwards, and writes are spaced so the site's one-write
   every-five-seconds limit does not silently drop them.
 - An account screen in the source's own settings, so signing in does not depend on where
-  the app chooses to put its own prompt. The password is used once and never stored.
+  the app chooses to put its own prompt.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
