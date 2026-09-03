@@ -17,7 +17,29 @@ type CallOptions = {
   withoutSession?: boolean;
   /** A write, which the site rate limits far harder than reads. */
   mutation?: boolean;
+  /**
+   * What a body-less answer to this call means. The host reads a response before the
+   * source is shown its status and fails the whole call when there is nothing to read,
+   * so where the site answers with an empty body the meaning has to be named here:
+   * "absent" for the 404 that says nothing is there, "refused" for the 401 that says
+   * the credentials were not accepted.
+   */
+  emptyMeans?: "absent" | "refused";
 };
+
+/**
+ * How the host reports a response it could not read.
+ *
+ * A status validator does not help: the body is deserialised before any status reaches
+ * the source, so a body-less 404 fails here rather than arriving as a 404.
+ */
+const UNREADABLE = /could not be serialized|nil or zero length/i;
+
+/** Read off the value rather than an `Error` shape: what the host throws is its own. */
+function messageOf(error: unknown): string {
+  const message = (error as { message?: unknown } | null | undefined)?.message;
+  return typeof message === "string" ? message : "";
+}
 
 /** The site's answer to a write sent inside its five-second window. */
 class ThrottledError extends Error {
@@ -115,6 +137,12 @@ export class MangaUpdatesApi {
         // behind it is a real transport failure and stays one.
         if (error instanceof NetworkError && typeof error.res?.status === "number") {
           return error.res;
+        }
+        // An unreadable answer to one of those reads carries the meaning the 404 behind it
+        // could not: the title is on none of the reader's lists, or carries no rating.
+        if (options.emptyMeans && UNREADABLE.test(messageOf(error))) {
+          if (options.emptyMeans === "refused") throw new UnauthorizedError();
+          throw new NotFoundError(`MangaUpdates has nothing at ${url}`);
         }
         throw error;
       });

@@ -16,6 +16,7 @@ import {
   UIStepper,
   UITextField,
   type BasicAuthenticatable,
+  type BooleanState,
   type Content,
   type ContentTracker,
   type DeepLinkContext,
@@ -32,6 +33,7 @@ import {
   type SourceConfig,
   type SourceInfo,
   type SourcePreferenceProvider,
+  type SourceSetupProvider,
   type TrackEntry,
   type TrackProgressUpdate,
   type TrackerConfig,
@@ -88,7 +90,7 @@ import {
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -111,6 +113,11 @@ const trackerConfig: TrackerConfig = {
   owningLinks: ["mangaupdates.com", "www.mangaupdates.com"],
 };
 
+const SETUP_FIELD = {
+  Username: "username",
+  Password: "password",
+} as const;
+
 const ENTRY_FIELD = {
   Status: "status",
   Chapter: "chapter",
@@ -119,7 +126,12 @@ const ENTRY_FIELD = {
 } as const;
 
 class MangaUpdatesTracker
-  implements ContentTracker, PageLinkResolver, BasicAuthenticatable, SourcePreferenceProvider
+  implements
+    ContentTracker,
+    PageLinkResolver,
+    BasicAuthenticatable,
+    SourcePreferenceProvider,
+    SourceSetupProvider
 {
   readonly info = info;
   readonly config = config;
@@ -136,6 +148,52 @@ class MangaUpdatesTracker
   private lists: Promise<ListDefinition[]> | undefined;
 
   // ===================== Authentication =====================
+
+  /**
+   * Signing in on a screen the app owns.
+   *
+   * A source cannot redraw its own settings, so a sign-in built out of a button there can
+   * never show its own result. This one is submitted rather than pressed: the app collects
+   * both fields, hands them over in one call, and closes the screen itself when that call
+   * returns — which is the confirmation the settings form cannot give.
+   */
+  async getSetupMenu(): Promise<Form> {
+    return {
+      sections: [
+        UIListSection({
+          header: "Sign In",
+          footer:
+            "Your mangaupdates.com username and password. The password is used once to " +
+            "obtain a session and is not kept.",
+          children: [
+            UITextField({ id: SETUP_FIELD.Username, title: "Username", value: "" }),
+            UITextField({ id: SETUP_FIELD.Password, title: "Password", value: "", secure: true }),
+          ],
+        }),
+      ],
+    };
+  }
+
+  async validateSetupForm(data: unknown): Promise<void> {
+    const submitted = (data ?? {}) as Record<string, unknown>;
+    const username = submitted[SETUP_FIELD.Username];
+    const password = submitted[SETUP_FIELD.Password];
+
+    await this.handleBasicAuth(
+      typeof username === "string" ? username : "",
+      typeof password === "string" ? password : "",
+    );
+  }
+
+  // The toolchain reads `isRunnerSetup` while the types declare `isSourceSetup`, so both
+  // names answer — the same split as `BasicAuthUIIdentifier` above.
+  async isSourceSetup(): Promise<BooleanState> {
+    return { state: (await readToken()).length > 0 };
+  }
+
+  async isRunnerSetup(): Promise<BooleanState> {
+    return this.isSourceSetup();
+  }
 
   /**
    * The account screen. Mana can drive `handleBasicAuth` from its own prompt, but a
@@ -156,8 +214,14 @@ class MangaUpdatesTracker
                 id: "sign-out",
                 title: "Sign Out",
                 isDestructive: true,
+                // Reported the same way as signing in, and for the same reason: the screen
+                // is not rebuilt underneath the reader, so pressing this has to say so.
                 action: async () => {
+                  const signedIn = decodeSession(await readToken());
+                  if (!signedIn) throw new Error("Already signed out.");
+
                   await this.handleUserSignOut();
+                  throw new Error(`Signed out of ${signedIn.username}.`);
                 },
               }),
             ],
@@ -227,6 +291,7 @@ class MangaUpdatesTracker
       .call<LoginResponse>("/account/login", "PUT", {
         anonymous: true,
         withoutSession: true,
+        emptyMeans: "refused",
         body: { username, password },
       })
       .catch(async (error: unknown) => {
@@ -518,7 +583,9 @@ class MangaUpdatesTracker
     const [entry, lists, rating] = await Promise.all([
       this.readEntry(id),
       this.listDefinitions(),
-      this.api.call<RatingResponse>(`/series/${seriesId(id)}/rating`, "GET").catch(() => undefined),
+      this.api
+        .call<RatingResponse>(`/series/${seriesId(id)}/rating`, "GET", { emptyMeans: "absent" })
+        .catch(() => undefined),
     ]);
 
     // A reader's own lists are offered under their own names; the five built-in types
@@ -618,7 +685,9 @@ class MangaUpdatesTracker
 
   private async readEntry(id: string): Promise<ListEntry | undefined> {
     try {
-      return await this.api.call<ListEntry>(`/lists/series/${seriesId(id)}`, "GET");
+      return await this.api.call<ListEntry>(`/lists/series/${seriesId(id)}`, "GET", {
+        emptyMeans: "absent",
+      });
     } catch (error) {
       // Untracked is the common case, and it is reported as a missing record.
       if (error instanceof NotFoundError) return undefined;
