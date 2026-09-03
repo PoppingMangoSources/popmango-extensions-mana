@@ -29,6 +29,7 @@ import {
   type SearchForm,
   type SearchRequest,
   type SortOption,
+  type SourceConfig,
   type SourceInfo,
   type SourcePreferenceProvider,
   type TrackEntry,
@@ -86,6 +87,13 @@ const info: SourceInfo = {
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
 
+const config: SourceConfig = {
+  disableUpdateChecks: false,
+  // Browsing works signed out, but a tracker exists to write to an account — this is what
+  // tells the app the source has one, and to offer signing into it.
+  requiresAuthenticationToAccessContent: true,
+};
+
 const trackerConfig: TrackerConfig = {
   // What a source calls this tracker in its `Content.trackerInfo`, so a title that
   // already knows its MangaUpdates id links itself without the reader searching.
@@ -104,9 +112,13 @@ class MangaUpdatesTracker
   implements ContentTracker, PageLinkResolver, BasicAuthenticatable, SourcePreferenceProvider
 {
   readonly info = info;
+  readonly config = config;
   readonly trackerConfig = trackerConfig;
 
+  // The types call this `BasicAuthUIIdentifier` while the toolchain reads
+  // `BasicAuthenticationUIIdentifier`, so both names carry the same answer.
   readonly BasicAuthUIIdentifier = BasicAuthenticationUIIdentifier.USERNAME;
+  readonly BasicAuthenticationUIIdentifier = BasicAuthenticationUIIdentifier.USERNAME;
 
   private readonly api = new MangaUpdatesApi();
 

@@ -14,6 +14,8 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   every-five-seconds limit does not silently drop them.
 - An account screen in the source's own settings, so signing in does not depend on where
   the app chooses to put its own prompt. The password is used once and never stored.
+- The source declares that it needs an account, which is what puts the app's own Account
+  row on the source page.
 
 ## XCOMIC (current: v1.0.5)
 
