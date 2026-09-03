@@ -10,9 +10,11 @@ import {
   SearchMultiPickerSheet,
   SearchPicker,
   SearchTextField,
+  UIButton,
   UIListSection,
   UIPicker,
   UIStepper,
+  UITextField,
   type BasicAuthenticatable,
   type Content,
   type ContentTracker,
@@ -28,6 +30,7 @@ import {
   type SearchRequest,
   type SortOption,
   type SourceInfo,
+  type SourcePreferenceProvider,
   type TrackEntry,
   type TrackProgressUpdate,
   type TrackerConfig,
@@ -97,7 +100,9 @@ const ENTRY_FIELD = {
   Score: "score",
 } as const;
 
-class MangaUpdatesTracker implements ContentTracker, PageLinkResolver, BasicAuthenticatable {
+class MangaUpdatesTracker
+  implements ContentTracker, PageLinkResolver, BasicAuthenticatable, SourcePreferenceProvider
+{
   readonly info = info;
   readonly trackerConfig = trackerConfig;
 
@@ -108,16 +113,99 @@ class MangaUpdatesTracker implements ContentTracker, PageLinkResolver, BasicAuth
   private genreOptions: Option[] | undefined;
   private lists: Promise<ListDefinition[]> | undefined;
 
+  // Held only until the sign-in button is pressed. The password is never written to a
+  // store — the session token the site returns is the whole of what is worth keeping.
+  private credentials = { username: "", password: "" };
+
   // ===================== Authentication =====================
+
+  /**
+   * The account screen. Mana can drive `handleBasicAuth` from its own prompt, but a
+   * tracker is useless signed out, so the source carries a sign-in of its own rather
+   * than depending on where the app chooses to put one.
+   */
+  async getPreferenceMenu(): Promise<Form> {
+    const user = await this.getAuthenticatedUser();
+
+    if (user) {
+      return {
+        sections: [
+          UIListSection({
+            header: "Account",
+            footer: `Signed in as ${user.handle}.`,
+            children: [
+              UIButton({
+                id: "sign-out",
+                title: "Sign Out",
+                isDestructive: true,
+                action: async () => {
+                  await this.handleUserSignOut();
+                },
+              }),
+            ],
+          }),
+        ],
+      };
+    }
+
+    this.credentials = { username: "", password: "" };
+
+    return {
+      sections: [
+        UIListSection({
+          header: "Account",
+          footer:
+            "Sign in with your mangaupdates.com username and password. The password is " +
+            "used once to obtain a session and is never stored.",
+          children: [
+            UITextField({
+              id: "username",
+              title: "Username",
+              value: "",
+              didChange: async (value: string) => {
+                this.credentials.username = value;
+              },
+            }),
+            UITextField({
+              id: "password",
+              title: "Password",
+              value: "",
+              secure: true,
+              didChange: async (value: string) => {
+                this.credentials.password = value;
+              },
+            }),
+            UIButton({
+              id: "sign-in",
+              title: "Sign In",
+              action: async () => {
+                const { username, password } = this.credentials;
+                this.credentials = { username: "", password: "" };
+                await this.handleBasicAuth(username, password);
+              },
+            }),
+          ],
+        }),
+      ],
+    };
+  }
 
   async handleBasicAuth(identifier: string, password: string): Promise<void> {
     const username = identifier.trim();
     if (!username || !password) throw new Error("Enter your MangaUpdates username and password.");
 
-    const response = await this.api.call<LoginResponse>("/account/login", "PUT", {
-      anonymous: true,
-      body: { username, password },
-    });
+    const response = await this.api
+      .call<LoginResponse>("/account/login", "PUT", {
+        anonymous: true,
+        body: { username, password },
+      })
+      .catch((error: unknown) => {
+        // Being told to sign in is unhelpful while signing in; the details are the problem.
+        if (error instanceof UnauthorizedError) {
+          throw new Error("MangaUpdates did not accept that username and password.");
+        }
+        throw error;
+      });
 
     const token = response.context?.session_token;
     if (!token) throw new Error("MangaUpdates did not return a session for those details.");
