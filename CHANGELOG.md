@@ -10,10 +10,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.3)
+## MangaUpdates (current: v1.0.4)
 
 ### Fixed
 
+- Tracking any title failed with "Response could not be serialized, input data was nil or
+  zero length". The site answers 401, 404 and 412 with no body at all — a 404 being how it
+  says a title is not yet on any of your lists — and the host cannot deserialise an empty
+  response, so it failed the request before the source could read the status. Those
+  statuses are no longer accepted from the host and are read back off the error instead,
+  which also fixes a wrong password reporting the same thing (v1.0.4).
 - Signing in said nothing, so the only way to tell it had worked was to leave Settings and
   come back — and pressing the button again signed in all over again. The app rebuilds
   that screen only when it is opened and gives a source no way to redraw it or raise a

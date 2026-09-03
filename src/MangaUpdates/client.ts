@@ -54,9 +54,11 @@ export class MangaUpdatesApi {
   private get http(): NetworkClient {
     this.client ??= new NetworkClientBuilder()
       .setRateLimit(5, 1)
-      // 401 and 404 both carry meaning here, so they have to reach the caller rather
-      // than being turned into a generic transport failure by the host.
-      .setStatusValidator((status) => status < 500)
+      // The site answers 401, 404 and 412 with no body at all, and the host cannot
+      // deserialise an empty response — it fails the whole request with "input data was
+      // nil or zero length" before the source sees a status. So only the statuses that
+      // come with a body are accepted, and the rest are read back off the error instead.
+      .setStatusValidator((status) => (status >= 200 && status < 400) || status === 400)
       .addRequestInterceptor(async (request: NetworkRequest) => ({
         ...request,
         headers: { accept: "application/json", ...request.headers },
@@ -99,13 +101,23 @@ export class MangaUpdatesApi {
     if (token && !options.withoutSession) headers.authorization = `Bearer ${token}`;
     if (options.body !== undefined) headers["content-type"] = "application/json";
 
-    const response = await this.http.request({
-      url,
-      method,
-      headers,
-      // The host serialises the body; pre-encoding it sends the server a quoted string.
-      ...(options.body === undefined ? {} : { body: options.body }),
-    });
+    const response = await this.http
+      .request({
+        url,
+        method,
+        headers,
+        // The host serialises the body; pre-encoding it sends the server a quoted string.
+        ...(options.body === undefined ? {} : { body: options.body }),
+      })
+      .catch((error: unknown) => {
+        // A refused status arrives as an error carrying the response it refused, which is
+        // how the bodiless answers above still reach `parse`. Anything with no response
+        // behind it is a real transport failure and stays one.
+        if (error instanceof NetworkError && typeof error.res?.status === "number") {
+          return error.res;
+        }
+        throw error;
+      });
 
     return this.parse<T>(response, url);
   }
@@ -113,6 +125,7 @@ export class MangaUpdatesApi {
   private parse<T>(response: NetworkResponse, url: string): T {
     // Only 401 means the session is the problem. A 403 is the site — or something between
     // it and the reader — refusing the request, and calling that "sign in" misdirects.
+    // A 404 is an answer: the title is simply not on any of the reader's lists.
     if (response.status === 401) throw new UnauthorizedError();
     if (response.status === 404) throw new NotFoundError(`MangaUpdates has nothing at ${url}`);
     if (response.status === 412) throw new ThrottledError();
