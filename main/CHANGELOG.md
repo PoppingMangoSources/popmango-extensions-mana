@@ -180,7 +180,16 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.12)
+## Kagane (current: v1.0.13)
+
+### Changed
+
+- The site's tags are split into groups — Sexual Content, Relationships, Character Types
+  and Traits, Occupations, Species, Setting, Themes, Narrative, Content Warnings, Format,
+  Audience — in the search form and again as separate hide-lists in Settings, rather than
+  one picker holding the site's whole list. The site publishes no grouping of its own, so
+  the groups are read from the tag names and anything unclaimed is offered under Other
+  Tags. A hide-list saved before this still applies (v1.0.13).
 
 ### Fixed
 
