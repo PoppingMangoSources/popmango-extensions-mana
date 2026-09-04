@@ -180,7 +180,21 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.19)
+## Kagane (current: v1.0.20)
+
+### Added
+
+- A BL & GL group and a Taboo group. Taboo runs ahead of the warnings and the sexual list
+  so incest, adultery, forbidden love, age gaps and step-family land there rather than
+  being scattered; BL & GL runs after them so Bara stays where it was asked to be
+  (v1.0.20).
+
+### Changed
+
+- The groups are named more plainly: Era, Adaptations, Personality, Character Roles,
+  Health, Creatures, Places, Activities, Objects, Worldbuilding, Storytelling, Format,
+  Demographic, Business, Emotions. Only the names changed — a hide-list is stored under
+  the group's id, so nothing already hidden is lost (v1.0.20).
 
 ### Changed
 
