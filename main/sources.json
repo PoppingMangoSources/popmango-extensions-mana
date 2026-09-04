@@ -22,12 +22,12 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "2fa4ec992fa4ec992fa4ec992fa4ec992fa4ec992fa4ec992fa4ec992fa4ec99"
+      "hash": "3354416233544162335441623354416233544162335441623354416233544162"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.0.14",
+      "version": "1.0.15",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "2de01d982de01d982de01d982de01d982de01d982de01d982de01d982de01d98"
+      "hash": "48a635d348a635d348a635d348a635d348a635d348a635d348a635d348a635d3"
     },
     {
       "id": "mangaupdates",
@@ -66,7 +66,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "2d9a926c2d9a926c2d9a926c2d9a926c2d9a926c2d9a926c2d9a926c2d9a926c"
+      "hash": "29eb3dc629eb3dc629eb3dc629eb3dc629eb3dc629eb3dc629eb3dc629eb3dc6"
     },
     {
       "id": "mangago",
@@ -88,7 +88,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "6e4071896e4071896e4071896e4071896e4071896e4071896e4071896e407189"
+      "hash": "6a911cc76a911cc76a911cc76a911cc76a911cc76a911cc76a911cc76a911cc7"
     },
     {
       "id": "xcomic",
@@ -110,7 +110,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "0e0bbc7a0e0bbc7a0e0bbc7a0e0bbc7a0e0bbc7a0e0bbc7a0e0bbc7a0e0bbc7a"
+      "hash": "11bb116311bb116311bb116311bb116311bb116311bb116311bb116311bb1163"
     }
   ]
 }
