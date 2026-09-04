@@ -180,7 +180,14 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.14)
+## Kagane (current: v1.0.15)
+
+### Changed
+
+- Spellings of one tag now fold together even when they differ by their spaces, which is
+  how uploaders write them: `Age Gap` and `Agegap`, `Dark Romance` and `DarkRomance`,
+  `Body Swap/S` and `Bodyswap` are one entry each, labelled with the spelling that reads.
+  7,212 tags are offered where the site publishes 8,139 (v1.0.15).
 
 ### Changed
 

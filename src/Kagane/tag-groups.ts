@@ -188,6 +188,15 @@ function fold(name: string): string {
     .replace(/\b(\w{3,}?)(?:es|s)\b/g, "$1");
 }
 
+/**
+ * What two spellings have to share to be the same tag. Spaces are dropped as well as
+ * plurals, because uploaders write the same idea both ways — `Age Gap` and `Agegap`,
+ * `Dark Romance` and `DarkRomance`, `Body Swap/S` and `Bodyswap`.
+ */
+function clusterKey(name: string): string {
+  return fold(name).replace(/ /g, "");
+}
+
 /** The tidiest spelling of a tag: the site's `/S` and `'S` forms are not it. */
 function displayName(name: string): string {
   return name
@@ -210,7 +219,7 @@ export function canonicalTags(options: Option[]): Option[] {
   for (const option of options) {
     if (isJunk(option.title)) continue;
 
-    const key = fold(option.title);
+    const key = clusterKey(option.title);
     if (!key) continue;
 
     const title = displayName(option.title);
@@ -222,10 +231,12 @@ export function canonicalTags(options: Option[]): Option[] {
     }
 
     cluster.ids.push(option.id);
-    // A spelling that needed no tidying reads better than one that did.
-    if (title === option.title && (cluster.title.includes("/") || cluster.title.includes("'S"))) {
-      cluster.title = title;
-    }
+    // Between spellings, prefer the one that reads: written out over `Character/S`, and
+    // spaced over run together.
+    const tidier =
+      title === option.title && (cluster.title.includes("/") || cluster.title.includes("'S"));
+    const spaced = title.includes(" ") && !cluster.title.includes(" ");
+    if (tidier || spaced) cluster.title = title;
   }
 
   return [...clusters.values()]
