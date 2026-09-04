@@ -180,7 +180,13 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.15)
+## Kagane (current: v1.0.16)
+
+### Changed
+
+- Settings opens on Titles and Chapters. They are two short sections of toggles that were
+  sitting below the long tag hide-lists, which meant scrolling past everything to reach
+  them (v1.0.16).
 
 ### Changed
 

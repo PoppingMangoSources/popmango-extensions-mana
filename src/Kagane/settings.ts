@@ -36,6 +36,40 @@ export type SettingsHooks = {
 export async function buildSettingsSections(hooks: SettingsHooks): Promise<PreferenceSection[]> {
   return [
     {
+      header: "Titles",
+      footer:
+        "Clean Title removes a trailing bracketed qualifier so duplicate library entries collapse together. It replaces the two annotations above it rather than combining with them.",
+      fields: [
+        {
+          type: "toggle",
+          key: PreferenceID.ShowSourceInTitle,
+          title: "Show Source in Title",
+        },
+        {
+          type: "toggle",
+          key: PreferenceID.ShowEditionInTitle,
+          title: "Show Edition in Title",
+        },
+        { type: "toggle", key: PreferenceID.CleanTitle, title: "Clean Title" },
+      ],
+    },
+    {
+      header: "Chapters",
+      footer: "Some tags are marked as spoilers by the site and hidden on a title's page.",
+      fields: [
+        {
+          type: "toggle",
+          key: PreferenceID.ShowSpoilerTags,
+          title: "Show Spoiler Tags",
+        },
+        {
+          type: "toggle",
+          key: PreferenceID.DataSaver,
+          title: "Data Saver",
+        },
+      ],
+    },
+    {
       header: "Content",
       footer:
         "Applies to the home page, listings and search. Erotica and Pornographic are hidden by default.",
@@ -75,40 +109,6 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
           key: PreferenceID.UploadSource,
           title: "Upload Source",
           options: UPLOAD_SOURCE_OPTIONS,
-        },
-      ],
-    },
-    {
-      header: "Titles",
-      footer:
-        "Clean Title removes a trailing bracketed qualifier so duplicate library entries collapse together. It replaces the two annotations above it rather than combining with them.",
-      fields: [
-        {
-          type: "toggle",
-          key: PreferenceID.ShowSourceInTitle,
-          title: "Show Source in Title",
-        },
-        {
-          type: "toggle",
-          key: PreferenceID.ShowEditionInTitle,
-          title: "Show Edition in Title",
-        },
-        { type: "toggle", key: PreferenceID.CleanTitle, title: "Clean Title" },
-      ],
-    },
-    {
-      header: "Chapters",
-      footer: "Some tags are marked as spoilers by the site and hidden on a title's page.",
-      fields: [
-        {
-          type: "toggle",
-          key: PreferenceID.ShowSpoilerTags,
-          title: "Show Spoiler Tags",
-        },
-        {
-          type: "toggle",
-          key: PreferenceID.DataSaver,
-          title: "Data Saver",
         },
       ],
     },
