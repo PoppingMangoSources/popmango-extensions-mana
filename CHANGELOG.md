@@ -180,7 +180,22 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.16)
+## Kagane (current: v1.0.17)
+
+### Fixed
+
+- `ML` and `FL` are how the site abbreviates male and female lead, which the grouping did
+  not know — so `Capable ML`, `Cold ML` and `Scheming FL` were read as unnamed characters
+  rather than as the traits they describe. A kiss is also a relationship rather than a
+  pastime, which is what had `Drunken Kiss` filed under hobbies (v1.0.17).
+
+### Changed
+
+- Four more groups: Spoilers, Sexuality & Gender, Business & Industry, and Mind &
+  Emotions. With another pass over the site's vocabulary, seven tags in eight now land in
+  a named group where barely half did two releases ago (v1.0.17).
+- Uploader scores — `Score: 8` and the like — are dropped with the other scribbles. They
+  describe an upload rather than a title (v1.0.17).
 
 ### Changed
 
