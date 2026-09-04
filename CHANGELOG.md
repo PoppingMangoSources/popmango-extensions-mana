@@ -180,7 +180,13 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.18)
+## Kagane (current: v1.0.19)
+
+### Changed
+
+- A further pass over Other Tags, again working from the picker: body descriptions,
+  crimes, creatures, objects, trades and places that were still sitting there now sit in
+  their group. Under a tenth of the list is unclaimed (v1.0.19).
 
 ### Changed
 
