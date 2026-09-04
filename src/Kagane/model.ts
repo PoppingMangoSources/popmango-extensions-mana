@@ -50,16 +50,16 @@ export const SortID = {
 } as const;
 
 export const SORT_OPTIONS: SortOption[] = [
-  { id: SortID.Relevance, title: "Relevance", isDefault: true, isOrderable: false },
-  { id: SortID.TotalViews, title: "Popular (Total Views)", isOrderable: true },
-  { id: SortID.AverageViews, title: "Popular (Average Views)", isOrderable: true },
-  { id: SortID.ViewsToday, title: "Popular (Today)", isOrderable: true },
-  { id: SortID.ViewsWeek, title: "Popular (Week)", isOrderable: true },
-  { id: SortID.ViewsMonth, title: "Popular (Month)", isOrderable: true },
-  { id: SortID.Updated, title: "Latest", isOrderable: true },
-  { id: SortID.Name, title: "By Name", isOrderable: true },
-  { id: SortID.BooksCount, title: "Books Count", isOrderable: true },
-  { id: SortID.Created, title: "Created At", isOrderable: true },
+  { id: SortID.Relevance, title: "Relevance", isDefault: true },
+  { id: SortID.TotalViews, title: "Popular (Total Views)" },
+  { id: SortID.AverageViews, title: "Popular (Average Views)" },
+  { id: SortID.ViewsToday, title: "Popular (Today)" },
+  { id: SortID.ViewsWeek, title: "Popular (Week)" },
+  { id: SortID.ViewsMonth, title: "Popular (Month)" },
+  { id: SortID.Updated, title: "Latest" },
+  { id: SortID.Name, title: "By Name" },
+  { id: SortID.BooksCount, title: "Books Count" },
+  { id: SortID.Created, title: "Created At" },
 ];
 
 export const CONTENT_RATINGS = ["Safe", "Suggestive", "Erotica", "Pornographic"];

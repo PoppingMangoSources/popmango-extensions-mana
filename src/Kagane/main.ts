@@ -75,6 +75,7 @@ import {
   parseChapters,
   parseContent,
   parseHighlight,
+  type TaxonomyIds,
   type TitleOptions,
 } from "./parsers.ts";
 import { buildSearchBody, buildSortParameter, type SearchBodyOptions } from "./search.ts";
@@ -83,7 +84,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.11",
+  version: "1.0.12",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -157,6 +158,19 @@ class KaganeSource
       showEdition,
       sources: Object.fromEntries(sources.map((source) => [source.source_id, source.title])),
     };
+  }
+
+  /**
+   * The site's genre and tag lists, turned around so a name can be traded for the id a
+   * search needs. Both lists are cached by the client, so this costs nothing after the
+   * first title opened in a session.
+   */
+  private async taxonomyIds(): Promise<TaxonomyIds> {
+    const [genres, tags] = await Promise.all([
+      this.api.fetchGenreNames(),
+      this.api.fetchTagNames(),
+    ]);
+    return { genres: byName(genres), tags: byName(tags) };
   }
 
   private async genreOptions(): Promise<Option[]> {
@@ -305,23 +319,24 @@ class KaganeSource
       body,
       pageOf(request),
       PAGE_SIZE,
-      buildSortParameter(sortId, request.sort?.ascending),
+      buildSortParameter(sortId),
       SectionLayout.Simple,
       filters.toggle(FilterID.ExactMatch),
     );
   }
 
   async getContent(contentId: string): Promise<Content> {
-    const [details, titleOptions, showSpoilerTags] = await Promise.all([
+    const [details, titleOptions, showSpoilerTags, ids] = await Promise.all([
       this.fetchDetails(contentId),
       this.titleOptions(),
       this.preferences.flag(PreferenceID.ShowSpoilerTags),
+      this.taxonomyIds(),
     ]);
 
     const content = parseContent(
       contentId,
       details,
-      { ...titleOptions, showSpoilerTags },
+      { ...titleOptions, showSpoilerTags, ids },
       (imageId) => this.api.imageUrl(imageId),
     );
 
@@ -446,7 +461,7 @@ class KaganeSource
   ): Promise<PagedSearchResult> {
     const body = buildSearchBody(await this.bodyOptions(undefined, context));
 
-    return this.runSearch(body, page, PAGE_SIZE, buildSortParameter(spec.sort, false), spec.layout);
+    return this.runSearch(body, page, PAGE_SIZE, buildSortParameter(spec.sort), spec.layout);
   }
 
   private async runSearch(
@@ -518,3 +533,8 @@ function buildOptions(map: Record<string, string> | undefined): Option[] {
 }
 
 export class Target extends KaganeSource {}
+
+/** Turns the site's `{ id: name }` list into the `{ name: id }` a tag tap needs. */
+function byName(entries: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(entries).map(([id, name]) => [name.toLowerCase(), id]));
+}

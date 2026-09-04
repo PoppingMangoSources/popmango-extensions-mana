@@ -28,6 +28,12 @@ import {
   type SeriesSummary,
 } from "./model.ts";
 
+/** Name (lowercased) to the id the search endpoint expects, for genres and for tags. */
+export type TaxonomyIds = {
+  genres: Record<string, string>;
+  tags: Record<string, string>;
+};
+
 export type TitleOptions = {
   cleanTitle: boolean;
   showSource: boolean;
@@ -186,7 +192,7 @@ export function parseHighlight(
 export function parseContent(
   seriesId: string,
   details: DetailsResponse,
-  options: TitleOptions & { showSpoilerTags: boolean },
+  options: TitleOptions & { showSpoilerTags: boolean; ids: TaxonomyIds },
   coverFor: (imageId: string) => string,
 ): Content {
   const sourceName = details.source_id ? options.sources[details.source_id] : undefined;
@@ -202,14 +208,21 @@ export function parseContent(
     .map((entry) => entry.title.trim())
     .filter(Boolean);
 
+  // A title's own payload names its genres and tags but never identifies them, while the
+  // search these become when tapped is by id — so the id is looked up from the site's own
+  // lists. A name with no id left is kept as itself: it still reads, and the alternative
+  // is dropping a tag the title genuinely carries.
   const tags: Tag[] = [
     ...(details.genres ?? []).map((genre) => ({
-      id: genre.genre_name,
+      id: options.ids.genres[genre.genre_name.toLowerCase()] ?? genre.genre_name,
       title: genre.genre_name,
     })),
     ...(details.tags ?? [])
       .filter((tag) => options.showSpoilerTags || tag.spoiler !== true)
-      .map((tag) => ({ id: tag.tag_name, title: tag.tag_name })),
+      .map((tag) => ({
+        id: options.ids.tags[tag.tag_name.toLowerCase()] ?? tag.tag_name,
+        title: tag.tag_name,
+      })),
   ];
 
   const summary = buildSummary(details, sourceName);

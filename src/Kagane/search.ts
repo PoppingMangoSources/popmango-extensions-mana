@@ -127,7 +127,11 @@ export function buildSearchBody(
   return body;
 }
 
-export function buildSortParameter(id: string, ascending: boolean | undefined): string {
-  if (!id) return "";
-  return ascending === true ? id : `${id},desc`;
+/**
+ * The site sorts one way. It accepts an ascending parameter and answers it with the same
+ * order it already gave, so the sorts are not offered as orderable and this always asks
+ * for the descending one — newest, most viewed, most books first.
+ */
+export function buildSortParameter(id: string): string {
+  return id ? `${id},desc` : "";
 }

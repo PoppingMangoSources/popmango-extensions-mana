@@ -172,7 +172,19 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.11)
+## Kagane (current: v1.0.12)
+
+### Fixed
+
+- Tapping a genre or tag on a title returned nothing and the site rejected the request.
+  A title's own page names its genres and tags without identifying them, while the search
+  they become is by id, so the name was being sent where an id belongs. The ids are now
+  looked up from the site's own lists, which the source already holds (v1.0.12).
+
+### Changed
+
+- The sorts no longer offer an ascending and a descending direction. The site answers both
+  with the same order, so only the one it actually applies is offered (v1.0.12).
 
 ### Fixed
 
