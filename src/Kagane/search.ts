@@ -4,6 +4,7 @@ import { ContentRating } from "@mana-app/types";
 
 import type { FilterReader } from "../common/index.ts";
 import { CONTENT_RATINGS, FilterID } from "./model.ts";
+import { TAG_GROUPS, tagFilterId } from "./tag-groups.ts";
 
 export type SearchBodyOptions = {
   query?: string;
@@ -116,9 +117,20 @@ export function buildSearchBody(
   );
   if (genres) body["genres"] = genres;
 
-  const tagSelection = filters.excludable(FilterID.Tags);
+  // Tags are picked a group at a time but searched as one list, so every group's picker
+  // is read and the selections pooled.
+  const tagSelection = TAG_GROUPS.reduce<{ included: string[]; excluded: string[] }>(
+    (pooled, group) => {
+      const picked = filters.excludable(tagFilterId(group.id));
+      pooled.included.push(...picked.included);
+      pooled.excluded.push(...picked.excluded);
+      return pooled;
+    },
+    { included: [], excluded: [] },
+  );
+
   const tags = buildIncludeExclude(
-    tagSelection.included,
+    [...new Set(tagSelection.included)],
     [...new Set([...tagSelection.excluded, ...options.excludedTagIds])],
     filters.toggle(FilterID.MatchAllTags),
   );

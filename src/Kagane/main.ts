@@ -79,12 +79,13 @@ import {
   type TitleOptions,
 } from "./parsers.ts";
 import { buildSearchBody, buildSortParameter, type SearchBodyOptions } from "./search.ts";
+import { EXCLUDED_TAG_KEYS, groupTags, tagFilterId } from "./tag-groups.ts";
 import { buildSettingsSections } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.12",
+  version: "1.0.13",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -127,7 +128,7 @@ class KaganeSource
         this.preferences.strings(PreferenceID.ContentRating),
         this.preferences.strings(PreferenceID.ContentLanguages),
         this.preferences.strings(PreferenceID.ExcludedGenres),
-        this.preferences.strings(PreferenceID.ExcludedTags),
+        this.hiddenTags(),
       ]);
 
     return {
@@ -141,6 +142,16 @@ class KaganeSource
         ? {}
         : { allowedRatings: context.allowedContentRatings }),
     };
+  }
+
+  /**
+   * Every tag the reader has hidden. They are stored a group at a time, and the key the
+   * one ungrouped list used is read as well so a hide-list made before the groups existed
+   * still applies.
+   */
+  private async hiddenTags(): Promise<string[]> {
+    const lists = await Promise.all(EXCLUDED_TAG_KEYS.map((key) => this.preferences.strings(key)));
+    return [...new Set(lists.flat())];
   }
 
   private async titleOptions(): Promise<TitleOptions> {
@@ -247,11 +258,16 @@ class KaganeSource
                     title: "Match All Tags",
                     subtitle: "Require every selected tag rather than any of them",
                   }),
-                  SearchExcludableMultiPickerSheet({
-                    id: FilterID.Tags,
-                    title: "Tags",
-                    options: tags,
-                  }),
+                  // The site sends its tags as one list of several hundred. They are shown
+                  // a group at a time so the picker can be read; a pick in any of them
+                  // means the same thing to the search.
+                  ...groupTags(tags).map(({ group, options }) =>
+                    SearchExcludableMultiPickerSheet({
+                      id: tagFilterId(group.id),
+                      title: group.title,
+                      options,
+                    }),
+                  ),
                 ],
               }),
             ]
@@ -274,12 +290,12 @@ class KaganeSource
   async getPreferenceMenu(): Promise<Form> {
     return buildPreferenceMenu(
       this.preferences,
-      buildSettingsSections({
+      await buildSettingsSections({
         genres: () => this.genreOptions(),
         tags: () => this.tagOptions(),
         resetContentFilters: async () => {
           await this.preferences.reset(PreferenceID.ExcludedGenres);
-          await this.preferences.reset(PreferenceID.ExcludedTags);
+          for (const key of EXCLUDED_TAG_KEYS) await this.preferences.reset(key);
           await this.preferences.reset(PreferenceID.ContentRating);
         },
         resetAll: async () => {

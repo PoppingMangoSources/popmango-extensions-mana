@@ -2,13 +2,29 @@
 
 import type { Option } from "@mana-app/types";
 
-import type { PreferenceSection } from "../common/index.ts";
+import type { PreferenceField, PreferenceSection } from "../common/index.ts";
 import {
   CONTENT_RATING_OPTIONS,
   LANGUAGE_OPTIONS,
   PreferenceID,
   UPLOAD_SOURCE_OPTIONS,
 } from "./model.ts";
+import { excludedTagsKey, groupTags } from "./tag-groups.ts";
+
+/**
+ * The tag list is read once and split, so a group with nothing in it is not offered.
+ * A failed read leaves the section without hide-lists rather than with empty ones.
+ */
+async function groupedTagFields(tags: () => Promise<Option[]>): Promise<PreferenceField[]> {
+  const grouped = groupTags(await tags().catch(() => []));
+
+  return grouped.map(({ group, options }) => ({
+    type: "multiselect",
+    key: excludedTagsKey(group.id),
+    title: `Hide ${group.title}`,
+    options: async () => options,
+  }));
+}
 
 export type SettingsHooks = {
   genres: () => Promise<Option[]>;
@@ -17,7 +33,7 @@ export type SettingsHooks = {
   resetAll: () => Promise<void>;
 };
 
-export function buildSettingsSections(hooks: SettingsHooks): PreferenceSection[] {
+export async function buildSettingsSections(hooks: SettingsHooks): Promise<PreferenceSection[]> {
   return [
     {
       header: "Content",
@@ -44,12 +60,9 @@ export function buildSettingsSections(hooks: SettingsHooks): PreferenceSection[]
           title: "Hide Genres",
           options: hooks.genres,
         },
-        {
-          type: "multiselect",
-          key: PreferenceID.ExcludedTags,
-          title: "Hide Tags",
-          options: hooks.tags,
-        },
+        // One hide-list per tag group, for the same reason the search form splits them:
+        // the site's tag list is far too long to work through in a single picker.
+        ...(await groupedTagFields(hooks.tags)),
       ],
     },
     {

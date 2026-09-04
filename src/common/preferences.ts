@@ -113,7 +113,7 @@ export class PreferenceStore<T extends Record<string, PreferenceValue>> {
 
 type PreferenceOptions = readonly Option[] | (() => Promise<readonly Option[]>);
 
-type PreferenceField =
+export type PreferenceField =
   | {
       type: "text";
       key: string;
