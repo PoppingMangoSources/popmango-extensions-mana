@@ -37,6 +37,7 @@ import {
 import {
   FilterReader,
   PreferenceStore,
+  TimedCache,
   buildPreferenceMenu,
   buildSearchForm,
   pageOf,
@@ -57,6 +58,7 @@ import {
   COMIC_QUERY,
   CONTENT_RATING_OPTIONS,
   CHAPTER_COUNT_OPTIONS,
+  TAXONOMY_LIFETIME_MS,
   DEMOGRAPHIC_OPTIONS,
   DISCOVER_SECTIONS,
   FilterID,
@@ -102,7 +104,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -137,7 +139,12 @@ class XCOMICSource
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
   );
 
-  private taxonomyPromise: Promise<FilterTaxonomy> | undefined;
+  // Reading the filter lists means reading the whole search page, so the answer is kept
+  // on disk as well: a form opened again does not pay for that page a second time.
+  private readonly taxonomyCache = new TimedCache<FilterTaxonomy>(
+    "xcomic.taxonomy",
+    TAXONOMY_LIFETIME_MS,
+  );
   // The two feeds page by cursor while the app counts pages, so the cursor for the next
   // page is remembered as each one is read. Paging is sequential, so this keeps up.
   private readonly feedCursors = new Map<string, number>();
@@ -151,17 +158,18 @@ class XCOMICSource
    * It is read once per session, and the bundled lists stand in if that read fails.
    */
   private taxonomy(): Promise<FilterTaxonomy> {
-    this.taxonomyPromise ??= this.readTaxonomy().catch(() => {
-      // Drop the failed memo so the next form open retries rather than staying bare.
-      this.taxonomyPromise = undefined;
-      return BUNDLED_TAXONOMY;
-    });
-    return this.taxonomyPromise;
+    // A failed read falls back to the bundled lists and is not stored, so the next form
+    // open asks the site again rather than remembering that it once could not be read.
+    return this.taxonomyCache.get(() => this.readTaxonomy()).catch(() => BUNDLED_TAXONOMY);
   }
 
   private async readTaxonomy(): Promise<FilterTaxonomy> {
     await this.applyMirror();
     const parsed = parseFilterTaxonomy(await this.api.page(searchPageUrl()));
+
+    // Genres are the one list with no bundled stand-in, so a page that parsed to none of
+    // them did not really parse. Failing here keeps it out of the cache for a day.
+    if (parsed.genres.length === 0) throw new Error("the search page listed no genres");
 
     return {
       genres: parsed.genres,

@@ -7,6 +7,9 @@ import type { PageSectionSpec } from "../common/index.ts";
 export const BASE_URL = "https://xcomic.me";
 
 /** The site answers on any of these hosts; a reader on a blocked network picks another. */
+/** The site's filter lists change rarely; a day old is still a usable form. */
+export const TAXONOMY_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
 export const MIRROR_OPTIONS: Option[] = [
   { id: "https://xcomic.me", title: "xcomic.me" },
   { id: "https://xcomic.net", title: "xcomic.net" },

@@ -40,6 +40,7 @@ import {
 import {
   FilterReader,
   PreferenceStore,
+  TimedCache,
   buildPreferenceMenu,
   buildSearchForm,
   pageOf,
@@ -110,7 +111,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -121,7 +122,8 @@ const info: SourceInfo = {
 
 const DETAIL_CACHE_MS = 60_000;
 
-const HOME_CACHE_MS = 60_000;
+/** The front page's carousel changes by the day, so a quarter of an hour is nothing. */
+const FEATURED_CACHE_MS = 15 * 60 * 1000;
 
 const REDRAW_GATE_TIMEOUT_MS = 3_000;
 
@@ -153,7 +155,10 @@ class MangagoSource
   private readonly descrambleKeys = new Map<string, DescrambleKey>();
   private genreOptions: Option[] | undefined;
   private detailCache: { contentId: string; html: string; at: number } | undefined;
-  private homeCache: { html: string; at: number } | undefined;
+  private readonly featuredCache = new TimedCache<Highlight[]>(
+    "mangago.featured",
+    FEATURED_CACHE_MS,
+  );
   private pendingRedraw: DescrambleKey | undefined;
   // The app calls the redraw pair concurrently per image and only the first call
   // carries the URL, so the handshake is serialised rather than held in a field.
@@ -434,15 +439,6 @@ class MangagoSource
     return { size, commands };
   }
 
-  private async fetchHome(): Promise<string> {
-    const cached = this.homeCache;
-    if (cached && Date.now() - cached.at < HOME_CACHE_MS) return cached.html;
-
-    const html = await this.fetchHtml(`${DOMAIN}/`);
-    this.homeCache = { html, at: Date.now() };
-    return html;
-  }
-
   private sectionUrl(sectionId: string, page: number, sort: string, excluded: string[]): string {
     if (sectionId === "new_chapters") return buildLatestUrl(page);
 
@@ -463,9 +459,23 @@ class MangagoSource
     const limit = capped ? spec?.limit : undefined;
 
     if (sectionId === "featured_manga") {
-      const featured = parseListings(await this.fetchHome(), FEATURED_CONTAINER);
-      const limited = limit === undefined ? featured : featured.slice(0, limit);
-      return { results: await this.toHighlights(limited), isLastPage: true };
+      // The carousel is cut out of the site's front page, which is by far the heaviest
+      // thing this source reads. What it yields is a few dozen tiles, so those are kept
+      // and the page is fetched again only once they have gone stale.
+      const featured = await this.featuredCache
+        .get(async () => {
+          const html = await this.fetchHtml(`${DOMAIN}/`);
+          const tiles = await this.toHighlights(parseListings(html, FEATURED_CONTAINER));
+          // A page that arrived but did not parse must not be remembered: an empty
+          // carousel would then stand for the whole lifetime rather than being retried.
+          if (tiles.length === 0) throw new Error("the front page carried no carousel");
+          return tiles;
+        })
+        .catch(() => []);
+      return {
+        results: limit === undefined ? featured : featured.slice(0, limit),
+        isLastPage: true,
+      };
     }
 
     const excluded = await this.settingsExcludedGenres(context);

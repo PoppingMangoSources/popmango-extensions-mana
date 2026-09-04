@@ -86,7 +86,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.5)
+## XCOMIC (current: v1.0.6)
+
+### Fixed
+
+- The search form was slow to open. Its filter lists come from the site's whole search
+  page, which was read again every time the form was built — a source instance does not
+  live long enough to remember it. The lists are kept for a day now, so only the first
+  open of the day pays for that page, and a page that parses to no genres at all is
+  treated as a failed read rather than remembered as an empty form (v1.0.6).
 
 ### Changed
 
@@ -294,7 +302,15 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.5)
+## Mangago (current: v1.0.6)
+
+### Fixed
+
+- The Featured carousel was slow every time the source was opened. It is cut out of the
+  site's front page, the heaviest thing this source reads, and the copy being held only
+  lasted as long as the instance that fetched it. The tiles it yields are kept for a
+  quarter of an hour instead, and a front page that arrives without a carousel is retried
+  rather than remembered as empty (v1.0.6).
 
 ### Fixed
 
