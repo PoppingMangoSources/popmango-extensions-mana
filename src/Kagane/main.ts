@@ -85,7 +85,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.13",
+  version: "1.0.14",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -114,10 +114,12 @@ class KaganeSource
   readonly config = config;
 
   private readonly api = new KaganeApi();
-  private readonly preferences = new PreferenceStore(
-    info.id,
-    PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
-  );
+  // The store answers only for keys it has a default for, and the hide-lists are one key
+  // per tag group, so those are declared here alongside the fixed ones.
+  private readonly preferences = new PreferenceStore(info.id, {
+    ...(PREFERENCE_DEFAULTS as Record<string, PreferenceValue>),
+    ...Object.fromEntries(EXCLUDED_TAG_KEYS.map((key) => [key, [] as string[]])),
+  });
 
   private detailCache: { seriesId: string; details: unknown; at: number } | undefined;
 

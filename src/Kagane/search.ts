@@ -4,7 +4,7 @@ import { ContentRating } from "@mana-app/types";
 
 import type { FilterReader } from "../common/index.ts";
 import { CONTENT_RATINGS, FilterID } from "./model.ts";
-import { TAG_GROUPS, tagFilterId } from "./tag-groups.ts";
+import { TAG_GROUPS, tagFilterId, tagIdsOf } from "./tag-groups.ts";
 
 export type SearchBodyOptions = {
   query?: string;
@@ -95,7 +95,7 @@ export function buildSearchBody(
     const genres = buildIncludeExclude([], options.excludedGenreIds, false);
     if (genres) body["genres"] = genres;
 
-    const tags = buildIncludeExclude([], options.excludedTagIds, false);
+    const tags = buildIncludeExclude([], options.excludedTagIds.flatMap(tagIdsOf), false);
     if (tags) body["tags"] = tags;
     return body;
   }
@@ -119,9 +119,12 @@ export function buildSearchBody(
 
   // Tags are picked a group at a time but searched as one list, so every group's picker
   // is read and the selections pooled.
-  const tagSelection = TAG_GROUPS.reduce<{ included: string[]; excluded: string[] }>(
-    (pooled, group) => {
-      const picked = filters.excludable(tagFilterId(group.id));
+  // The ungrouped id is read alongside the groups: a tag tapped on a title's page arrives
+  // under it, since nothing outside this source knows which group that tag belongs to.
+  const tagFilters = [FilterID.Tags, ...TAG_GROUPS.map((group) => tagFilterId(group.id))];
+  const tagSelection = tagFilters.reduce<{ included: string[]; excluded: string[] }>(
+    (pooled, id) => {
+      const picked = filters.excludable(id);
       pooled.included.push(...picked.included);
       pooled.excluded.push(...picked.excluded);
       return pooled;
@@ -129,9 +132,11 @@ export function buildSearchBody(
     { included: [], excluded: [] },
   );
 
+  // A picker offers one option per tag while the site holds several ids for it, so each
+  // selected value carries them all and is opened back up here.
   const tags = buildIncludeExclude(
-    [...new Set(tagSelection.included)],
-    [...new Set([...tagSelection.excluded, ...options.excludedTagIds])],
+    [...new Set(tagSelection.included.flatMap(tagIdsOf))],
+    [...new Set([...tagSelection.excluded, ...options.excludedTagIds].flatMap(tagIdsOf))],
     filters.toggle(FilterID.MatchAllTags),
   );
   if (tags) body["tags"] = tags;

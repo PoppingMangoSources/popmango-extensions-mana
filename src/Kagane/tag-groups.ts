@@ -5,11 +5,16 @@ import type { Option } from "@mana-app/types";
 import { FilterID, PreferenceID } from "./model.ts";
 
 /**
- * Kagane publishes its tags as one flat list of several hundred names and says nothing
- * about how they relate, so the grouping here is read off the names themselves. Each
- * group claims the names its patterns match, in the order listed, and whatever no group
- * claims goes to the last one — which is why that one exists rather than being an
- * admission of failure. Adding a pattern is the whole of adding a tag to a group.
+ * Kagane publishes about eight thousand tags as one flat list, with no grouping, no usage
+ * counts, and several spellings of the same idea — `Actor`, `Actor/S` and `Actors` are
+ * three entries with three ids. What arrives here is therefore cleaned before it is shown:
+ * the uploader scribbles are dropped, spellings of one tag are folded together, and what
+ * is left is sorted into groups read off the names themselves.
+ *
+ * Nothing about a tag says which group it belongs to, so the patterns below are a reading
+ * of the site's vocabulary rather than anything it states. A name no pattern claims is
+ * offered under Other Tags, which is a real group rather than a failure: in a list this
+ * long, a tag nobody thought to describe is still one somebody wants.
  */
 export type TagGroup = {
   id: string;
@@ -18,95 +23,228 @@ export type TagGroup = {
   match?: RegExp;
 };
 
+/** What the site suffixes a character descriptor with: `Cold Female Lead`, `Shy Uke`. */
+const WHO = String.raw`(lead|protagonist|uke|seme|characters?|cast|mc)`;
+
 const OTHER_TAGS: TagGroup = { id: "other", title: "Other Tags" };
 
 export const TAG_GROUPS: readonly TagGroup[] = [
   {
-    id: "sexual-content",
-    title: "Sexual Content",
+    id: "time-period",
+    title: "Time Period",
     match:
-      /\b(sex|sexual|smut|erotic|nudity|nude|intercourse|orgasm|masturbat|fellatio|blowjob|handjob|paizuri|titjob|anal|anilingus|cunnilingus|creampie|deepthroat|bondage|bdsm|fetish|kink|kinky|threesome|orgy|voyeur|exhibition|incest|netorare|ntr|rape|non-?con|dubcon|prostitut|brothel|harem sex|foreplay|climax|ecchi|hentai|lewd|aphrodisiac|sex toy|dildo|vibrator|spanking|choking|breeding|impregnat|pregnancy fetish|lactation|nipple|penis|vagina|genital|cum|semen|virgin)/,
+      /\b\d{1,2}(st|nd|rd|th) century\b|^\d{2,4}s$|\b(medieval|victorian|edo|meiji|taisho|showa|heisei|reiwa|renaissance|feudal|prehistor|stone age|bronze age|iron age|ancient|antiquity|colonial|world war|wwi|wwii|cold war|regency|georgian|elizabethan|joseon|dynasty|era\b|period piece|time period|contemporary|near future|far future)/,
   },
   {
-    id: "relationships",
-    title: "Relationships",
+    id: "derivative",
+    title: "Derivative Work",
     match:
-      /\b(romance|romantic|love|lover|couple|marriage|married|wedding|engagement|fianc|divorce|dating|courtship|arranged|contract(ual)? relationship|polyamory|harem|reverse harem|love triangle|unrequited|childhood friend|first love|crush|jealous|possessive|yaoi|yuri|bl\b|gl\b|shounen ai|shoujo ai|boys.? love|girls.? love|omegaverse|alpha|beta|omega|seme|uke|family|sibling|brother|sister|father|mother|parent|daughter|son\b|cousin|twin|adopt|orphan|friendship|rival|enemies to lovers|slow burn|age gap|forbidden love)/,
-  },
-  {
-    id: "character-types",
-    title: "Character Types",
-    match:
-      /\b(protagonist|male lead|female lead|antagonist|villain|villainess|heroine|hero\b|anti-?hero|(main|side|supporting|multiple) character|ensemble cast|narrator|strong female|strong male|weak to strong|overpowered|underdog|genius|prodigy|chosen one|reincarnat|transmigrat|regressor|returnee|isekai)/,
-  },
-  {
-    id: "character-traits",
-    title: "Character Traits",
-    match:
-      /\b(tsundere|yandere|kuudere|dandere|deredere|shy|cold|stoic|cheerful|cynic|arrogant|kind|cruel|ruthless|naive|clever|cunning|lazy|hardworking|stubborn|loyal|selfish|selfless|blind|deaf|mute|disab|illness|ill\b|sick|scar|trauma|amnesia|glasses|beautiful|handsome|ugly|short|tall|muscular|petite|hair|eyed|eyes|freckle|tattoo|piercing|beauty mark|birthmark|mole\b|dimple|heterochromia|personality|introvert|extrovert|mature|childish|immortal)/,
-  },
-  {
-    id: "occupations",
-    title: "Occupations & Roles",
-    match:
-      /\b(student|teacher|professor|doctor|nurse|surgeon|lawyer|judge|police|detective|soldier|knight|samurai|ninja|mercenary|assassin|guard|hunter|adventurer|merchant|trader|farmer|chef|cook|baker|barista|waiter|maid|butler|servant|slave|noble|aristocrat|royal|king|queen|prince|princess|emperor|empress|duke|duchess|lord|lady|priest|nun|monk|shaman|witch|wizard|mage|sorcer|alchemist|blacksmith|artist|painter|writer|author|novelist|journalist|reporter|photographer|musician|singer|idol|actor|actress|model\b|dancer|athlete|gamer|streamer|programmer|engineer|scientist|researcher|pilot|driver|sailor|pirate|thief|gangster|mafia|yakuza|criminal|office|salaryman|ceo|boss|secretary|employee|worker|job\b|career|profession)/,
-  },
-  {
-    id: "species",
-    title: "Species & Creatures",
-    match:
-      /\b(demon|devil|angel|god\b|goddess|deity|spirit|ghost|undead|zombie|vampire|werewolf|beast|beastman|kemonomimi|catgirl|foxgirl|dragon|elf|dwarf|orc|goblin|fairy|mermaid|siren|monster|kaiju|slime|golem|robot|android|cyborg|ai\b|alien|youkai|yokai|kitsune|oni|familiar|animal|cat\b|dog\b|wolf|fox\b|bird|dinosaur|insect|human|non-?human|hybrid|shapeshift|transformation)/,
-  },
-  {
-    id: "setting",
-    title: "Setting & World",
-    match:
-      /\b(school|academy|university|college|classroom|dorm|workplace|hospital|prison|island|village|town|city|capital|kingdom|empire|palace|castle|mansion|dungeon|tower|forest|desert|mountain|ocean|sea\b|space|planet|station|underground|another world|other world|parallel|virtual|game world|apocalyp|post-?apocalyp|dystopia|utopia|wasteland|medieval|victorian|edo|feudal|ancient|modern|contemporary|futur|historical|steampunk|cyberpunk|magic world|world building|setting|location|countryside|urban|rural)/,
-  },
-  {
-    id: "themes",
-    title: "Themes & Genres",
-    match:
-      /\b(action|adventure|comedy|drama|tragedy|horror|thriller|mystery|suspense|fantasy|sci-?fi|science fiction|slice of life|psychological|philosoph|political|military|war\b|crime|sports|music|cooking|food|medical|educational|historical fiction|supernatural|magic|superpower|martial arts|mecha|survival|revenge|redemption|coming of age|growth|healing|wholesome|dark|gore|violence|death|grief|loss|betrayal|friendship theme|justice|freedom|identity|memory|time travel|time loop|reincarnation theme|religion|mythology|folklore)/,
-  },
-  {
-    id: "narrative",
-    title: "Narrative & Tropes",
-    match:
-      /\b(plot|story|narrative|trope|cliffhanger|flashback|foreshadow|twist|open ending|happy ending|sad ending|bittersweet|tragic ending|episodic|serial|anthology|one-?shot|multiple (endings|timelines|perspectives)|nonlinear|non-?linear|unreliable|misunderstanding|secret identity|hidden|disguise|mistaken identity|love at first sight|found family|training|tournament|competition|quest|journey|escape|rescue|conspiracy|deception|betray|level|system|status window|skill|class change|guild|party|raid|boss battle)/,
+      /\b(based on|adapted (from|into|to)|adaptation|original work|spin-?off|sequel|prequel|remake|reboot|retelling|crossover|parody|fan ?(work|fiction|comic)|doujin|derivative|source material|tie-?in)/,
   },
   {
     id: "content-warnings",
     title: "Content Warnings",
     match:
-      /\b(abuse|abusive|assault|torture|murder|suicide|self-?harm|bully|harass|discriminat|racism|slavery|addiction|drug|alcohol|smoking|animal cruelty|child abuse|domestic violence|kidnap|human trafficking|cannibal|body horror|graphic|disturbing|trigger|warning|sensitive|mental (health|illness)|depression|anxiety|ptsd|eating disorder)/,
+      /\b(rape|non-?con|dubcon|dub\/non|molest|assault|abuse|abusive|torture|murder|suicide|self-?harm|bull(y|ies|ying)|harass|slavery|human trafficking|kidnap|abduction|cannibal|gore|graphic violence|body horror|mutilat|animal cruelty|child (abuse|neglect)|domestic violence|incest|drug (use|abuse)|addiction|alcoholism|eating disorder|grooming|stalking|discriminat|racism|homophobia|transphobia|ableism|antisemitism|misogyn|sexism|genocide|war crime|abortion|miscarriage|major character death|dead dove|trigger|warning|rapist|brutality|coercion|degradation|punishment|matricide|parricide|patricide|fratricide|infanticide|shoplifting|fraud|plagiarism|extortion|blackmail|wiretapping|arson|corruption|lawlessness|biological warfare|cuckold|forced|assassination|attempted|adultery|bank robbery|familicide|fascism|nazi|treason|sabotage|victim blaming|pedophile|lolicon|shotacon|csa\b|humiliat|groping|netori|masochism|femdom|psychopath|sociopath|machiavellian|manipulative|trusting wrong person|broken promise|cheater|exile|probation|undercover)/,
+  },
+  {
+    id: "sexual-content",
+    title: "Sexual Content",
+    match:
+      /\b(sex|sexual|intercourse|smut|erotic|nudity|nude|orgasm|masturbat|fellatio|blowjob|handjob|paizuri|titjob|anal|anilingus|cunnilingus|creampie|deepthroat|ahegao|bondage|bdsm|fetish|kink|threesome|foursome|orgy|gangbang|voyeur|exhibition|netorare|ntr|prostitut|brothel|foreplay|ecchi|hentai|lewd|aphrodisia|sex toy|dildo|vibrator|spanking|squirting|breeding|impregnat|lactation|nipple|penis|vagina|genital|cum\b|semen|virgin|seduc|striptease|lingerie|underwear|swimsuit|position\b|69\b|doggy|cowgirl|missionary|mating|heat cycle|knotting|omegaverse|pheromone|oral play|dirty talk|sensitive body|horny|alpha x|omega x|beta x|recessive|dominant alpha|cakeverse|futanari|scissoring|fisting|enema|sounding|vore|chastity|garter|collar\b|handcuff|tail plug|male pregnancy|mpreg|big tits|large breast|realistic breast|body paint|nipple|shimaidon|ashikoki|pederasty|penile|prostate|sexuality|bisexuality|smalldom|female dominance|hardcore|nsfw|gag\b|frigid|double penetration|footjob|feet\b|areola|bodysuit|leggings|stocking|shaving|tentacle|urethral|wet dream|mouth fingering|okama|otokonoko|kuro gyaru|vanilla|fwb\b|ntl\b|pomegaverse|omega\b|beta\b|bottom\b|top\b|suggestive|erotica|chocolate)/,
+  },
+  {
+    id: "appearance",
+    title: "Appearance",
+    match:
+      /-(haired|eyed|skinned)\b|\b(hair|eyes|eyebrow|freckle|dimple|beauty mark|birthmark|mole\b|scar|tattoo|piercing|glasses|monocle|eyepatch|beard|moustache|mustache|sideburn|afro|ahoge|braid|ponytail|bald|albino|heterochromia|androgynous|petite|chubby|plump|slim|slender|skinny|obese|muscular|buff|tall|short|tiny|beautiful|handsome|pretty|cute|ugly|attractive|good-?looking|physical deformity|body type|appearance|outfit|uniform|cross-?dress|makeup|accent colou?rs?|chibi|hakama|kimono|apron|special suit|nail-?art|facial expression|tail\b|horns?\b|wings?\b|breast|tits\b|figure|muscles|heart shaped|ribbon|kitsuke|visual kei|body modification|younger than they look|tough girl|hardcover)/,
+  },
+  {
+    id: "character-traits",
+    title: "Character Traits",
+    match: new RegExp(
+      String.raw`\b(tsundere|yandere|kuudere|dandere|deredere|shy|timid|cold|cool|calm|stoic|cheerful|happy|sad|gloomy|cynic|arrogant|proud|humble|kind|gentle|cruel|ruthless|violent|aggressive|passive|naive|innocent|clever|smart|intelligent|dumb|stupid|foolish|cunning|lazy|hardworking|diligent|studious|stubborn|loyal|devoted|selfish|selfless|jealous|possessive|protective|clumsy|serious|playful|mischievous|funny|silly|awkward|blunt|straightforward|honest|liar|manipulat|obsessive|insecure|confident|fearless|brave|coward|rude|polite|bossy|domineering|submissive|assertive|perceptive|competent|incompetent|righteous|immoral|amoral|apathetic|emotionless|expressive|introvert|extrovert|optimist|pessimist|crybaby|crazy|eccentric|weird|mysterious|secretive|annoying|helpful|caring|nurturing|sadis|masochis|delinquent|rebellious|obedient|airhead|forgetful|absent-?minded|workaholic|glutton|perfectionist|hot-?blooded|short-?tempered|patient|impatient|charismatic|anti-?social|friendly|unfriendly|flirt|pure|chaste|pervert|otaku|nerd|geek|tomboy|girly|childish|mature|responsible|carefree|reckless|cautious|greedy|generous|vengeful|forgiving|ambitious|determined|good|evil|villainous|heroic|strong|weak|powerful|helpless|lonely|broken|dense|oblivious)\b.*\b` +
+        WHO +
+        String.raw`\b|\b(tsundere|yandere|kuudere|dandere|deredere|tomboy|otaku|pervert|airhead|workaholic|perfectionist|coward|liar|glutton|crybaby|delinquent|masochist|sadist|introvert|extrovert|personality|temperament|character trait|attitude|emotion|feelings)`,
+    ),
+  },
+  {
+    id: "character-types",
+    title: "Character Types",
+    match: new RegExp(
+      String.raw`\b` +
+        WHO +
+        String.raw`\b|\b(antagonist|villain|villainess|heroine|hero\b|anti-?hero|rival\b|sidekick|mentor|apprentice|disciple|underdog|prodigy|genius|chosen one|reincarnat|transmigrat|regressor|returnee|isekai|overpowered|weak to strong|multiple protagonists|ensemble|narrator|orphan|twin|triplet|quadruplet|sextuplet|only child|eldest|youngest|heir\b|successor|clone|doppelganger|alter ego|split personality|body swap|gender ?bend|possessed|amnesiac|immortal|mortal)`,
+    ),
+  },
+  {
+    id: "relationships",
+    title: "Relationships",
+    match:
+      /\b(relationship|romance|romantic|love|lover|beloved|crush|couple|marriage|married|wedding|bride|groom|engagement|fianc|divorce|widow|dating|courtship|arranged|polyamor|harem|love triangle|unrequited|childhood friend|first love|friend|friendship|companion|partner|family|families|sibling|brother|sister|father|mother|parent|dad\b|mom\b|daughter|son\b|child\b|children|baby|babies|grandparent|grandmother|grandfather|uncle|aunt|cousin|nephew|niece|in-?law|adopt|foster|step-?(mother|father|sister|brother|family)|yaoi|yuri|shounen ai|shoujo ai|boys.? love|girls.? love|bl\b|gl\b|gay|lesbian|bisexual|asexual|queer|lgbt|enemies to lovers|slow burn|age gap|forbidden|affair|cheating|infidelity|breakup|reunion|long distance|fake dating|soulmate|fated|second chance|roommate|multiple couple|lovey|longing|nieces|fatherhood|motherhood|older men|old man|oyaji|mistrust|lack of communication|savior complex|drunken confession|girlcrush|class s\b|yamato nadeshiko|banding together|eavesdrop|sweet talker|classmate|neighbo|sempai|kouhai|senpai|matchmaking|first kiss|jealousy|obsession|rejection|dependency|co-?dependan|deliberate loner|girl next door|older female|younger male|manipulative ex|grandson|granddaughter|ancestor|childhood\b|birthday)/,
+  },
+  {
+    id: "health",
+    title: "Health & Conditions",
+    match:
+      /phobia\b|\b(illness|ill\b|sick|disease|disorder|syndrome|cancer|tumou?r|anemia|asthma|diabetes|epilepsy|alzheimer|dementia|amnesia|insomnia|allerg|infection|virus|plague|pandemic|epidemic|injur|wound|coma|paralys|disab|handicap|blind|deaf|mute|wheelchair|prosthe|amputee|amputation|chronic|terminal|surgery|medicine|medical|therapy|therapist|psychiatr|psycholog|mental health|schizophren|bipolar|autis|adhd|dyslexia|anorexia|bulimia|pregnan|childbirth|menstrua|puberty|aging|death|dying|near-?death|resurrect|transplant|acupuncture|aphonia|paraplegia|deafness|sleepwalk|necrophilia|coronavirus|bacteria|lifespan|psychoanalysis|sign language|disability|anxiety|angst|hypochondria|obesity|malnutrition|starvation|euthanasia|impotency|infertility|panic attack|mental breakdown|speech impediment|stage fright|synesthesia|illiterate|std\b|recovery|diets?\b|skin care|hypnotis|hypnosis|brainwash|restraint)/,
+  },
+  {
+    id: "occupations",
+    title: "Occupations",
+    match:
+      /\b(student|teacher|professor|principal|tutor|doctor|nurse|surgeon|dentist|urologist|pharmacist|veterinar|lawyer|attorney|judge|prosecutor|police|officer|detective|investigator|spy|agent|soldier|general|commander|knight|samurai|ninja|shinobi|mercenary|assassin|bodyguard|guard|hunter|adventurer|explorer|merchant|trader|shopkeeper|salesman|farmer|fisher|miner|chef|cook|baker|barista|bartender|waiter|waitress|maid|butler|servant|slave\b|noble|aristocrat|royal|king\b|queen\b|prince|princess|emperor|empress|duke|duchess|baron|marquis|lord\b|lady\b|sheikh|pope|priest|nun\b|monk\b|shaman|witch|wizard|mage\b|sorcer|necromancer|summoner|alchemist|blacksmith|carpenter|tailor|artisan|craftsman|artist|painter|sculptor|writer|author|novelist|editor|publisher|journalist|reporter|photographer|director|producer|musician|composer|singer|idol\b|actor|actress|model\b|dancer|comedian|athlete|coach|referee|gamer|streamer|youtuber|influencer|programmer|hacker|engineer|architect|scientist|researcher|inventor|astronaut|pilot|driver|mechanic|sailor|captain|pirate|thief|burglar|gangster|mafia|yakuza|triad|criminal|salaryman|businessman|entrepreneur|ceo\b|boss\b|manager|secretary|accountant|banker|clerk|employee|worker|intern|freelance|unemployed|neet\b|housewife|househusband|babysitter|librarian|curator|archaeolog|historian|translator|interpreter|diplomat|politician|senator|president|minister|mayor|firefighter|paramedic|undertaker|administrator|announcer|courier|delivery|barber|hairdresser|florist|apothecary|herbalist|fortune ?teller|psychic|exorcist|priestess|miko|profession|occupation|job\b|career|workplace|part-?time|bard|butcher|dj\b|djs\b|fighter|gunslinger|jeweler|jockey|loan shark|master\b|masters\b|metalsmith|weaponsmith|swordsm|miser|mortician|porn star|polyglot|grave robber|information broker|con-?man|consort|duke|headmaster|headmistress|subordinate|veteran|follower|impostor|assistant|attendant|archer|artificer|awakener|salesperson|maid\b|host\b|hosts\b|army|armies|guild master|leader|management|manager|retirement|unemploy|truancy|graduation|senior\b|staff|biologist|bookworm|concierge|conqueror|courtesan|escort|gymnast|hostess|landlord|landlady|lifeguard|marchioness|maharaja|pharaoh|prophet|porter|ranger|saint|seamstress|sommelier|strategist|thief|thieves|watchmaker|weaver|womanizer|game developer|talent agency|salaryman|salarymen|cinephile|crooked cop|gang\b|gangs\b|ex-gang|rebel|tyrant|invader|fugitive|captive|substitute|team\b|missions?\b|business|economics|finance|mining|smuggling|nightlife)/,
+  },
+  {
+    id: "species",
+    title: "Species & Creatures",
+    match:
+      /\b(demon|devil|angel|god\b|goddess|deity|divine|spirit|ghost|phantom|undead|zombie|skeleton|vampire|werewolf|lycan|beast|beastman|beastkin|kemonomimi|nekomimi|catgirl|foxgirl|bunnygirl|dragon|wyvern|elf\b|dwarf|orc\b|goblin|troll|ogre|giant|titan|fairy|fae\b|pixie|nymph|mermaid|merman|siren|harpy|centaur|minotaur|golem|gargoyle|slime|monster|kaiju|chimera|griffin|phoenix|unicorn|kitsune|tanuki|oni\b|yokai|youkai|tengu|kappa|komainu|zashiki|shikigami|familiar|summon|robot|android|cyborg|automaton|artificial intelligence|alien|extraterrestrial|mutant|hybrid|half-?(human|demon|elf|blood)|shapeshift|anthropomorph|animal|cat\b|cats\b|dog\b|dogs\b|wolf|fox\b|bird|cattle|horse|dinosaur|reptile|insect|ants?\b|spider|snake|fish\b|whale|dolphin|bear\b|lion|tiger|panda|rabbit|mouse|mice|apes?\b|monkey|alligator|crocodile|parasite|magical creature|mythical|creature|species|race\b|non-?human|humanoid|human\b|bunny girl|squirrel girl|goth girl|cow\b|cows\b|goat|horse|leopard|falcon|pigeon|crow|raven|mummy|mummies|valkyrie|weredog|yuki-?onna|enma|kemono|incubus|succubus|arachne|ayakashi|shapeshift|mimicry|invisibility|hybrid|bakeneko|bunny|bunnies|cyclops|ferret|lizardman|lizardmen|medusa|pig\b|pigs\b|raccoon|shinigami|grim reaper|zoomorphism|wildlife|pointy ear|headless|pureblood|special blood|super sense|regeneration|nanotech)/,
+  },
+  {
+    id: "locations",
+    title: "Locations",
+    match:
+      /\b(japan|china|korea|taiwan|thailand|vietnam|indonesia|malaysia|philippines|india|pakistan|russia|mongolia|turkey|arabia|egypt|africa|america|canada|mexico|brazil|argentina|europe|england|britain|scotland|ireland|france|germany|italy|spain|portugal|greece|netherlands|belgium|sweden|norway|denmark|finland|poland|austria|switzerland|australia|new zealand|antarctica|asia|middle east|south america|north america|country|countries|nation|city|cities|town|village|capital|island|continent|kingdom|empire|realm|province|district|neighbou?rhood|street|apartment|house|home\b|mansion|palace|castle|fortress|tower|temple|shrine|church|cathedral|monastery|school|academy|university|college|classroom|dormitory|dorm\b|library|hospital|clinic|prison|jail|dungeon|labyrinth|maze|cave|forest|jungle|woods|desert|mountain|valley|river|lake|ocean|sea\b|beach|coast|space|planet|moon\b|galaxy|station|airport|airplane|train|subway|restaurant|cafe|bars?\b|pub\b|club\b|shop|store|market|mall|office|factory|farm|ranch|garden|park\b|zoo\b|museum|theat(er|re)|stadium|arena|gym\b|bathhouse|onsen|hot spring|hotel|inn\b|orphanage|graveyard|cemetery|ruins|battlefield|location|place|amish|arabian|caucasian|chinese|japanese|korean|fukushima|hokkaido|himalaya|tokyo|kyoto|osaka|mars\b|venus|jupiter|peru|vietnamese|thai\b|indian\b|tribal|detention|hideout|workshop|atelier|wall\b|walls\b|aquarium|arcade|gallery|opera|kabuki|shrine|hot ?spring|outdoor|beauty salon|cafe|café|izakaya|hometown|hiroshima|nagasaki|singapore|scandinavia|french|british|german|italian|spanish|tropic|interstellar|lava|seasons?\b|real life|convention|talent agency)/,
+  },
+  {
+    id: "activities",
+    title: "Activities & Hobbies",
+    match:
+      /\b(sport|football|soccer|baseball|basketball|volleyball|tennis|badminton|golf|rugby|cricket|hockey|skating|skiing|snowboard|surfing|swimming|diving|running|marathon|track and field|cycling|climbing|boxing|wrestling|judo|karate|aikido|kendo|taekwondo|kung ?fu|martial arts|fencing|archery|airsoft|racing|motorsport|gymnastics|acrobat|cheerlead|dance|dancing|ballet|singing|music|instrument|piano|guitar|violin|drum|band\b|orchestra|choir|concert|painting|drawing|calligraphy|pottery|sculpt|photography|acting|writing|poetry|reading|cooking|baking|cuisine|food|eating|drinking|tea ceremony|flower arranging|ikebana|gardening|farming|fishing|hunting|camping|hiking|road trip|shopping|chess|shogi|mahjong|poker|card game|board game|video game|gaming|esports|puzzle|gambling|casino|magic trick|juggling|knitting|sewing|crafting|collecting|training|exercise|workout|meditation|yoga|study|studying|exam|competition|tournament|contest|festival|celebration|party|ceremony|ritual|hobby|hobbies|club activit|blacksmithing|brewing|embroidery|driving|snowboarding|salvaging|quiz|game show|memes|cards\b|bets\b|gambling|opera|heavy metal|visual art|arts & crafts|aviation|astronomy|astrology|archaeolog|anthropolog|agriculture|tea\b|sushi|bento|cooking|exorcism|summoning|parkour|jiujitsu|pachinko|mmorpg|haiku|noh\b|gekiga|handicraft|collections?\b|duels?\b|pranks?\b|gourmet|dessert|wagashi|sweet tooth|midnight snack|drinking|drunk|k-?pop|go\b|voodoo|fortune telling|sutras?\b|elections?\b)/,
+  },
+  {
+    id: "objects",
+    title: "Objects & Technology",
+    match:
+      /\b(sword|katana|blade|dagger|knife|spear|lance|axe\b|hammer|bow\b|arrow|guns?\b|pistol|rifle|firearm|weapon|armou?r|shield|helmet|potion|elixir|scroll|grimoire|books?\b|letter|diary|journal|map\b|key\b|ring\b|necklace|jewel|gem\b|crown|amulet|talisman|charm|doll|puppet|toys?\b|mask|mirror|clock|watch\b|camera|phone|smartphone|computer|laptop|internet|website|apps?\b|social media|machine|engine|vehicle|cars?\b|motorcycle|moped|bicycle|bike\b|truck|bus\b|boat|submarine|airship|spaceship|rocket|mecha|technology|invention|gadget|device|treasure|artifact|relic|object|item\b|tool\b|equipment|umbrella|flower|plant|tree|photograph|money|currency|knives|knife|battleship|asteroid|stationery|aura|illusion|elemental|special suit|coronet|banner|chains?\b|scooter|tank\b|tanks\b|transportation|augmented reality|nanotechnology|stationery|leggings)/,
+  },
+  {
+    id: "world",
+    title: "Setting & World Building",
+    match:
+      /\b(another world|other world|parallel|virtual|game world|dream world|underworld|afterlife|heaven|hell\b|purgatory|world hopping|world building|magic system|magic\b|magical|mana\b|spell|curse|blessing|prophecy|divination|supernatural|paranormal|occult|mythology|folklore|legend|religion|faith|cultivation|murim|wuxia|xianxia|apocalyp|dystopia|utopia|wasteland|steampunk|cyberpunk|space opera|futuristic|advanced technology|survival|guild|clan\b|sect\b|faction|territory|politics|political|monarchy|democracy|revolution|rebellion|war\b|battle|conflict|society|civilization|culture|tradition|custom|ambience|atmosphere|system\b|status window|levels?\b|skills?\b|class change|powers?\b|ability|abilities|superpower|element|dimension|portal|gateway|summoned|time travel|time loop|time skip|alternate (history|reality|universe|timeline)|multiverse|world\b|back to the past|another chance at life|modern knowledge|sudden strength|gender transformation|age (regression|progression|transformation)|bodyswap|transmigration|reincarnat|summoning|otome game)/,
+  },
+  {
+    id: "themes",
+    title: "Themes",
+    match:
+      /\b(action|adventure|comedy|humou?r|drama|tragedy|horror|thriller|mystery|suspense|fantasy|sci-?fi|science fiction|slice of life|psychological|philosoph|military|crime|noir|educational|historical|revenge|redemption|forgiveness|betrayal|loyalty|justice|freedom|identity|memory|growth|coming of age|self-?discovery|accepting oneself|healing|wholesome|heartwarming|bittersweet|melancholy|nostalgia|loneliness|isolation|grief|loss|hope|despair|sacrifice|duty|honou?r|ambition|greed|power struggle|found family|belonging|prejudice|inequality|poverty|wealth|class (difference|struggle)|social commentary|environmental|nature|spirituality|morality|good versus evil|coexistence|destiny|fate|free will|absurd|surreal|abstract|dark\b|light-?hearted|uneasy|feel-?good|tear-?jerker|abandonment|hypocrisy|stereotype|social hierarchy|societal|different culture|christianity|buddhis|shinto|islam|judais|agnostic|atheis|religious|mythology|rags to riches|rich to poor|pursuing|search for oneself|self-?abandonment|living for another|tragic past|traumatic past|past lives|previous life|bad reputation|intrigue|strategic|natural disaster|coup|nobility|aristocracy|social|good vs evil|seven deadly sins|guilt|persistence|rumors?\b|scandal|heretic|ascetic|comfy|funny\b|bad choices|bargain|deals?\b|dispute|succession|black sheep|embarrassing|disaster|cataclysm|man-?made disaster|kansai dialect|strong multi-?cultural|worrywart|optimist|pessimist|drifting)/,
+  },
+  {
+    id: "narrative",
+    title: "Narrative & Structure",
+    match:
+      /\b(plot|story|storyline|narrative|trope|cliffhanger|flashback|foreshadow|twist|ending|conclusive|inconclusive|episodic|serial|anthology|one-?shot|chapter|arc\b|prologue|epilogue|omake|extra chapter|side story|nonlinear|non-?linear|achronological|alternating pov|multiple (pov|perspectives|timelines|narrators)|first person|third person|unreliable narrator|fourth wall|meta\b|self-?aware|misunderstanding|secret identity|hidden identity|mistaken identity|disguise|deception|conspiracy|investigation|quest|escape|rescue|chase|time skip|slow start|fast paced|slow paced|character development|reveal|genre shift|art shift|art evolution|textless|second person|closure|whodunit|time limit|premise|ulterior motive|foreshadow|non-?fiction|autobiograph|anecdote|biograph|satire|facade|coincidental|high stakes|play or die|multiple lives|time progression|hidden past|past plays a big role|living double life|unpopular to popular|overcoming adversity|romeo and juliet|little red riding hood|bluebeard|one thousand and one nights|genji|scenario|tale\b|folktale|flipped|english version|oel\b|sekai-?kei|mono no aware|cosmicism)/,
   },
   {
     id: "presentation",
     title: "Format & Presentation",
     match:
-      /\b(full colou?r|black and white|colou?red|webtoon|webcomic|four-?koma|4-?koma|yonkoma|long ?strip|manhwa|manhua|manga|novel|light novel|adapt|adaptation|based on|original work|anthology format|art style|artwork|illustration|censor|uncensor|official|fan ?made|doujin|remake|reboot|sequel|prequel|spin-?off|crossover|ongoing|completed|hiatus|oneshot|short|serialis|serializ)/,
+      /\b(full colou?r|black and white|colou?red|monochrome|achromatic|greyscale|grayscale|webtoon|webcomic|long ?strip|four-?koma|4-?koma|1-?koma|yonkoma|1p comic|art style|artwork|illustration|line ?art|screen ?tone|censored|uncensored|official|fan ?made|scanlation|digital|animation|animated|panel|layout|typography|lettering|sound effect|onomatopoeia|ongoing|completed|hiatus|cancelled|discontinued|serialis|serializ|magazine|webnovel|light novel|novel\b|manga\b|manhwa|manhua|comics?\b)/,
   },
   {
     id: "audience",
     title: "Audience",
     match:
-      /\b(shounen|shonen|shoujo|shojo|seinen|josei|kodomo|all ages|adult|mature|teen|young adult|demographic|audience|children)/,
+      /\b(shounen|shonen|shoujo|shojo|seinen|josei|kodomo|all ages|adult\b|mature\b|teen|young adult|demographic|audience|male-?oriented|female-?oriented|for (men|women|kids|children))/,
   },
-  // Everything the patterns above did not claim. It is a real group, not a leftover: a
-  // tag that fits nowhere is still one a reader may want to pick or hide.
+  // Everything the patterns above did not claim.
   OTHER_TAGS,
 ];
 
 export type GroupedTags = { group: TagGroup; options: Option[] };
 
-/** Splits the site's flat tag list across the groups above, dropping the empty ones. */
+/**
+ * The ids of every spelling of one tag, joined. A picker offers one option per tag while
+ * the search has to ask for all of that tag's ids, and they travel together inside the
+ * option's own id — looking them up at search time would mean fetching the whole list
+ * again to do it.
+ */
+const ID_SEPARATOR = "+";
+
+export function tagIdsOf(value: string): string[] {
+  return value.split(ID_SEPARATOR).filter(Boolean);
+}
+
+/** Uploader scribbles: hashtags, decorations, and names too short to mean anything. */
+function isJunk(name: string): boolean {
+  const trimmed = name.trim();
+  return trimmed.length <= 1 || trimmed.startsWith("#") || !/^[\p{L}\p{N}]/u.test(trimmed);
+}
+
+/**
+ * The site writes one tag several ways — `Actor`, `Actor/S`, `Actors`, `Alzheimer'S
+ * Disease`. This reduces a name to what it is actually saying, so those fold together.
+ */
+function fold(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/['’]s\b/g, "s")
+    .replace(/\/\s*(s|es|ies|ren)\b/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\b(\w+?)ies\b/g, "$1y")
+    .replace(/\b(\w{3,}?)(?:es|s)\b/g, "$1");
+}
+
+/** The tidiest spelling of a tag: the site's `/S` and `'S` forms are not it. */
+function displayName(name: string): string {
+  return name
+    .replace(/\/\s*[Ss]\b/g, "s")
+    .replace(/\/\s*[Ii]es\b/g, "ies")
+    .replace(/\/\s*[Ee]s\b/g, "es")
+    .replace(/\/\s*[Rr]en\b/g, "ren")
+    .replace(/([A-Za-z])'S\b/g, "$1's")
+    .trim();
+}
+
+/**
+ * Turns the site's raw list into one option per tag, each carrying the ids of every
+ * spelling it stands for. The clearest spelling wins the label — the one that reads as
+ * written rather than as `Character/S`.
+ */
+export function canonicalTags(options: Option[]): Option[] {
+  const clusters = new Map<string, { title: string; ids: string[] }>();
+
+  for (const option of options) {
+    if (isJunk(option.title)) continue;
+
+    const key = fold(option.title);
+    if (!key) continue;
+
+    const title = displayName(option.title);
+    const cluster = clusters.get(key);
+
+    if (!cluster) {
+      clusters.set(key, { title, ids: [option.id] });
+      continue;
+    }
+
+    cluster.ids.push(option.id);
+    // A spelling that needed no tidying reads better than one that did.
+    if (title === option.title && (cluster.title.includes("/") || cluster.title.includes("'S"))) {
+      cluster.title = title;
+    }
+  }
+
+  return [...clusters.values()]
+    .map((cluster) => ({ id: cluster.ids.join(ID_SEPARATOR), title: cluster.title }))
+    .sort((left, right) => left.title.localeCompare(right.title));
+}
+
+/** Splits the site's tag list across the groups above, dropping the empty ones. */
 export function groupTags(options: Option[]): GroupedTags[] {
   const buckets = new Map<string, Option[]>(TAG_GROUPS.map((group) => [group.id, []]));
 
-  for (const option of options) {
+  for (const option of canonicalTags(options)) {
+    // Matched against the name as written and against its folded form, so a pattern
+    // written for `accountant` also claims `Accountants` without spelling both out.
     const name = option.title.toLowerCase();
-    const group = TAG_GROUPS.find((candidate) => candidate.match?.test(name) === true);
+    const folded = fold(option.title);
+    const group = TAG_GROUPS.find(
+      (candidate) => candidate.match?.test(name) === true || candidate.match?.test(folded) === true,
+    );
     buckets.get(group?.id ?? OTHER_TAGS.id)?.push(option);
   }
 
