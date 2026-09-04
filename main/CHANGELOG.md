@@ -180,7 +180,26 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.13)
+## Kagane (current: v1.0.14)
+
+### Changed
+
+- The tag list is cleaned before it is shown. The site publishes 8,139 tags with several
+  spellings of the same thing — `Actor`, `Actor/S` and `Actors` are three entries with
+  three ids — so those are folded into one entry that still searches every id behind it,
+  the uploader hashtags and decorations are dropped, and `Character/S` and `Alzheimer'S`
+  are written the way they read. 7,259 tags are offered where 8,139 were (v1.0.14).
+- The groups were rebuilt against the site's real vocabulary rather than a guess at it:
+  Time Period, Derivative Work, Content Warnings, Sexual Content, Appearance, Character
+  Traits, Character Types, Relationships, Health & Conditions, Occupations, Species &
+  Creatures, Locations, Activities & Hobbies, Objects & Technology, Setting & World
+  Building, Themes, Narrative & Structure, Format & Presentation and Audience. Four in
+  five tags now land in a named group where barely half did (v1.0.14).
+
+### Fixed
+
+- A hide-list chosen in Settings never applied, because the store answers only for keys it
+  holds a default for and the per-group keys had none (v1.0.14).
 
 ### Changed
 
