@@ -180,7 +180,19 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.21)
+## Kagane (current: v1.0.22)
+
+### Changed
+
+- Another round through Other Tags: past lives and hidden identities to Spoilers, the
+  Japanese periods to Era, trades, creatures, places, ailments, objects and powers to
+  theirs. A twentieth of the list is unclaimed, down from half (v1.0.22).
+
+### Fixed
+
+- Gender & Sexuality, Business and Emotions were each written with a trailing word
+  boundary that stopped every partial word in them from ever matching, which is why
+  `Nightmares` was never an emotion (v1.0.22).
 
 ### Changed
 
