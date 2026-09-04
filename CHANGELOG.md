@@ -180,7 +180,16 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.20)
+## Kagane (current: v1.0.21)
+
+### Changed
+
+- Spoilers holds what it should: endings of every kind, deaths and who dies, rebirths and
+  second lives, regressions and time rewinds, rises and falls in station, and the secrets
+  a story turns on. It went from four tags to fifty-nine, without taking murder, suicide
+  or assault away from the warnings (v1.0.21).
+- Another pass over Other Tags from the picker — trades, creatures, places, sports,
+  objects, powers and formats. Under a thirteenth of the list is unclaimed (v1.0.21).
 
 ### Added
 
