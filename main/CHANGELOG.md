@@ -6,6 +6,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 ### Fixed
 
+- The repository icon still did not load. The URL it was published under was right for a
+  site rooted at the repository, but the catalog is deployed into `main/` so the address
+  people paste stays stable — which put every asset one level deeper than the icon's URL
+  claimed, and the app was fetching a 404. The path now carries that segment.
+
+  A repository already added keeps the name and icon it was added with, so remove it and
+  add it again to pick these up.
+
+### Fixed
+
 - The repository's own icon never loaded in the app. It was published as the relative
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
