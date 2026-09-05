@@ -180,7 +180,22 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.24)
+## Kagane (current: v1.0.25)
+
+### Fixed
+
+- Search returned fewer editions of a title than the site does. The Content Rating setting
+  shipped as Safe and Suggestive, so a second scanlation of the same series rated a rung
+  higher than the first was dropped before it ever reached the results. It now ships as all
+  four rungs, the way the site itself answers, and the app's own content setting narrows it
+  from there. The setting is stored under a new key so the correction reaches installs that
+  already have the old value written — check it once if you had narrowed it deliberately
+  (v1.0.25).
+
+- A tag picker offered the same name twice. The site publishes `Costume/S` and `Costumes`
+  as separate entries, and tidying the first produced a second chip reading exactly like
+  the one beside it, each holding half of the tag's ids. Sixty such pairs are now joined
+  into one chip carrying both (v1.0.25).
 
 ### Added
 
