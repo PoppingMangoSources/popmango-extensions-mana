@@ -3,6 +3,7 @@
 import {
   CatalogRating,
   DefinedLanguages,
+  additionalInfo,
   SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
   SearchGroup,
@@ -64,6 +65,7 @@ import {
   parseCarouselHighlight,
   parseFilterOptions,
   parseHighlight,
+  parseSimilar,
   seriesUrl,
   type HighlightSubtitle,
 } from "./parsers.ts";
@@ -73,7 +75,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.0.6",
+  version: "1.0.7",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -87,6 +89,9 @@ const config: SourceConfig = {
   cloudflareResolutionURL: BASE_URL,
   owningLinks: ["flamecomics.xyz"],
 };
+
+/** What the site's own page under a series asks for. */
+const SIMILAR_LIMIT = 5;
 
 class FlameComicsSource
   implements ContentSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
@@ -277,7 +282,29 @@ class FlameComicsSource
 
   async getContent(contentId: string): Promise<Content> {
     const response = await this.api.fetchSeries<SeriesDetailResponse>(contentId);
-    return parseContent(contentId, response.pageProps.series);
+    const content = parseContent(contentId, response.pageProps.series);
+
+    // The recommendations are worth a row but never worth the title page: a route that
+    // stops answering leaves the reader with everything else.
+    const similar = await this.api
+      .fetchSimilar(contentId, SIMILAR_LIMIT)
+      .catch(() => [] as SeriesListItem[]);
+
+    const items = parseSimilar(similar.filter((item) => String(item.series_id) !== contentId));
+    if (items.length === 0) return content;
+
+    return {
+      ...content,
+      additionalInfo: [
+        ...(content.additionalInfo ?? []),
+        additionalInfo.highlights.section({
+          id: "similar",
+          title: "Similar Titles",
+          hasMore: false,
+          items,
+        }),
+      ],
+    };
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {

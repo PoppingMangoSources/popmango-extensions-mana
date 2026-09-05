@@ -10,6 +10,7 @@ import {
   PAYLOAD_TTL_MS,
   type BrowseResponse,
   type HomepageResponse,
+  type SeriesListItem,
 } from "./model.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
@@ -137,5 +138,22 @@ export class FlameComicsApi {
 
   async fetchChapter<T>(seriesId: string, token: string): Promise<T> {
     return this.fetchData<T>(["series", seriesId, `${token}.json`], { id: seriesId, token });
+  }
+
+  /**
+   * The recommendations come from a plain API route rather than a page payload, so this one
+   * carries no build id and survives a redeploy untouched.
+   */
+  async fetchSimilar(seriesId: string, limit: number): Promise<SeriesListItem[]> {
+    const url = new UrlBuilder(BASE_URL)
+      .addPathComponent("api")
+      .addPathComponent("similar")
+      .setQueryItem("id", seriesId)
+      .setQueryItem("type", "series")
+      .setQueryItem("limit", limit)
+      .build();
+
+    const parsed: unknown = JSON.parse(await this.fetchText(url));
+    return Array.isArray(parsed) ? (parsed as SeriesListItem[]) : [];
   }
 }

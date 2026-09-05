@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  AdditionalInfoType,
   ContentRating,
+  additionalInfo,
   ContentType,
   DefinedLanguages,
   PublicationStatus,
@@ -10,6 +12,7 @@ import {
   type Highlight,
   type Option,
   type Pair,
+  type SimpleHighlight,
   type Tag,
 } from "@mana-app/types";
 
@@ -127,6 +130,23 @@ export function parseHighlight(
     contentRating: parseRating(categories),
     webUrl: seriesUrl(item.series_id),
   };
+}
+
+/**
+ * The recommendations the site prints under a series. They arrive in the same shape as a
+ * listing row, so the cover is built the same way — `last_edit` and all.
+ */
+export function parseSimilar(items: readonly SeriesListItem[]): SimpleHighlight[] {
+  return items.map((item) =>
+    additionalInfo.highlights.item({
+      type: AdditionalInfoType.Highlights,
+      id: String(item.series_id),
+      title: clean(item.title),
+      cover: buildCoverUrl(item),
+      contentRating: parseRating(item.categories ?? []),
+      webUrl: seriesUrl(item.series_id),
+    }),
+  );
 }
 
 /** A carousel slide names a series but carries its own artwork under a separate folder. */
