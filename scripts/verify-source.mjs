@@ -17,6 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { ContentRating, PublicationStatus, SectionStyle } from "@mana-app/types";
 import {
   CloudflareError,
   ManaStore,
@@ -117,12 +118,33 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+/**
+ * The SDK's enums are numeric with a reverse mapping, so a value it can name is a value
+ * the app understands. The bundler never checks types, so a source handing back the
+ * enum's own key as a string — or the site's word for a status — builds and ships and
+ * only goes wrong on the device.
+ */
+function checkEnum(enumeration, enumName, field, value, label) {
+  if (value === undefined || value === null) return;
+
+  const named = typeof value === "number" ? enumeration[value] : undefined;
+  const allowed = Object.values(enumeration)
+    .filter((entry) => typeof entry === "string")
+    .join(", ");
+
+  assert(
+    named !== undefined,
+    `${label}: ${field} is ${JSON.stringify(value)}, not a ${enumName} (${allowed})`,
+  );
+}
+
 function checkHighlights(results, label) {
   assert(Array.isArray(results), `${label}: results is not an array`);
   assert(results.length > 0, `${label}: returned 0 results`);
   for (const item of results) {
     assert(item && typeof item.id === "string" && item.id.length > 0, `${label}: item missing id`);
     assert(typeof item.title === "string" && item.title.length > 0, `${label}: item missing title`);
+    checkEnum(ContentRating, "ContentRating", "contentRating", item.contentRating, label);
   }
   const withCover = results.filter((item) => item.cover).length;
   return `${results.length} results, ${withCover} with covers`;
@@ -220,6 +242,9 @@ async function verify(name, probe, verbose) {
       (await step(results, "getSectionsForPage", async () => {
         const found = await target.getSectionsForPage({ id: "home" });
         assert(Array.isArray(found) && found.length > 0, "no sections returned");
+        for (const section of found) {
+          checkEnum(SectionStyle, "SectionStyle", "style", section.style, `section ${section.id}`);
+        }
         return found;
       })) ?? [];
 
@@ -258,6 +283,8 @@ async function verify(name, probe, verbose) {
       const content = await target.getContent(contentId);
       assert(content?.title, "content.title is empty");
       assert(content?.cover !== undefined, "content.cover missing");
+      checkEnum(ContentRating, "ContentRating", "contentRating", content.contentRating, "content");
+      checkEnum(PublicationStatus, "PublicationStatus", "status", content.status, "content");
       return `"${content.title}"${content.cover ? "" : " (no cover)"}`;
     });
 

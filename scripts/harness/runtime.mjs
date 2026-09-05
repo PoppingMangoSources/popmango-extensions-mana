@@ -246,3 +246,74 @@ export const INTENT_NAMES = [
 export function decodeIntents(mask) {
   return INTENT_NAMES.filter((_, index) => (mask >> index) & 1);
 }
+
+/**
+ * A stand-in for the host's auxiliary WebView.
+ *
+ * The real one hands a source a WKWebView for the length of one source method. A probe
+ * cannot run a browser, so this keeps the parts a source can actually get wrong — a page
+ * evaluated before it was navigated, a second page opened while one is still live, work
+ * queued on a page that was already closed, an operation that outruns its timeout — and
+ * leaves what the page *contains* to the probe, which supplies it through `handlers`.
+ *
+ * `handlers.goto(url, options)` decides whether navigation succeeds. `handlers.script`
+ * answers `evaluateScript(script, args)`, and `handlers.evaluate` answers `evaluate(fn,
+ * ...args)`; either may throw to model a page that refuses to be read.
+ */
+export function createWebViewPage(handlers = {}) {
+  let live = false;
+
+  const timeoutAfter = (seconds, label) =>
+    new Promise((_, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error(`WebView ${label} timed out after ${seconds}s`)),
+        seconds * 1000,
+      );
+      // A pending timer must not hold the probe's process open past its own work.
+      timer.unref?.();
+    });
+
+  return {
+    async create(options = {}) {
+      // The host allows one per source method and rejects the second, so a source that
+      // leaks a page fails here rather than quietly working in the probe.
+      if (live) throw new Error("A WebView is already open for this source method");
+      live = true;
+
+      const timeout = options.timeout ?? 30;
+      let navigated = false;
+      let closed = false;
+
+      const guard = (label) => {
+        if (closed) throw new Error(`WebView ${label} called after close()`);
+        if (!navigated) throw new Error(`WebView ${label} called before goto()`);
+      };
+
+      const bounded = (work, seconds, label) =>
+        Promise.race([Promise.resolve().then(work), timeoutAfter(seconds ?? timeout, label)]);
+
+      return {
+        async goto(url, gotoOptions = {}) {
+          if (closed) throw new Error("WebView goto called after close()");
+          await bounded(() => handlers.goto?.(url, gotoOptions), gotoOptions.timeout, "goto");
+          navigated = true;
+        },
+
+        async evaluate(fn, ...args) {
+          guard("evaluate");
+          return bounded(() => handlers.evaluate?.(fn, args), undefined, "evaluate");
+        },
+
+        async evaluateScript(script, args = []) {
+          guard("evaluateScript");
+          return bounded(() => handlers.script?.(script, args), undefined, "evaluateScript");
+        },
+
+        async close() {
+          closed = true;
+          live = false;
+        },
+      };
+    },
+  };
+}
