@@ -174,7 +174,9 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   }
   if (score) info.push({ key: "Rating", value: score });
   if (follows) info.push({ key: "Follows", value: `♥ ${follows}` });
-  if (comments) info.push({ key: "Comments", value: `💬 ${comments}` });
+  // A tile's info row carries plain text, so this is the speech bubble asked for in text
+  // presentation rather than the SF symbol — the colour emoji sat oddly beside the heart.
+  if (comments) info.push({ key: "Comments", value: `🗨︎ ${comments}` });
 
   const subtitle = [number ? `Chapter ${number}` : "", hero ? score : ""]
     .filter(Boolean)

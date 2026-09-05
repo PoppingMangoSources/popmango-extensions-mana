@@ -19,18 +19,53 @@ export const MIRROR_OPTIONS: Option[] = [
 
 // Every URL the source builds goes through here so the mirror setting reaches the
 // parsers, which have no way to await a preference read of their own.
+//
+// Two of them: the host the reader chose, and the one that last answered. They differ only
+// while the chosen host is unreachable — a request that falls through to another mirror
+// leaves it here, so the rest of a screen goes straight there instead of every row waiting
+// out the same dead host again.
+let selectedBaseUrl: string = BASE_URL;
 let activeBaseUrl: string = BASE_URL;
+
+function isMirror(url: string): boolean {
+  return MIRROR_OPTIONS.some((option) => option.id === url);
+}
 
 export function baseUrl(): string {
   return activeBaseUrl;
 }
 
+/**
+ * The setting is read again before every request, so this only moves the active host when
+ * the reader actually picked a different one. Reasserting the same choice would otherwise
+ * throw away what the last request learned, and each row would rediscover the dead host.
+ */
 export function setBaseUrl(url: string): void {
-  activeBaseUrl = MIRROR_OPTIONS.some((option) => option.id === url) ? url : BASE_URL;
+  const chosen = isMirror(url) ? url : BASE_URL;
+  if (chosen === selectedBaseUrl) return;
+
+  selectedBaseUrl = chosen;
+  activeBaseUrl = chosen;
 }
 
-export function apiUrl(): string {
-  return `${activeBaseUrl}/query/`;
+/** Remembers the host that answered, so the next request starts there. */
+export function setActiveBaseUrl(url: string): void {
+  if (isMirror(url)) activeBaseUrl = url;
+}
+
+/**
+ * The mirror a URL belongs to, if any. Built by hand rather than with `URL`, which the
+ * runtime does not have.
+ */
+export function mirrorOrigin(url: string): string | undefined {
+  return MIRROR_OPTIONS.map((option) => option.id).find(
+    (origin) => url === origin || url.startsWith(`${origin}/`),
+  );
+}
+
+/** Where to try a request, in order: what last worked, what was chosen, then the rest. */
+export function mirrorCandidates(): string[] {
+  return [...new Set([activeBaseUrl, selectedBaseUrl, ...MIRROR_OPTIONS.map((o) => o.id)])];
 }
 
 export function searchPageUrl(): string {

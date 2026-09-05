@@ -19,7 +19,7 @@ export function buildSettingsSections(taxonomy: TaxonomyLists): PreferenceSectio
   return [
     {
       header: "Site",
-      footer: "Both mirrors serve the same library; switch if one of them is unreachable.",
+      footer: "All mirrors serve the same library; switch if one of them is unreachable.",
       fields: [
         {
           type: "select" as const,
