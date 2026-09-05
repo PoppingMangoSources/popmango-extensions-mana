@@ -86,7 +86,13 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.6)
+## XCOMIC (current: v1.0.7)
+
+### Added
+
+- `yona.to` joins the mirror list, alongside `xcomic.me`, `xcomic.net` and `comik.to`.
+  Pick one under Mirror in the source's settings if the site is blocked on your network;
+  links to any of the four open in the source (v1.0.7).
 
 ### Fixed
 
