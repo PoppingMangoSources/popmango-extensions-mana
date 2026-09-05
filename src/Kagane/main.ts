@@ -86,7 +86,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.25",
+  version: "1.0.26",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -138,7 +138,7 @@ class KaganeSource
       ...(query ? { query } : {}),
       uploadSource,
       contentRatings,
-      contentLanguages: contentLanguages.length > 0 ? contentLanguages : ["en"],
+      contentLanguages,
       excludedGenreIds,
       excludedTagIds,
       ...(context?.allowedContentRatings === undefined

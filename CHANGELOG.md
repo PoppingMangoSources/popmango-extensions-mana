@@ -180,7 +180,18 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.25)
+## Kagane (current: v1.0.26)
+
+### Fixed
+
+- Search returned one edition of a title where the site returns several. Every request
+  carried a `content_lang` filter built from the Languages setting, which pinned results to
+  the single edition whose row is labelled with that language — a second translation of the
+  same work, by a different group, never arrived. The site's own search applies no language
+  filter, so neither does this one unless the reader picks languages; Languages now ships
+  empty, meaning every edition, and can be emptied again after being set. The setting is
+  stored under a new key so the correction reaches installs that already have `English`
+  written (v1.0.26).
 
 ### Fixed
 

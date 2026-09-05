@@ -37,7 +37,9 @@ export const PreferenceID = {
   CleanTitle: "clean-title",
   ShowSpoilerTags: "show-spoiler-tags",
   DataSaver: "data-saver",
-  ContentLanguages: "content-languages",
+  // Renamed alongside the rating key: a stored ["en"] is what narrows a search, and it is
+  // indistinguishable from the old default that put it there.
+  ContentLanguages: "content-languages-any",
 } as const;
 
 export const SortID = {
@@ -191,7 +193,10 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.CleanTitle]: false,
   [PreferenceID.ShowSpoilerTags]: false,
   [PreferenceID.DataSaver]: false,
-  [PreferenceID.ContentLanguages]: ["en"],
+  // Empty means every language. Kagane's own search applies no language filter, and asking
+  // it for English only drops editions of a title the site does return — a second
+  // translation whose row is not labelled `en` simply never arrives.
+  [PreferenceID.ContentLanguages]: [] as string[],
 };
 
 export type GenreEntry = { id: string; genre_name: string };

@@ -80,8 +80,12 @@ export function buildSearchBody(
         : options.uploadSource === "scanlations"
           ? ["Unofficial", "Mixed"]
           : ["Official", "Unofficial", "Mixed"],
-    content_lang: options.contentLanguages,
   };
+
+  // Sent only when the reader has picked languages. The site's own search carries no
+  // language filter at all, and asking for one narrows a title down to the single edition
+  // whose row happens to be labelled with that language.
+  if (options.contentLanguages.length > 0) body["content_lang"] = options.contentLanguages;
 
   const query = options.query?.trim();
   if (query) body["title"] = query;

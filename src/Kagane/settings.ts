@@ -72,7 +72,7 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Content",
       footer:
-        "Applies to the home page, listings and search. Erotica and Pornographic are hidden by default.",
+        "Applies to the home page, listings and search. Leave Languages empty to see every edition of a title, however its translation is labelled.",
       fields: [
         {
           type: "multiselect",
@@ -86,7 +86,6 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
           key: PreferenceID.ContentLanguages,
           title: "Languages",
           options: LANGUAGE_OPTIONS,
-          minSelectionCount: 1,
         },
         {
           type: "multiselect",
