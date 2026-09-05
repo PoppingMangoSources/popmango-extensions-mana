@@ -4,7 +4,7 @@ import { ContentRating } from "@mana-app/types";
 
 import type { FilterReader } from "../common/index.ts";
 import { CONTENT_RATINGS, FilterID } from "./model.ts";
-import { TAG_GROUPS, tagFilterId, tagIdsOf } from "./tag-groups.ts";
+import { TAG_GROUPS, resolveTypedTags, tagFilterId, tagIdsOf } from "./tag-groups.ts";
 
 export type SearchBodyOptions = {
   query?: string;
@@ -14,6 +14,8 @@ export type SearchBodyOptions = {
   excludedGenreIds: string[];
   excludedTagIds: string[];
   allowedRatings?: readonly ContentRating[];
+  /** The site's `{ id: name }` tag list, needed only when a tag was typed rather than picked. */
+  tagNames?: Record<string, string>;
 };
 
 // Kagane names four ratings of its own; Erotica has no exact counterpart, and MATURE is
@@ -132,11 +134,21 @@ export function buildSearchBody(
     { included: [], excluded: [] },
   );
 
+  // Twenty-odd pickers is a lot to hunt through for one tag, so a name may be typed
+  // instead. Names are resolved against the site's list rather than the pickers, so a tag
+  // reaches the search whichever group it was sorted into.
+  const typed = resolveTypedTags(filters.text(FilterID.TagQuery), options.tagNames ?? {});
+
   // A picker offers one option per tag while the site holds several ids for it, so each
   // selected value carries them all and is opened back up here.
   const tags = buildIncludeExclude(
-    [...new Set(tagSelection.included.flatMap(tagIdsOf))],
-    [...new Set([...tagSelection.excluded, ...options.excludedTagIds].flatMap(tagIdsOf))],
+    [...new Set([...tagSelection.included.flatMap(tagIdsOf), ...typed.included])],
+    [
+      ...new Set([
+        ...[...tagSelection.excluded, ...options.excludedTagIds].flatMap(tagIdsOf),
+        ...typed.excluded,
+      ]),
+    ],
     filters.toggle(FilterID.MatchAllTags),
   );
   if (tags) body["tags"] = tags;

@@ -18,6 +18,7 @@ export const FilterID = {
   Genres: "genres",
   MatchAllGenres: "match_all_genres",
   Tags: "tags",
+  TagQuery: "tag_query",
   MatchAllTags: "match_all_tags",
   Sources: "source_id",
   ExactMatch: "exact_match",

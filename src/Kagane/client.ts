@@ -2,7 +2,7 @@
 
 import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
-import { UrlBuilder, challengedUrl, withChallengeRetry } from "../common/index.ts";
+import { TimedCache, UrlBuilder, challengedUrl, withChallengeRetry } from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
@@ -22,6 +22,8 @@ import {
 // decide: a successful challenge body contains "access_token", so sniffing it for
 // the word "token" reads every good response as a rejection.
 const STALE_TOKEN_STATUSES = new Set([401, 403, 507]);
+
+const LIST_TTL_MS = 24 * 60 * 60 * 1000;
 
 function headerValue(response: NetworkResponse, name: string): string {
   const headers = response.headers ?? {};
@@ -54,7 +56,12 @@ export class KaganeApi {
   private integrityExpiry = 0;
   private integrityRequest: Promise<string> | undefined;
 
-  private readonly lists = new Map<string, Promise<unknown>>();
+  // The taxonomy changes by the week and the tag list alone is thousands of entries, so it
+  // is kept on disk: the search form and a typed tag are both served without fetching it.
+  private readonly genreList = new TimedCache<Record<string, string>>("kagane.genres", LIST_TTL_MS);
+  private readonly tagList = new TimedCache<Record<string, string>>("kagane.tags", LIST_TTL_MS);
+  private readonly sourceList = new TimedCache<UploadSource[]>("kagane.sources", LIST_TTL_MS);
+
   // A refresh fires every row at once and a retry repeats them; identical calls in flight
   // share one response rather than knocking on Cloudflare twice for the same page.
   private readonly searches = new Map<string, Promise<SearchResponse>>();
@@ -168,46 +175,39 @@ export class KaganeApi {
     return new UrlBuilder(API_URL).addPathComponent("image").addPathComponent(imageId).build();
   }
 
-  private cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-    const cached = this.lists.get(key) as Promise<T> | undefined;
-    if (cached) return cached;
-    const request = load().catch((error: unknown) => {
-      this.lists.delete(key);
-      throw error;
-    });
-    this.lists.set(key, request);
-    return request;
-  }
-
   async fetchGenreNames(): Promise<Record<string, string>> {
-    return this.cached("genres", async () =>
-      Object.fromEntries(
-        (await this.fetchJson<GenreEntry[]>(`${API_URL}/genres/list`)).map((genre) => [
-          genre.id,
-          genre.genre_name,
-        ]),
-      ),
-    ).catch(() => ({}));
+    return this.genreList
+      .get(async () => {
+        const entries = await this.fetchJson<GenreEntry[]>(`${API_URL}/genres/list`);
+        // An empty answer is a bad request, not a site with no genres. Throwing keeps a
+        // blank list out of the cache, where it would outlast the failure that caused it.
+        if (entries.length === 0) throw new Error("Kagane returned no genres");
+        return Object.fromEntries(entries.map((genre) => [genre.id, genre.genre_name]));
+      })
+      .catch(() => ({}));
   }
 
   async fetchTagNames(): Promise<Record<string, string>> {
-    return this.cached("tags", async () =>
-      Object.fromEntries(
-        (await this.fetchJson<TagEntry[]>(`${API_URL}/tags/list`)).map((tag) => [
-          tag.id,
-          tag.tag_name,
-        ]),
-      ),
-    ).catch(() => ({}));
+    return this.tagList
+      .get(async () => {
+        const entries = await this.fetchJson<TagEntry[]>(`${API_URL}/tags/list`);
+        if (entries.length === 0) throw new Error("Kagane returned no tags");
+        return Object.fromEntries(entries.map((tag) => [tag.id, tag.tag_name]));
+      })
+      .catch(() => ({}));
   }
 
   async fetchUploadSources(): Promise<UploadSource[]> {
-    return this.cached("sources", async () => {
-      const body = await this.postJson<SourcesResponse>(`${API_URL}/sources/list`, {
-        source_types: null,
-      });
-      return body.sources ?? [];
-    }).catch(() => []);
+    return this.sourceList
+      .get(async () => {
+        const body = await this.postJson<SourcesResponse>(`${API_URL}/sources/list`, {
+          source_types: null,
+        });
+        const sources = body.sources ?? [];
+        if (sources.length === 0) throw new Error("Kagane returned no upload sources");
+        return sources;
+      })
+      .catch(() => []);
   }
 
   private async fetchIntegrityToken(force = false): Promise<string> {

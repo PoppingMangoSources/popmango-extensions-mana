@@ -8,6 +8,7 @@ import {
   SearchGroup,
   SearchMultiPicker,
   SearchMultiPickerSheet,
+  SearchTextField,
   SearchToggle,
   type Chapter,
   type ChapterData,
@@ -85,7 +86,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.23",
+  version: "1.0.24",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -260,6 +261,14 @@ class KaganeSource
                     title: "Match All Tags",
                     subtitle: "Require every selected tag rather than any of them",
                   }),
+                  // Twenty-odd groups is a lot to hunt through for one tag, so it may be
+                  // typed instead — the site's own spelling is not needed, only the words.
+                  SearchTextField({
+                    id: FilterID.TagQuery,
+                    title: "Type Tags",
+                    subtitle: "Separate names with commas; put a - in front of one to exclude it",
+                    placeholder: "time travel, -tragedy",
+                  }),
                   // The site sends its tags as one list of several hundred. They are shown
                   // a group at a time so the picker can be read; a pick in any of them
                   // means the same thing to the search.
@@ -326,7 +335,16 @@ class KaganeSource
     if (spec) return this.loadSection(spec, pageOf(request), request.context);
 
     const filters = new FilterReader(request);
-    const body = buildSearchBody(await this.bodyOptions(request.query, request.context), filters);
+    const options = await this.bodyOptions(request.query, request.context);
+
+    // The tag list is only needed to turn a typed name into an id, so it is fetched when
+    // one was typed rather than on every search.
+    const body = buildSearchBody(
+      filters.text(FilterID.TagQuery)
+        ? { ...options, tagNames: await this.api.fetchTagNames() }
+        : options,
+      filters,
+    );
 
     const requestedSort = request.sort?.id ?? "";
     const sortId = SORT_OPTIONS.some((option) => option.id === requestedSort)
