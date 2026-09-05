@@ -86,7 +86,24 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.7)
+## XCOMIC (current: v1.0.8)
+
+### Added
+
+- A request now falls through to another mirror when the one it asked is not serving. A
+  host that is refused, times out, or answers with a gateway error is passed over for the
+  next in the list, and whichever one answers is where the rest of that screen goes — so a
+  dead mirror costs one wait rather than one per row. A 404 or a rejected query is taken as
+  the answer it is and asked nowhere else, and a Cloudflare challenge stops the walk, since
+  every mirror sits behind the same one and only you can clear it (v1.0.8).
+
+### Changed
+
+- The Comments count on a tile is drawn with a plain speech bubble rather than the colour
+  emoji, which sat oddly beside the heart on the line above it (v1.0.8).
+
+- The mirror setting's note reads "All mirrors" rather than "Both", now that there are
+  four of them (v1.0.8).
 
 ### Added
 
