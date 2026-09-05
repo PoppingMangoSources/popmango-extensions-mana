@@ -28,7 +28,7 @@
     "minify": true,
     "platform": "web",
     "repositoryName": "PoppingMango Sources",
-    "thumbnail": "https://poppingmangosources.github.io/popmango-extensions-mana/assets/Repository.png"
+    "thumbnail": "https://poppingmangosources.github.io/popmango-extensions-mana/main/assets/Repository.png"
   },
   "devDependencies": {
     "@mana-app/dev": "^0.1.14",
