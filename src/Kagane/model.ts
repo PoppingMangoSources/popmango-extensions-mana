@@ -271,13 +271,25 @@ export type DetailsResponse = {
 };
 
 export type TrackerResponse = {
-  book_series?: {
-    id: string;
-    title: string;
-    source_id?: string | null;
-    cover_image_id?: string | null;
-  }[];
+  book_series?: TrackedSeries[];
 };
+
+/**
+ * The site names a series' cover one of two ways depending on the endpoint — flat on the
+ * listing shape, nested on the detail shape — and the tracker rows have been seen carrying
+ * the nested one. Both are read so a row is not left without a cover.
+ */
+export type TrackedSeries = {
+  id: string;
+  title: string;
+  source_id?: string | null;
+  cover_image_id?: string | null;
+  series_covers?: { image_id: string }[] | null;
+};
+
+export function seriesCoverId(series: TrackedSeries): string | undefined {
+  return series.cover_image_id ?? series.series_covers?.[0]?.image_id;
+}
 
 export type ManifestPage = { page_no: number; page_id: string; ext?: string | null };
 export type PageManifest = { pages?: ManifestPage[] };

@@ -1,9 +1,11 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  AdditionalInfoType,
   CatalogRating,
   ContentRating,
   DefinedLanguages,
+  additionalInfo,
   SearchExcludableMultiPicker,
   SearchMultiPicker,
   SectionStyle,
@@ -111,7 +113,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.6",
+  version: "1.0.7",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -324,18 +326,20 @@ class MangagoSource
       ...content,
       additionalInfo: [
         ...(content.additionalInfo ?? []),
-        {
-          type: 2 as const,
+        additionalInfo.highlights.section({
           id: "related",
           title: "You Might Also Like",
           hasMore: false,
-          items: related.slice(0, 10).map((item) => ({
-            type: 2 as const,
-            id: item.id,
-            title: item.title,
-            cover: item.cover,
-          })),
-        },
+          items: related.slice(0, 10).map((item) =>
+            additionalInfo.highlights.item({
+              type: AdditionalInfoType.Highlights,
+              id: item.id,
+              title: item.title,
+              cover: item.cover,
+              webUrl: absoluteUrl(item.id),
+            }),
+          ),
+        }),
       ],
     };
   }

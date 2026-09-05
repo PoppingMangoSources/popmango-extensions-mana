@@ -39,6 +39,19 @@ function coverUrl(node: Cheerio<AnyNode>): string {
   return absoluteUrl(imageSrc(node));
 }
 
+/**
+ * The recommendation lists do not all carry an `<img>`: some rows paint the cover as a
+ * background on the link itself. Both are tried before a row is left without one.
+ */
+function coverFrom(...nodes: Cheerio<AnyNode>[]): string {
+  for (const node of nodes) {
+    const url = coverUrl(node);
+    if (url) return url;
+  }
+
+  return "";
+}
+
 function stripTitleVersion(title: string): string {
   TITLE_VERSION_REGEX.lastIndex = 0;
   return title.replace(TITLE_VERSION_REGEX, "").trim() || title;
@@ -465,7 +478,7 @@ export function parseRelated(html: string): MangagoListing[] {
       push(
         parsePathname(link.attr("href") ?? ""),
         clean(link.attr("title") ?? link.text()),
-        coverUrl(link.find("img").first()),
+        coverFrom(link.find("img").first(), link),
       );
     },
   );
@@ -476,7 +489,7 @@ export function parseRelated(html: string): MangagoListing[] {
     push(
       parsePathname(link.attr("href") ?? ""),
       clean(link.attr("title") ?? link.text()),
-      coverUrl(item.find("img").first()),
+      coverFrom(item.find("img").first(), item.find("a.thm-effect").first()),
     );
   });
 

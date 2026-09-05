@@ -3,6 +3,7 @@
 import {
   CatalogRating,
   ContentRating,
+  additionalInfo,
   SectionStyle,
   DefinedLanguages,
   SearchExcludableMultiPicker,
@@ -76,6 +77,7 @@ import {
   STATUS_OPTIONS,
   SectionID,
   SortID,
+  TITLE_QUERY,
   TITLE_VERSION_REGEX,
   TYPE_OPTIONS,
   setBaseUrl,
@@ -85,9 +87,11 @@ import {
   type ChapterListPage,
   type ChapterListResponse,
   type ChapterPagesResponse,
+  type ComicData,
   type ComicNodeResponse,
   type LatestUploadsResponse,
   type RecentlyAddedResponse,
+  type TitleNodeResponse,
 } from "./model.ts";
 import {
   parseChapters,
@@ -95,6 +99,7 @@ import {
   parseFilterTaxonomy,
   parseHighlight,
   parseLanguage,
+  parseOtherVersions,
   parsePageUrls,
   type FilterTaxonomy,
   type TitleCleaner,
@@ -104,7 +109,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.10",
+  version: "1.0.11",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -118,6 +123,12 @@ const config: SourceConfig = {
   cloudflareResolutionURL: BASE_URL,
   owningLinks: MIRROR_OPTIONS.map((option) => option.title),
 };
+
+/**
+ * Each version listed costs its own lookup, and a popular work carries a row per language.
+ * Ten is more than a reader scrolls and keeps the title page from opening a dozen requests.
+ */
+const OTHER_VERSION_LIMIT = 10;
 
 /** What the filter form falls back to when the search page cannot be read. */
 const BUNDLED_TAXONOMY: FilterTaxonomy = {
@@ -525,7 +536,48 @@ class XCOMICSource
     const comic = data.get_comicNode?.data;
     if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);
 
-    return parseContent(comic, cleanTitle);
+    const content = parseContent(comic, cleanTitle);
+    const others = await this.fetchOtherVersions(contentId);
+    if (others.length === 0) return content;
+
+    return {
+      ...content,
+      additionalInfo: [
+        ...(content.additionalInfo ?? []),
+        additionalInfo.highlights.section({
+          id: "versions",
+          title: "Other Versions",
+          hasMore: false,
+          items: parseOtherVersions(others, cleanTitle),
+        }),
+      ],
+    };
+  }
+
+  /**
+   * The title lists its comics as ids only, so each one costs a lookup. Nothing here is
+   * allowed to fail the title page: a reader who cannot see the other versions still has
+   * the one they opened.
+   */
+  private async fetchOtherVersions(contentId: string): Promise<ComicData[]> {
+    const ids = await this.api
+      .query<TitleNodeResponse>(TITLE_QUERY, { id: contentId })
+      .then((data) => data.get_comicNode?.data?.title_titleNode?.data?.comic_ids ?? [])
+      .catch(() => []);
+
+    const others = [...new Set(ids)].filter((id) => id !== contentId).slice(0, OTHER_VERSION_LIMIT);
+    if (others.length === 0) return [];
+
+    const comics = await Promise.all(
+      others.map((id) =>
+        this.api
+          .query<ComicNodeResponse>(COMIC_QUERY, { id })
+          .then((data) => data.get_comicNode?.data)
+          .catch(() => undefined),
+      ),
+    );
+
+    return comics.filter((comic): comic is ComicData => comic !== undefined);
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
