@@ -180,7 +180,27 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.23)
+## Kagane (current: v1.0.24)
+
+### Added
+
+- Tags can now be typed as well as picked. The search form takes a comma-separated list of
+  names, with a `-` in front of one to exclude it, so a tag can be reached without knowing
+  which of the twenty-six groups it was sorted into. Spelling and case do not matter — the
+  names are read the same way the picker folds `Body Swap/S` and `Bodyswap` together, and
+  a name the site does not carry is passed over rather than emptying the search (v1.0.24).
+
+### Changed
+
+- The genre, tag and upload-source lists are kept on disk for a day rather than only for
+  as long as one source instance. The tag list alone is eight thousand entries, and the
+  app builds a fresh instance freely, so the search form was fetching it again on nearly
+  every open (v1.0.24).
+
+- The last of Other Tags swept into the groups — the site's Indonesian lead descriptors to
+  Personality, the franchises to Adaptations, and trades, creatures, places, objects and
+  powers to theirs. Nineteen tags of eight thousand are unclaimed, down from half when the
+  grouping started (v1.0.24).
 
 ### Changed
 
