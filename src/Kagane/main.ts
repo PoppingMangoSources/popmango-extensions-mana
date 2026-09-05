@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  AdditionalInfoType,
   CatalogRating,
   DefinedLanguages,
+  additionalInfo,
   SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
   SearchGroup,
@@ -86,7 +88,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.27",
+  version: "1.0.28",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -391,18 +393,19 @@ class KaganeSource
       ...content,
       additionalInfo: [
         ...(content.additionalInfo ?? []),
-        {
-          type: 2 as const,
+        additionalInfo.highlights.section({
           id: "related",
           title: "Related Editions",
           hasMore: false,
-          items: others.map((entry) => ({
-            type: 2 as const,
-            id: entry.id,
-            title: formatTitle(entry.title, titleOptions, entry.source_id),
-            cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
-          })),
-        },
+          items: others.map((entry) =>
+            additionalInfo.highlights.item({
+              type: AdditionalInfoType.Highlights,
+              id: entry.id,
+              title: formatTitle(entry.title, titleOptions, entry.source_id),
+              cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
+            }),
+          ),
+        }),
       ],
     };
   }

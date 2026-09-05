@@ -3,6 +3,7 @@
 import { load } from "cheerio";
 import {
   ContentRating,
+  additionalInfo,
   ContentType,
   DefinedLanguages,
   PublicationStatus,
@@ -11,6 +12,7 @@ import {
   type Highlight,
   type Option,
   type Pair,
+  type StaffItem,
   type Tag,
 } from "@mana-app/types";
 
@@ -215,8 +217,8 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
     info.push({ key: "Comments", value: String(comic.comments_total) });
   }
   if (comic.chaps_normal != null) info.push({ key: "Chapters", value: String(comic.chaps_normal) });
-  const publishers = names(comic.publisherNodes);
-  if (publishers.length > 0) info.push({ key: "Publishers", value: publishers.join(", ") });
+
+  const staff = staffItems(comic);
 
   return {
     title: cleanTitle(decodeEntities(clean(comic.name))),
@@ -231,8 +233,48 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
     contentRating: parseRating(comic),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),
+    ...(staff.length === 0
+      ? {}
+      : {
+          additionalInfo: [
+            additionalInfo.staff.section({
+              id: "staff",
+              title: "Staff",
+              hasMore: false,
+              items: staff,
+            }),
+          ],
+        }),
     webUrl: seriesUrl(comic),
   };
+}
+
+/**
+ * `creators` flattens everyone into one unlabelled line, so the same names are offered again
+ * as staff, where each keeps the role the site filed it under. A person credited twice — the
+ * usual case for a work drawn by its writer — is listed once, under the first role.
+ */
+function staffItems(comic: ComicData): StaffItem[] {
+  const roles: [string, string, NamedNode[] | null | undefined][] = [
+    ["author", "Author", comic.authorNodes],
+    ["artist", "Artist", comic.artistNodes],
+    ["publisher", "Publisher", comic.publisherNodes],
+  ];
+
+  const seen = new Set<string>();
+  const items: StaffItem[] = [];
+
+  for (const [role, label, nodes] of roles) {
+    for (const name of names(nodes)) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      items.push(
+        additionalInfo.staff.item({ id: `${role}-${seen.size}`, title: name, subtitle: label }),
+      );
+    }
+  }
+
+  return items;
 }
 
 /** Chapters come from one endpoint newest first; only `index` is derived from the number. */
