@@ -420,7 +420,9 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.RemoveTitleVersion]: false,
   [PreferenceID.CustomTitleRegex]: "",
   [PreferenceID.IgnoreGenreBlocklist]: false,
-  [PreferenceID.DeduplicateChapters]: true,
+  // Off: the site lists every group's upload, and collapsing them by chapter number hides
+  // translations a reader may have come for.
+  [PreferenceID.DeduplicateChapters]: false,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),

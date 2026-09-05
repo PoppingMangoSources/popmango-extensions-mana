@@ -86,7 +86,13 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.8)
+## XCOMIC (current: v1.0.9)
+
+### Changed
+
+- Deduplicate Chapter List ships off. The site lists every group's upload, and collapsing
+  them by chapter number hid the translation a reader may have come for. Turn it on under
+  Chapters to keep one entry per chapter number (v1.0.9).
 
 ### Added
 
