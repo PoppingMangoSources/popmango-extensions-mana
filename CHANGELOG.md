@@ -180,7 +180,21 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.26)
+## Kagane (current: v1.0.27)
+
+### Fixed
+
+- A search by name no longer applies the hide-lists. Searching for a title returned only
+  some of its editions: the uploader of one had tagged it with something on the hide-list,
+  so that row was excluded before the search ever ran, while another edition of the same
+  work — tagged differently by a different group — came back. The hide-lists are for
+  keeping the home page and the listings clear of what you would rather not browse; typing
+  a title's name is asking for that title, and it now returns whatever it is tagged. Nothing
+  changes for the home page, the listings, or a filter-only search (v1.0.27).
+
+- The language filter is sent again. v1.0.26 dropped it on the reading that the site's own
+  search carries none; the site does send it, and that was not what was hiding the editions
+  (v1.0.27).
 
 ### Fixed
 

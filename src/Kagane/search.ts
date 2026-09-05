@@ -90,6 +90,13 @@ export function buildSearchBody(
   const query = options.query?.trim();
   if (query) body["title"] = query;
 
+  // Typing a title's name is asking for that title. The hide-lists are there to keep the
+  // home page and the listings clear of what you do not want to browse, and applying them
+  // to a name search deletes the very thing that was asked for without saying so — a title
+  // an uploader tagged `Ecchi` vanishes from a search for its own name, while another
+  // edition of the same work, tagged differently, comes back.
+  const browsing = !query;
+
   const ratings = filters?.options(FilterID.ContentRating) ?? [];
   const contentRating = applyRatingPolicy(
     ratings.length > 0 ? ratings : options.contentRatings,
@@ -97,11 +104,14 @@ export function buildSearchBody(
   );
   if (contentRating.length > 0) body["content_rating"] = contentRating;
 
+  const hiddenGenreIds = browsing ? options.excludedGenreIds : [];
+  const hiddenTagIds = browsing ? options.excludedTagIds : [];
+
   if (!filters) {
-    const genres = buildIncludeExclude([], options.excludedGenreIds, false);
+    const genres = buildIncludeExclude([], hiddenGenreIds, false);
     if (genres) body["genres"] = genres;
 
-    const tags = buildIncludeExclude([], options.excludedTagIds.flatMap(tagIdsOf), false);
+    const tags = buildIncludeExclude([], hiddenTagIds.flatMap(tagIdsOf), false);
     if (tags) body["tags"] = tags;
     return body;
   }
@@ -118,7 +128,7 @@ export function buildSearchBody(
   const genreSelection = filters.excludable(FilterID.Genres);
   const genres = buildIncludeExclude(
     genreSelection.included,
-    [...new Set([...genreSelection.excluded, ...options.excludedGenreIds])],
+    [...new Set([...genreSelection.excluded, ...hiddenGenreIds])],
     filters.toggle(FilterID.MatchAllGenres),
   );
   if (genres) body["genres"] = genres;
@@ -149,7 +159,7 @@ export function buildSearchBody(
     [...new Set([...tagSelection.included.flatMap(tagIdsOf), ...typed.included])],
     [
       ...new Set([
-        ...[...tagSelection.excluded, ...options.excludedTagIds].flatMap(tagIdsOf),
+        ...[...tagSelection.excluded, ...hiddenTagIds].flatMap(tagIdsOf),
         ...typed.excluded,
       ]),
     ],

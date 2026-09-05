@@ -72,7 +72,7 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Content",
       footer:
-        "Applies to the home page, listings and search. Leave Languages empty to see every edition of a title, however its translation is labelled.",
+        "Applies to the home page and the listings. A search by name is not filtered by the hide-lists — searching for a title returns it whatever it is tagged. Leave Languages empty to ask for every language.",
       fields: [
         {
           type: "multiselect",
