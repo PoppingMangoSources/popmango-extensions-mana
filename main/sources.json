@@ -22,12 +22,12 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "65f8a68165f8a68165f8a68165f8a68165f8a68165f8a68165f8a68165f8a681"
+      "hash": "26b67dd326b67dd326b67dd326b67dd326b67dd326b67dd326b67dd326b67dd3"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.0.28",
+      "version": "1.0.29",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "219a5331219a5331219a5331219a5331219a5331219a5331219a5331219a5331"
+      "hash": "7f51e8c47f51e8c47f51e8c47f51e8c47f51e8c47f51e8c47f51e8c47f51e8c4"
     },
     {
       "id": "mangaupdates",
@@ -66,12 +66,12 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "08b927ec08b927ec08b927ec08b927ec08b927ec08b927ec08b927ec08b927ec"
+      "hash": "368900a1368900a1368900a1368900a1368900a1368900a1368900a1368900a1"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -88,12 +88,12 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "37ecb49f37ecb49f37ecb49f37ecb49f37ecb49f37ecb49f37ecb49f37ecb49f"
+      "hash": "320208f3320208f3320208f3320208f3320208f3320208f3320208f3320208f3"
     },
     {
       "id": "xcomic",
       "name": "XCOMIC",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "description": "Manga, manhwa, manhua and comics from xcomic.me.",
       "website": "https://xcomic.me",
       "rating": 2,
@@ -110,7 +110,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "7717979b7717979b7717979b7717979b7717979b7717979b7717979b7717979b"
+      "hash": "2b30d5432b30d5432b30d5432b30d5432b30d5432b30d5432b30d5432b30d543"
     }
   ]
 }
