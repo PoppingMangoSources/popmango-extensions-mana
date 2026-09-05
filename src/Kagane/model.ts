@@ -25,7 +25,10 @@ export const FilterID = {
 } as const;
 
 export const PreferenceID = {
-  ContentRating: "content-rating",
+  // Renamed once, on purpose: the old key holds a saved "Safe and Suggestive" that is
+  // indistinguishable from the old default, and that default was the bug. A new key lets
+  // the corrected default reach installs that already have the old one written.
+  ContentRating: "content-rating-all",
   ExcludedGenres: "excluded-genres",
   ExcludedTags: "excluded-tags",
   UploadSource: "upload-source",
@@ -175,7 +178,11 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
 ];
 
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
-  [PreferenceID.ContentRating]: ["Safe", "Suggestive"],
+  // Every rung the site publishes. Narrowing this here hid editions of a title that the
+  // site itself returns — a second scanlation of the same series rated a rung higher than
+  // the first simply vanished from search. The app's own content setting is the place that
+  // decision belongs, and it is applied on top of this.
+  [PreferenceID.ContentRating]: [...CONTENT_RATINGS],
   [PreferenceID.ExcludedGenres]: [] as string[],
   [PreferenceID.ExcludedTags]: [] as string[],
   [PreferenceID.UploadSource]: "all",

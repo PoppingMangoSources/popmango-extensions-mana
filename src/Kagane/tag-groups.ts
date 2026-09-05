@@ -283,7 +283,19 @@ export function canonicalTags(options: Option[]): Option[] {
     if (tidier || spaced) cluster.title = title;
   }
 
-  return [...clusters.values()]
+  // Two clusters can still arrive at one label: `Costume/S` is tidied to `Costumes`, which
+  // the site also publishes on its own, and the folding does not put those two together.
+  // Left alone that is two chips reading the same thing, one of which does nothing the
+  // other does not, so they are joined here on what the reader actually sees.
+  const byLabel = new Map<string, { title: string; ids: string[] }>();
+  for (const cluster of clusters.values()) {
+    const label = cluster.title.toLowerCase();
+    const existing = byLabel.get(label);
+    if (existing) existing.ids.push(...cluster.ids);
+    else byLabel.set(label, cluster);
+  }
+
+  return [...byLabel.values()]
     .map((cluster) => ({ id: cluster.ids.join(ID_SEPARATOR), title: cluster.title }))
     .sort((left, right) => left.title.localeCompare(right.title));
 }
