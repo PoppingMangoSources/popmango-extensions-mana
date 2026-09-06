@@ -115,17 +115,19 @@ export const SORT_OPTIONS: SortOption[] = [
 ];
 
 /**
- * The site's front page in the order it presents it. Its popular strip is a set of
- * week/month/year tabs; a tab costs a tap to discover, so each is given its own row.
+ * The site's front page, with its popular strip opened out. That strip is a set of
+ * week/month/year tabs, and a tab costs a tap to discover, so each period gets its own row.
+ *
+ * The year leads as the hero: it is the steadiest of the three — a year's reading moves too
+ * slowly to churn — so the biggest slot on the page holds the same well-regarded titles for
+ * weeks rather than reshuffling on a day's traffic.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
-    id: SectionID.Featured,
-    title: "Featured",
-    subtitle: "The site's own front-page carousel",
+    id: SectionID.PopularYear,
+    title: "Popular This Year",
+    subtitle: "The catalogue's best read of the year",
     style: SectionStyle.SimpleHeroPaged,
-    // The banner is a hand-picked set with no listing behind it.
-    viewMore: false,
   },
   {
     id: SectionID.TrendingWeek,
@@ -139,9 +141,12 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.SimpleSingleRow,
   },
   {
-    id: SectionID.PopularYear,
-    title: "Popular This Year",
+    id: SectionID.Featured,
+    title: "Featured",
+    subtitle: "The site's own front-page picks",
     style: SectionStyle.SimpleSingleRow,
+    // The banner is a hand-picked set with no listing behind it.
+    viewMore: false,
   },
   {
     id: SectionID.Latest,
@@ -150,6 +155,12 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.DetailedVerticalListGrouped,
   },
 ];
+
+/** Which rows are drawn as a wide hero card, and so want the banner rather than the cover. */
+export function isHeroSection(sectionId: string): boolean {
+  const style = DISCOVER_SECTIONS.find((section) => section.id === sectionId)?.style;
+  return style === SectionStyle.SimpleHero || style === SectionStyle.SimpleHeroPaged;
+}
 
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
   [PreferenceID.ShowLockedChapters]: false,

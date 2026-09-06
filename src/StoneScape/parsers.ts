@@ -168,10 +168,16 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   };
 }
 
-/** A hero card is cropped wide, so it prefers the banner the site drew for that shape. */
-export function parseHeroHighlight(series: Series): Highlight {
+/**
+ * A tile for whichever row it lands in. A hero card is cropped wide, so it prefers the
+ * banner the site drew for that shape and falls back to the portrait cover for a series
+ * that has none.
+ */
+export function toHighlight(series: Series, hero: boolean): Highlight {
+  const highlight = parseHighlight(series, { hero });
+  if (!hero) return highlight;
+
   const banner = absoluteUrl(series.bannerUrl);
-  const highlight = parseHighlight(series, { hero: true });
   return banner ? { ...highlight, cover: banner } : highlight;
 }
 
