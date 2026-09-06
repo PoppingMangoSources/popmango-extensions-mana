@@ -4,7 +4,7 @@ import {
   CatalogRating,
   ContentRating,
   DefinedLanguages,
-  SearchExcludableMultiPickerSheet,
+  SearchExcludableMultiPicker,
   SearchPicker,
   type Chapter,
   type ChapterData,
@@ -76,7 +76,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Manhwa, manhua and manga from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -90,9 +90,6 @@ const config: SourceConfig = {
   cloudflareResolutionURL: BASE_URL,
   owningLinks: ["stonescape.xyz"],
 };
-
-/** The banner is a scrolling strip with no listing behind it; past this nothing is reached. */
-const FEATURED_LIMIT = 15;
 
 class StoneScapeSource
   implements
@@ -144,9 +141,9 @@ class StoneScapeSource
       header: "Filters",
       footer: "Anything left empty falls back to the site's own defaults.",
       fields: [SearchPicker({ id: FilterID.Status, title: "Status", options: STATUS_OPTIONS })],
-      // The server fills this list, so it asks for a sheet — the host no longer promotes a
-      // long option list to one on its own.
-      tags: SearchExcludableMultiPickerSheet({
+      // A tags section is always inline chips and ignores a sheet builder, which suits the
+      // forty-odd genres the site lists.
+      tags: SearchExcludableMultiPicker({
         id: FilterID.Genres,
         title: "Genres",
         options: await this.genres(),
@@ -186,11 +183,9 @@ class StoneScapeSource
     const hero = isHeroSection(sectionID);
 
     if (sectionID === SectionID.Featured) {
+      // The site hand-picks this set and it arrives whole, so it is shown as given.
       const banner = await this.api.fetchBanner();
-      const featured = this.permitted(banner.featuredSeries ?? [], allowed).slice(
-        0,
-        FEATURED_LIMIT,
-      );
+      const featured = this.permitted(banner.featuredSeries ?? [], allowed);
       return { results: featured.map((entry) => toHighlight(entry, hero)), isLastPage: true };
     }
 

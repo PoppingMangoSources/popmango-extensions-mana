@@ -2,10 +2,25 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.1)
+## StoneScape (current: v1.0.2)
+
+### Fixed
+
+- A Cloudflare challenge could not be told from an ordinary refusal. The client let the
+  host reject a non-2xx response before the source ever saw it, so a block arrived as a
+  bare network error with no way to clear it. 403 and 503 now reach the source, and a
+  challenge is recognised by Cloudflare's own header, the interstitial's markup, or a
+  refusal that is not JSON — everything under `/api` answers JSON, so one that does not was
+  written at the edge. An API that simply says no now says so in its own words instead of
+  sending the reader to a page with no puzzle on it.
 
 ### Changed
 
+- Featured is its own row at the foot of the home page, after Latest Releases, matching how
+  FlameComics lays its front page out.
+- The genre filter is an inline set of chips. It had asked for a sheet, which a tags section
+  ignores; the site's forty-odd genres are what chips are for.
+- The featured row is no longer capped. The site hand-picks that set and sends it whole.
 - Popular This Year now leads the home page as the hero carousel, and the site's own
   Featured picks sit further down as an ordinary row. The year is the steadiest of the
   three popular periods, so the biggest slot on the page holds the same well-regarded

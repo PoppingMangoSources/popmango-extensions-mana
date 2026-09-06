@@ -141,18 +141,18 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.SimpleSingleRow,
   },
   {
-    id: SectionID.Featured,
-    title: "Featured",
-    subtitle: "The site's own front-page picks",
-    style: SectionStyle.SimpleSingleRow,
-    // The banner is a hand-picked set with no listing behind it.
-    viewMore: false,
-  },
-  {
     id: SectionID.Latest,
     title: "Latest Releases",
     subtitle: "Fresh chapters as they land",
     style: SectionStyle.DetailedVerticalListGrouped,
+  },
+  {
+    id: SectionID.Featured,
+    title: "Featured",
+    subtitle: "The site's own front-page carousel",
+    style: SectionStyle.SimpleSingleRow,
+    // The banner is a hand-picked set with no listing behind it.
+    viewMore: false,
   },
 ];
 
