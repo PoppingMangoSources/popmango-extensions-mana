@@ -286,11 +286,15 @@ function formatRating(details: DetailsResponse): string | undefined {
   return percent === undefined ? undefined : `★ ${(percent / 10).toFixed(1)}`;
 }
 
+/**
+ * The house mark for a view count, beside the star the rating already carries. It is the
+ * text-presentation form: the bare codepoint would draw in colour next to a filled star.
+ */
 function formatViews(views: number | null | undefined): string | undefined {
   if (typeof views !== "number" || views <= 0) return undefined;
-  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M views`;
-  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K views`;
-  return `${views} views`;
+  if (views >= 1_000_000) return `⏯︎ ${(views / 1_000_000).toFixed(1)}M`;
+  if (views >= 1_000) return `⏯︎ ${(views / 1_000).toFixed(1)}K`;
+  return `⏯︎ ${views}`;
 }
 
 function buildSummary(details: DetailsResponse, sourceName: string | undefined): string {

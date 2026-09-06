@@ -176,9 +176,9 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   }
   if (score) info.push({ key: "Rating", value: score });
   if (follows) info.push({ key: "Follows", value: `♥ ${follows}` });
-  // The row's own key names the field, so it carries no glyph: a `Pair` takes plain text
-  // and an emoji here would render in colour beside the filled symbols above it.
-  if (comments) info.push({ key: "Comments", value: comments });
+  // The bubble carries U+FE0E so it draws as a filled mark like the star and heart above
+  // it: a `Pair` takes plain text, and the bare codepoint would render in colour.
+  if (comments) info.push({ key: "Comments", value: `🗨︎ ${comments}` });
 
   const subtitle = [number ? `Chapter ${number}` : "", hero ? score : ""]
     .filter(Boolean)

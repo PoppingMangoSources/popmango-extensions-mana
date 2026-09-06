@@ -186,14 +186,9 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   // Two genres: the third wraps and pushes the tile out of its row.
   const genres = (series.genres ?? []).slice(0, 2).map(genreTitle).filter(Boolean);
 
-  const info: Pair[] = [];
-  if (chapter) info.push({ key: "Latest", value: `Chapter ${chapter}` });
-  if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
-  if (genres.length > 0) {
-    info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
-  }
-  if (score) info.push({ key: "Rating", value: score });
-  if (views) info.push({ key: "Views", value: `⏯︎ ${views}` });
+  const info = hero
+    ? []
+    : buildInfoRows(style, { chapter, uploaded, genres, score, views, status: statusOf(series) });
 
   const subtitle = buildSubtitle(series, style, { chapter, score, views });
 
@@ -202,11 +197,48 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
     title: decodeEntities(clean(series.title)),
     cover: coverUrl(series),
     ...(subtitle ? { subtitle } : {}),
-    // A tile stretches its whole row past about four lines, so the rest is dropped.
-    ...(hero || info.length === 0 ? {} : { info: info.slice(0, 4) }),
+    ...(info.length === 0 ? {} : { info }),
     contentRating: parseRating(series.genres),
     webUrl: seriesUrl(series.slug),
   };
+}
+
+type InfoParts = {
+  chapter: string;
+  uploaded: Date | undefined;
+  genres: readonly string[];
+  score: string;
+  views: string;
+  status: string;
+};
+
+function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
+  const rows: Record<string, Pair | undefined> = {
+    latest: parts.chapter ? { key: "Latest", value: `Chapter ${parts.chapter}` } : undefined,
+    updated: parts.uploaded ? { key: "Updated", value: relativeTime(parts.uploaded) } : undefined,
+    genres:
+      parts.genres.length > 0
+        ? { key: parts.genres.length > 1 ? "Genres" : "Genre", value: parts.genres.join(", ") }
+        : undefined,
+    rating: parts.score ? { key: "Rating", value: parts.score } : undefined,
+    views: parts.views ? { key: "Views", value: `⏯︎ ${parts.views}` } : undefined,
+    status: parts.status ? { key: "Status", value: parts.status } : undefined,
+  };
+
+  // A format-led row gives its subtitle over to the format alone, so the count the section
+  // was ranked on leads the rows with the state of the series directly beneath it.
+  const order =
+    style === "kind"
+      ? ["views", "status", "latest", "updated"]
+      : ["latest", "updated", "genres", "rating", "views"];
+
+  return (
+    order
+      .map((name) => rows[name])
+      .filter((row): row is Pair => row !== undefined)
+      // A tile stretches its whole row past about four lines, so the rest is dropped.
+      .slice(0, 4)
+  );
 }
 
 function buildSubtitle(
@@ -215,16 +247,19 @@ function buildSubtitle(
   parts: { chapter: string; score: string; views: string },
 ): string {
   const chapterLabel = parts.chapter ? `Chapter ${parts.chapter}` : "";
+  const viewLabel = parts.views ? `⏯︎ ${parts.views}` : "";
 
   switch (style) {
     case "hero":
-      return [chapterLabel, parts.score].filter(Boolean).join(" | ");
+      return [chapterLabel, parts.score, viewLabel].filter(Boolean).join(" | ");
+    // The state of the series moves to a row of its own beneath the views, leaving the
+    // line under the title to say what the series is.
     case "kind":
-      return [`✎ ${formatKind(series)}`, statusOf(series)].filter(Boolean).join(" • ");
+      return `✎ ${formatKind(series)}`;
     // A row ranked by reading says what it was ranked on; a title with none falls back
     // to the chapter rather than showing an empty line.
     case "views":
-      return parts.views ? `⏯︎ ${parts.views}` : chapterLabel;
+      return viewLabel || chapterLabel;
     default:
       return chapterLabel;
   }
@@ -278,7 +313,7 @@ export function parseContent(series: Series): Content {
     info.push({ key: "Bookmarks", value: String(series.bookmarkCount) });
   }
   const views = compactCount(viewCount(series));
-  if (views) info.push({ key: "Views", value: views });
+  if (views) info.push({ key: "Views", value: `⏯︎ ${views}` });
 
   return {
     title,
