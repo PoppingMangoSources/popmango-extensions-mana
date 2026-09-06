@@ -1,0 +1,293 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+import {
+  ContentRating,
+  ContentType,
+  DefinedLanguages,
+  PublicationStatus,
+  type Chapter,
+  type Content,
+  type Highlight,
+  type Pair,
+  type Tag,
+} from "@mana-app/types";
+
+import {
+  clean,
+  decodeEntities,
+  relativeTime,
+  resolveUrl,
+  summaryFromHtml,
+} from "../common/index.ts";
+import {
+  BASE_URL,
+  CONTENT_RATING_GENRES,
+  type ChapterPagesResponse,
+  type Series,
+  type SeriesChapterDetails,
+} from "./model.ts";
+
+/** Covers, banners and pages all arrive as site-relative paths. */
+export function absoluteUrl(target: string | null | undefined): string {
+  const value = (target ?? "").trim();
+  return value ? resolveUrl(value, BASE_URL) : "";
+}
+
+export function seriesUrl(slug: string): string {
+  return `${BASE_URL}/series/${slug}`;
+}
+
+/** A banner is wider than it is tall, so it is only used where a cover is missing. */
+function coverUrl(series: Series): string {
+  return absoluteUrl(series.coverUrl) || absoluteUrl(series.bannerUrl);
+}
+
+export function parseStatus(status: string | null | undefined): PublicationStatus | undefined {
+  switch ((status ?? "").toLowerCase()) {
+    case "ongoing":
+      return PublicationStatus.ONGOING;
+    case "completed":
+      return PublicationStatus.COMPLETED;
+    case "hiatus":
+      return PublicationStatus.HIATUS;
+    case "dropped":
+    case "cancelled":
+      return PublicationStatus.CANCELLED;
+    default:
+      return undefined;
+  }
+}
+
+/** The site states no rating of its own, so its genres are what a rating is read from. */
+export function parseRating(genres: readonly string[] | null | undefined): ContentRating {
+  const lower = (genres ?? []).map((genre) => genre.trim().toLowerCase());
+  const matches = (rating: string): boolean =>
+    CONTENT_RATING_GENRES[rating]?.some((genre) => lower.includes(genre)) === true;
+
+  if (matches("explicit")) return ContentRating.EXPLICIT;
+  if (matches("mature")) return ContentRating.MATURE;
+  return ContentRating.SAFE;
+}
+
+/** The catalogue is Korean unless a series says otherwise. */
+function parseContentType(series: Series): ContentType {
+  switch ((series.countryOfOrigin ?? "").toUpperCase()) {
+    case "JP":
+      return ContentType.MANGA;
+    case "CN":
+      return ContentType.MANHUA;
+    default:
+      return ContentType.MANHWA;
+  }
+}
+
+function parseTimestamp(value: string | null | undefined): Date | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+/** `"12.00"` reads better as `12`, and `"12.50"` as `12.5`. */
+export function formatChapterNumber(value: string | null | undefined): string {
+  const raw = (value ?? "").trim();
+  const number = Number.parseFloat(raw);
+  return Number.isFinite(number) ? String(number) : raw;
+}
+
+/** Six figures of views would push everything else off a tile's row. */
+function compactCount(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value < 0) return "";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  return String(value);
+}
+
+function viewCount(series: Series): number | undefined {
+  if (series.totalViews == null) return undefined;
+  const value = Number.parseInt(String(series.totalViews), 10);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+/** The site marks its rating with a filled star, so the tiles do too. */
+function formatScore(rating: number | null | undefined): string {
+  if (rating == null || !Number.isFinite(rating) || rating <= 0) return "";
+  return `★ ${rating.toFixed(1)}`;
+}
+
+function genreTitle(genre: string): string {
+  return clean(genre)
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+export type HighlightOptions = {
+  /** A hero card shows no info rows, so its stats ride along in the subtitle instead. */
+  hero?: boolean;
+};
+
+/**
+ * Every listing endpoint returns the rating, genres, views and last chapter alongside the
+ * cover, so a tile is filled without a second request per row.
+ */
+export function parseHighlight(series: Series, options: HighlightOptions = {}): Highlight {
+  const { hero = false } = options;
+
+  const chapter = formatChapterNumber(series.latestChapter?.chapterNumber);
+  const uploaded = parseTimestamp(
+    series.latestChapter?.createdAt ?? series.lastChapterUploadedAt ?? series.updatedAt,
+  );
+  const score = formatScore(series.averageRating);
+  const views = compactCount(viewCount(series));
+  // Two genres: the third wraps and pushes the tile out of its row.
+  const genres = (series.genres ?? []).slice(0, 2).map(genreTitle).filter(Boolean);
+
+  const info: Pair[] = [];
+  if (chapter) info.push({ key: "Latest", value: `Chapter ${chapter}` });
+  if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
+  if (genres.length > 0) {
+    info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
+  }
+  if (score) info.push({ key: "Rating", value: score });
+  if (views) info.push({ key: "Views", value: `👁 ${views}` });
+
+  const subtitle = hero
+    ? [chapter ? `Chapter ${chapter}` : "", score].filter(Boolean).join(" | ")
+    : chapter
+      ? `Chapter ${chapter}`
+      : "";
+
+  return {
+    id: series.slug,
+    title: decodeEntities(clean(series.title)),
+    cover: coverUrl(series),
+    ...(subtitle ? { subtitle } : {}),
+    // A tile stretches its whole row past about four lines, so the rest is dropped.
+    ...(hero || info.length === 0 ? {} : { info: info.slice(0, 4) }),
+    contentRating: parseRating(series.genres),
+    webUrl: seriesUrl(series.slug),
+  };
+}
+
+/** A hero card is cropped wide, so it prefers the banner the site drew for that shape. */
+export function parseHeroHighlight(series: Series): Highlight {
+  const banner = absoluteUrl(series.bannerUrl);
+  const highlight = parseHighlight(series, { hero: true });
+  return banner ? { ...highlight, cover: banner } : highlight;
+}
+
+function creator(value: string | null | undefined): string | undefined {
+  const cleaned = decodeEntities(clean(value ?? ""));
+  if (!cleaned || cleaned === "-" || /^(?:n\/a|unknown|tba)$/i.test(cleaned)) return undefined;
+  return cleaned;
+}
+
+export function parseContent(series: Series): Content {
+  const genres = series.genres ?? [];
+  const tags: Tag[] = genres
+    .map((genre) => clean(genre))
+    .filter(Boolean)
+    // The id stays the site's own slug, which is what the genre filter matches on.
+    .map((genre) => ({ id: genre.toLowerCase(), title: genreTitle(genre) }));
+
+  const status = parseStatus(series.publicationStatus);
+  const title = decodeEntities(clean(series.title));
+  const original = decodeEntities(clean(series.originalTitle ?? ""));
+  const creators = [creator(series.author), creator(series.artist)].filter(
+    (name): name is string => name !== undefined,
+  );
+
+  // The stat line the site prints under the title, in its own order.
+  const info: Pair[] = [];
+  const score = formatScore(series.averageRating);
+  if (score) info.push({ key: "Rating", value: score });
+  if (series.ratingCount != null) info.push({ key: "Ratings", value: String(series.ratingCount) });
+  if (series.chapterCount != null) {
+    info.push({ key: "Chapters", value: String(series.chapterCount) });
+  }
+  if (series.bookmarkCount != null) {
+    info.push({ key: "Bookmarks", value: String(series.bookmarkCount) });
+  }
+  const views = compactCount(viewCount(series));
+  if (views) info.push({ key: "Views", value: views });
+
+  return {
+    title,
+    cover: coverUrl(series),
+    summary: summaryFromHtml(series.description ?? ""),
+    additionalTitles: original && original.toLowerCase() !== title.toLowerCase() ? [original] : [],
+    tags,
+    ...(status === undefined ? {} : { status }),
+    contentType: parseContentType(series),
+    contentRating: parseRating(genres),
+    ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
+    ...(info.length > 0 ? { info } : {}),
+    webUrl: seriesUrl(series.slug),
+  };
+}
+
+/**
+ * A paid chapter unlocks on the website, and the API says so per chapter rather than for
+ * the series. `isFreeNow` is the site's own timed release, so a priced chapter that has
+ * come round is readable like any other.
+ */
+export function chapterIsLocked(chapter: SeriesChapterDetails): boolean {
+  return (chapter.price ?? 0) > 0 && chapter.isFreeNow !== true && chapter.isPurchased !== true;
+}
+
+export function parseChapters(
+  chapters: readonly SeriesChapterDetails[],
+  showLocked: boolean,
+): Chapter[] {
+  const parsed = chapters
+    .filter((chapter) => showLocked || !chapterIsLocked(chapter))
+    .map((chapter) => {
+      const number = Number.parseFloat(chapter.chapterNumber);
+      const locked = chapterIsLocked(chapter);
+      const name = decodeEntities(clean(chapter.title ?? ""));
+      const label = `Chapter ${formatChapterNumber(chapter.chapterNumber)}`;
+
+      return {
+        chapterId: chapter.chapterId,
+        number: Number.isFinite(number) ? number : 0,
+        index: 0,
+        // The app prints this verbatim and never joins the number onto it, so the label
+        // is built here. A locked row says so rather than failing when it is opened.
+        title: `${name && name !== label ? `${label} - ${name}` : label}${locked ? " 🔒" : ""}`,
+        date: parseTimestamp(chapter.releaseDate ?? chapter.createdAt) ?? new Date(0),
+        language: DefinedLanguages.ENGLISH,
+        webUrl: undefined,
+      };
+    });
+
+  // A chapter the site left unnumbered would otherwise sort ahead of chapter 1 and become
+  // what the app opens first, so the extras are numbered above the main run in listed order.
+  const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
+  const extras = parsed.filter((chapter) => chapter.number === 0);
+  extras.forEach((chapter, position) => {
+    chapter.number = highest + (extras.length - position);
+  });
+
+  // index 0 must be the earliest chapter, or the app resumes partway through.
+  return parsed
+    .sort((left, right) => left.number - right.number)
+    .map((chapter, index) => ({ ...chapter, index }))
+    .reverse();
+}
+
+export function parsePages(response: ChapterPagesResponse): string[] {
+  const pages = response.pages?.length ? response.pages : (response.images ?? []);
+
+  return [...pages]
+    .sort(
+      (left, right) =>
+        (left.pageNumber ?? Number.MAX_SAFE_INTEGER) -
+        (right.pageNumber ?? Number.MAX_SAFE_INTEGER),
+    )
+    .map((page) => absoluteUrl(page.url))
+    .filter(Boolean);
+}
+
+/** A pasted series link is treated as a search for that series. */
+export function slugFromUrl(value: string): string | undefined {
+  return /^https?:\/\/(?:www\.)?stonescape\.xyz\/series\/([^/?#]+)/i.exec(value.trim())?.[1];
+}
