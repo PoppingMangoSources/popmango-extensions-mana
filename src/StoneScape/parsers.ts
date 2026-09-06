@@ -38,11 +38,11 @@ export function seriesUrl(slug: string): string {
 }
 
 /**
- * A tile's cover is the series' own cover and nothing else.
+ * A tile's cover is the series' own cover, on every row including the hero.
  *
- * The banner is a wide, landscape crop for the top of a page — standing it in for a
- * missing portrait cover puts the wrong shape in the grid, so nothing here falls back
- * to it. The site serves the path relative to its root.
+ * The banner is a wide crop the site uses at the top of a page. Substituting it anywhere
+ * would show a different picture for the same series depending on where the reader met
+ * it, so it is never used. The site serves the path relative to its root.
  */
 function coverUrl(series: Series): string {
   return absoluteUrl(series.coverUrl);
@@ -231,20 +231,18 @@ function buildSubtitle(
 }
 
 /**
- * A tile for whichever row it lands in. A hero card is cropped wide, so it prefers the
- * banner the site drew for that shape and falls back to the portrait cover for a series
- * that has none.
+ * A tile for whichever row it lands in.
+ *
+ * Every row shows the series' cover, the hero included: that is the artwork the site puts
+ * on a title, and swapping in the banner for one row would show a different picture for
+ * the same series depending on where the reader met it. `hero` changes only the shape of
+ * the card and what is written under it.
  */
 export function toHighlight(series: Series, hero: boolean, subtitle?: SubtitleStyle): Highlight {
-  const highlight = parseHighlight(series, {
+  return parseHighlight(series, {
     hero,
     ...(subtitle === undefined ? {} : { subtitle }),
   });
-  if (!hero) return highlight;
-
-  // Only a hero card is drawn wide enough for the banner, and only it falls back to the
-  // cover — for a series the site drew no banner for.
-  return { ...highlight, cover: absoluteUrl(series.bannerUrl) || absoluteUrl(series.coverUrl) };
 }
 
 function creator(value: string | null | undefined): string | undefined {

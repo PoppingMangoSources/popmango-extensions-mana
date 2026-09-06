@@ -78,7 +78,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.0.6",
+  version: "1.0.7",
   description: "Manhwa, manhua and manga from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -180,8 +180,8 @@ class StoneScapeSource
     context?: SourceContext,
   ): Promise<PagedSearchResult> {
     const allowed = context?.allowedContentRatings;
-    // A hero card is cropped wide, so whichever row is drawn that way takes the banner
-    // artwork. Reading it off the style keeps the two in step if the rows are rearranged.
+    // A hero card carries no info rows, so it is told which row it is. Reading that off
+    // the style keeps the two in step if the rows are ever rearranged.
     const hero = isHeroSection(sectionID);
     const subtitle = SECTION_SUBTITLES[sectionID];
 
