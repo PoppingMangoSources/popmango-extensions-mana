@@ -1,0 +1,82 @@
+name: Contract
+
+# Drives every built bundle through the methods the app calls, against the live sites.
+#
+# This is the half of the checking that needs the network, and the sites are third
+# parties: they rate-limit, they sit behind Cloudflare, and they go down. Running it on
+# every push would fail for reasons no commit caused, so it runs on a schedule and on
+# request instead, and reports rather than blocks.
+#
+# A Cloudflare block reports SKIP, not FAIL — that is expected for a protected site and
+# is not a pass. A source whose selectors have rotted reports FAIL, which is the signal
+# this workflow exists to catch: the site changed, nobody pushed anything, and the source
+# is broken in everyone's app.
+
+on:
+  schedule:
+    # Early morning UTC, before most of the day's reading.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "One source to verify, or blank for all of them"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verify:
+    name: Verify against the live sites
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      # The rule check first: a bundle that breaks the repository's own rules would make
+      # the contract test's failures harder to read.
+      - name: Check source rules
+        run: node scripts/check-sources.mjs
+
+      - name: Verify
+        id: verify
+        run: |
+          set +e
+          if [ -n "${{ inputs.source }}" ]; then
+            bun run verify -- "${{ inputs.source }}" | tee verify.log
+          else
+            bun run verify -- --all | tee verify.log
+          fi
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "## Contract test"
+            echo
+            echo '```'
+            # Strip the ANSI colours the reporter writes for a terminal.
+            sed -e 's/\x1b\[[0-9;]*m//g' verify.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail the run when a source is broken
+        if: steps.verify.outputs.status != '0'
+        run: |
+          echo "::error::A source failed its contract test — see the summary for which"
+          exit 1

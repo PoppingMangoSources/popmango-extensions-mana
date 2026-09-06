@@ -6,11 +6,15 @@ on:
 
 jobs:
   test:
-    name: Lint, Format & Build
+    name: Gates
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The version rule compares a source against the branch it came from, which
+          # needs history rather than a single commit.
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -25,8 +29,34 @@ jobs:
       - name: Check formatting
         run: bun run format:check
 
+      # The gate that matters most: mana-dev bundles with esbuild, which strips types
+      # without checking them, so a source written against a removed API builds cleanly
+      # and only goes wrong on the device.
       - name: Typecheck
         run: bun run typecheck
 
       - name: Build
         run: bun run build
+
+      # Every rule CLAUDE.md and the mana-extension skill lay down that can be checked
+      # without the live site: icons, intents, probe fixtures, CHANGELOG agreement, the
+      # globals the runtime does not have, and the patch-only version rule.
+      - name: Check source rules
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            node scripts/check-sources.mjs --base "origin/${{ github.base_ref }}"
+          else
+            node scripts/check-sources.mjs
+          fi
+
+      # The README table and the count badge are generated from dist/sources.json. A diff
+      # here means they were hand-edited, or a version bump never reached them.
+      - name: README is in step with the catalog
+        run: |
+          bun run readme
+          if ! git diff --quiet -- README.md media/badge-count-summer.svg; then
+            echo "::error::README is out of date — run 'npm run build && npm run readme' and commit the result"
+            git --no-pager diff -- README.md media/badge-count-summer.svg
+            exit 1
+          fi

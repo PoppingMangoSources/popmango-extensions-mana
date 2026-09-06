@@ -35,7 +35,7 @@ export const SortID = {
 
 export const SectionID = {
   Featured: "featured",
-  TrendingWeek: "trending_week",
+  PopularWeek: "popular_week",
   PopularMonth: "popular_month",
   PopularYear: "popular_year",
   Latest: "latest",
@@ -130,8 +130,8 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.SimpleHeroPaged,
   },
   {
-    id: SectionID.TrendingWeek,
-    title: "Trending This Week",
+    id: SectionID.PopularWeek,
+    title: "Popular This Week",
     subtitle: "Most read over the last seven days",
     style: SectionStyle.DetailedDoubleRowPaged,
   },
@@ -171,7 +171,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
 
 /** The periods `/api/series/popular` accepts, keyed by the section that asks for one. */
 export const SECTION_PERIODS: Record<string, PopularPeriod> = {
-  [SectionID.TrendingWeek]: "week",
+  [SectionID.PopularWeek]: "week",
   [SectionID.PopularMonth]: "month",
   [SectionID.PopularYear]: "year",
 };

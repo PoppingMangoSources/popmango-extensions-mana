@@ -2,7 +2,7 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.2)
+## StoneScape (current: v1.0.3)
 
 ### Fixed
 
@@ -18,6 +18,8 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 - Featured is its own row at the foot of the home page, after Latest Releases, matching how
   FlameComics lays its front page out.
+- The weekly row is named Popular This Week, which is the site's own word for it. A row
+  carries the name the site gives it, never one of ours.
 - The genre filter is an inline set of chips. It had asked for a sheet, which a tags section
   ignores; the site's forty-odd genres are what chips are for.
 - The featured row is no longer capped. The site hand-picks that set and sends it whole.
@@ -29,8 +31,8 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 ### Added
 
 - Initial release, reading stonescape.xyz through its own JSON API.
-- Five home rows: Popular This Year, Trending This Week, Popular This Month, Featured and
-  Latest Releases. The site collapses its three popular periods into tabs; each is given a
+- Five home rows: Popular This Year, Popular This Week, Popular This Month, Latest Releases
+  and Featured. The site collapses its three popular periods into tabs; each is given a
   row here, so what is climbing over a month is visible without a tap.
 - Filtering by status and by genre, the genre list read from the site and kept for a day so
   the form opens without waiting. Sorting by latest, popular this month or this year, and
@@ -138,7 +140,7 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.9)
+## XCOMIC (current: v1.0.13)
 
 ### Changed
 
@@ -227,7 +229,7 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.6)
+## FlameComics (current: v1.0.7)
 
 ### Changed
 
@@ -261,7 +263,7 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.27)
+## Kagane (current: v1.0.30)
 
 ### Fixed
 
@@ -552,7 +554,7 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.6)
+## Mangago (current: v1.0.8)
 
 ### Fixed
 

@@ -16,6 +16,7 @@
     "lint:fix": "oxlint --fix src/",
     "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify-source.mjs",
+    "check": "node scripts/check-sources.mjs",
     "new-source": "node scripts/new-source.mjs",
     "readme": "node scripts/update-readme.mjs",
     "format": "oxfmt src/",
