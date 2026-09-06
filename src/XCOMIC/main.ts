@@ -109,7 +109,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.11",
+  version: "1.0.12",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -125,9 +125,13 @@ const config: SourceConfig = {
 };
 
 /**
- * Each version listed costs its own lookup, and a popular work carries a row per language.
- * Ten is more than a reader scrolls and keeps the title page from opening a dozen requests.
+ * How many versions are looked up, and how many survive into the row. Which language a
+ * version is in is only known once it has been fetched, so the lookups have to run wider
+ * than the row is long. They also cost the title page its opening time — the client allows
+ * three a second — so a work filed under dozens of versions is read down to twelve rather
+ * than in full. Most titles carry two or three and pay nothing for this.
  */
+const OTHER_VERSION_LOOKUPS = 12;
 const OTHER_VERSION_LIMIT = 10;
 
 /** What the filter form falls back to when the search page cannot be read. */
@@ -560,16 +564,22 @@ class XCOMICSource
    * the one they opened.
    */
   private async fetchOtherVersions(contentId: string): Promise<ComicData[]> {
-    const ids = await this.api
-      .query<TitleNodeResponse>(TITLE_QUERY, { id: contentId })
-      .then((data) => data.get_comicNode?.data?.title_titleNode?.data?.comic_ids ?? [])
-      .catch(() => []);
+    const [ids, languages] = await Promise.all([
+      this.api
+        .query<TitleNodeResponse>(TITLE_QUERY, { id: contentId })
+        .then((data) => data.get_comicNode?.data?.title_titleNode?.data?.comic_ids ?? [])
+        .catch(() => []),
+      this.preferences.strings(PreferenceID.Languages),
+    ]);
 
-    const others = [...new Set(ids)].filter((id) => id !== contentId).slice(0, OTHER_VERSION_LIMIT);
+    // A popular work carries a row per language, and a reader browsing in English is being
+    // offered a version they cannot read. The lookups happen first because the language a
+    // comic is in is not something the title's list of ids says.
+    const others = [...new Set(ids)].filter((id) => id !== contentId);
     if (others.length === 0) return [];
 
     const comics = await Promise.all(
-      others.map((id) =>
+      others.slice(0, OTHER_VERSION_LOOKUPS).map((id) =>
         this.api
           .query<ComicNodeResponse>(COMIC_QUERY, { id })
           .then((data) => data.get_comicNode?.data)
@@ -577,7 +587,15 @@ class XCOMICSource
       ),
     );
 
-    return comics.filter((comic): comic is ComicData => comic !== undefined);
+    const found = comics.filter((comic): comic is ComicData => comic !== undefined);
+
+    // A work whose only other versions are in languages the reader does not read still has
+    // versions, so an empty match falls back to all of them rather than to nothing.
+    const readable = found.filter((comic) =>
+      languages.includes((comic.translatedLanguage ?? "").trim()),
+    );
+
+    return (readable.length > 0 ? readable : found).slice(0, OTHER_VERSION_LIMIT);
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {

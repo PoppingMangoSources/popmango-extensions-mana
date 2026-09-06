@@ -64,7 +64,6 @@ import {
   STATUS_OPTIONS,
   SectionLayout,
   SortID,
-  seriesCoverId,
   type SectionLayoutKind,
   type DiscoverSection,
   type SeriesSummary,
@@ -78,6 +77,7 @@ import {
   seriesUrl,
   parseChapters,
   parseContent,
+  parseContentRating,
   parseHighlight,
   type TaxonomyIds,
   type TitleOptions,
@@ -89,7 +89,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.29",
+  version: "1.0.30",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -398,17 +398,17 @@ class KaganeSource
           id: "related",
           title: "Related Editions",
           hasMore: false,
-          items: others.map((entry) => {
-            const coverId = seriesCoverId(entry);
-
-            return additionalInfo.highlights.item({
+          items: others.map((entry) =>
+            additionalInfo.highlights.item({
               type: AdditionalInfoType.Highlights,
               id: entry.id,
               title: formatTitle(entry.title, titleOptions, entry.source_id),
-              cover: coverId ? this.api.imageUrl(coverId) : "",
+              cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
+              // An edition carries its own rating, which need not be the one being read.
+              contentRating: parseContentRating(entry.content_rating),
               webUrl: seriesUrl(entry.id),
-            });
-          }),
+            }),
+          ),
         }),
       ],
     };

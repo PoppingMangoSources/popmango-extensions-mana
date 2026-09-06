@@ -253,26 +253,24 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
 
 /**
  * The other comics filed under the same title — the site keeps one per language and
- * scanlation group, and a reader looking at one of them wants the rest offered. The language
- * is appended because that, not the name, is what separates two rows of the same work.
+ * scanlation group. The name is shown exactly as the site lists it, brackets and all:
+ * whoever uploaded a version wrote the group into the name (`[Official]`, `[Asura Scans]`),
+ * and a version nobody labelled is unlabelled on the site too.
  */
 export function parseOtherVersions(
   comics: readonly ComicData[],
   cleanTitle: TitleCleaner = asIs,
 ): SimpleHighlight[] {
-  return comics.map((comic) => {
-    const title = cleanTitle(decodeEntities(clean(comic.name)));
-    const language = parseLanguage(comic.translatedLanguage);
-
-    return additionalInfo.highlights.item({
+  return comics.map((comic) =>
+    additionalInfo.highlights.item({
       type: AdditionalInfoType.Highlights,
       id: comic.id,
-      title: language ? `${title} (${language})` : title,
+      title: cleanTitle(decodeEntities(clean(comic.name))),
       cover: absoluteUrl(comic.urlCover),
       contentRating: parseRating(comic),
       webUrl: seriesUrl(comic),
-    });
-  });
+    }),
+  );
 }
 
 /**
