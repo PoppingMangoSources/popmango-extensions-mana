@@ -2,13 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.5)
+## StoneScape (current: v1.0.6)
 
 ### Fixed
 
-- The hero carousel drew some banners as a frozen frame. Those are animated GIFs, which
-  the app cannot play, and the frame it settles on is often the blank one the animation
-  opens with. A GIF is now only used when the series offers nothing else.
+- Covers were wrong on any series whose cover is a GIF. v1.0.5 tried to avoid animated
+  images by picking the first candidate that was not one, which for those series handed
+  the grid the banner — a wide landscape crop standing in for a portrait cover. A tile
+  now shows the series' cover and only that, and the banner is used by the hero row
+  alone, which is the one card drawn wide enough for it.
 
 ### Changed
 

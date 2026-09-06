@@ -38,20 +38,14 @@ export function seriesUrl(slug: string): string {
 }
 
 /**
- * The first candidate that is a still image.
+ * A tile's cover is the series' own cover and nothing else.
  *
- * Some banners are animated GIFs, and the app draws one as a frozen frame — usually the
- * first, which for a banner is often blank. A static alternative always looks better than
- * a stalled animation, so a GIF is only used when nothing else is offered.
+ * The banner is a wide, landscape crop for the top of a page — standing it in for a
+ * missing portrait cover puts the wrong shape in the grid, so nothing here falls back
+ * to it. The site serves the path relative to its root.
  */
-function staticImage(...candidates: (string | null | undefined)[]): string {
-  const urls = candidates.map(absoluteUrl).filter(Boolean);
-  return urls.find((url) => !/\.gif(?:[?#]|$)/i.test(url)) ?? urls[0] ?? "";
-}
-
-/** A banner is wider than it is tall, so it is only used where a cover is missing. */
 function coverUrl(series: Series): string {
-  return staticImage(series.coverUrl, series.bannerUrl);
+  return absoluteUrl(series.coverUrl);
 }
 
 export function parseStatus(status: string | null | undefined): PublicationStatus | undefined {
@@ -163,6 +157,20 @@ function formatStatus(series: Series): string {
 }
 
 /**
+ * The site's word for the state, behind the house symbol.
+ *
+ * These glyphs are the text-presentation forms on purpose. A `Pair` and a subtitle both
+ * take plain text — `systemImage` lives on `UIButtonOptions` and nowhere a tile can reach —
+ * so a symbol here is a character, and an emoji one would render in colour beside the
+ * filled marks around it. `⏯︎` carries U+FE0E for exactly that reason: without it the
+ * base codepoint draws as an emoji.
+ */
+function statusOf(series: Series): string {
+  const status = formatStatus(series);
+  return status ? `☉ ${status}` : "";
+}
+
+/**
  * Every listing endpoint returns the rating, genres, views and last chapter alongside the
  * cover, so a tile is filled without a second request per row.
  */
@@ -185,7 +193,7 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
   if (score) info.push({ key: "Rating", value: score });
-  if (views) info.push({ key: "Views", value: views });
+  if (views) info.push({ key: "Views", value: `⏯︎ ${views}` });
 
   const subtitle = buildSubtitle(series, style, { chapter, score, views });
 
@@ -212,11 +220,11 @@ function buildSubtitle(
     case "hero":
       return [chapterLabel, parts.score].filter(Boolean).join(" | ");
     case "kind":
-      return [formatKind(series), formatStatus(series)].filter(Boolean).join(" • ");
+      return [`✎ ${formatKind(series)}`, statusOf(series)].filter(Boolean).join(" • ");
     // A row ranked by reading says what it was ranked on; a title with none falls back
     // to the chapter rather than showing an empty line.
     case "views":
-      return parts.views ? `${parts.views} views` : chapterLabel;
+      return parts.views ? `⏯︎ ${parts.views}` : chapterLabel;
     default:
       return chapterLabel;
   }
@@ -234,8 +242,9 @@ export function toHighlight(series: Series, hero: boolean, subtitle?: SubtitleSt
   });
   if (!hero) return highlight;
 
-  // The banner is the shape a hero wants, but not at the cost of a stalled GIF.
-  return { ...highlight, cover: staticImage(series.bannerUrl, series.coverUrl) };
+  // Only a hero card is drawn wide enough for the banner, and only it falls back to the
+  // cover — for a series the site drew no banner for.
+  return { ...highlight, cover: absoluteUrl(series.bannerUrl) || absoluteUrl(series.coverUrl) };
 }
 
 function creator(value: string | null | undefined): string | undefined {
