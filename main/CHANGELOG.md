@@ -48,6 +48,18 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 ## Repository
 
+### Added
+
+- The contract test now judges the home page as a whole and fetches what it produced. A
+  hero row with too few titles repeats one cover across the carousel; two rows opening
+  with the same titles in the same order are one query wearing two names; a row that
+  returns nothing, or sixty-one titles, is not a strip. And a cover URL that 404s passes
+  every shape check while leaving the reader a blank grid, so a sample of the covers and
+  the first page are fetched — through the source's own `willRequestImage`, since a CDN
+  that wants a referer would otherwise report broken on a source that works.
+
+  A failing check that reports a list now prints the whole list rather than its first line.
+
 ### Fixed
 
 - The repository icon still did not load. The URL it was published under was right for a
