@@ -5,10 +5,10 @@
 All four must pass. Nothing ships on a red gate.
 
 ```bash
-npm run lint
-npm run format:check
-npm run typecheck
-npm run build
+bun run lint
+bun run format:check
+bun run typecheck
+bun run build
 ```
 
 `typecheck` is the one that matters most: `mana-dev build` bundles without checking types,
@@ -18,8 +18,8 @@ runs all four.
 Then the contract test against the live site:
 
 ```bash
-npm run verify <Name>      # one source
-npm run verify -- --all    # every source
+bun run verify <Name>      # one source
+bun run verify --all    # every source
 ```
 
 SKIP is not PASS. A Cloudflare SKIP means the source is unverified, not working.
@@ -65,7 +65,7 @@ Newest source first, newest entry first within a source. `info.version` and the
 ## README
 
 ```bash
-npm run build && npm run readme
+bun run build && bun run readme
 ```
 
 That regenerates the source table between the `<!-- sources:start -->` markers and updates
@@ -78,7 +78,7 @@ the count on the README badge from `dist/sources.json`. Do not hand-edit that ta
 folder into `dist/`; an icon under `src/<Name>/assets/` is never packaged, and the app
 falls back to a placeholder without reporting anything. A full URL also works.
 
-`npm run verify <Name>` fails when `dist/assets/<thumbnail>` is missing, which is the
+`bun run verify <Name>` fails when `dist/assets/<thumbnail>` is missing, which is the
 check that catches this.
 
 For the README row, drop a second copy at `media/sources/<name-lowercased>.png` —
@@ -98,12 +98,12 @@ branch only exists after the first successful workflow run.
 
 ## Checklist
 
-- [ ] `npm run lint && npm run format:check && npm run typecheck && npm run build` clean
-- [ ] `npm run verify <Name>` — PASS, with SKIPs understood
+- [ ] `bun run lint && bun run format:check && bun run typecheck && bun run build` clean
+- [ ] `bun run verify <Name>` — PASS, with SKIPs understood
 - [ ] intent bitmask has the bits the source intends
 - [ ] `info.version` bumped
 - [ ] CHANGELOG entry, heading version matching `info.version`
-- [ ] `npm run readme` run, table and badge current
+- [ ] `bun run readme` run, table and badge current
 - [ ] `assets/<Name>.png` exists and matches `info.thumbnail`
 - [ ] `media/sources/<name>.png` exists for the README row
 - [ ] `scripts/probes/<Name>.json` has a real `contentId`

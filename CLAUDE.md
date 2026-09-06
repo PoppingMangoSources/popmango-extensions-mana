@@ -17,7 +17,7 @@ adding or fixing a source; the failure modes here are mostly silent.
 | `src/<Source>/` | One folder per source — `client.ts`, `model.ts`, `parsers.ts`, `main.ts` |
 | `assets/` | Source icons, named `<Source>.png` — the only folder the toolchain packages |
 | `scripts/` | Build, page generation, README generation, verification harness |
-| `scripts/probes/` | Per-source fixtures naming a title and chapter for `npm run verify` |
+| `scripts/probes/` | Per-source fixtures naming a title and chapter for `bun run verify` |
 | `scripts/site/` | The published page's stylesheet |
 | `media/` | README artwork and per-source icons |
 
@@ -27,12 +27,12 @@ A directory becomes a source when one of its files exports `class Target`. That 
 ## Commands
 
 ```bash
-npm run typecheck        # the gate that matters — the bundler does not check types
-npm run lint
-npm run format:check
-npm run build            # bundles src/ into dist/ and renders the repository page
-npm run verify <Name>    # contract test against the live site
-npm run readme           # regenerates the README table from dist/sources.json
+bun run typecheck        # the gate that matters — the bundler does not check types
+bun run lint
+bun run format:check
+bun run build            # bundles src/ into dist/ and renders the repository page
+bun run verify <Name>    # contract test against the live site
+bun run readme           # regenerates the README table from dist/sources.json
 ```
 
 Run all four gates before calling a change done.

@@ -61,7 +61,7 @@ jobs:
         run: |
           bun run readme
           if ! git diff --quiet -- README.md media/badge-count-summer.svg; then
-            echo "::error::README is out of date — run 'npm run build && npm run readme' and commit the result"
+            echo "::error::README is out of date — run 'bun run build && bun run readme' and commit the result"
             git --no-pager diff -- README.md media/badge-count-summer.svg
             exit 1
           fi

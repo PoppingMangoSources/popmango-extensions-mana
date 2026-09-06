@@ -71,23 +71,23 @@ For a site you would like added, use the source request form.
 <summary><b>Building and testing</b></summary>
 
 ```bash
-npm install
-npm run typecheck        # TypeScript, no emit
-npm run lint             # oxlint
-npm run format:check     # oxfmt
-npm run build            # bundles src/ into dist/ and renders the repository page
-npm run check            # the repository's own rules, offline
-npm run verify -- --all  # runs every source against its live site
+bun install
+bun run typecheck        # TypeScript, no emit
+bun run lint             # oxlint
+bun run format:check     # oxfmt
+bun run build            # bundles src/ into dist/ and renders the repository page
+bun run check            # the repository's own rules, offline
+bun run verify --all     # runs every source against its live site
 ```
 
-`npm run check` is the offline half: icons, intents, probe fixtures, CHANGELOG agreement,
-the globals the runtime does not have, and the patch-only version rule. `npm run verify`
+`bun run check` is the offline half: icons, intents, probe fixtures, CHANGELOG agreement,
+the globals the runtime does not have, and the patch-only version rule. `bun run verify`
 is the half that needs the network — a Cloudflare block reports SKIP, which is not a pass.
 
-`npm run hooks` points git at `.githooks/`, so a push runs those gates first. Skip a run
+`bun run hooks` points git at `.githooks/`, so a push runs those gates first. Skip a run
 with `git push --no-verify`.
 
-`npm run new-source` scaffolds a source folder. `npm run readme` regenerates the table above
+`bun run new-source` scaffolds a source folder. `bun run readme` regenerates the table above
 from `dist/sources.json` after a build.
 
 ### Layout
@@ -97,7 +97,7 @@ from `dist/sources.json` after a build.
 | `src/common/` | The shared runtime — networking, forms, dates, URLs, HTML helpers, AES |
 | `src/<Source>/` | One folder per source; the entry point is the `Target` class in `main.ts` |
 | `scripts/` | Build, page generation, README generation and the verification harness |
-| `scripts/probes/` | Per-source fixtures naming a title and chapter for `npm run verify` |
+| `scripts/probes/` | Per-source fixtures naming a title and chapter for `bun run verify` |
 
 A folder becomes a source when one of its files exports `class Target`, which is why
 `src/common/` is shared code rather than an extension of its own.

@@ -4,7 +4,7 @@
 # These are the same checks the Test workflow runs, and together they take a couple of
 # seconds. `git push --no-verify` skips them when you know what you are doing.
 #
-# Enable in a fresh clone with:  npm run hooks
+# Enable in a fresh clone with:  bun run hooks
 
 set -e
 
@@ -13,12 +13,20 @@ if [ -n "$CI" ]; then
   exit 0
 fi
 
+# The toolchain is bun, and CI runs it. A clone that has only npm still gets the gates
+# rather than a "command not found" it cannot act on.
+if command -v bun >/dev/null 2>&1; then
+  run="bun run"
+else
+  run="npm run"
+fi
+
 echo "pre-push: running the gates…"
 
-npm run lint
-npm run format:check
-npm run typecheck
-npm run build
-npm run check
+$run lint
+$run format:check
+$run typecheck
+$run build
+$run check
 
 echo "pre-push: all gates green"

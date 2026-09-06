@@ -48,6 +48,14 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 ## Repository
 
+### Changed
+
+- Every command in the README, the contributor notes and the scaffold's own output now
+  reads `bun run`. The toolchain is bun and CI has always run it; only the writing said
+  otherwise, which left a newcomer following instructions their CI would not match. The
+  pre-push hook prefers bun and falls back to npm, so a clone without it still gets the
+  gates rather than a "command not found" it cannot act on.
+
 ### Added
 
 - Every source that serves chapters now declares itself a `ChapterSource` rather than a

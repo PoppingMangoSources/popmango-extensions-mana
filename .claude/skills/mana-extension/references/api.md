@@ -180,7 +180,7 @@ depends on the field type**, which is why `FilterReader` exists.
 | `SearchSortSection({ style })` | `SearchSortSection({ header?, footer? })` — `style` was removed |
 
 Nothing warns you about any of these: `mana-dev` bundles with esbuild, which strips types
-without checking them. `npm run typecheck` is the gate that catches it.
+without checking them. `bun run typecheck` is the gate that catches it.
 
 
 ### The auxiliary WebView

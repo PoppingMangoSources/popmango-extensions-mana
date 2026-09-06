@@ -67,9 +67,9 @@ jobs:
         run: |
           set +e
           if [ -n "${{ inputs.source }}" ]; then
-            bun run verify -- "${{ inputs.source }}" | tee verify.log
+            bun run verify "${{ inputs.source }}" | tee verify.log
           else
-            bun run verify -- --all | tee verify.log
+            bun run verify --all | tee verify.log
           fi
           status=${PIPESTATUS[0]}
           echo "status=$status" >> "$GITHUB_OUTPUT"

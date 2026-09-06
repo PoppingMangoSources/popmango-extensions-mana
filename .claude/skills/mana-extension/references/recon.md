@@ -20,7 +20,7 @@ always better than scraping the rendered result.
 or a `cf_chl` marker, the site is challenge-protected. Set `config.cloudflareResolutionURL`
 so the app can hand the user a WebView to solve it, throw `CloudflareError(BASE_URL)` from
 the response interceptor (`buildClient` in `src/common/network.ts` already does both), and expect
-`npm run verify` to report SKIP rather than PASS. After that, if you're controlling the
+`bun run verify` to report SKIP rather than PASS. After that, if you're controlling the
 browser do the challenge and continue or have your human do it for you.
 
 ## Target 1 — Home sections

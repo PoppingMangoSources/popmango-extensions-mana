@@ -46,7 +46,7 @@ over its section list unchecked against the live home page.
 ## Phase 2 — Scaffold
 
 ```bash
-npm run new-source <Name> --id <id> --url <https://site>
+bun run new-source <Name> --id <id> --url <https://site>
 ```
 
 Then drop an icon at `assets/<Name>.png`.
@@ -112,7 +112,7 @@ limitation, an ordering requirement. Prefer a helper over duplication.
 All four gates must pass before the work is done:
 
 ```bash
-npm run lint && npm run format:check && npm run typecheck && npm run build
+bun run lint && bun run format:check && bun run typecheck && bun run build
 ```
 
 Then confirm the app will actually see the intents you intended:
@@ -124,7 +124,7 @@ node -e "const d=require('./dist/sources.json');for(const s of d.sources)console
 Then run the contract test against the live site:
 
 ```bash
-npm run verify <Name>
+bun run verify <Name>
 ```
 
 It drives the built `.mana` bundle through the methods the app calls and checks the shape
@@ -181,7 +181,7 @@ client. Two rules keep it from crawling:
 ## Updating an existing source
 
 Site markup changes constantly. When a source breaks, re-run Phase 1 for the specific
-broken target — do not guess at a selector fix. `npm run verify <Name>` tells you which of
+broken target — do not guess at a selector fix. `bun run verify <Name>` tells you which of
 the five targets broke.
 
 If a source still calls `getSearchFilters`, sets `Content.isNSFW`, or sets

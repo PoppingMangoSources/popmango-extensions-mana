@@ -9,7 +9,7 @@
  * Copies the Template directory, rewrites the class name and `info` block,
  * and seeds a CHANGELOG section.
  *
- * The README table is generated from dist/sources.json by `npm run readme`, so
+ * The README table is generated from dist/sources.json by `bun run readme`, so
  * it is deliberately left alone here.
  */
 
@@ -139,5 +139,5 @@ console.log("next:");
 console.log(`  1. drop an icon at assets/${name}.png (project root, not src/)`);
 console.log(`  2. fill in the selectors in src/${name}/main.ts and the filters in model.ts`);
 console.log(`  3. put a real contentId/chapterId in scripts/probes/${name}.json`);
-console.log(`  4. npm run typecheck && npm run build && npm run verify ${name}`);
-console.log("  5. npm run readme to add it to the README table");
+console.log(`  4. bun run typecheck && bun run build && bun run verify ${name}`);
+console.log("  5. bun run readme to add it to the README table");

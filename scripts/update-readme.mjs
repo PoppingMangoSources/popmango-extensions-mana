@@ -6,7 +6,7 @@
  * The table lives between HTML comment markers so the surrounding prose is
  * hand-written and this only ever rewrites the list. Run it after a build:
  *
- *   npm run build && npm run readme
+ *   bun run build && bun run readme
  */
 
 import { existsSync } from "node:fs";

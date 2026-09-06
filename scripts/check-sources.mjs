@@ -269,7 +269,7 @@ function main() {
 
   const catalogPath = path.join(DIST, "sources.json");
   if (!fs.existsSync(catalogPath)) {
-    console.error(`${RED}dist/sources.json not found — run "npm run build" first${RESET}`);
+    console.error(`${RED}dist/sources.json not found — run "bun run build" first${RESET}`);
     process.exit(1);
   }
 
