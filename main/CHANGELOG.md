@@ -2,15 +2,14 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.6)
+## StoneScape (current: v1.0.7)
 
 ### Fixed
 
-- Covers were wrong on any series whose cover is a GIF. v1.0.5 tried to avoid animated
-  images by picking the first candidate that was not one, which for those series handed
-  the grid the banner — a wide landscape crop standing in for a portrait cover. A tile
-  now shows the series' cover and only that, and the banner is used by the hero row
-  alone, which is the one card drawn wide enough for it.
+- Every row now shows the series' own cover, exactly as the site serves it — the hero
+  carousel included, and whatever the file type. Earlier releases substituted the banner
+  on the hero and, worse, on any tile whose cover happened to be a GIF, so the same
+  series wore a different picture depending on where it was met.
 
 ### Changed
 
