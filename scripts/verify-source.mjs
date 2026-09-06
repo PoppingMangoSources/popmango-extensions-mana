@@ -84,6 +84,12 @@ function loadTarget(bundlePath) {
   return new Target();
 }
 
+/** A hero draws one big cover at a time; with too few it repeats the same one. */
+const HERO_STYLES = new Set([SectionStyle.SimpleHero, SectionStyle.SimpleHeroPaged]);
+const MIN_HERO_ITEMS = 3;
+/** A home row is a strip, not a catalogue — past this it is a listing in the wrong place. */
+const MAX_SECTION_ITEMS = 60;
+
 function isCloudflare(error) {
   if (!error) return false;
   if (error.name === "CloudflareError") return true;
@@ -100,10 +106,14 @@ async function step(results, name, fn) {
     return detail;
   } catch (error) {
     const status = isCloudflare(error) || error instanceof Skip ? "skip" : "fail";
+    const message = String(error?.message ?? error);
     results.push({
       name,
       status,
-      detail: String(error?.message ?? error).split("\n")[0],
+      detail: message.split("\n")[0],
+      // Some checks report a list — the first line only says how many, so the rest is
+      // kept and printed under the row rather than thrown away.
+      rest: message.split("\n").slice(1),
       ms: Date.now() - started,
     });
     return undefined;
@@ -136,6 +146,34 @@ function checkEnum(enumeration, enumName, field, value, label) {
     named !== undefined,
     `${label}: ${field} is ${JSON.stringify(value)}, not a ${enumName} (${allowed})`,
   );
+}
+
+/**
+ * Fetches a handful of URLs and reports the ones that do not come back as an image.
+ *
+ * A source with `willRequestImage` is telling the app how to ask for its images — most
+ * often a referer a CDN refuses to serve without. Fetching bare would report 403 against
+ * a source that works perfectly in the app, so the handler is applied here too.
+ */
+async function checkImageUrls(urls, target) {
+  const broken = [];
+  for (const url of urls) {
+    try {
+      const request = target?.willRequestImage ? await target.willRequestImage(url) : undefined;
+      const headers = {};
+      for (const [key, value] of Object.entries(request?.headers ?? {})) {
+        headers[key] = String(value);
+      }
+      const response = await fetch(request?.url ?? url, { headers });
+      const type = response.headers.get("content-type") ?? "";
+      if (!response.ok || !type.startsWith("image/")) {
+        broken.push(`${url} -> HTTP ${response.status} ${type}`);
+      }
+    } catch (error) {
+      broken.push(`${url} -> ${firstLine(error)}`);
+    }
+  }
+  return broken;
 }
 
 function checkHighlights(results, label) {
@@ -195,6 +233,9 @@ async function verify(name, probe, verbose) {
 
   const results = [];
   const meta = { name, info: target.info, intents: undefined };
+  // What the app would put in front of the reader, kept so the rules below can judge the
+  // page as a whole rather than each call on its own.
+  const preview = { sections: [], search: [], content: undefined, pages: [] };
 
   await step(results, "info", async () => {
     assert(target.info?.id, "info.id missing");
@@ -258,7 +299,9 @@ async function verify(name, probe, verbose) {
       for (const section of sections) {
         await step(results, `resolvePageSection(${section.id})`, async () => {
           const resolved = await target.resolvePageSection({ id: "home" }, section.id);
-          return checkHighlights(resolved?.items, section.id);
+          const detail = checkHighlights(resolved?.items, section.id);
+          preview.sections.push({ section, items: resolved.items });
+          return detail;
         });
       }
     }
@@ -267,7 +310,9 @@ async function verify(name, probe, verbose) {
   const searched = await step(results, "search", async () => {
     const page = await target.search({ page: 1, query: probe.query ?? "" });
     assert(typeof page?.isLastPage === "boolean", "isLastPage missing");
-    return checkHighlights(page.results, "search");
+    const detail = checkHighlights(page.results, "search");
+    preview.search = page.results;
+    return detail;
   });
 
   const contentId = probe.contentId;
@@ -285,6 +330,7 @@ async function verify(name, probe, verbose) {
       assert(content?.cover !== undefined, "content.cover missing");
       checkEnum(ContentRating, "ContentRating", "contentRating", content.contentRating, "content");
       checkEnum(PublicationStatus, "PublicationStatus", "status", content.status, "content");
+      preview.content = content;
       return `"${content.title}"${content.cover ? "" : " (no cover)"}`;
     });
 
@@ -320,12 +366,72 @@ async function verify(name, probe, verbose) {
         for (const page of data.pages) {
           assert(page.url || page.raw, "page has neither url nor raw");
         }
+        preview.pages = data.pages;
         return `${data.pages.length} pages`;
       });
     }
   }
 
-  return { meta, results, verbose };
+  // Every rule here is a break that shipped green: each call answered the right shape and
+  // the home page was still wrong in the app.
+  if (preview.sections.length > 0) {
+    await step(results, "home page", async () => {
+      const problems = [];
+
+      for (const { section, items } of preview.sections) {
+        if (items.length === 0) {
+          problems.push(`"${section.title}" returned nothing.`);
+        } else if (HERO_STYLES.has(section.style) && items.length < MIN_HERO_ITEMS) {
+          problems.push(
+            `"${section.title}" is a hero with ${items.length} item(s) — the app repeats one cover across the carousel.`,
+          );
+        }
+        if (items.length > MAX_SECTION_ITEMS) {
+          problems.push(
+            `"${section.title}" returns ${items.length} items — a home row is a strip, not a listing.`,
+          );
+        }
+      }
+
+      // Two rows showing the same tiles in the same order are one query wearing two
+      // titles, which is what a copied `load` that never had its sort changed looks like.
+      for (let i = 0; i < preview.sections.length; i++) {
+        for (let j = i + 1; j < preview.sections.length; j++) {
+          const first = preview.sections[i];
+          const second = preview.sections[j];
+          const headOne = first.items.slice(0, 5).map((item) => item.id);
+          const headTwo = second.items.slice(0, 5).map((item) => item.id);
+          if (headOne.length > 0 && headOne.join("\u0000") === headTwo.join("\u0000")) {
+            problems.push(
+              `"${first.section.title}" and "${second.section.title}" open with the same titles in the same order — they are running the same query.`,
+            );
+          }
+        }
+      }
+
+      assert(problems.length === 0, `${problems.length} problem(s)\n      ${problems.join("\n      ")}`);
+      return `${preview.sections.length} sections, none empty, repeating or overlong`;
+    });
+  }
+
+  // A shape check passes happily on a cover URL that 404s, which is a blank grid for the
+  // reader. Sample what the source actually produced and fetch it.
+  const sampled = [
+    ...preview.sections.flatMap((entry) => entry.items.slice(0, 1).map((item) => item.cover)),
+    preview.search[0]?.cover,
+    preview.content?.cover,
+    preview.pages[0]?.url,
+  ].filter((url) => typeof url === "string" && url.startsWith("http"));
+
+  if (sampled.length > 0) {
+    await step(results, "images", async () => {
+      const broken = await checkImageUrls(sampled, target);
+      assert(broken.length === 0, `unreachable image(s):\n      ${broken.join("\n      ")}`);
+      return `${sampled.length} sampled, all served`;
+    });
+  }
+
+  return { meta, results, verbose, preview };
 }
 
 function report(name, results) {
@@ -340,6 +446,9 @@ function report(name, results) {
     console.log(
       `  ${color}${mark}${RESET} ${result.name.padEnd(32)} ${DIM}${detail} (${result.ms}ms)${RESET}`,
     );
+    for (const line of result.rest ?? []) {
+      if (line.trim()) console.log(`       ${DIM}${line.trim()}${RESET}`);
+    }
   }
   return counts;
 }
