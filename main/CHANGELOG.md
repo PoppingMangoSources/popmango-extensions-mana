@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.7)
+## StoneScape (current: v1.0.8)
+
+### Changed
+
+- Popular This Week says only what the series is under the title — the format on its own.
+  The status moved down into the rows, directly beneath the view count, so the line under
+  the title carries one thing rather than two.
+- The hero carousel carries the view count alongside the chapter and the rating.
+- A view count anywhere in the source is marked with the same symbol the tiles use.
+
 
 ### Fixed
 
@@ -208,12 +217,13 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.15)
+## XCOMIC (current: v1.0.16)
 
 ### Changed
 
-- The comment count on a tile no longer carries a speech bubble. The row's own key names
-  the field, and the glyph rendered in colour beside the filled symbols next to it.
+- The comment count on a tile carries its speech bubble again, in the same filled,
+  monochrome form as the star and the heart beside it. Dropping it left that row looking
+  bare next to the two above it.
 
 
 ### Changed
@@ -337,7 +347,13 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.31)
+## Kagane (current: v1.0.32)
+
+### Changed
+
+- The view count in a title's summary is marked with the same symbol the other sources
+  use, beside the star the rating already carried.
+
 
 ### Fixed
 
