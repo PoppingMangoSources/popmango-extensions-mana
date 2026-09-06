@@ -16,7 +16,7 @@ import {
   type ChapterData,
   type ChapterPage,
   type Content,
-  type ContentSource,
+  type ChapterSource,
   type DeepLinkContext,
   type Form,
   type Highlight,
@@ -89,7 +89,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.30",
+  version: "1.0.31",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -108,7 +108,7 @@ const DETAIL_CACHE_MS = 60_000;
 
 class KaganeSource
   implements
-    ContentSource,
+    ChapterSource,
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,

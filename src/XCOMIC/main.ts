@@ -15,7 +15,7 @@ import {
   type Chapter,
   type ChapterData as ChapterPages,
   type Content,
-  type ContentSource,
+  type ChapterSource,
   type DeepLinkContext,
   type Form,
   type Highlight,
@@ -104,7 +104,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.13",
+  version: "1.0.14",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -128,7 +128,7 @@ const BUNDLED_TAXONOMY: FilterTaxonomy = {
 };
 
 class XCOMICSource
-  implements ContentSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
+  implements ChapterSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
 {
   readonly info = info;
   readonly config = config;

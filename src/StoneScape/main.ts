@@ -9,7 +9,7 @@ import {
   type Chapter,
   type ChapterData,
   type Content,
-  type ContentSource,
+  type ChapterSource,
   type DeepLinkContext,
   type Form,
   type Highlight,
@@ -76,7 +76,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.0.3",
+  version: "1.0.4",
   description: "Manhwa, manhua and manga from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -93,7 +93,7 @@ const config: SourceConfig = {
 
 class StoneScapeSource
   implements
-    ContentSource,
+    ChapterSource,
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,

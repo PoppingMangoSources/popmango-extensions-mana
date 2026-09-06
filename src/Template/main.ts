@@ -21,7 +21,7 @@ import {
   type Chapter,
   type ChapterData,
   type Content,
-  type ContentSource,
+  type ChapterSource,
   type Form,
   type PageLink,
   type PageLinkResolver,
@@ -94,7 +94,7 @@ const config: SourceConfig = {
 };
 
 class TemplateSource
-  implements ContentSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
+  implements ChapterSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
 {
   readonly info = info;
   readonly config = config;

@@ -137,3 +137,82 @@ export function buildClient(options: ClientOptions): NetworkClient {
 
   return builder.build();
 }
+
+/**
+ * How the host words a body it could not turn into a string. There is no binary response
+ * mode and `NetworkResponse.data` is always a `string`, so a page served as
+ * windows-1252, Shift-JIS or any other non-UTF-8 encoding fails at the bridge rather than
+ * arriving as mojibake — the request never returns at all.
+ */
+const ENCODING_FAILURE = /could not be serialized|unicode \(utf-8\)|invalid.{0,20}utf-?8/i;
+
+/** One WebView is live per source method, so recoveries queue rather than race. */
+let webViewTurn: Promise<unknown> = Promise.resolve();
+
+function isEncodingFailure(error: unknown): boolean {
+  return ENCODING_FAILURE.test(error instanceof Error ? error.message : String(error));
+}
+
+/** Seconds before a WebView that will not navigate is abandoned. */
+const WEBVIEW_TIMEOUT_SECONDS = 20;
+
+function expiresIn(seconds: number): Promise<never> {
+  const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
+  if (!timer) return new Promise(() => undefined);
+  return new Promise((_, reject) => {
+    timer(() => reject(new Error(`the WebView did not answer within ${seconds}s`)), seconds * 1000);
+  });
+}
+
+/**
+ * Re-reads a page through the auxiliary WebView, which decodes it with the charset the
+ * page itself declares and hands back text the runtime can hold.
+ *
+ * What comes back is the DOM serialised after the page's own scripts have run, not the
+ * bytes the server sent — so anything the site rewrites client-side is already applied,
+ * and a byte the decoder could not map arrives as U+FFFD rather than as an error. A
+ * parser that slices titles should cut at that character rather than pass it on.
+ */
+async function readThroughWebView(url: string): Promise<string> {
+  const factory = (globalThis as { WebViewPage?: typeof WebViewPage }).WebViewPage;
+  if (!factory) {
+    throw new Error(
+      `${url} was served in an encoding this version of Mana cannot read, and it has no WebView to recover it with.`,
+    );
+  }
+
+  const page = await factory.create({ timeout: WEBVIEW_TIMEOUT_SECONDS });
+  try {
+    const work = (async () => {
+      // `evaluate` on a page that has never navigated hangs until the host's own timeout.
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: WEBVIEW_TIMEOUT_SECONDS });
+      return page.evaluateScript<string>("document.documentElement.outerHTML");
+    })();
+
+    return await Promise.race([work, expiresIn(WEBVIEW_TIMEOUT_SECONDS)]);
+  } finally {
+    await page.close().catch(() => undefined);
+  }
+}
+
+/**
+ * Reads a page as text, falling back to the WebView when the host cannot decode it.
+ *
+ * Only an encoding failure is recovered — every other error is the site's own answer and
+ * is rethrown untouched, so a 404 stays a 404 rather than becoming a WebView load.
+ */
+export async function getText(client: NetworkClient, url: string): Promise<string> {
+  try {
+    return (await client.get(url)).data;
+  } catch (error) {
+    if (!isEncodingFailure(error)) throw error;
+
+    const turn = webViewTurn.then(() => readThroughWebView(url));
+    // The chain must not reject for the next caller, whose read is unrelated to this one.
+    webViewTurn = turn.then(
+      () => undefined,
+      () => undefined,
+    );
+    return turn;
+  }
+}

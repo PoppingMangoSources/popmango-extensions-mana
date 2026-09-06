@@ -14,7 +14,7 @@ import {
   type Chapter,
   type ChapterData,
   type Content,
-  type ContentSource,
+  type ChapterSource,
   type DeepLinkContext,
   type Form,
   type Highlight,
@@ -75,7 +75,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.0.7",
+  version: "1.0.8",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -94,7 +94,7 @@ const config: SourceConfig = {
 const SIMILAR_LIMIT = 5;
 
 class FlameComicsSource
-  implements ContentSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
+  implements ChapterSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
 {
   readonly info = info;
   readonly config = config;

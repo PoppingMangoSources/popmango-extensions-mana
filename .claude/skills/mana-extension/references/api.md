@@ -62,8 +62,13 @@ The source runs in a bare V8 / JavaScriptCore context, not Node and not a browse
   bundler-injected shim.
 - **`console` may not exist.** Do not rely on logging. A thrown `Error` message is the only
   diagnostic channel guaranteed to reach the user, so put real detail in it.
-- **`NetworkResponse.data` is always a `string`.** There is no binary response mode; a
-  non-UTF-8 body may not survive the bridge at all.
+- **`NetworkResponse.data` is always a `string`.** There is no binary response mode, so a
+  page served as windows-1252, Shift-JIS or any other non-UTF-8 encoding does not arrive
+  as mojibake — the request fails at the bridge, with a message naming serialisation or
+  Unicode. `getText(client, url)` in `src/common/network.ts` recovers those by re-reading
+  the page through the WebView, which decodes with the charset the page declares. What
+  comes back is the serialised DOM, so a byte the decoder could not map arrives as U+FFFD;
+  a parser that slices titles should cut at that character rather than pass it on.
 - **`onEnvironmentLoaded` is not awaited.** The runtime calls
   `target.onEnvironmentLoaded?.().catch(...)` and moves on, so anything it assigns can still
   be undefined when the first real method runs. Build the client lazily instead.
@@ -202,6 +207,12 @@ embedded by `watcher/scripts/bundle-polyfills.js`. Nothing there covers `crypto.
 `fetch` or `URL`.
 
 ## Content shapes
+
+`ChapterSource extends ContentSource` and adds `getChapters?` and `getChapterData`. A
+source that serves chapters implements **`ChapterSource`**: `ContentSource` alone does not
+require `getChapterData`, so a source that forgot it still typechecks and then leaves the
+app waiting for chapters that never arrive. Trackers implement `ContentTracker` and never
+this.
 
 `Content` extends `BaseItem` (`title`, `cover`, `contentRating?`, `webUrl?`) with
 `status`, `summary`, `tags`, `contentType`, `recommendedPanelMode`, `additionalInfo`,

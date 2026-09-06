@@ -39,7 +39,7 @@ filters.number(id);        // NaN when absent — guard with Number.isFinite
 
 ## `src/common/search.ts` — the search form
 
-`buildSearchForm({ fields?, header?, footer?, tags?, tagsHeader?, sortHeader?, sortStyle?, includeSort? })`
+`buildSearchForm({ fields?, header?, footer?, tags?, tagsHeader?, sortHeader?, includeSort? })`
 assembles a `SearchForm` from the field builders exported by `@mana-app/types`
 (`SearchPicker`, `SearchMultiPicker`, `SearchExcludableMultiPicker`, `SearchToggle`,
 `SearchTextField`, `SearchStepper`, `SearchDatePicker`). Declare the fields in `model.ts`.

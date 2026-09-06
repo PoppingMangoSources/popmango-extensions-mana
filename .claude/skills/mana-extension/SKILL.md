@@ -71,7 +71,7 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 
 | Module | What it gives you |
 | :--- | :--- |
-| `network.ts` | `buildClient`, Cloudflare fingerprinting |
+| `network.ts` | `buildClient`, `getText`, Cloudflare fingerprinting |
 | `filters.ts` | `FilterReader` |
 | `search.ts` | `buildSearchForm`, `resolveSortId` |
 | `sections.ts` | `SectionSpec`, `toPageSections`, `listResults`, `pageOf` |

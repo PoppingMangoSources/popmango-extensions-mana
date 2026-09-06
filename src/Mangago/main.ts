@@ -15,7 +15,7 @@ import {
   type ChapterData,
   type ChapterPage,
   type Content,
-  type ContentSource,
+  type ChapterSource,
   type DeepLinkContext,
   type Form,
   type Highlight,
@@ -113,7 +113,7 @@ import { decodeHex } from "../common/aes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.8",
+  version: "1.0.9",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -137,7 +137,7 @@ const config: SourceConfig = {
 
 class MangagoSource
   implements
-    ContentSource,
+    ChapterSource,
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
