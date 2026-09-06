@@ -2,7 +2,6 @@
 
 import { load } from "cheerio";
 import {
-  AdditionalInfoType,
   ContentRating,
   additionalInfo,
   ContentType,
@@ -13,7 +12,6 @@ import {
   type Highlight,
   type Option,
   type Pair,
-  type SimpleHighlight,
   type StaffItem,
   type Tag,
 } from "@mana-app/types";
@@ -249,28 +247,6 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
         }),
     webUrl: seriesUrl(comic),
   };
-}
-
-/**
- * The other comics filed under the same title — the site keeps one per language and
- * scanlation group. The name is shown exactly as the site lists it, brackets and all:
- * whoever uploaded a version wrote the group into the name (`[Official]`, `[Asura Scans]`),
- * and a version nobody labelled is unlabelled on the site too.
- */
-export function parseOtherVersions(
-  comics: readonly ComicData[],
-  cleanTitle: TitleCleaner = asIs,
-): SimpleHighlight[] {
-  return comics.map((comic) =>
-    additionalInfo.highlights.item({
-      type: AdditionalInfoType.Highlights,
-      id: comic.id,
-      title: cleanTitle(decodeEntities(clean(comic.name))),
-      cover: absoluteUrl(comic.urlCover),
-      contentRating: parseRating(comic),
-      webUrl: seriesUrl(comic),
-    }),
-  );
 }
 
 /**

@@ -524,21 +524,6 @@ query get_comic_chapterList_fullList($select: Select_Comic_ChapterList_FullList)
   }
 }`;
 
-/**
- * A work is one title with a comic under it per language and scanlation group, and the site
- * links them through the title rather than through each other. This is asked for on its own
- * so that a schema the site changes costs the reader the "Other Versions" row and nothing
- * else — the title page itself is already built by the time this runs.
- */
-export const TITLE_QUERY = `
-query get_comicNode($id: ID!) {
-  get_comicNode(id: $id) {
-    data {
-      title_titleNode { data { comic_ids } }
-    }
-  }
-}`;
-
 export const CHAPTER_PAGES_QUERY = `
 query get_chapterNode($id: ID!) {
   get_chapterNode(id: $id) { data { imageUrls } }
@@ -607,13 +592,6 @@ export type RecentlyAddedResponse = {
 };
 
 export type ComicNodeResponse = { get_comicNode?: ComicNode | null };
-
-/** `comic_ids` lists every comic under the title, the one being read included. */
-export type TitleNodeResponse = {
-  get_comicNode?: {
-    data?: { title_titleNode?: { data?: { comic_ids?: string[] | null } | null } | null } | null;
-  } | null;
-};
 
 export type ChapterListPage = {
   paging?: { next?: number | null; total?: number | null } | null;
