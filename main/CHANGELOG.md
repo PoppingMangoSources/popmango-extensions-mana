@@ -2,7 +2,7 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.3)
+## StoneScape (current: v1.0.4)
 
 ### Fixed
 
@@ -45,6 +45,25 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 - Comics only. The site also publishes novels, whose chapters are HTML text; a Mana chapter
   is a list of images with no text form, so a novel would list and then open to nothing.
+
+## Repository
+
+### Added
+
+- Every source that serves chapters now declares itself a `ChapterSource` rather than a
+  `ContentSource`. The narrower interface requires `getChapterData`, so a source that grows
+  chapters and forgets it is now a compile error instead of an app waiting for chapters
+  that never arrive.
+- `getText` in the shared runtime, for a site served in an encoding the host cannot decode.
+  There is no binary response mode, so a windows-1252 or Shift-JIS page does not arrive as
+  mojibake — the request fails outright. Those reads are retried through the WebView, which
+  decodes with the charset the page declares. Only an encoding failure is recovered; every
+  other error is the site's own answer and is left alone.
+
+### Fixed
+
+- The toolkit reference still documented a `sortStyle` option on the search form. The
+  option was removed from the SDK and the code had already dropped it.
 
 ## Repository
 
@@ -152,7 +171,7 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.13)
+## XCOMIC (current: v1.0.14)
 
 ### Changed
 
@@ -241,7 +260,7 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.7)
+## FlameComics (current: v1.0.8)
 
 ### Changed
 
@@ -275,7 +294,7 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.30)
+## Kagane (current: v1.0.31)
 
 ### Fixed
 
@@ -566,7 +585,7 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.8)
+## Mangago (current: v1.0.9)
 
 ### Fixed
 
