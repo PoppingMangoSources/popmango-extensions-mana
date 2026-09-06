@@ -2,14 +2,21 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.0)
+## StoneScape (current: v1.0.1)
+
+### Changed
+
+- Popular This Year now leads the home page as the hero carousel, and the site's own
+  Featured picks sit further down as an ordinary row. The year is the steadiest of the
+  three popular periods, so the biggest slot on the page holds the same well-regarded
+  titles for weeks instead of reshuffling on a day's traffic.
 
 ### Added
 
 - Initial release, reading stonescape.xyz through its own JSON API.
-- Five home rows in the site's own order: Featured, Trending This Week, Popular This Month,
-  Popular This Year and Latest Releases. The site collapses its three popular periods into
-  tabs; each is given a row here, so what is climbing over a month is visible without a tap.
+- Five home rows: Popular This Year, Trending This Week, Popular This Month, Featured and
+  Latest Releases. The site collapses its three popular periods into tabs; each is given a
+  row here, so what is climbing over a month is visible without a tap.
 - Filtering by status and by genre, the genre list read from the site and kept for a day so
   the form opens without waiting. Sorting by latest, popular this month or this year, and
   A–Z or Z–A.

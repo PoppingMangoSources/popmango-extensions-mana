@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "6c13aedc6c13aedc6c13aedc6c13aedc6c13aedc6c13aedc6c13aedc6c13aedc"
+      "hash": "6acf73336acf73336acf73336acf73336acf73336acf73336acf73336acf7333"
     },
     {
       "id": "kagane",
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "1fa411c01fa411c01fa411c01fa411c01fa411c01fa411c01fa411c01fa411c0"
+      "hash": "0978c94d0978c94d0978c94d0978c94d0978c94d0978c94d0978c94d0978c94d"
     },
     {
       "id": "mangaupdates",
@@ -66,7 +66,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "38c3c63638c3c63638c3c63638c3c63638c3c63638c3c63638c3c63638c3c636"
+      "hash": "0fa6e85f0fa6e85f0fa6e85f0fa6e85f0fa6e85f0fa6e85f0fa6e85f0fa6e85f"
     },
     {
       "id": "mangago",
@@ -88,12 +88,12 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "2707d8352707d8352707d8352707d8352707d8352707d8352707d8352707d835"
+      "hash": "0215056d0215056d0215056d0215056d0215056d0215056d0215056d0215056d"
     },
     {
       "id": "stonescape",
       "name": "StoneScape",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Manhwa, manhua and manga from stonescape.xyz.",
       "website": "https://stonescape.xyz",
       "rating": 1,
@@ -110,7 +110,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "551162e7551162e7551162e7551162e7551162e7551162e7551162e7551162e7"
+      "hash": "406a03ec406a03ec406a03ec406a03ec406a03ec406a03ec406a03ec406a03ec"
     },
     {
       "id": "xcomic",
@@ -132,7 +132,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "13f4ca5d13f4ca5d13f4ca5d13f4ca5d13f4ca5d13f4ca5d13f4ca5d13f4ca5d"
+      "hash": "1528105c1528105c1528105c1528105c1528105c1528105c1528105c1528105c"
     }
   ]
 }
