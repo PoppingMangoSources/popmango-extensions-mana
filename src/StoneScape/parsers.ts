@@ -37,9 +37,21 @@ export function seriesUrl(slug: string): string {
   return `${BASE_URL}/series/${slug}`;
 }
 
+/**
+ * The first candidate that is a still image.
+ *
+ * Some banners are animated GIFs, and the app draws one as a frozen frame — usually the
+ * first, which for a banner is often blank. A static alternative always looks better than
+ * a stalled animation, so a GIF is only used when nothing else is offered.
+ */
+function staticImage(...candidates: (string | null | undefined)[]): string {
+  const urls = candidates.map(absoluteUrl).filter(Boolean);
+  return urls.find((url) => !/\.gif(?:[?#]|$)/i.test(url)) ?? urls[0] ?? "";
+}
+
 /** A banner is wider than it is tall, so it is only used where a cover is missing. */
 function coverUrl(series: Series): string {
-  return absoluteUrl(series.coverUrl) || absoluteUrl(series.bannerUrl);
+  return staticImage(series.coverUrl, series.bannerUrl);
 }
 
 export function parseStatus(status: string | null | undefined): PublicationStatus | undefined {
@@ -120,17 +132,42 @@ function genreTitle(genre: string): string {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+/**
+ * What a tile puts under its title. A row that draws no info rows has only this line, so
+ * each section says the thing its own ranking is about.
+ */
+export type SubtitleStyle = "chapter" | "kind" | "views" | "hero";
+
 export type HighlightOptions = {
-  /** A hero card shows no info rows, so its stats ride along in the subtitle instead. */
+  /** A hero card is cropped wide and shows no info rows. */
   hero?: boolean;
+  subtitle?: SubtitleStyle;
 };
+
+/** The site files everything by country; its own word for the format follows from that. */
+function formatKind(series: Series): string {
+  switch ((series.countryOfOrigin ?? "").toUpperCase()) {
+    case "JP":
+      return "Manga";
+    case "CN":
+      return "Manhua";
+    default:
+      return "Manhwa";
+  }
+}
+
+function formatStatus(series: Series): string {
+  const status = (series.publicationStatus ?? "").trim().toLowerCase();
+  if (!status) return "";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 /**
  * Every listing endpoint returns the rating, genres, views and last chapter alongside the
  * cover, so a tile is filled without a second request per row.
  */
 export function parseHighlight(series: Series, options: HighlightOptions = {}): Highlight {
-  const { hero = false } = options;
+  const { hero = false, subtitle: style = hero ? "hero" : "chapter" } = options;
 
   const chapter = formatChapterNumber(series.latestChapter?.chapterNumber);
   const uploaded = parseTimestamp(
@@ -148,13 +185,9 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
   if (score) info.push({ key: "Rating", value: score });
-  if (views) info.push({ key: "Views", value: `👁 ${views}` });
+  if (views) info.push({ key: "Views", value: views });
 
-  const subtitle = hero
-    ? [chapter ? `Chapter ${chapter}` : "", score].filter(Boolean).join(" | ")
-    : chapter
-      ? `Chapter ${chapter}`
-      : "";
+  const subtitle = buildSubtitle(series, style, { chapter, score, views });
 
   return {
     id: series.slug,
@@ -168,17 +201,41 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   };
 }
 
+function buildSubtitle(
+  series: Series,
+  style: SubtitleStyle,
+  parts: { chapter: string; score: string; views: string },
+): string {
+  const chapterLabel = parts.chapter ? `Chapter ${parts.chapter}` : "";
+
+  switch (style) {
+    case "hero":
+      return [chapterLabel, parts.score].filter(Boolean).join(" | ");
+    case "kind":
+      return [formatKind(series), formatStatus(series)].filter(Boolean).join(" • ");
+    // A row ranked by reading says what it was ranked on; a title with none falls back
+    // to the chapter rather than showing an empty line.
+    case "views":
+      return parts.views ? `${parts.views} views` : chapterLabel;
+    default:
+      return chapterLabel;
+  }
+}
+
 /**
  * A tile for whichever row it lands in. A hero card is cropped wide, so it prefers the
  * banner the site drew for that shape and falls back to the portrait cover for a series
  * that has none.
  */
-export function toHighlight(series: Series, hero: boolean): Highlight {
-  const highlight = parseHighlight(series, { hero });
+export function toHighlight(series: Series, hero: boolean, subtitle?: SubtitleStyle): Highlight {
+  const highlight = parseHighlight(series, {
+    hero,
+    ...(subtitle === undefined ? {} : { subtitle }),
+  });
   if (!hero) return highlight;
 
-  const banner = absoluteUrl(series.bannerUrl);
-  return banner ? { ...highlight, cover: banner } : highlight;
+  // The banner is the shape a hero wants, but not at the cost of a stalled GIF.
+  return { ...highlight, cover: staticImage(series.bannerUrl, series.coverUrl) };
 }
 
 function creator(value: string | null | undefined): string | undefined {
@@ -258,7 +315,7 @@ export function parseChapters(
         index: 0,
         // The app prints this verbatim and never joins the number onto it, so the label
         // is built here. A locked row says so rather than failing when it is opened.
-        title: `${name && name !== label ? `${label} - ${name}` : label}${locked ? " 🔒" : ""}`,
+        title: `${name && name !== label ? `${label} - ${name}` : label}${locked ? " (Locked)" : ""}`,
         date: parseTimestamp(chapter.releaseDate ?? chapter.createdAt) ?? new Date(0),
         language: DefinedLanguages.ENGLISH,
         webUrl: undefined,

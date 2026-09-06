@@ -169,6 +169,19 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   ),
 };
 
+/**
+ * What each row says under a title. A row that draws no info rows has this line and
+ * nothing else, so each says the thing its own ranking is about rather than repeating
+ * the chapter number four times down the page.
+ */
+export const SECTION_SUBTITLES: Record<string, "chapter" | "kind" | "views" | "hero"> = {
+  [SectionID.PopularYear]: "hero",
+  [SectionID.PopularWeek]: "kind",
+  [SectionID.PopularMonth]: "views",
+  [SectionID.Latest]: "chapter",
+  [SectionID.Featured]: "chapter",
+};
+
 /** The periods `/api/series/popular` accepts, keyed by the section that asks for one. */
 export const SECTION_PERIODS: Record<string, PopularPeriod> = {
   [SectionID.PopularWeek]: "week",

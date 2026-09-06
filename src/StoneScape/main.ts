@@ -55,6 +55,7 @@ import {
   PREFERENCE_DEFAULTS,
   PreferenceID,
   SECTION_PERIODS,
+  SECTION_SUBTITLES,
   SORT_OPTIONS,
   STATUS_OPTIONS,
   SectionID,
@@ -69,6 +70,7 @@ import {
   parseRating,
   toHighlight,
   seriesUrl,
+  type SubtitleStyle,
   slugFromUrl,
 } from "./parsers.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
@@ -76,7 +78,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Manhwa, manhua and manga from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -181,23 +183,27 @@ class StoneScapeSource
     // A hero card is cropped wide, so whichever row is drawn that way takes the banner
     // artwork. Reading it off the style keeps the two in step if the rows are rearranged.
     const hero = isHeroSection(sectionID);
+    const subtitle = SECTION_SUBTITLES[sectionID];
 
     if (sectionID === SectionID.Featured) {
       // The site hand-picks this set and it arrives whole, so it is shown as given.
       const banner = await this.api.fetchBanner();
       const featured = this.permitted(banner.featuredSeries ?? [], allowed);
-      return { results: featured.map((entry) => toHighlight(entry, hero)), isLastPage: true };
+      return {
+        results: featured.map((entry) => toHighlight(entry, hero, subtitle)),
+        isLastPage: true,
+      };
     }
 
     const period = SECTION_PERIODS[sectionID];
     if (period) {
       // The popular endpoint pages, so its row shares the listing the "more" link opens.
       const response = await this.api.fetchPopular(period, PAGE_SIZE, page);
-      return this.toResults(response, page, allowed, hero);
+      return this.toResults(response, page, allowed, hero, subtitle);
     }
 
     const response = await this.api.fetchSeries({ page, limit: PAGE_SIZE });
-    return this.toResults(response, page, allowed, hero);
+    return this.toResults(response, page, allowed, hero, subtitle);
   }
 
   private toResults(
@@ -205,12 +211,13 @@ class StoneScapeSource
     page: number,
     allowed: readonly ContentRating[] | undefined,
     hero = false,
+    subtitle?: SubtitleStyle,
   ): PagedSearchResult {
     const series = response.data ?? [];
     const totalPages = response.pagination?.totalPages ?? undefined;
 
     return {
-      results: this.permitted(series, allowed).map((entry) => toHighlight(entry, hero)),
+      results: this.permitted(series, allowed).map((entry) => toHighlight(entry, hero, subtitle)),
       // Paging follows what the server reported, not what survived the rating policy — a
       // page emptied by it is still a page, and stopping here would end the list early.
       isLastPage: totalPages == null ? series.length < PAGE_SIZE : page >= totalPages,

@@ -53,8 +53,8 @@ becomes available to install.
 | <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.31 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.9 |
 | <img src="media/sources/mangaupdates.png" width="22" align="top"/> **MangaUpdates** | [mangaupdates.com](https://www.mangaupdates.com) | Mixed | v1.0.6 |
-| <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.0.4 |
-| <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.0.14 |
+| <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.0.5 |
+| <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.0.15 |
 <!-- sources:end -->
 
 ## Reporting a problem
