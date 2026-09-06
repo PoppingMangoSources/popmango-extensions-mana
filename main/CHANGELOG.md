@@ -2,6 +2,35 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## MangaFire (current: v1.0.0)
+
+### Added
+
+- Initial release, reading mangafire.to through its own JSON API.
+- Four home rows: Most Viewed (All Time) leads as the hero carousel, then Trending, Latest
+  Updates and Recently Added. The all-time ranking is the steadiest list the site keeps, so
+  the biggest slot on the page holds the same well-known titles for weeks rather than
+  reshuffling on a day's traffic — which is what Trending directly beneath it is for.
+- Every request the API takes is signed. The signature is computed in the source, so a row
+  costs one request; the alternative is a WebView turn per call, which is what makes the
+  site feel slow elsewhere.
+- Filtering by type, status, demographic, theme, genre and release year, with a minimum
+  chapter count and an author or artist by name — the name is resolved to the site's own id
+  first, so an unknown one returns nothing rather than the whole catalogue. Genres can be
+  excluded as well as included, and the match mode is the site's own single control over
+  both genres and themes. The site's twelve sorts are offered whole.
+- The reader's content-rating policy is pushed into the request as the site's own rating
+  parameter, so a filtered page is a full page rather than a short one.
+- Chapters are read in the languages chosen in Settings, and where the site lists the same
+  chapter from several groups the official upload is kept by default.
+- Pasting a title link searches for that title, and a mangafire.to link opens in the app.
+
+### Notes
+
+- The site signs its API with tables of its own. Should it change them, every request stops
+  being accepted at once — which shows up as the API refusing in its own words rather than
+  as a Cloudflare prompt, so the two stay distinguishable.
+
 ## StoneScape (current: v1.0.8)
 
 ### Changed
@@ -70,6 +99,13 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   is a list of images with no text form, so a novel would list and then open to nothing.
 
 ## Repository
+
+### Added
+
+- `utf8ToBytes` and `bytesToBase64Url` in the shared runtime, beside the decoders that were
+  already there. The runtime has no `TextEncoder`, so a site that asks for a signed request
+  had no way to turn its own request line into bytes and back into something a query string
+  can carry.
 
 ### Fixed
 
