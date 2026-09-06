@@ -64,10 +64,14 @@ jobs:
 
       - name: Verify
         id: verify
+        # The input reaches the shell as an environment variable rather than being pasted
+        # into the script: a value carrying shell metacharacters would otherwise run.
+        env:
+          SOURCE: ${{ inputs.source }}
         run: |
           set +e
-          if [ -n "${{ inputs.source }}" ]; then
-            bun run verify "${{ inputs.source }}" | tee verify.log
+          if [ -n "$SOURCE" ]; then
+            bun run verify "$SOURCE" | tee verify.log
           else
             bun run verify --all | tee verify.log
           fi

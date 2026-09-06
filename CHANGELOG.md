@@ -48,6 +48,21 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 
 ## Repository
 
+### Fixed
+
+- Two workflows pasted a value straight into a shell script — a dispatch input and, on a
+  fork's pull request, an attacker-chosen branch name. Both now reach the shell as
+  environment variables, so a name carrying shell metacharacters is a string rather than
+  something to run.
+
+### Added
+
+- A broken rule is now reported as a GitHub annotation as well as a log line, so it lands
+  on the pull request's diff at the file and line that broke it rather than in a job
+  nobody opens.
+- The API notes record the `SourceContext` that `getContent` is gaining, what the host
+  uses it for, and which sources here do work a migration does not want.
+
 ### Changed
 
 - Every command in the README, the contributor notes and the scaffold's own output now

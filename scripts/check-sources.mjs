@@ -62,14 +62,49 @@ const REMOVED_API = [
 const failures = [];
 const warnings = [];
 
-function check(source, ok, message) {
-  if (!ok) failures.push(`${source}: ${message}`);
+/**
+ * GitHub reads these off the log and pins them to the line they name, so a broken rule
+ * shows up on the pull request's diff rather than only in a job nobody opens.
+ */
+const annotating = process.env.GITHUB_ACTIONS === "true";
+
+function annotate(level, message, where) {
+  if (!annotating) return;
+  const location = where?.file
+    ? `file=${where.file}${where.line ? `,line=${where.line}` : ""},`
+    : "";
+  // A literal newline would end the workflow command early.
+  console.log(`::${level} ${location}title=Source rules::${message.replace(/\n/g, "%0A")}`);
+}
+
+function check(source, ok, message, where) {
+  if (!ok) {
+    failures.push(`${source}: ${message}`);
+    annotate("error", `${source}: ${message}`, where);
+  }
   return ok;
 }
 
-function warn(source, ok, message) {
-  if (!ok) warnings.push(`${source}: ${message}`);
+function warn(source, ok, message, where) {
+  if (!ok) {
+    warnings.push(`${source}: ${message}`);
+    annotate("warning", `${source}: ${message}`, where);
+  }
   return ok;
+}
+
+/** Where a pattern first matches, so an annotation can point at the line itself. */
+function findInFiles(files, pattern) {
+  for (const file of files) {
+    const body = read(file) ?? "";
+    const match = pattern.exec(body);
+    if (!match) continue;
+    return {
+      file: path.relative(ROOT, file),
+      line: body.slice(0, match.index).split("\n").length,
+    };
+  }
+  return undefined;
 }
 
 function read(file) {
@@ -104,7 +139,7 @@ function versionAt(ref, file) {
  * Versions only ever bump the patch digit. A minor or major bump is not a worse release,
  * it is an inconsistent history — CLAUDE.md rules it out whatever the release contains.
  */
-function checkVersionBump(name, before, after) {
+function checkVersionBump(name, before, after, where) {
   if (!before || before === after) return;
 
   const [oldMajor, oldMinor, oldPatch] = before.split(".").map(Number);
@@ -114,11 +149,13 @@ function checkVersionBump(name, before, after) {
     name,
     newMajor === oldMajor && newMinor === oldMinor,
     `version went ${before} → ${after}; only the patch digit may change`,
+    where,
   );
   check(
     name,
     newPatch === oldPatch + 1,
     `version went ${before} → ${after}; the patch digit moves by one`,
+    where,
   );
 }
 
@@ -175,14 +212,20 @@ function checkSource(source, catalog, changelog, base) {
   check(name, /^\d+\.\d+\.\d+$/.test(source.version), `version "${source.version}" is not X.Y.Z`);
   const heading = new RegExp(`^## ${name} \\(current: v(\\d+\\.\\d+\\.\\d+)\\)`, "m");
   const stated = heading.exec(changelog)?.[1];
-  if (check(name, stated !== undefined, "no CHANGELOG heading")) {
+  const changelogAt = { file: "CHANGELOG.md", line: changelog.slice(0, heading.exec(changelog)?.index ?? 0).split("\n").length };
+  if (check(name, stated !== undefined, "no CHANGELOG heading", { file: "CHANGELOG.md" })) {
     check(
       name,
       stated === source.version,
       `CHANGELOG says v${stated} but info.version is ${source.version}`,
+      changelogAt,
     );
   }
-  if (base) checkVersionBump(name, versionAt(base, `src/${source.path}/main.ts`), source.version);
+  if (base) {
+    checkVersionBump(name, versionAt(base, `src/${source.path}/main.ts`), source.version, {
+      file: `src/${source.path}/main.ts`,
+    });
+  }
 
   // --- Intents: the mask is what the app reads, so it has to match the methods.
   const intents = source.intents;
@@ -226,7 +269,8 @@ function checkSource(source, catalog, changelog, base) {
 
   // --- Removed API surface: these build cleanly and fail silently on the device.
   for (const [pattern, description] of REMOVED_API) {
-    check(name, !pattern.test(code), `uses ${description}`);
+    const at = findInFiles(files, new RegExp(pattern.source, pattern.flags));
+    check(name, at === undefined, `uses ${description}`, at);
   }
 
   // --- Runtime globals the bare V8 context does not have.
@@ -237,7 +281,8 @@ function checkSource(source, catalog, changelog, base) {
     [/\bnew TextDecoder\s*\(/, "`TextDecoder` — the runtime has none"],
     [/[^.\w]fetch\s*\(/, "`fetch` — use the NetworkClient"],
   ]) {
-    check(name, !pattern.test(code), `uses ${description}`);
+    const at = findInFiles(files, new RegExp(pattern.source, pattern.flags));
+    check(name, at === undefined, `uses ${description}`, at);
   }
 
   // --- A client that reads response.status has to let those statuses through.

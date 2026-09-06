@@ -156,6 +156,28 @@ It has no submitted value of its own and cannot nest. Note what it compiles to: 
 flattens the group's children into `children` and records `groups: [{ id, title, fieldIds }]`
 alongside — so a group is a rendering hint, and each child keeps its own filter id.
 
+### `SourceContext`
+
+`SearchRequest.context` and `PageLink.context` carry a `SourceContext`, which declares
+`allowedContentRatings` and is otherwise an open bag (`[key: string]: any`) the host fills.
+
+**`getContent` is gaining one as a second parameter.** The host uses it to say where the
+call came from — a library migration, for instance, wants only the metadata and cares far
+more about rate limits than about completeness. A source that fetches extras in
+`getContent` should skip them when the context says the caller does not want them:
+
+```ts
+async getContent(contentId: string, context?: SourceContext): Promise<Content> { … }
+```
+
+JavaScript ignores an argument a function does not declare, so an older source keeps
+working and simply never sees the context — it is additive, not a break. Two sources here
+already pay for this: FlameComics fetches its Similar Titles row and Kagane its related
+editions, one extra request each, on every single title a migration walks through.
+
+Do not guess the key that marks a migration. Wire the parameter when the shape is known;
+until then the cost is one wasted request per title, which is worth less than a wrong guess.
+
 `SearchRequest.context` and `PageLink.context` carry `allowedContentRatings`, the ratings
 the host will accept for this request. It is absent when the host states no policy. Honour
 it through the site's own filtering — a rating parameter, or the genres that imply one —

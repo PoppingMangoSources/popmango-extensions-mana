@@ -47,10 +47,14 @@ jobs:
       # without the live site: icons, intents, probe fixtures, CHANGELOG agreement, the
       # globals the runtime does not have, and the patch-only version rule.
       - name: Check source rules
+        # A branch name is attacker-chosen on a fork's pull request, so it is read from the
+        # environment rather than pasted into the script.
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          if [ -n "${{ github.base_ref }}" ]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-            node scripts/check-sources.mjs --base "origin/${{ github.base_ref }}"
+          if [ -n "$BASE_REF" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF"
+            node scripts/check-sources.mjs --base "origin/$BASE_REF"
           else
             node scripts/check-sources.mjs
           fi
