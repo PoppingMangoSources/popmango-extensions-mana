@@ -300,3 +300,59 @@ export function bytesToUtf8(bytes: Uint8Array): string {
 
   return result;
 }
+
+/** Encodes a string as UTF-8 bytes, without relying on `TextEncoder`. */
+export function utf8ToBytes(value: string): Uint8Array {
+  const bytes: number[] = [];
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0)!;
+    if (codePoint < 0x80) {
+      bytes.push(codePoint);
+    } else if (codePoint < 0x800) {
+      bytes.push(0xc0 | (codePoint >> 6), 0x80 | (codePoint & 0x3f));
+    } else if (codePoint < 0x10000) {
+      bytes.push(
+        0xe0 | (codePoint >> 12),
+        0x80 | ((codePoint >> 6) & 0x3f),
+        0x80 | (codePoint & 0x3f),
+      );
+    } else {
+      bytes.push(
+        0xf0 | (codePoint >> 18),
+        0x80 | ((codePoint >> 12) & 0x3f),
+        0x80 | ((codePoint >> 6) & 0x3f),
+        0x80 | (codePoint & 0x3f),
+      );
+    }
+  }
+
+  return Uint8Array.from(bytes);
+}
+
+const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/**
+ * Encodes bytes as unpadded base64url — the alphabet a query string can carry
+ * without escaping, which is what request-signing schemes ask for.
+ */
+export function bytesToBase64Url(bytes: Uint8Array): string {
+  let result = "";
+
+  for (let i = 0; i < bytes.length; i += 3) {
+    const first = bytes[i]!;
+    const second = bytes[i + 1];
+    const third = bytes[i + 2];
+
+    result += BASE64URL_ALPHABET[first >> 2];
+    result += BASE64URL_ALPHABET[((first & 0x03) << 4) | ((second ?? 0) >> 4)];
+    if (second === undefined) break;
+
+    result += BASE64URL_ALPHABET[((second & 0x0f) << 2) | ((third ?? 0) >> 6)];
+    if (third === undefined) break;
+
+    result += BASE64URL_ALPHABET[third & 0x3f];
+  }
+
+  return result;
+}
