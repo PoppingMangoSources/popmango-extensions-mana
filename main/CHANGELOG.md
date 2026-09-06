@@ -2,7 +2,20 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## StoneScape (current: v1.0.4)
+## StoneScape (current: v1.0.5)
+
+### Fixed
+
+- The hero carousel drew some banners as a frozen frame. Those are animated GIFs, which
+  the app cannot play, and the frame it settles on is often the blank one the animation
+  opens with. A GIF is now only used when the series offers nothing else.
+
+### Changed
+
+- Each home row says the thing its own ranking is about instead of repeating the chapter
+  number down the page: Popular This Week carries the format and status, Popular This
+  Month the view count. A locked chapter is marked in words rather than with an emoji.
+
 
 ### Fixed
 
@@ -194,7 +207,13 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.14)
+## XCOMIC (current: v1.0.15)
+
+### Changed
+
+- The comment count on a tile no longer carries a speech bubble. The row's own key names
+  the field, and the glyph rendered in colour beside the filled symbols next to it.
+
 
 ### Changed
 
