@@ -2,6 +2,26 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## StoneScape (current: v1.0.0)
+
+### Added
+
+- Initial release, reading stonescape.xyz through its own JSON API.
+- Five home rows in the site's own order: Featured, Trending This Week, Popular This Month,
+  Popular This Year and Latest Releases. The site collapses its three popular periods into
+  tabs; each is given a row here, so what is climbing over a month is visible without a tap.
+- Filtering by status and by genre, the genre list read from the site and kept for a day so
+  the form opens without waiting. Sorting by latest, popular this month or this year, and
+  A–Z or Z–A.
+- Paid chapters are hidden by default and can be shown from Settings, where they are marked
+  with a lock. Opening one explains that it unlocks on the website rather than failing bare.
+- Pasting a series link searches for that series, and a stonescape.xyz link opens in the app.
+
+### Notes
+
+- Comics only. The site also publishes novels, whose chapters are HTML text; a Mana chapter
+  is a list of images with no text form, so a novel would list and then open to nothing.
+
 ## Repository
 
 ### Fixed
