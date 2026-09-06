@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "03ab45ab03ab45ab03ab45ab03ab45ab03ab45ab03ab45ab03ab45ab03ab45ab"
+      "hash": "08d66f7e08d66f7e08d66f7e08d66f7e08d66f7e08d66f7e08d66f7e08d66f7e"
     },
     {
       "id": "kagane",
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "77f3852977f3852977f3852977f3852977f3852977f3852977f3852977f38529"
+      "hash": "7d1e5d427d1e5d427d1e5d427d1e5d427d1e5d427d1e5d427d1e5d427d1e5d42"
     },
     {
       "id": "mangaupdates",
@@ -66,7 +66,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "5ed3d07a5ed3d07a5ed3d07a5ed3d07a5ed3d07a5ed3d07a5ed3d07a5ed3d07a"
+      "hash": "63fea8b463fea8b463fea8b463fea8b463fea8b463fea8b463fea8b463fea8b4"
     },
     {
       "id": "mangago",
@@ -88,7 +88,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "708fbe40708fbe40708fbe40708fbe40708fbe40708fbe40708fbe40708fbe40"
+      "hash": "75bae81c75bae81c75bae81c75bae81c75bae81c75bae81c75bae81c75bae81c"
     },
     {
       "id": "stonescape",
@@ -110,7 +110,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "4f1fcbe94f1fcbe94f1fcbe94f1fcbe94f1fcbe94f1fcbe94f1fcbe94f1fcbe9"
+      "hash": "49f4a23149f4a23149f4a23149f4a23149f4a23149f4a23149f4a23149f4a231"
     },
     {
       "id": "xcomic",
@@ -132,7 +132,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "7c5d36597c5d36597c5d36597c5d36597c5d36597c5d36597c5d36597c5d3659"
+      "hash": "77320c9777320c9777320c9777320c9777320c9777320c9777320c9777320c97"
     }
   ]
 }
