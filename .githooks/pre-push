@@ -1,0 +1,24 @@
+#!/bin/sh
+# Runs the gates before a push, so a red build is caught here rather than in CI.
+#
+# These are the same checks the Test workflow runs, and together they take a couple of
+# seconds. `git push --no-verify` skips them when you know what you are doing.
+#
+# Enable in a fresh clone with:  npm run hooks
+
+set -e
+
+# CI checks out and pushes with its own credentials; it runs the gates as its own job.
+if [ -n "$CI" ]; then
+  exit 0
+fi
+
+echo "pre-push: running the gates…"
+
+npm run lint
+npm run format:check
+npm run typecheck
+npm run build
+npm run check
+
+echo "pre-push: all gates green"

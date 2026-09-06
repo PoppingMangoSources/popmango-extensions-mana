@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify-source.mjs",
     "check": "node scripts/check-sources.mjs",
+    "hooks": "git config core.hooksPath .githooks",
     "new-source": "node scripts/new-source.mjs",
     "readme": "node scripts/update-readme.mjs",
     "format": "oxfmt src/",

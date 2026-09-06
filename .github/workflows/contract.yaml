@@ -13,6 +13,12 @@ name: Contract
 # is broken in everyone's app.
 
 on:
+  # What was just published is the moment it most matters that the sites still answer.
+  workflow_run:
+    workflows:
+      - Bundle & Deploy
+    types:
+      - completed
   schedule:
     # Early morning UTC, before most of the day's reading.
     - cron: "0 6 * * *"
@@ -23,14 +29,20 @@ on:
         required: false
         type: string
 
+# Two runs against the same sites at once would only rate-limit each other.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
-  issues: write
 
 jobs:
   verify:
     name: Verify against the live sites
     runs-on: ubuntu-latest
+    # A deploy that failed published nothing worth testing.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
 
     steps:
       - uses: actions/checkout@v4

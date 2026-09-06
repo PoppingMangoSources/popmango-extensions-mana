@@ -1,0 +1,46 @@
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Update
+    groups:
+      # The SDK and the toolchain that bundles against it are one thing: the bundler
+      # embeds its own copy of the types, so a release that moves one and not the other
+      # ships a source built against a surface the app does not have. They travel together
+      # or not at all.
+      mana:
+        patterns:
+          - "@mana-app/*"
+      # Everything else, split by how much reading the diff deserves. A caret range only
+      # needs changing when the new version falls outside it — which for a 0.x dependency
+      # is every patch, and that is the case worth being told about.
+      minor-patch:
+        exclude-patterns:
+          - "@mana-app/*"
+        update-types:
+          - minor
+          - patch
+      major:
+        exclude-patterns:
+          - "@mana-app/*"
+        update-types:
+          - major
+
+  # The workflows pin action majors by hand, so nothing moves them without this.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: Update
+    groups:
+      actions:
+        patterns:
+          - "*"

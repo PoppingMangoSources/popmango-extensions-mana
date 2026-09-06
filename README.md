@@ -76,8 +76,16 @@ npm run typecheck        # TypeScript, no emit
 npm run lint             # oxlint
 npm run format:check     # oxfmt
 npm run build            # bundles src/ into dist/ and renders the repository page
-npm run verify -- --all  # runs every source against its probe
+npm run check            # the repository's own rules, offline
+npm run verify -- --all  # runs every source against its live site
 ```
+
+`npm run check` is the offline half: icons, intents, probe fixtures, CHANGELOG agreement,
+the globals the runtime does not have, and the patch-only version rule. `npm run verify`
+is the half that needs the network — a Cloudflare block reports SKIP, which is not a pass.
+
+`npm run hooks` points git at `.githooks/`, so a push runs those gates first. Skip a run
+with `git push --no-verify`.
 
 `npm run new-source` scaffolds a source folder. `npm run readme` regenerates the table above
 from `dist/sources.json` after a build.
