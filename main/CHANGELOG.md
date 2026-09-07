@@ -2,7 +2,27 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## RinkoComics (current: v1.0.1)
+## RinkoComics (current: v1.0.2)
+
+### Fixed
+
+- A held-back chapter never reached the Latest Releases row. The site drops the link on one
+  it has locked, and the row only kept chapters that had a link — so the newest release,
+  the one the padlock is for, was the single chapter always missing from it.
+- The home page was slow to open. Its rows are all cut from one document and the client
+  shares a request that is in flight, but the app resolves rows one after another: by the
+  time the second asked, the first had finished and the sharing window had closed. That was
+  three fetches of a whole rendered page, and three passes of the parser over it. The page
+  is now read and parsed once and held briefly, which is one of each — and still short
+  enough that pulling to refresh fetches the site again.
+
+### Changed
+
+- The hero carries the two numbers the site prints on a ranked card, the view count behind
+  the house mark for it: `⏯︎ 1.2M • Ch. 180`. A hero draws no rows of its own, so that line
+  is the only place they fit.
+
+## RinkoComics (v1.0.1)
 
 ### Fixed
 
