@@ -48,8 +48,10 @@ import {
   MAX_CHAPTER_PAGES,
   PREFERENCE_DEFAULTS,
   PreferenceID,
+  HOME_CACHE_MS,
   SORT_OPTIONS,
   SortID,
+  type Card,
   type ChapterRow,
 } from "./model.ts";
 import {
@@ -61,7 +63,7 @@ import {
   parseChapterRows,
   parseContent,
   parseGenres,
-  parseHomeSection,
+  parseHome,
   parseLoadMore,
   parseNonce,
   parsePages,
@@ -74,7 +76,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rinkocomics",
   name: "RinkoComics",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Comics from rinkocomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -109,6 +111,10 @@ class RinkoComicsSource
   // The genre list is the same for every reader and changes only when the site adds one,
   // so it is kept on disk rather than read each time the filter form opens.
   private readonly genreCache = new TimedCache<Option[]>("rinkocomics.genres", GENRE_LIFETIME_MS);
+
+  // The front page, held just long enough for every row on it to be drawn from one read.
+  private home: { at: number; sections: Record<string, Card[]> } | undefined;
+  private homeRequest: Promise<Record<string, Card[]>> | undefined;
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -167,13 +173,36 @@ class RinkoComicsSource
   }
 
   /**
-   * Every row is cut from the same document. The client shares a request that is already
-   * in flight, so the four rows resolving at once cost one fetch between them.
+   * The front page, read and parsed once for every row on it.
+   *
+   * Sharing a request that is in flight is not enough: the app resolves the rows one after
+   * another, so by the time the second asks, the first has finished and the sharing window
+   * has closed — three fetches and three parses of a whole rendered page, which is what
+   * made the page slow to open. Holding the result for a few seconds collapses that to one
+   * of each, while still being short enough that a deliberate refresh gets a fresh page.
    */
+  private async homeSections(): Promise<Record<string, Card[]>> {
+    const cached = this.home;
+    if (cached && Date.now() - cached.at < HOME_CACHE_MS) return cached.sections;
+
+    this.homeRequest ??= this.api
+      .fetchHome()
+      .then((html) => {
+        const sections = parseHome(html);
+        this.home = { at: Date.now(), sections };
+        return sections;
+      })
+      .finally(() => {
+        this.homeRequest = undefined;
+      });
+
+    return this.homeRequest;
+  }
+
   async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     if (!sectionById(DISCOVER_SECTIONS, sectionID)) return { items: [] };
 
-    const cards = parseHomeSection(await this.api.fetchHome(), sectionID);
+    const cards = (await this.homeSections())[sectionID] ?? [];
     return { items: cards.map((card) => toHighlight(card, sectionID)) };
   }
 

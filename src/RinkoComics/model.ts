@@ -33,8 +33,19 @@ export const SectionID = {
 /** How many of a title's newest chapters a Latest Releases row lists beneath it. */
 export const LATEST_CHAPTERS_SHOWN = 3;
 
+/**
+ * How long the parsed front page is held.
+ *
+ * Long enough that every row on one opening of the page comes from a single read, short
+ * enough that pulling to refresh a moment later still fetches the site again.
+ */
+export const HOME_CACHE_MS = 20_000;
+
 /** The site marks a chapter it has locked; the tick of a padlock says so at a glance. */
 export const LOCK_MARK = "🔒";
+
+/** The house mark for a view count, the same one the other sources here use. */
+export const VIEWS_MARK = "⏯︎";
 
 /**
  * The home page, in the site's own order and under its own names.

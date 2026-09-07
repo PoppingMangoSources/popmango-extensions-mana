@@ -33,6 +33,7 @@ import {
   LOCK_MARK,
   LOCK_SUFFIX,
   SectionID,
+  VIEWS_MARK,
   type Card,
   type ChapterRow,
 } from "./model.ts";
@@ -134,7 +135,10 @@ function latestChapters($: CheerioAPI, card: Cheerio<AnyNode>, into: Card): void
 
     const row = $(node);
     const href = row.attr("href") ?? "";
-    if (!href.includes("/chapter/")) continue;
+    const locked = isLockedRow($, row, href);
+    // The site drops the link on a chapter it has held back, so requiring one would leave
+    // the newest release — the one the padlock is for — out of the row entirely.
+    if (!locked && !href.includes("/chapter/")) continue;
 
     const label = firstText(row, "label") || decodeEntities(text(row));
     if (!label) continue;
@@ -143,17 +147,26 @@ function latestChapters($: CheerioAPI, card: Cheerio<AnyNode>, into: Card): void
     const stamp = firstText(row, ".chapter-date, time, span");
     const uploaded = stamp ? parseDate(stamp) : undefined;
 
-    into.chapters.push({
-      label,
-      ...(uploaded ? { uploaded } : {}),
-      locked: isLockedRow($, row, href),
-    });
+    into.chapters.push({ label, ...(uploaded ? { uploaded } : {}), locked });
   }
 }
 
-export function parseHomeSection(html: string, sectionId: string): Card[] {
+/**
+ * Every row on the front page, from one parse of it.
+ *
+ * The document is a whole rendered page and cheerio is the expensive part of reading it, so
+ * it is walked once for all three rows rather than once per row.
+ */
+export function parseHome(html: string): Record<string, Card[]> {
   const $ = load(html);
+  return {
+    [SectionID.Hot]: sectionCards($, SectionID.Hot),
+    [SectionID.Pinned]: sectionCards($, SectionID.Pinned),
+    [SectionID.Latest]: sectionCards($, SectionID.Latest),
+  };
+}
 
+function sectionCards($: CheerioAPI, sectionId: string): Card[] {
   switch (sectionId) {
     case SectionID.Hot:
       return parseCards(
@@ -174,7 +187,10 @@ export function parseHomeSection(html: string, sectionId: string): Card[] {
             .map((node) => decodeEntities(text($(node))))
             .filter(Boolean);
           if (stats[0]) into.views = stats[0];
-          if (stats[1]) into.chapterCount = stats[1];
+          // The site writes this stat as "180 Ch"; the subtitle supplies its own "Ch.",
+          // so only the count is kept.
+          const count = /(\d[\d.,]*[KMkm]?)/.exec(stats[1] ?? "")?.[1];
+          if (count) into.chapterCount = count;
         },
       );
 
@@ -241,14 +257,25 @@ export function parseGenres(html: string): Option[] {
 }
 
 /**
- * What a tile writes under its title. No symbols here — a glyph belongs on a labelled row,
- * where the key says what it stands for.
+ * What a tile writes under its title.
+ *
+ * A hero card draws no rows of its own, so the two numbers the site prints on a ranked card
+ * — what has been read, and how much there is — have nowhere else to go and are written
+ * here behind the house mark for views.
  *
  * Latest Releases says nothing on this line: its chapters are rows of their own beneath it,
  * and repeating the newest one here would print it twice.
  */
 function buildSubtitle(card: Card, sectionId: string): string {
   if (sectionId === SectionID.Latest) return "";
+
+  if (sectionId === SectionID.Hot) {
+    const views = card.views ? `${VIEWS_MARK} ${card.views}` : "";
+    const chapters = card.chapterCount ? `Ch. ${card.chapterCount}` : "";
+    const stats = [views, chapters].filter(Boolean).join(" • ");
+    if (stats) return stats;
+  }
+
   return card.genres.slice(0, 3).join(", ");
 }
 
