@@ -51,7 +51,7 @@ becomes available to install.
 | :----- | :--- | :----- | :------ |
 | <img src="media/sources/flamecomics.png" width="22" align="top"/> **FlameComics** | [flamecomics.xyz](https://flamecomics.xyz) | Safe | v1.0.8 |
 | <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.to](https://kagane.to) | Mixed | v1.0.32 |
-| <img src="media/sources/mangafire.png" width="22" align="top"/> **MangaFire** | [mangafire.to](https://mangafire.to) | Mixed | v1.0.0 |
+| <img src="media/sources/mangafire.png" width="22" align="top"/> **MangaFire** | [mangafire.to](https://mangafire.to) | Mixed | v1.0.1 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.0.9 |
 | <img src="media/sources/mangaupdates.png" width="22" align="top"/> **MangaUpdates** | [mangaupdates.com](https://www.mangaupdates.com) | Mixed | v1.0.6 |
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.0.8 |
