@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaFire (current: v1.0.3)
+## MangaFire (current: v1.0.4)
+
+### Added
+
+- A chapter says who put it up, and an official release is ticked. Every upload of a
+  chapter is listed by default, so a row that shows several side by side now says which of
+  them is the publisher's own.
+
+## MangaFire (v1.0.3)
 
 ### Changed
 
