@@ -304,14 +304,20 @@ function parseChapterTitle(input: string): { number?: number; volume?: number; t
   return { number, volume, title };
 }
 
-function parseChapterNumber(name: string): number {
+/**
+ * `undefined` when the title states no number at all, which is not the same as stating
+ * zero: a prologue numbered 0 is the first chapter, while a notice with no number must not
+ * become the one an unread title opens at.
+ */
+function parseChapterNumber(name: string): number | undefined {
   const raw =
     /chapter\s*(\d+(?:\.\d+)?)/i.exec(name)?.[1] ??
     /ch\.\s*(\d+(?:\.\d+)?)/i.exec(name)?.[1] ??
     /^\s*(\d+(?:\.\d+)?)/.exec(name)?.[1];
 
-  const value = raw ? Number(raw) : 0;
-  return Number.isFinite(value) ? value : 0;
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : undefined;
 }
 
 function isOfficialUpload(value: string): boolean {
@@ -389,7 +395,9 @@ function compareScanlators(a: Chapter, b: Chapter): number {
 
 export function parseChapters(html: string, options: { hideRaws: boolean }): Chapter[] {
   const $ = load(html);
-  const parsed: Chapter[] = [];
+  // `numbered` rides along only until the indexing below is done; it is dropped on the way
+  // out, so what the caller gets is an ordinary `Chapter`.
+  const parsed: (Chapter & { numbered: boolean })[] = [];
 
   $(
     "table#chapter_table > tbody > tr, table#raws_table > tbody > tr, table.uk-table > tbody > tr",
@@ -409,11 +417,12 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
 
     const parsedTitle = parseChapterTitle(rawTitle);
     const scanlator = formatScanlator(parseUploader($, row), rawTitle);
-    const number = parsedTitle.number ?? parseChapterNumber(rawTitle);
+    const stated = parsedTitle.number ?? parseChapterNumber(rawTitle);
 
     parsed.push({
       chapterId,
-      number,
+      number: stated ?? 0,
+      numbered: stated !== undefined,
       index: 0,
       // The app renders this verbatim, so it carries the site's own wording,
       // numbering included; number and volume below only order the list.
@@ -429,8 +438,9 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
   // The site lists chapters in upload order, which is what other clients show, so the
   // page order is kept. `index` is computed separately because the app resumes an unread
   // title at index 0, which has to be the first numbered chapter rather than a notice.
+  // A chapter numbered 0 is a numbered chapter — the run starts at it, not after it.
   const byNumber = [...parsed]
-    .filter((chapter) => chapter.number !== 0)
+    .filter((chapter) => chapter.numbered)
     .sort((left, right) => {
       if (left.number !== right.number) return left.number - right.number;
       return compareScanlators(right, left);
@@ -445,7 +455,12 @@ export function parseChapters(html: string, options: { hideRaws: boolean }): Cha
     if (!indexOf.has(chapter)) indexOf.set(chapter, next++);
   }
 
-  return parsed.map((chapter) => ({ ...chapter, index: indexOf.get(chapter) ?? 0 }));
+  // `indexOf` is keyed on the original object, so the position is read before the flag is
+  // dropped — a copy would not be found in the map.
+  return parsed.map((entry) => {
+    const { numbered: _numbered, ...chapter } = entry;
+    return { ...chapter, index: indexOf.get(entry) ?? 0 };
+  });
 }
 
 export function parseRelated(html: string): MangagoListing[] {

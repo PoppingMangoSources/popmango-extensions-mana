@@ -254,15 +254,33 @@ own chapter text, pass that text through rather than stripping and rebuilding it
 **`number` decides ordering, and the app picks the start chapter by it.** Every list has
 entries carrying no number — side stories, extras, specials, "Season 2 Prologue". Leaving
 those at `0` files them *ahead of chapter 1*, so the reader opens a side story instead of
-the beginning. Number them above the highest real chapter, preserving their listed order:
+the beginning. Number them above the highest real chapter, preserving their listed order.
+
+**First separate "no number" from "the number 0", which is not the same question.** Many
+sites number a prologue `0`, and chapter zero *is* the beginning: it belongs where it
+sorts, ahead of chapter 1. Only the genuinely unnumbered chapter gets moved. Record which
+one it is when the value is parsed — the number alone can no longer tell you:
 
 ```ts
+const value = Number.parseFloat(raw);
+const numbered = Number.isFinite(value);   // "0" is numbered; "", "side", null are not
+const number = numbered ? value : 0;
+
 const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
-const extras = parsed.filter((chapter) => chapter.number === 0);
+const extras = parsed.filter((chapter) => !chapter.numbered);
 extras.forEach((chapter, position) => {
   chapter.number = highest + (extras.length - position);
 });
 ```
+
+Carry `numbered` on the chapter until the ordering is done, then drop it so the caller gets
+an ordinary `Chapter`. Where the position is held in a `Map` keyed on the chapter object,
+read it *before* destructuring the flag away — a copy is not the same key.
+
+This has been shipped wrong four times here. `parseFloat(raw) || 0`,
+`.filter((c) => c.number !== 0)` and `Number.isFinite(v) && v > 0` each erase the
+distinction, and the symptom is always the same: a prologue at the top of the list, and the
+app offering to start at chapter 1.
 
 ### `shouldRedrawImage` / `redrawImageWithSize`
 

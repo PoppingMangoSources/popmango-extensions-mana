@@ -322,7 +322,17 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.16)
+## XCOMIC (current: v1.0.17)
+
+### Fixed
+
+- A chapter numbered 0 was indexed past the end of the run rather than at its start, so
+  a prologue showed as the newest chapter and an unread title offered to open at
+  chapter 1. Zero was being read as "states no number" — the mark that sends a notice
+  past the end so it is never the resume point — when it is a stated number like any
+  other. A chapter the site really does leave unnumbered still sits past the end.
+
+## XCOMIC (v1.0.16)
 
 ### Changed
 
@@ -418,7 +428,15 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.8)
+## FlameComics (current: v1.0.9)
+
+### Fixed
+
+- A chapter the site leaves unnumbered no longer sorts ahead of chapter 1, where it
+  became the one an unread title opened at. It now sits above the numbered run, and a
+  chapter the site numbers 0 stays where it belongs, at the start.
+
+## FlameComics (v1.0.8)
 
 ### Changed
 
@@ -749,7 +767,17 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.9)
+## Mangago (current: v1.0.10)
+
+### Fixed
+
+- A chapter numbered 0 was indexed past the end of the run rather than at its start, so
+  a prologue showed as the newest chapter and an unread title offered to open at
+  chapter 1. Zero was being read as "states no number" — the mark that sends a notice
+  past the end so it is never the resume point — when it is a stated number like any
+  other. A notice carrying no number still sits past the end.
+
+## Mangago (v1.0.9)
 
 ### Fixed
 

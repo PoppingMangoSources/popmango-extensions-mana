@@ -195,27 +195,39 @@ export function formatChapterNumber(raw: string): string {
 
 export function parseChapters(chapters: readonly ChapterDetail[]): Chapter[] {
   const parsed = chapters.map((entry) => {
-    const number = Number.parseFloat(entry.chapter) || 0;
+    const value = Number.parseFloat(entry.chapter);
+    // Whether the site stated a number at all, which is not the same as whether it is
+    // zero: a prologue numbered 0 opens the run and belongs exactly where it is.
+    const numbered = Number.isFinite(value);
     const name = clean(entry.title ?? "");
     const label = `Chapter ${formatChapterNumber(entry.chapter)}`;
 
     return {
       // Both halves are needed to reach the reader payload.
       chapterId: `${entry.series_id}:${entry.token}`,
-      number,
+      number: numbered ? value : 0,
       index: 0,
       // The app prints this verbatim and never joins the number onto it.
       title: name ? `${label} - ${name}` : label,
       date: new Date(entry.release_date * 1000),
       language: DefinedLanguages.ENGLISH,
       webUrl: `${seriesUrl(entry.series_id)}/${entry.token}`,
+      numbered,
     };
+  });
+
+  // A chapter the site left unnumbered would otherwise sit at 0 and become what an unread
+  // title opens at, so those are numbered above the main run in listed order.
+  const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
+  const extras = parsed.filter((chapter) => !chapter.numbered);
+  extras.forEach((chapter, position) => {
+    chapter.number = highest + (extras.length - position);
   });
 
   // index 0 must be the earliest chapter, or the app resumes partway through.
   return parsed
     .sort((left, right) => left.number - right.number)
-    .map((chapter, index) => ({ ...chapter, index }))
+    .map(({ numbered: _numbered, ...chapter }, index) => ({ ...chapter, index }))
     .reverse();
 }
 

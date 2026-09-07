@@ -110,6 +110,27 @@ A chapter with no number of its own — a side story, an extra, an epilogue — 
 left at `0`. The app picks where to start reading by chapter number, so a `0` puts the
 extras *before* chapter 1. Renumber them above the highest real chapter instead.
 
+**"No number" and "the number 0" are different things, and conflating them is the bug this
+repository has shipped most often.** Plenty of sites number a prologue `0`, and chapter zero
+*is* the beginning — it belongs ahead of chapter 1, exactly where it sorts. What must be
+moved is only the chapter the site left unnumbered. Decide that from whether a number was
+stated, never from the value:
+
+```ts
+const value = Number.parseFloat(raw);
+const numbered = Number.isFinite(value);   // "0" is numbered; "", "side", null are not
+const number = numbered ? value : 0;
+```
+
+Carry `numbered` alongside the chapter until the ordering is done, then drop it. Three
+idioms silently destroy the distinction, so treat each as a defect on sight:
+
+| Idiom | What it does |
+| :--- | :--- |
+| `parseFloat(raw) \|\| 0` | `NaN` and a real `0` both become `0` |
+| `.filter((c) => c.number !== 0)` | drops chapter zero out of the numbered run |
+| `Number.isFinite(v) && v > 0` | calls chapter zero unnumbered |
+
 If the site puts the whole chapter list on the title page, you may return them in
 `Content.chapters` and omit `getChapters` — but see bit 20 in `api.md` before choosing that.
 

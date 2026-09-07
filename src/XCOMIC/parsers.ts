@@ -280,7 +280,12 @@ function staffItems(comic: ComicData): StaffItem[] {
 /** Chapters come from one endpoint newest first; only `index` is derived from the number. */
 export function parseChapters(entries: readonly ChapterData[], language: string): Chapter[] {
   const parsed = entries.map((entry) => {
-    const number = Number.parseFloat(formatChapterNumber(entry) ?? "") || 0;
+    const value = Number.parseFloat(formatChapterNumber(entry) ?? "");
+    // Whether the site stated a number at all, which is not the same as whether it is
+    // zero: a prologue numbered 0 opens the run, while a notice carrying no number must
+    // sit past its end so it is never the resume point.
+    const numbered = Number.isFinite(value);
+    const number = numbered ? value : 0;
 
     const label = [clean(entry.dname ?? ""), clean(entry.title ?? "")]
       .filter(Boolean)
@@ -299,9 +304,10 @@ export function parseChapters(entries: readonly ChapterData[], language: string)
     return {
       chapterId: entry.id,
       number,
+      numbered,
       index: 0,
       // The app prints this verbatim and never joins the number onto it.
-      title: label || (number ? `Chapter ${number}` : "Chapter"),
+      title: label || (numbered ? `Chapter ${number}` : "Chapter"),
       date: parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ?? new Date(0),
       language: language || DefinedLanguages.ENGLISH,
       ...(entry.urlPath ? { webUrl: absoluteUrl(entry.urlPath) } : {}),
@@ -311,9 +317,10 @@ export function parseChapters(entries: readonly ChapterData[], language: string)
 
   // index 0 must be the earliest numbered chapter, or the app resumes partway through.
   // Anything the site left unnumbered — a notice or an extra — is indexed after the run.
+  // A chapter numbered 0 is numbered, so the run starts at it rather than after it.
   const positions = new Map<string, number>();
   [...parsed]
-    .filter((chapter) => chapter.number !== 0)
+    .filter((chapter) => chapter.numbered)
     .sort((left, right) => left.number - right.number)
     .forEach((chapter, position) => positions.set(chapter.chapterId, position));
 
@@ -322,7 +329,7 @@ export function parseChapters(entries: readonly ChapterData[], language: string)
     if (!positions.has(chapter.chapterId)) positions.set(chapter.chapterId, next++);
   }
 
-  return parsed.map((chapter) => ({
+  return parsed.map(({ numbered: _numbered, ...chapter }) => ({
     ...chapter,
     index: positions.get(chapter.chapterId) ?? chapter.index,
   }));
