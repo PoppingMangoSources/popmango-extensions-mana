@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "42ecdc3442ecdc3442ecdc3442ecdc3442ecdc3442ecdc3442ecdc3442ecdc34"
+      "hash": "760c1666760c1666760c1666760c1666760c1666760c1666760c1666760c1666"
     },
     {
       "id": "kagane",
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "7d10ed1a7d10ed1a7d10ed1a7d10ed1a7d10ed1a7d10ed1a7d10ed1a7d10ed1a"
+      "hash": "4fcfdb924fcfdb924fcfdb924fcfdb924fcfdb924fcfdb924fcfdb924fcfdb92"
     },
     {
       "id": "mangafire",
@@ -70,7 +70,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 6298637,
-      "hash": "4605869346058693460586934605869346058693460586934605869346058693"
+      "hash": "7924c0937924c0937924c0937924c0937924c0937924c0937924c0937924c093"
     },
     {
       "id": "mangaupdates",
@@ -92,7 +92,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "06e8aa7806e8aa7806e8aa7806e8aa7806e8aa7806e8aa7806e8aa7806e8aa78"
+      "hash": "3a07e2213a07e2213a07e2213a07e2213a07e2213a07e2213a07e2213a07e221"
     },
     {
       "id": "mangago",
@@ -114,7 +114,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "64e9d2af64e9d2af64e9d2af64e9d2af64e9d2af64e9d2af64e9d2af64e9d2af"
+      "hash": "31ca98d031ca98d031ca98d031ca98d031ca98d031ca98d031ca98d031ca98d0"
     },
     {
       "id": "rinkocomics",
@@ -136,7 +136,29 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "088ec787088ec787088ec787088ec787088ec787088ec787088ec787088ec787"
+      "hash": "3bae01a23bae01a23bae01a23bae01a23bae01a23bae01a23bae01a23bae01a2"
+    },
+    {
+      "id": "rokaricomics",
+      "name": "RokariComics",
+      "version": "1.0.0",
+      "description": "Comics from rokaricomics.com.",
+      "website": "https://rokaricomics.com",
+      "rating": 0,
+      "supportedLanguages": [
+        "en_US"
+      ],
+      "thumbnail": "RokariComics.png",
+      "developers": [
+        {
+          "name": "PoppingMango",
+          "github": "https://github.com/PoppingMangoSources"
+        }
+      ],
+      "path": "RokariComics",
+      "environment": "source",
+      "intents": 6298637,
+      "hash": "35d7d15e35d7d15e35d7d15e35d7d15e35d7d15e35d7d15e35d7d15e35d7d15e"
     },
     {
       "id": "stonescape",
@@ -158,7 +180,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "77b592c977b592c977b592c977b592c977b592c977b592c977b592c977b592c9"
+      "hash": "449658ec449658ec449658ec449658ec449658ec449658ec449658ec449658ec"
     },
     {
       "id": "valirscans",
@@ -180,7 +202,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 6298925,
-      "hash": "0deadc7c0deadc7c0deadc7c0deadc7c0deadc7c0deadc7c0deadc7c0deadc7c"
+      "hash": "25345d8225345d8225345d8225345d8225345d8225345d8225345d8225345d82"
     },
     {
       "id": "xcomic",
@@ -202,7 +224,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "51b3805051b3805051b3805051b3805051b3805051b3805051b3805051b38050"
+      "hash": "1e9449001e9449001e9449001e9449001e9449001e9449001e9449001e944900"
     }
   ]
 }

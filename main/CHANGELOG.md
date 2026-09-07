@@ -2,6 +2,42 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## RokariComics (current: v1.0.0)
+
+### Added
+
+- Initial release, reading rokaricomics.com.
+- Seven home rows under the site's own names: Featured, Latest Updates, Popular Today,
+  Recommendation, and the three tabs of its Popular widget — Weekly, Monthly and All-Time.
+  The theme renders its whole front page, sidebar included, so all seven are cut from one
+  document: the home page costs a single request however many rows are switched on.
+- The Popular widget is three rows rather than a strip of chips. All three arrive in that
+  same document already, and a row shows what is climbing without a tap first. Weekly is
+  the one drawn detailed, carrying its rank and genres as rows of their own; the other two
+  say the same thing on one line, so they stay plain strips.
+- Each of the other rows is shaped for what it knows. Featured takes the hero slot with the
+  chapter the slide names — read out of the sentence it prints when the theme puts it
+  nowhere else. Latest Updates is a grouped vertical list naming each title's newest
+  chapters against how long ago they landed, the one style the app draws those rows in.
+- Searching by the theme's own parameters: its genre list read off the directory page and
+  kept for a day, able to include and exclude, with status and type pickers and all six of
+  its sorts. Words on their own go to the site's own search; a filtered search goes through
+  the directory, where the facets are understood.
+- A chapter's id is its own path, so opening one is a single request rather than a second
+  read of the title's page to find the link.
+- Locked chapters are listed with a padlock and can be turned off from Settings. Opening
+  one says where it unlocks rather than failing bare.
+- Pasting a title link searches for that title, and a rokaricomics.com link opens in the
+  app.
+
+### Notes
+
+- Two switches the reference carries are deliberately left off. "Use Post IDs" changes the
+  shape of every content id, which invalidates a reader's whole library for this source —
+  not something a toggle should be able to do from inside Settings. The base-URL override
+  is left off because the app resolves a challenge and owns a link against the address the
+  source declares, and a source pointed somewhere else keeps neither.
+
 ## ValirScans (current: v1.0.0)
 
 ### Added
