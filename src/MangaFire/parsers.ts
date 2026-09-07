@@ -179,7 +179,7 @@ function buildInfoRows(item: TitleItem): Pair[] {
   if (updated) rows.push({ key: "Updated", value: relativeTime(updated) });
 
   const kind = kindLabel(item.type);
-  if (kind) rows.push({ key: "Type", value: `✎ ${kind}` });
+  if (kind) rows.push({ key: "Type", value: `♤ ${kind}` });
 
   return rows;
 }
@@ -235,9 +235,9 @@ export function parseContent(details: TitleDetails): Content {
   const score = formatScore(details.rating);
   if (score) info.push({ key: "Rating", value: score });
   const kind = kindLabel(details.type);
-  if (kind) info.push({ key: "Type", value: `✎ ${kind}` });
+  if (kind) info.push({ key: "Type", value: `♤ ${kind}` });
   const state = statusLabel(details.status);
-  if (state) info.push({ key: "Status", value: `☉ ${state}` });
+  if (state) info.push({ key: "Status", value: `◌ ${state}` });
 
   const alternates = (details.altTitles ?? [])
     .map((name) => decodeEntities(clean(name)))

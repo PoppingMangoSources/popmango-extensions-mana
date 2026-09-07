@@ -167,7 +167,7 @@ function formatStatus(series: Series): string {
  */
 function statusOf(series: Series): string {
   const status = formatStatus(series);
-  return status ? `☉ ${status}` : "";
+  return status ? `◌ ${status}` : "";
 }
 
 /**
@@ -255,7 +255,7 @@ function buildSubtitle(
     // The state of the series moves to a row of its own beneath the views, leaving the
     // line under the title to say what the series is.
     case "kind":
-      return `✎ ${formatKind(series)}`;
+      return `♤ ${formatKind(series)}`;
     // A row ranked by reading says what it was ranked on; a title with none falls back
     // to the chapter rather than showing an empty line.
     case "views":

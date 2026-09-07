@@ -2,7 +2,13 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaFire (current: v1.0.2)
+## MangaFire (current: v1.0.3)
+
+### Changed
+
+- The house symbols for type and status are now `♤` and `◌`.
+
+## MangaFire (v1.0.2)
 
 ### Changed
 
@@ -61,7 +67,13 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.8)
+## StoneScape (current: v1.0.9)
+
+### Changed
+
+- The house symbols for type and status are now `♤` and `◌`.
+
+## StoneScape (v1.0.8)
 
 ### Changed
 
