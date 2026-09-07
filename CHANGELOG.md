@@ -2,6 +2,41 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## ValirScans (current: v1.0.0)
+
+### Added
+
+- Initial release, reading valirscans.org.
+- Six home rows under the site's own names: Top Featured, Most Popular, Latest Comic
+  Updates, Popular Today, Editors' Picks and New Series. The site renders its front page
+  server-side, so all but the last are cut from one document — those five cost a single
+  request between them however many are switched on.
+- Each row is shaped for what it knows. Top Featured takes the hero slot with the two
+  numbers the site ranks it on. Most Popular is the site's own chart, so it keeps that
+  order and carries its views, rating and state as rows of their own. Latest Comic Updates
+  is a grouped vertical list naming each title's newest chapters against the time they
+  landed. The rest are plain strips of covers, each saying the thing it is about.
+- Searching and browsing by every facet the site's own filter panel offers — genres, tags,
+  type, status, origin and a chapter count — each of them able to include or exclude, with
+  the genre and tag lists read off the site and kept for a day, and its seven sorts offered
+  whole.
+- Signing in, through the site's own login page in the app's WebView. Nothing is
+  intercepted: what is kept is the session cookie the site sets, which is then carried by
+  this source's requests — so a chapter the account already has opens rather than
+  reporting itself locked.
+- Locked chapters are listed with a padlock and can be turned off from Settings. Opening
+  one says where it unlocks rather than failing bare.
+- Pasting a title link searches for that title, and a valirscans.org link opens in the app.
+
+### Notes
+
+- Comics only. The site publishes novels alongside them, and a novel chapter is prose where
+  a Mana chapter is a list of images — so a novel would list and then open to nothing. They
+  are excluded through the site's own filter rather than dropped from the rows, which keeps
+  a page of results as long as the site says it is; the Latest Novel Updates row is left off
+  for the same reason, and a novel chapter reached by a link says what it is instead of
+  showing a blank reader.
+
 ## RinkoComics (current: v1.0.3)
 
 ### Fixed

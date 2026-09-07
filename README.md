@@ -45,7 +45,7 @@ becomes available to install.
 ## Sources
 
 <!-- sources:start -->
-**8 sources available for Mana.**
+**9 sources available for Mana.**
 
 | Source | Site | Rating | Version |
 | :----- | :--- | :----- | :------ |
@@ -56,6 +56,7 @@ becomes available to install.
 | <img src="media/sources/mangaupdates.png" width="22" align="top"/> **MangaUpdates** | [mangaupdates.com](https://www.mangaupdates.com) | Mixed | v1.0.7 |
 | <img src="media/sources/rinkocomics.png" width="22" align="top"/> **RinkoComics** | [rinkocomics.com](https://rinkocomics.com) | Safe | v1.0.3 |
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.0.11 |
+| <img src="media/sources/valirscans.png" width="22" align="top"/> **ValirScans** | [valirscans.org](https://valirscans.org) | Mixed | v1.0.0 |
 | <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.0.18 |
 <!-- sources:end -->
 

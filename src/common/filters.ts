@@ -38,7 +38,13 @@ export class FilterReader {
 
   excludable(id: string): { included: string[]; excluded: string[] } {
     const value = this.values[id];
-    if (typeof value === "object" && value !== null && "included" in value) {
+    // Either half names the shape. A field with only exclusions set is still an excludable
+    // one, and reading it as a plain multi-select would drop the exclusions silently.
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      ("included" in value || "excluded" in value)
+    ) {
       const prop = value as ExcludableMultiSelectProp;
       return {
         included: (prop.included ?? []).map(optionId).filter(Boolean),
