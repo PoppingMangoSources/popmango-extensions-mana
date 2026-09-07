@@ -42,14 +42,36 @@ function asStringArray(value: unknown): string[] | undefined {
   return value.every((entry) => typeof entry === "string") ? (value as string[]) : undefined;
 }
 
+/**
+ * The stored value as it actually is, before any typed accessor sees it.
+ *
+ * The typed accessors are documented to answer `null` only when nothing is stored, but a
+ * stored `false` has been observed coming back as `null` all the same — and `false`, `0`
+ * and `""` are exactly the values that a falsy check inside such an accessor would lose.
+ * That is indistinguishable from "never set", so the default wins and the setting appears
+ * to undo itself the moment the screen is left. It only shows where the default is the
+ * other way round, which is why a toggle defaulting to on could not be turned off.
+ *
+ * Reading the raw value first sidesteps the whole question; the typed accessors stay as
+ * the fallback for a host that answers `get` with nothing useful.
+ */
+async function readRaw(key: string): Promise<unknown> {
+  return attempt(() => ObjectStore.get(key));
+}
+
 async function readValue(key: string, fallback: PreferenceValue): Promise<PreferenceValue> {
+  const raw = await readRaw(key);
+
   if (Array.isArray(fallback)) {
+    const stored = asStringArray(raw);
+    if (stored) return stored;
     const native = asStringArray(await attempt(() => ObjectStore.stringArray(key)));
     if (native) return native;
     return asStringArray(decodeLegacy(await attempt(() => ObjectStore.string(key)))) ?? fallback;
   }
 
   if (typeof fallback === "boolean") {
+    if (typeof raw === "boolean") return raw;
     const native = await attempt(() => ObjectStore.boolean(key));
     if (native !== null) return native;
     const legacy = decodeLegacy(await attempt(() => ObjectStore.string(key)));
@@ -57,10 +79,16 @@ async function readValue(key: string, fallback: PreferenceValue): Promise<Prefer
   }
 
   if (typeof fallback === "number") {
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
     const native = await attempt(() => ObjectStore.number(key));
     if (native !== null) return native;
     const legacy = decodeLegacy(await attempt(() => ObjectStore.string(key)));
     return typeof legacy === "number" && Number.isFinite(legacy) ? legacy : fallback;
+  }
+
+  if (typeof raw === "string") {
+    const stored = decodeLegacy(raw);
+    return typeof stored === "string" ? stored : raw;
   }
 
   const native = await attempt(() => ObjectStore.string(key));

@@ -56,6 +56,16 @@ type ClientOptions = {
   timeout?: number;
   /** Set false for hosts that reject a cross-origin `origin` header on plain GETs. */
   sendOrigin?: boolean;
+  /**
+   * Which statuses reach the caller instead of being turned into a `NetworkError` first.
+   *
+   * The host accepts only 200–299 by default and rejects the rest **after** the response
+   * interceptors run but before the caller sees them, which makes any code that reads
+   * `response.status` unreachable and replaces the server's own words with a generic
+   * message. A source that needs to tell a rate limit, an expired token or a failing
+   * origin apart from an ordinary refusal says so here, and then checks the status itself.
+   */
+  statusValidator?: (status: number) => boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -97,6 +107,7 @@ export function buildClient(options: ClientOptions): NetworkClient {
     maxRetries,
     timeout,
     sendOrigin = true,
+    statusValidator,
   } = options;
 
   const interceptRequest = async (request: NetworkRequest): Promise<NetworkRequest> => {
@@ -134,6 +145,7 @@ export function buildClient(options: ClientOptions): NetworkClient {
 
   if (maxRetries !== undefined) builder.setMaxRetries(maxRetries);
   if (timeout !== undefined) builder.setTimeout(timeout);
+  if (statusValidator !== undefined) builder.setStatusValidator(statusValidator);
 
   return builder.build();
 }

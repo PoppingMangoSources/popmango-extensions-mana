@@ -13,13 +13,20 @@ export const AJAX_PATH = "/wp-admin/admin-ajax.php";
 export const LOCK_SUFFIX = "#lock";
 
 /**
- * Comic pages list chapters as `li.chapter`, novel pages as `div.chapter`, and a reader
- * sidebar as `a.chapter-item`. One selector covers all three.
+ * A chapter row, and only a chapter row.
+ *
+ * `a.chapter-item` also names the little chapter links on the front page's cards, so a
+ * looser selector picks those up too and counts them as chapters. That matters more than
+ * it looks: the walk below steps by how many rows it just read, so over-counting made it
+ * skip past real chapters and keep asking for pages that were already behind it.
  */
-export const CHAPTER_SELECTOR = "li.chapter, div.chapter, a.chapter-item";
+export const CHAPTER_SELECTOR = "li.chapter";
 
 /** The load-more control carries the id and offset the ajax action wants. */
-export const LOAD_MORE_SELECTOR = "[data-comic-id]";
+export const LOAD_MORE_SELECTOR = "#loadMoreChaptersBtn, [data-comic-id]";
+
+/** The run the load-more action hands over, which is what each offset steps by. */
+export const CHAPTERS_PER_PAGE = 10;
 
 /** Stop walking the ajax pages here so a misbehaving endpoint cannot spin forever. */
 export const MAX_CHAPTER_PAGES = 60;
@@ -40,6 +47,15 @@ export const LATEST_CHAPTERS_SHOWN = 3;
  * enough that pulling to refresh a moment later still fetches the site again.
  */
 export const HOME_CACHE_MS = 20_000;
+
+/**
+ * How long a page already read is held.
+ *
+ * Opening a title asks for its page three times over — once for the details, once for the
+ * chapters, and once more for the nonce the chapter walk needs — and these run to two
+ * hundred kilobytes each. Holding one briefly turns that into a single read.
+ */
+export const PAGE_CACHE_MS = 30_000;
 
 /** The site marks a chapter it has locked; the tick of a padlock says so at a glance. */
 export const LOCK_MARK = "🔒";
@@ -109,14 +125,16 @@ export const SORT_OPTIONS: SortOption[] = [
 export const GENRE_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 export const PreferenceID = {
-  ShowLockedChapters: "show-locked-chapters",
+  HideLockedChapters: "hide-locked-chapters",
   SectionPrefix: "section",
 } as const;
 
 export const PREFERENCE_DEFAULTS = {
-  // Listed by default, marked with a padlock. The home page already advertises them that
-  // way, so hiding them here would mean tapping a chapter in and not finding it.
-  [PreferenceID.ShowLockedChapters]: true,
+  // Locked chapters are listed by default, marked with a padlock — the home page already
+  // advertises them that way, so leaving them out here would mean tapping one in and not
+  // finding it. The setting is worded as the thing being turned on for a reason: a toggle
+  // whose default is `false` reads back the same whether the stored value survives or not.
+  [PreferenceID.HideLockedChapters]: false,
   ...Object.fromEntries(DISCOVER_SECTIONS.map((section) => [`section-${section.id}`, true])),
 };
 

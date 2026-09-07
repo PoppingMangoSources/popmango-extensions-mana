@@ -45,6 +45,7 @@ import {
   DISCOVER_SECTIONS,
   FilterID,
   GENRE_LIFETIME_MS,
+  CHAPTERS_PER_PAGE,
   MAX_CHAPTER_PAGES,
   PREFERENCE_DEFAULTS,
   PreferenceID,
@@ -76,7 +77,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rinkocomics",
   name: "RinkoComics",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Comics from rinkocomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -250,20 +251,24 @@ class RinkoComicsSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [html, showLocked] = await Promise.all([
+    const [html, hideLocked] = await Promise.all([
       this.api.fetchPage(contentId),
-      this.preferences.flag(PreferenceID.ShowLockedChapters),
+      this.preferences.flag(PreferenceID.HideLockedChapters),
     ]);
 
     const rows = [...parseChapterRows(html), ...(await this.remainingChapters(html))];
-    return toChapters(rows, showLocked);
+    return toChapters(rows, hideLocked);
   }
 
   /**
    * The rest of the list, behind the theme's own load-more action.
    *
    * Each batch has to be asked for before the next offset is known, so these are sequential
-   * by necessity rather than by choice — hence the page cap.
+   * by necessity rather than by choice — hence the page cap. Asking for several at once
+   * would guess at offsets that may not exist, and this origin answers Cloudflare with a
+   * timeout under load often enough that spending requests on a guess is the wrong trade.
+   * What was actually costing time here was reading the same page three times over, which
+   * the client now holds instead.
    */
   private async remainingChapters(html: string): Promise<ChapterRow[]> {
     const { comicId, offset } = parseLoadMore(html);
@@ -271,7 +276,13 @@ class RinkoComicsSource
     if (!comicId || !nonce) return [];
 
     const rows: ChapterRow[] = [];
-    let next = offset ?? parseChapterRows(html).length;
+    const inline = parseChapterRows(html).length;
+
+    // The button states where the inline rows end, but it has been seen saying nothing, or
+    // saying more than the page actually holds. Either would start the walk past chapters
+    // that were never read, so it is only trusted as far as the page bears out.
+    const stated = offset ?? 0;
+    let next = stated > 0 && stated <= inline ? stated : inline;
 
     for (let page = 0; page < MAX_CHAPTER_PAGES; page++) {
       const fragment = await this.api
@@ -283,7 +294,10 @@ class RinkoComicsSource
       if (batch.length === 0) break;
 
       rows.push(...batch);
-      next += batch.length;
+      // The offset steps by the run the endpoint hands over, not by how many rows came
+      // back: a batch that parsed short would otherwise walk back over itself, and one
+      // that parsed long would step over chapters that were never asked for.
+      next += CHAPTERS_PER_PAGE;
     }
 
     return rows;

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import { buildClient, withQuery } from "../common/index.ts";
-import { AJAX_PATH, BASE_URL, SortID } from "./model.ts";
+import { AJAX_PATH, BASE_URL, PAGE_CACHE_MS, SortID } from "./model.ts";
 
 export type BrowseQuery = {
   page: number;
@@ -15,22 +15,51 @@ type AjaxResponse = { success?: boolean; data?: { html?: string | null } | null 
 
 export class RinkoComicsApi {
   private client: NetworkClient | undefined;
-  // The four home rows all read the same document; identical calls in flight share one
-  // response, so opening the page costs a single request rather than four.
   private readonly inFlight = new Map<string, Promise<string>>();
+  /**
+   * Pages already read, held briefly.
+   *
+   * Sharing a request that is in flight only helps callers that overlap, and the ones here
+   * mostly do not: the app asks for a title's details and then its chapters, and the
+   * chapter walk needs that same page again for the nonce. Each of those is a whole
+   * rendered page — the detail pages run to two hundred kilobytes — so without this the
+   * site is asked for the same document three times over.
+   */
+  private readonly pages = new Map<string, { at: number; body: string }>();
 
   private get http(): NetworkClient {
-    this.client ??= buildClient({ baseUrl: BASE_URL, requests: 3, interval: 1 });
+    this.client ??= buildClient({
+      baseUrl: BASE_URL,
+      requests: 3,
+      interval: 1,
+      // The origin sits behind Cloudflare and has been seen timing out under load. Letting
+      // a 5xx reach the source is what allows that to be reported as what it is rather
+      // than as a bare "request failed"; everything else is left to the host to reject.
+      statusValidator: (status) =>
+        (status >= 200 && status < 400) || (status >= 500 && status < 600),
+    });
     return this.client;
   }
 
   private get(url: string): Promise<string> {
+    const cached = this.pages.get(url);
+    if (cached && Date.now() - cached.at < PAGE_CACHE_MS) return Promise.resolve(cached.body);
+
     const running = this.inFlight.get(url);
     if (running) return running;
 
     const request = this.http
       .get(url)
-      .then((response) => response.data ?? "")
+      .then((response) => {
+        if (response.status >= 500) {
+          throw new Error(
+            `RinkoComics' server did not answer (HTTP ${response.status}). The site is up but its origin is not responding — try again in a few minutes.`,
+          );
+        }
+        const body = response.data ?? "";
+        this.pages.set(url, { at: Date.now(), body });
+        return body;
+      })
       .finally(() => {
         if (this.inFlight.get(url) === request) this.inFlight.delete(url);
       });

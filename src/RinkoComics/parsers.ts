@@ -460,11 +460,11 @@ function chapterNumberOf(name: string): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
-export function toChapters(rows: readonly ChapterRow[], showLocked: boolean): Chapter[] {
+export function toChapters(rows: readonly ChapterRow[], hideLocked: boolean): Chapter[] {
   const seen = new Set<string>();
   const parsed = rows
     .filter((row) => {
-      if (!showLocked && row.locked) return false;
+      if (hideLocked && row.locked) return false;
       if (seen.has(row.id)) return false;
       seen.add(row.id);
       return true;
