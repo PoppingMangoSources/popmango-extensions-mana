@@ -2,7 +2,29 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## RinkoComics (current: v1.0.0)
+## RinkoComics (current: v1.0.1)
+
+### Fixed
+
+- Featured and Hot This Week were the same titles in the same order — the site's own slider
+  repeats the run it ranks, so the page carried one query twice. Hot This Week now leads as
+  the hero and the slider has no row of its own.
+
+### Changed
+
+- The home page is laid out the way the other sources here lay theirs out: a hero for the
+  set the site is pushing, a plain strip of covers for its pinned picks, and a grouped
+  vertical list for new chapters.
+- Latest Releases lists each title's recent chapters as rows of their own, every one
+  against the time it landed, rather than crushing the newest onto a single line. That is
+  what the row is for, and the site prints several per card.
+- A chapter the site has held back carries a padlock rather than the word "locked", both in
+  that row and in the chapter list, which reads at a glance down a long list.
+- Locked chapters are listed by default. The home page advertises them that way, so leaving
+  them out of the chapter list meant tapping one in and not finding it. Turning them off is
+  still a setting.
+
+## RinkoComics (v1.0.0)
 
 ### Added
 
