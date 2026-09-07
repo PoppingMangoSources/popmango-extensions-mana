@@ -1,0 +1,55 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # A weekly sweep catches a query newly added to the pack, not just a new commit.
+  schedule:
+    - cron: "20 15 * * 6"
+
+# A branch pushed twice in a minute only needs its newest commit analysed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Writing the findings back to the Security tab is the whole point.
+      security-events: write
+      contents: read
+      packages: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          # The one that earns its place here. Every workflow in this repository
+          # interpolates something — a dispatch input, a base branch name — and a value
+          # pasted into a `run:` block is shell rather than a string. Both of those have
+          # already been shipped and fixed by hand once; this is what stops the third.
+          - actions
+          # The sources run in a sandboxed V8 with no filesystem and no processes, so the
+          # findings worth having are in `scripts/` and in the parsers' own regexes.
+          - javascript-typescript
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          # Nothing here is compiled: `mana-dev` bundles with esbuild and the analysis
+          # reads the source tree as it stands.
+          build-mode: none
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

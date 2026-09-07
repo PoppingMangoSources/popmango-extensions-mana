@@ -28,7 +28,9 @@ import {
 import {
   BASE_URL,
   CHAPTER_SELECTOR,
+  LATEST_CHAPTERS_SHOWN,
   LOAD_MORE_SELECTOR,
+  LOCK_MARK,
   LOCK_SUFFIX,
   SectionID,
   type Card,
@@ -107,6 +109,7 @@ function parseCards(
       title,
       cover: absoluteImage(card.find(selectors.cover).first(), BASE_URL),
       genres: cardGenres($, card),
+      chapters: [],
     };
     enrich?.(card, entry);
     cards.push(entry);
@@ -115,23 +118,36 @@ function parseCards(
   return cards;
 }
 
-/** The site's own chapter link on a "latest" card, skipping any it has locked. */
-function latestChapter($: CheerioAPI, card: Cheerio<AnyNode>, into: Card): void {
+/**
+ * The recent chapters a "latest" card lists, locked ones included.
+ *
+ * The site prints several per card and they are what the row is for, so all of them are
+ * kept rather than just the newest readable one — a locked chapter still says what has
+ * landed and when the free run will reach it.
+ */
+function latestChapters($: CheerioAPI, card: Cheerio<AnyNode>, into: Card): void {
   const badge = firstText(card, ".chapter-badge");
   if (badge) into.chapterCount = badge;
 
-  const rows = card.find("a.chapter-item").toArray();
-  for (const node of rows) {
+  for (const node of card.find("a.chapter-item").toArray()) {
+    if (into.chapters.length >= LATEST_CHAPTERS_SHOWN) break;
+
     const row = $(node);
     const href = row.attr("href") ?? "";
-    if (!href.includes("/chapter/") || isLockedRow($, row, href)) continue;
+    if (!href.includes("/chapter/")) continue;
 
-    into.chapter = firstText(row, "label") || decodeEntities(text(row));
+    const label = firstText(row, "label") || decodeEntities(text(row));
+    if (!label) continue;
+
     // The stamp is written as a bare span beside the label, in the site's relative wording.
     const stamp = firstText(row, ".chapter-date, time, span");
-    const date = stamp ? parseDate(stamp) : undefined;
-    if (date) into.uploaded = date;
-    return;
+    const uploaded = stamp ? parseDate(stamp) : undefined;
+
+    into.chapters.push({
+      label,
+      ...(uploaded ? { uploaded } : {}),
+      locked: isLockedRow($, row, href),
+    });
   }
 }
 
@@ -139,14 +155,6 @@ export function parseHomeSection(html: string, sectionId: string): Card[] {
   const $ = load(html);
 
   switch (sectionId) {
-    case SectionID.Featured:
-      return parseCards($, {
-        card: ".hero-slider .slide",
-        link: "a",
-        title: ".comic-title",
-        cover: "img",
-      });
-
     case SectionID.Hot:
       return parseCards(
         $,
@@ -193,7 +201,7 @@ export function parseHomeSection(html: string, sectionId: string): Card[] {
           title: ".comic-card__title",
           cover: ".comic-card__cover img",
         },
-        (card, into) => latestChapter($, card, into),
+        (card, into) => latestChapters($, card, into),
       );
 
     default:
@@ -235,36 +243,29 @@ export function parseGenres(html: string): Option[] {
 /**
  * What a tile writes under its title. No symbols here — a glyph belongs on a labelled row,
  * where the key says what it stands for.
+ *
+ * Latest Releases says nothing on this line: its chapters are rows of their own beneath it,
+ * and repeating the newest one here would print it twice.
  */
 function buildSubtitle(card: Card, sectionId: string): string {
-  switch (sectionId) {
-    case SectionID.Latest:
-      return [card.chapter, card.uploaded ? relativeTime(card.uploaded) : ""]
-        .filter(Boolean)
-        .join(" • ");
-    case SectionID.Pinned:
-      return card.chapterCount ?? card.genres.slice(0, 2).join(", ");
-    default:
-      // Featured and Hot both lead with what the series is about.
-      return card.genres.slice(0, 3).join(", ");
-  }
+  if (sectionId === SectionID.Latest) return "";
+  return card.genres.slice(0, 3).join(", ");
 }
 
 /**
- * The rows a vertical list draws beneath a title. Only Hot This Week is one, and it is the
- * only row the site gives numbers for, so nothing else builds these.
+ * The chapter rows a vertical list draws beneath a title — the site's own recent releases,
+ * each against the time it landed, with a padlock on the ones it has held back.
  */
 function buildInfoRows(card: Card): Pair[] {
-  const rows: Pair[] = [];
-  if (card.rank) rows.push({ key: "Rank", value: `#${card.rank}` });
-  if (card.views) rows.push({ key: "Views", value: `⏯︎ ${card.views}` });
-  if (card.chapterCount) rows.push({ key: "Chapters", value: card.chapterCount });
-  return rows;
+  return card.chapters.map((chapter) => ({
+    key: chapter.locked ? `${LOCK_MARK} ${chapter.label}` : chapter.label,
+    value: chapter.uploaded ? relativeTime(chapter.uploaded) : "",
+  }));
 }
 
 export function toHighlight(card: Card, sectionId: string): Highlight {
   const subtitle = buildSubtitle(card, sectionId);
-  const info = sectionId === SectionID.Hot ? buildInfoRows(card) : [];
+  const info = sectionId === SectionID.Latest ? buildInfoRows(card) : [];
 
   return {
     id: card.id,
@@ -450,8 +451,9 @@ export function toChapters(rows: readonly ChapterRow[], showLocked: boolean): Ch
         number: stated ?? 0,
         index: 0,
         // The app prints this verbatim, so the site's own wording is passed through with
-        // its numbering intact. A locked row says so rather than failing when opened.
-        title: `${label}${row.locked ? " (Locked)" : ""}`,
+        // its numbering intact. A padlock in front says the row is held back, which reads
+        // at a glance down a long list where a trailing word does not.
+        title: `${row.locked ? `${LOCK_MARK} ` : ""}${label}`,
         date: row.date ?? new Date(0),
         language: DefinedLanguages.ENGLISH,
         webUrl: contentUrl(chapterPath(row.id)),

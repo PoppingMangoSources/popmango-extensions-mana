@@ -12,7 +12,7 @@ export function buildSettingsSections(): PreferenceSection[] {
     {
       header: "Chapters",
       footer:
-        "Locked chapters unlock on the website. Listed here they are marked and cannot be opened, but they show what is ahead and when the free run catches up.",
+        "Locked chapters unlock on the website. Listed here they carry a padlock and cannot be opened, but they show what is ahead and when the free run catches up. Turn this off to leave them out.",
       fields: [
         {
           type: "toggle",

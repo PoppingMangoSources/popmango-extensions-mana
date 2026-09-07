@@ -25,54 +25,52 @@ export const LOAD_MORE_SELECTOR = "[data-comic-id]";
 export const MAX_CHAPTER_PAGES = 60;
 
 export const SectionID = {
-  Featured: "featured",
   Hot: "hot",
   Pinned: "pinned",
   Latest: "latest",
 } as const;
 
+/** How many of a title's newest chapters a Latest Releases row lists beneath it. */
+export const LATEST_CHAPTERS_SHOWN = 3;
+
+/** The site marks a chapter it has locked; the tick of a padlock says so at a glance. */
+export const LOCK_MARK = "🔒";
+
 /**
  * The home page, in the site's own order and under its own names.
  *
  * Every row is read out of one document — the site builds its whole front page server-side
- * — so the four together cost a single request rather than one each.
+ * — so all three together cost a single request rather than one each.
  *
- * The shapes are chosen for what each row actually knows. Featured is a hand-drawn slider
- * and carries nothing but artwork and genres, so it takes the biggest slot. Hot This Week
- * is the only row with numbers behind it, and a vertical list is the one style the app
- * draws `Highlight.info` in, so its rank, views and chapter count get rows of their own and
- * it reads as the chart it is. Editor's Choice is a browsing shelf. Latest Releases carries
- * a chapter and a time, which fit on one line under a cover.
+ * The shapes follow the other sources here, which all lay a front page out the same way: a
+ * hero for the set the site is pushing, a plain strip for a shelf of picks, and a grouped
+ * vertical list for new chapters, that last being the one style the app draws
+ * `Highlight.info` in. Hot This Week takes the hero because it is what the site ranks and
+ * what its own slider repeats — the slider is the same titles in the same order, so giving
+ * it a row of its own would put one query on the page twice.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
-    id: SectionID.Featured,
-    title: "Featured",
-    subtitle: "The site's own picks",
+    id: SectionID.Hot,
+    title: "Hot This Week",
+    subtitle: "Most read over the last seven days",
     style: SectionStyle.SimpleHeroPaged,
     // Each of these is a fixed set the site assembles for its front page. None has a
     // longer listing behind it, so there is nothing for a "view more" to open.
     viewMore: false,
   },
   {
-    id: SectionID.Hot,
-    title: "Hot This Week",
-    subtitle: "Most read over the last seven days",
-    style: SectionStyle.DetailedVerticalListGrouped,
-    viewMore: false,
-  },
-  {
     id: SectionID.Pinned,
     title: "Editor's Choice",
     subtitle: "Pinned by the site",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
   {
     id: SectionID.Latest,
     title: "Latest Releases",
-    subtitle: "Fresh chapters",
-    style: SectionStyle.DetailedSingleRowPaged,
+    subtitle: "Fresh chapters as they land",
+    style: SectionStyle.DetailedVerticalListGrouped,
     viewMore: false,
   },
 ];
@@ -105,8 +103,17 @@ export const PreferenceID = {
 } as const;
 
 export const PREFERENCE_DEFAULTS = {
-  [PreferenceID.ShowLockedChapters]: false,
+  // Listed by default, marked with a padlock. The home page already advertises them that
+  // way, so hiding them here would mean tapping a chapter in and not finding it.
+  [PreferenceID.ShowLockedChapters]: true,
   ...Object.fromEntries(DISCOVER_SECTIONS.map((section) => [`section-${section.id}`, true])),
+};
+
+/** One of the recent chapters a Latest Releases card lists under its title. */
+export type CardChapter = {
+  label: string;
+  uploaded?: Date;
+  locked: boolean;
 };
 
 /** A card as the front page draws it, before it becomes a tile. */
@@ -119,9 +126,8 @@ export type Card = {
   rank?: string;
   views?: string;
   chapterCount?: string;
-  /** The newest chapter a "latest" card links to, and when it landed. */
-  chapter?: string;
-  uploaded?: Date;
+  /** What a "latest" card lists beneath the title: the newest chapters, newest first. */
+  chapters: CardChapter[];
 };
 
 export type ChapterRow = {
