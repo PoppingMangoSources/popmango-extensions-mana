@@ -9,6 +9,7 @@ import {
   type Content,
   type Highlight,
   type Pair,
+  type Provider,
   type Tag,
 } from "@mana-app/types";
 
@@ -275,6 +276,22 @@ export function definedLanguage(code: string): DefinedLanguages {
 /** A name the site already wrote a number into is used as it stands. */
 const NUMBERED = /(?:\bch(?:\.|apter)?|\bep(?:\.|isode)?)\s*\d/i;
 
+/**
+ * Who put the chapter up: the site's own word for the release, official or otherwise.
+ *
+ * The tick marks an official upload, the way the Kagane source here does. It earns its
+ * place on a list that shows several uploads of the same chapter side by side — which is
+ * the default — where the publisher's own release is the one most readers want.
+ */
+function parseProvider(type: string | null | undefined): Provider | undefined {
+  const raw = clean(type ?? "");
+  if (!raw) return undefined;
+
+  const id = raw.toLowerCase();
+  const name = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  return { id, name: id === "official" ? `${name} ✓` : name };
+}
+
 export type ChapterOptions = {
   /** Collapse the several uploads the site lists for one chapter down to a single row. */
   merge: boolean;
@@ -300,6 +317,8 @@ export function parseChapters(
     // is built here. A name the site already wrote a number into is used as it stands.
     const title = name ? (label && !NUMBERED.test(name) ? `${label} - ${name}` : name) : label;
 
+    const provider = parseProvider(item.type);
+
     return {
       chapterId: String(item.id),
       number: numbered ? value : 0,
@@ -308,6 +327,7 @@ export function parseChapters(
       date: parseTimestamp(item.createdAt) ?? new Date(0),
       language: definedLanguage(language),
       webUrl: undefined,
+      ...(provider ? { provider } : {}),
       numbered,
       official,
     };
