@@ -2,7 +2,17 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaFire (current: v1.0.4)
+## MangaFire (current: v1.0.5)
+
+### Fixed
+
+- A prologue sat at the top of the chapter list instead of at its start, and the app opened
+  chapter 1 rather than it. The site numbers a prologue 0, and that was read as "carries no
+  number of its own" — the mark that sends a side story or an extra above the main run so it
+  cannot be mistaken for the beginning. Chapter zero is the beginning, and is now left where
+  the site put it. A chapter the site really does leave unnumbered still sorts above the run.
+
+## MangaFire (v1.0.4)
 
 ### Added
 
@@ -75,7 +85,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.9)
+## StoneScape (current: v1.0.10)
+
+### Fixed
+
+- A chapter numbered 0 sat at the top of the list instead of at its start. Zero was read as
+  "carries no number of its own" — the mark that sends a side story above the main run so it
+  cannot be mistaken for the beginning — when it is the beginning. It is now left where the
+  site put it, and a chapter the site really does leave unnumbered still sorts above the run.
+
+## StoneScape (v1.0.9)
 
 ### Changed
 

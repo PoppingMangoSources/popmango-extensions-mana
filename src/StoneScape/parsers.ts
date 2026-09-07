@@ -346,14 +346,17 @@ export function parseChapters(
   const parsed = chapters
     .filter((chapter) => showLocked || !chapterIsLocked(chapter))
     .map((chapter) => {
-      const number = Number.parseFloat(chapter.chapterNumber);
+      const value = Number.parseFloat(chapter.chapterNumber);
+      // Whether the site gave a number at all, which is not the same as whether that
+      // number is zero: a prologue is numbered 0 and belongs ahead of chapter 1.
+      const numbered = Number.isFinite(value);
       const locked = chapterIsLocked(chapter);
       const name = decodeEntities(clean(chapter.title ?? ""));
       const label = `Chapter ${formatChapterNumber(chapter.chapterNumber)}`;
 
       return {
         chapterId: chapter.chapterId,
-        number: Number.isFinite(number) ? number : 0,
+        number: numbered ? value : 0,
         index: 0,
         // The app prints this verbatim and never joins the number onto it, so the label
         // is built here. A locked row says so rather than failing when it is opened.
@@ -361,13 +364,15 @@ export function parseChapters(
         date: parseTimestamp(chapter.releaseDate ?? chapter.createdAt) ?? new Date(0),
         language: DefinedLanguages.ENGLISH,
         webUrl: undefined,
+        numbered,
       };
     });
 
-  // A chapter the site left unnumbered would otherwise sort ahead of chapter 1 and become
-  // what the app opens first, so the extras are numbered above the main run in listed order.
+  // A chapter the site left unnumbered — a side story, an extra — would otherwise sit at 0
+  // and become what the app opens first, so those are numbered above the main run in listed
+  // order. A chapter the site numbered 0 is chapter zero and is left exactly where it is.
   const highest = parsed.reduce((max, chapter) => Math.max(max, chapter.number), 0);
-  const extras = parsed.filter((chapter) => chapter.number === 0);
+  const extras = parsed.filter((chapter) => !chapter.numbered);
   extras.forEach((chapter, position) => {
     chapter.number = highest + (extras.length - position);
   });
@@ -375,7 +380,7 @@ export function parseChapters(
   // index 0 must be the earliest chapter, or the app resumes partway through.
   return parsed
     .sort((left, right) => left.number - right.number)
-    .map((chapter, index) => ({ ...chapter, index }))
+    .map(({ numbered: _numbered, ...chapter }, index) => ({ ...chapter, index }))
     .reverse();
 }
 

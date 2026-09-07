@@ -306,9 +306,10 @@ export function parseChapters(
 ): Chapter[] {
   const parsed = (items ?? []).map((item) => {
     const value = Number(item.number);
-    // The site files a side story, an extra or an epilogue as number 0. That is "no number
-    // of its own", not chapter zero, and it decides both the label and the ordering below.
-    const numbered = Number.isFinite(value) && value > 0;
+    // Whether the site gave a number at all, which is not the same as whether that number
+    // is zero. The site numbers a prologue 0, and chapter zero comes before chapter 1 —
+    // treating it as unnumbered sorted it to the top of the list instead.
+    const numbered = item.number != null && Number.isFinite(value);
     const label = numbered ? `Chapter ${formatChapterNumber(value)}` : "";
     const name = decodeEntities(clean(item.name ?? ""));
     const official = (item.type ?? "").toLowerCase() === "official";
