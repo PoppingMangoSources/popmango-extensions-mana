@@ -2,7 +2,32 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## RinkoComics (current: v1.0.2)
+## RinkoComics (current: v1.0.3)
+
+### Fixed
+
+- The chapter list was slow and skipped chapters. Its rows were being read with a selector
+  that also matched the little chapter links on the front page's cards, so the walk counted
+  more rows than it had actually read and stepped past real chapters — then kept asking for
+  pages already behind it. It now reads only chapter rows and steps by the run the endpoint
+  hands over.
+- Hide Locked Chapters replaces Show Locked Chapters, and turning it on now sticks. The old
+  switch defaulted to on, which is exactly the case the store's saved-`false` problem broke;
+  worded this way round it reads back the same either way, and the shared fix covers the
+  rest.
+- A title's page is read once rather than three times over — once for its details, once for
+  its chapters and once more for the nonce the chapter walk needs, each of them a whole
+  rendered page.
+- An origin that does not answer says so. The site sits behind Cloudflare and has been seen
+  timing out under load; that arrived as a bare "request failed" with a chapter list stuck
+  on placeholders.
+
+### Changed
+
+- The hero carries the two numbers the site prints on a ranked card, the view count behind
+  the house mark for it.
+
+## RinkoComics (v1.0.2)
 
 ### Fixed
 
@@ -73,7 +98,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.0.5)
+## MangaFire (current: v1.0.6)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## MangaFire (v1.0.5)
 
 ### Fixed
 
@@ -156,7 +190,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.10)
+## StoneScape (current: v1.0.11)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## StoneScape (v1.0.10)
 
 ### Fixed
 
@@ -317,7 +360,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.6)
+## MangaUpdates (current: v1.0.7)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## MangaUpdates (v1.0.6)
 
 ### Fixed
 
@@ -393,7 +445,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.17)
+## XCOMIC (current: v1.0.18)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## XCOMIC (v1.0.17)
 
 ### Fixed
 
@@ -499,7 +560,16 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.9)
+## FlameComics (current: v1.0.10)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## FlameComics (v1.0.9)
 
 ### Fixed
 
@@ -541,7 +611,16 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.32)
+## Kagane (current: v1.0.33)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## Kagane (v1.0.32)
 
 ### Changed
 
@@ -838,7 +917,16 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.10)
+## Mangago (current: v1.0.11)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## Mangago (v1.0.10)
 
 ### Fixed
 

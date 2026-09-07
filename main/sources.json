@@ -5,7 +5,7 @@
     {
       "id": "flamecomics",
       "name": "FlameComics",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "description": "Manhwa, manhua and manga from flamecomics.xyz.",
       "website": "https://flamecomics.xyz",
       "rating": 0,
@@ -22,12 +22,12 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "377e5d97377e5d97377e5d97377e5d97377e5d97377e5d97377e5d97377e5d97"
+      "hash": "12d4ba3412d4ba3412d4ba3412d4ba3412d4ba3412d4ba3412d4ba3412d4ba34"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.0.32",
+      "version": "1.0.33",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
@@ -44,12 +44,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "20542ac320542ac320542ac320542ac320542ac320542ac320542ac320542ac3"
+      "hash": "4cf8caf84cf8caf84cf8caf84cf8caf84cf8caf84cf8caf84cf8caf84cf8caf8"
     },
     {
       "id": "mangafire",
       "name": "MangaFire",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "description": "Manga, manhwa and manhua from mangafire.to.",
       "website": "https://mangafire.to",
       "rating": 1,
@@ -70,12 +70,12 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 6298637,
-      "hash": "3240ba5e3240ba5e3240ba5e3240ba5e3240ba5e3240ba5e3240ba5e3240ba5e"
+      "hash": "15ed643515ed643515ed643515ed643515ed643515ed643515ed643515ed6435"
     },
     {
       "id": "mangaupdates",
       "name": "MangaUpdates",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "description": "Track your reading against mangaupdates.com.",
       "website": "https://www.mangaupdates.com",
       "rating": 1,
@@ -92,12 +92,12 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "0376fb2a0376fb2a0376fb2a0376fb2a0376fb2a0376fb2a0376fb2a0376fb2a"
+      "hash": "292f7715292f7715292f7715292f7715292f7715292f7715292f7715292f7715"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -114,12 +114,12 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "05ffc18005ffc18005ffc18005ffc18005ffc18005ffc18005ffc18005ffc180"
+      "hash": "6afe0df56afe0df56afe0df56afe0df56afe0df56afe0df56afe0df56afe0df5"
     },
     {
       "id": "rinkocomics",
       "name": "RinkoComics",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Comics from rinkocomics.com.",
       "website": "https://rinkocomics.com",
       "rating": 0,
@@ -136,12 +136,12 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "0e7a6d6d0e7a6d6d0e7a6d6d0e7a6d6d0e7a6d6d0e7a6d6d0e7a6d6d0e7a6d6d"
+      "hash": "278957d1278957d1278957d1278957d1278957d1278957d1278957d1278957d1"
     },
     {
       "id": "stonescape",
       "name": "StoneScape",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "description": "Manhwa, manhua and manga from stonescape.xyz.",
       "website": "https://stonescape.xyz",
       "rating": 1,
@@ -158,12 +158,12 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "74952a4074952a4074952a4074952a4074952a4074952a4074952a4074952a40"
+      "hash": "58324dda58324dda58324dda58324dda58324dda58324dda58324dda58324dda"
     },
     {
       "id": "xcomic",
       "name": "XCOMIC",
-      "version": "1.0.17",
+      "version": "1.0.18",
       "description": "Manga, manhwa, manhua and comics from xcomic.me.",
       "website": "https://xcomic.me",
       "rating": 2,
@@ -180,7 +180,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "518fbd5b518fbd5b518fbd5b518fbd5b518fbd5b518fbd5b518fbd5b518fbd5b"
+      "hash": "7e345dce7e345dce7e345dce7e345dce7e345dce7e345dce7e345dce7e345dce"
     }
   ]
 }
