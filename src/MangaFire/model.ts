@@ -45,7 +45,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.Trending,
     title: "Trending",
     subtitle: "Climbing today",
-    style: SectionStyle.DetailedTripleRowPaged,
+    style: SectionStyle.DetailedDoubleRowPaged,
     // The trending endpoint answers with one fixed run and takes no page, so there is no
     // longer list for a "view more" to open.
     viewMore: false,
@@ -54,13 +54,17 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.LatestUpdates,
     title: "Latest Updates",
     subtitle: "Fresh chapters",
-    style: SectionStyle.DetailedSingleRowPaged,
+    // The one style that draws `Highlight.info`, which is what carries the chapter and the
+    // time it landed as rows of their own rather than crammed onto one line.
+    style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
     id: SectionID.RecentlyAdded,
     title: "Recently Added",
     subtitle: "New to the site",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    // A plain strip of covers: what is new is the artwork, and there is no ranking or
+    // chapter to report under it.
+    style: SectionStyle.SimpleSingleRow,
   },
 ];
 
@@ -268,14 +272,28 @@ export const LANGUAGE_OPTIONS: Option[] = [
 /** The site's own rating vocabulary, in the order it grades them. */
 export const CONTENT_RATINGS = ["safe", "suggestive", "erotica", "pornographic"] as const;
 
+export const CONTENT_RATING_OPTIONS: Option[] = [
+  { id: "safe", title: "Safe" },
+  { id: "suggestive", title: "Suggestive" },
+  { id: "erotica", title: "Erotica" },
+  { id: "pornographic", title: "Pornographic" },
+];
+
 export const PreferenceID = {
+  ContentRatings: "content-ratings",
   Languages: "languages",
+  ShowVolumes: "show-volumes",
+  MergeChapters: "merge-chapters",
   OfficialFirst: "official-first",
   SectionPrefix: "section",
 } as const;
 
 export const PREFERENCE_DEFAULTS = {
+  // Empty means every grade, which is the site's own default and one fewer thing to sign.
+  [PreferenceID.ContentRatings]: [] as string[],
   [PreferenceID.Languages]: ["en"],
+  [PreferenceID.ShowVolumes]: false,
+  [PreferenceID.MergeChapters]: false,
   [PreferenceID.OfficialFirst]: true,
   ...Object.fromEntries(DISCOVER_SECTIONS.map((section) => [`section-${section.id}`, true])),
 };
@@ -328,6 +346,21 @@ export type ChapterItem = {
   type?: string | null;
   createdAt?: number | null;
 };
+
+/**
+ * The site also collects chapters into volumes, which is a different list rather than a
+ * different view of the same one — a volume opens as one long read of its own.
+ */
+export type VolumeItem = {
+  id: number;
+  number?: number | null;
+  name?: string | null;
+  chapterCount?: number | null;
+  language?: string | null;
+};
+
+/** A volume's pages come from an endpoint of its own, so its id is marked as it is stored. */
+export const VOLUME_PREFIX = "v";
 
 export type PagesResponse = { data?: { pages?: { url?: string | null }[] | null } | null };
 

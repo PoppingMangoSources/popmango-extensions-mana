@@ -21,6 +21,8 @@ import {
   type SubtitleStyle,
   type TitleDetails,
   type TitleItem,
+  type VolumeItem,
+  VOLUME_PREFIX,
 } from "./model.ts";
 
 export function titleUrl(hid: string): string {
@@ -138,25 +140,24 @@ function formatScore(rating: number | null | undefined): string {
 /**
  * What a tile puts under its title.
  *
- * None of the home rows is a vertical list, and only those render `Highlight.info`, so this
- * line is everything a tile gets to say. A listing carries the format, the last chapter and
- * when it landed — and, on the trending run, the place the site put it.
+ * This line carries no symbols. A glyph belongs on a labelled info row, where the key says
+ * what it stands for; on the line under a title it is a mark with nothing to read it
+ * against. Only `buildInfoRows` and the title page use them.
  */
 function buildSubtitle(item: TitleItem, style: SubtitleStyle): string {
   const chapter = formatChapterNumber(item.latestChapter);
   const chapterLabel = chapter ? `Chapter ${chapter}` : "";
   const kind = kindLabel(item.type);
-  const kindTag = kind ? `✎ ${kind}` : "";
   const updated = parseTimestamp(item.chapterUpdatedAt);
   const rank = item.rank != null && Number.isFinite(item.rank) && item.rank > 0 ? item.rank : 0;
 
   switch (style) {
     case "hero":
-      return [chapterLabel, kindTag].filter(Boolean).join(" | ");
+      return [chapterLabel, kind].filter(Boolean).join(" | ");
     // A ranked row says where the site put it; the same row on a title it did not rank
     // falls back to the format rather than showing an empty line.
     case "kind":
-      return [rank ? `#${rank}` : "", kindTag].filter(Boolean).join(" • ") || chapterLabel;
+      return [rank ? `#${rank}` : "", kind].filter(Boolean).join(" • ") || chapterLabel;
     case "updated":
       return [chapterLabel, updated ? relativeTime(updated) : ""].filter(Boolean).join(" • ");
     default:
@@ -164,14 +165,35 @@ function buildSubtitle(item: TitleItem, style: SubtitleStyle): string {
   }
 }
 
+/**
+ * The key/value rows a vertical list draws beneath a title, which is the only style that
+ * renders them — so they are built for that row alone rather than on every tile.
+ */
+function buildInfoRows(item: TitleItem): Pair[] {
+  const rows: Pair[] = [];
+
+  const chapter = formatChapterNumber(item.latestChapter);
+  if (chapter) rows.push({ key: "Latest", value: `Chapter ${chapter}` });
+
+  const updated = parseTimestamp(item.chapterUpdatedAt);
+  if (updated) rows.push({ key: "Updated", value: relativeTime(updated) });
+
+  const kind = kindLabel(item.type);
+  if (kind) rows.push({ key: "Type", value: `✎ ${kind}` });
+
+  return rows;
+}
+
 export function parseHighlight(item: TitleItem, style: SubtitleStyle = "chapter"): Highlight {
   const subtitle = buildSubtitle(item, style);
+  const info = style === "updated" ? buildInfoRows(item) : [];
 
   return {
     id: item.hid,
     title: decodeEntities(clean(item.title)),
     cover: coverUrl(item),
     ...(subtitle ? { subtitle } : {}),
+    ...(info.length === 0 ? {} : { info }),
     webUrl: titleUrl(item.hid),
   };
 }
@@ -253,10 +275,17 @@ export function definedLanguage(code: string): DefinedLanguages {
 /** A name the site already wrote a number into is used as it stands. */
 const NUMBERED = /(?:\bch(?:\.|apter)?|\bep(?:\.|isode)?)\s*\d/i;
 
+export type ChapterOptions = {
+  /** Collapse the several uploads the site lists for one chapter down to a single row. */
+  merge: boolean;
+  /** Which upload survives that merge. Meaningless when nothing is being merged. */
+  officialFirst: boolean;
+};
+
 export function parseChapters(
   items: readonly ChapterItem[] | null | undefined,
   language: string,
-  officialFirst: boolean,
+  options: ChapterOptions,
 ): Chapter[] {
   const parsed = (items ?? []).map((item) => {
     const value = Number(item.number);
@@ -284,21 +313,26 @@ export function parseChapters(
     };
   });
 
-  // The site lists several uploads of the same chapter. Keeping the official one where the
-  // reader asked for it means sorting that flag to the front before the run is deduplicated.
-  const preferred = officialFirst
-    ? [...parsed].sort((left, right) => Number(right.official) - Number(left.official))
-    : parsed;
+  // The site lists several uploads of one chapter, and by default every one of them is
+  // shown — a reader who wants a particular group's release can only pick it if it is
+  // there. Merging is what collapses them, and only then does a preference decide which
+  // upload survives: sorting that flag to the front puts it first in the pass below.
+  const preferred =
+    options.merge && options.officialFirst
+      ? [...parsed].sort((left, right) => Number(right.official) - Number(left.official))
+      : parsed;
 
   // Only a numbered chapter can be a duplicate of another. Every extra shares the number 0
   // without being the same chapter, so deduplicating those would keep just one of them.
   const seen = new Set<number>();
-  const unique = preferred.filter((chapter) => {
-    if (!chapter.numbered) return true;
-    if (seen.has(chapter.number)) return false;
-    seen.add(chapter.number);
-    return true;
-  });
+  const unique = !options.merge
+    ? preferred
+    : preferred.filter((chapter) => {
+        if (!chapter.numbered) return true;
+        if (seen.has(chapter.number)) return false;
+        seen.add(chapter.number);
+        return true;
+      });
 
   // A chapter the site left unnumbered would otherwise sort ahead of chapter 1 and become
   // what the app opens first, so the extras are numbered above the main run in listed order.
@@ -316,6 +350,50 @@ export function parseChapters(
       index,
     }))
     .reverse();
+}
+
+/**
+ * A volume read as one entry, for a reader who would rather have the bound release than
+ * the chapters it collects. Its pages come from an endpoint of its own, so the id is
+ * marked here and `chapterIsVolume` reads that mark back when the entry is opened.
+ */
+export function parseVolumes(
+  items: readonly VolumeItem[] | null | undefined,
+  language: string,
+): Chapter[] {
+  const parsed = (items ?? [])
+    .filter((item) => (item.language ?? "").toLowerCase() === language.toLowerCase())
+    .map((item) => {
+      const value = Number(item.number);
+      const number = Number.isFinite(value) && value > 0 ? value : 0;
+      const name = decodeEntities(clean(item.name ?? ""));
+      const label = `Vol. ${number || "?"}`;
+
+      return {
+        chapterId: `${VOLUME_PREFIX}:${item.id}`,
+        number,
+        index: 0,
+        title: name ? `${label} - ${name}` : label,
+        // The site publishes no date for a volume, and an invalid one renders broken.
+        date: new Date(0),
+        language: definedLanguage(language),
+        webUrl: undefined,
+      };
+    });
+
+  // index 0 must be the earliest volume, or the app resumes partway through.
+  return parsed
+    .sort((left, right) => left.number - right.number)
+    .map((volume, index) => ({ ...volume, index }))
+    .reverse();
+}
+
+export function chapterIsVolume(chapterId: string): boolean {
+  return chapterId.startsWith(`${VOLUME_PREFIX}:`);
+}
+
+export function volumeIdOf(chapterId: string): string {
+  return chapterId.slice(VOLUME_PREFIX.length + 1);
 }
 
 export function parsePages(response: PagesResponse): string[] {

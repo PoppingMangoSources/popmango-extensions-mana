@@ -69,13 +69,17 @@ import {
   type SubtitleStyle,
 } from "./model.ts";
 import {
+  chapterIsVolume,
   hidFromId,
   hidFromUrl,
   parseChapters,
   parseContent,
   parseHighlights,
   parsePages,
+  parseVolumes,
   titleUrl,
+  volumeIdOf,
+  type ChapterOptions,
 } from "./parsers.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 import type { QueryParam } from "./vrf.ts";
@@ -83,7 +87,7 @@ import type { QueryParam } from "./vrf.ts";
 const info: SourceInfo = {
   id: "mangafire",
   name: "MangaFire",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Manga, manhwa and manhua from mangafire.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -209,7 +213,7 @@ class MangaFireSource
     const response = await this.api.fetchTitles({
       page,
       order: SECTION_ORDERS[sectionID],
-      params: this.ratingParams(context),
+      params: await this.ratingParams(context),
     });
 
     return {
@@ -219,22 +223,33 @@ class MangaFireSource
   }
 
   /**
-   * The host's rating policy, pushed into the request rather than applied to what came back.
+   * Which grades to ask the site for, pushed into the request rather than applied to what
+   * came back.
    *
-   * The API grades every title itself, so asking for only the permitted grades gives full
+   * The API grades every title itself, so asking for only the wanted grades gives full
    * pages. Filtering the rows here instead would leave each one short and ragged, and a
    * listing carries no genres to grade it by in the first place.
+   *
+   * Two things narrow the set and both have to hold: the reader's own choice in Settings,
+   * and the host's policy for this request. Whichever is stricter wins, which is what
+   * taking the overlap does.
    */
-  private ratingParams(context: SourceContext | undefined): QueryParam[] {
-    const allowed = context?.allowedContentRatings;
-    if (!allowed || allowed.length === 0) return [];
+  private async ratingParams(context: SourceContext | undefined): Promise<QueryParam[]> {
+    const chosen = await this.preferences.strings(PreferenceID.ContentRatings);
 
-    const codes = allowed
+    const allowed = context?.allowedContentRatings ?? [];
+    const permitted = allowed
       .map((rating) => RATING_CODES[rating])
       .filter((code): code is string => code !== undefined);
 
-    // Every grade permitted is the same as stating no policy, and a shorter URL to sign.
-    if (codes.length === 0 || codes.length === CONTENT_RATINGS.length) return [];
+    const codes = CONTENT_RATINGS.filter(
+      (code) =>
+        (chosen.length === 0 || chosen.includes(code)) &&
+        (permitted.length === 0 || permitted.includes(code)),
+    );
+
+    // Every grade wanted is the same as stating no policy, and a shorter URL to sign.
+    if (codes.length === CONTENT_RATINGS.length) return [];
     return codes.map((code) => ["content_rating[]", code] as QueryParam);
   }
 
@@ -257,7 +272,7 @@ class MangaFireSource
     }
 
     const filters = new FilterReader(request);
-    const params: QueryParam[] = [...this.ratingParams(request.context)];
+    const params: QueryParam[] = [...(await this.ratingParams(request.context))];
 
     const genres = filters.excludable(FilterID.Genres);
     for (const genre of genres.included) params.push(["genres_in[]", genre]);
@@ -331,14 +346,24 @@ class MangaFireSource
 
   async getChapters(contentId: string): Promise<Chapter[]> {
     const hid = hidFromId(contentId);
-    const [languages, officialFirst] = await Promise.all([
+    const [languages, showVolumes, merge, officialFirst] = await Promise.all([
       this.preferences.strings(PreferenceID.Languages),
+      this.preferences.flag(PreferenceID.ShowVolumes),
+      this.preferences.flag(PreferenceID.MergeChapters),
       this.preferences.flag(PreferenceID.OfficialFirst),
     ]);
 
     const wanted = languages.length > 0 ? languages : ["en"];
+
+    if (showVolumes) {
+      const volumes = await this.volumes(hid, wanted);
+      // Not every title is published in volumes. Falling back to the chapters is what keeps
+      // the ones that are not from opening to an empty list.
+      if (volumes.length > 0) return volumes;
+    }
+
     const lists = await Promise.all(
-      wanted.map((language) => this.chaptersInLanguage(hid, language, officialFirst)),
+      wanted.map((language) => this.chaptersInLanguage(hid, language, { merge, officialFirst })),
     );
 
     // One language is already indexed. Two are each indexed from zero, so a merged list has
@@ -353,10 +378,24 @@ class MangaFireSource
       .reverse();
   }
 
+  /** The whole volume list arrives at once, so the reader's languages are picked out here. */
+  private async volumes(hid: string, languages: readonly string[]): Promise<Chapter[]> {
+    const response = await this.api.fetchVolumes(hid);
+    const lists = languages.map((language) => parseVolumes(response.items, language));
+
+    if (lists.length === 1) return lists[0] ?? [];
+
+    return lists
+      .flat()
+      .sort((left, right) => left.number - right.number)
+      .map((volume, index) => ({ ...volume, index }))
+      .reverse();
+  }
+
   private async chaptersInLanguage(
     hid: string,
     language: string,
-    officialFirst: boolean,
+    options: ChapterOptions,
   ): Promise<Chapter[]> {
     const items: ChapterItem[] = [];
 
@@ -375,15 +414,21 @@ class MangaFireSource
       for (const page of rest) items.push(...(page.items ?? []));
     }
 
-    return parseChapters(items, language, officialFirst);
+    return parseChapters(items, language, options);
   }
 
   async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
-    const pages = parsePages(await this.api.fetchPages(chapterId));
+    // A volume and a chapter are read from endpoints of their own, and which one this is
+    // was decided when the list was built.
+    const volume = chapterIsVolume(chapterId);
+    const response = volume
+      ? await this.api.fetchVolumePages(volumeIdOf(chapterId))
+      : await this.api.fetchPages(chapterId);
+    const pages = parsePages(response);
 
     if (pages.length === 0) {
       throw new Error(
-        "MangaFire returned no pages for this chapter. It may have been taken down, or be readable only on the website.",
+        `MangaFire returned no pages for this ${volume ? "volume" : "chapter"}. It may have been taken down, or be readable only on the website.`,
       );
     }
 

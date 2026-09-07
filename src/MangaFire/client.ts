@@ -14,6 +14,7 @@ import {
   type PagesResponse,
   type TagsResponse,
   type TitleItem,
+  type VolumeItem,
 } from "./model.ts";
 import { canonicalise, sign, type QueryParam } from "./vrf.ts";
 
@@ -197,8 +198,16 @@ export class MangaFireApi {
     );
   }
 
+  fetchVolumes(hid: string): Promise<ApiList<VolumeItem>> {
+    return this.get<ApiList<VolumeItem>>(this.url(`/titles/${hid}/volumes`));
+  }
+
   fetchPages(chapterId: string): Promise<PagesResponse> {
     return this.get<PagesResponse>(this.url(`/chapters/${chapterId}`));
+  }
+
+  fetchVolumePages(volumeId: string): Promise<PagesResponse> {
+    return this.get<PagesResponse>(this.url(`/volumes/${volumeId}`));
   }
 
   /** Names are searched as tags; an author filter has to become an id before it is used. */
