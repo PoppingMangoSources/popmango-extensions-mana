@@ -5,7 +5,7 @@
     {
       "id": "flamecomics",
       "name": "FlameComics",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "description": "Manhwa, manhua and manga from flamecomics.xyz.",
       "website": "https://flamecomics.xyz",
       "rating": 0,
@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5311e46f5311e46f5311e46f5311e46f5311e46f5311e46f5311e46f5311e46f"
+      "hash": "38dbf28838dbf28838dbf28838dbf28838dbf28838dbf28838dbf28838dbf288"
     },
     {
       "id": "kagane",
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "42d752db42d752db42d752db42d752db42d752db42d752db42d752db42d752db"
+      "hash": "6f5185a46f5185a46f5185a46f5185a46f5185a46f5185a46f5185a46f5185a4"
     },
     {
       "id": "mangafire",
@@ -70,7 +70,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 6298637,
-      "hash": "30eac2fe30eac2fe30eac2fe30eac2fe30eac2fe30eac2fe30eac2fe30eac2fe"
+      "hash": "5d64f5855d64f5855d64f5855d64f5855d64f5855d64f5855d64f5855d64f585"
     },
     {
       "id": "mangaupdates",
@@ -92,12 +92,12 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "66a2790666a2790666a2790666a2790666a2790666a2790666a2790666a27906"
+      "hash": "6ce3514e6ce3514e6ce3514e6ce3514e6ce3514e6ce3514e6ce3514e6ce3514e"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -114,7 +114,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "218f5019218f5019218f5019218f5019218f5019218f5019218f5019218f5019"
+      "hash": "765a0eb5765a0eb5765a0eb5765a0eb5765a0eb5765a0eb5765a0eb5765a0eb5"
     },
     {
       "id": "stonescape",
@@ -136,12 +136,12 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "283f58bc283f58bc283f58bc283f58bc283f58bc283f58bc283f58bc283f58bc"
+      "hash": "043ad725043ad725043ad725043ad725043ad725043ad725043ad725043ad725"
     },
     {
       "id": "xcomic",
       "name": "XCOMIC",
-      "version": "1.0.16",
+      "version": "1.0.17",
       "description": "Manga, manhwa, manhua and comics from xcomic.me.",
       "website": "https://xcomic.me",
       "rating": 2,
@@ -158,7 +158,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "30112d4030112d4030112d4030112d4030112d4030112d4030112d4030112d40"
+      "hash": "3e15f2b13e15f2b13e15f2b13e15f2b13e15f2b13e15f2b13e15f2b13e15f2b1"
     }
   ]
 }
