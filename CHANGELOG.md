@@ -2,6 +2,35 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## RinkoComics (current: v1.0.0)
+
+### Added
+
+- Initial release, reading rinkocomics.com.
+- Four home rows, in the site's own order and under its own names: Featured, Hot This Week,
+  Editor's Choice and Latest Releases. The site builds its whole front page server-side, so
+  all four are cut from one document — the home page costs a single request however many
+  rows are switched on.
+- Each row is shaped for what it actually knows. Featured is a slider carrying artwork and
+  genres, so it takes the hero slot. Hot This Week is the only row the site gives numbers
+  for, and it is a vertical list — the one style the app draws key/value rows in — so its
+  rank, views and chapter count each get a row and it reads as the chart it is. Editor's
+  Choice is a browsing shelf two deep, and Latest Releases a single strip carrying the
+  newest chapter and how long ago it landed.
+- Searching and browsing by the site's own parameters, with its genre list read off the
+  browse page and kept for a day, and its four sorts offered whole.
+- Chapters are walked past the first batch through the theme's own load-more action.
+- Locked chapters are hidden by default and can be shown from Settings, where they are
+  marked. Opening one explains that it unlocks on the website rather than failing bare.
+- Pasting a title link searches for that title, and a rinkocomics.com link opens in the app.
+
+### Notes
+
+- Comics only. The site publishes novels alongside them, and a novel chapter is prose where
+  a Mana chapter is a list of images — so a novel would list and then open to nothing. The
+  site's own Latest Novels row is left off for the same reason, and a novel chapter reached
+  by a link says what it is instead of showing a blank reader.
+
 ## MangaFire (current: v1.0.5)
 
 ### Fixed
