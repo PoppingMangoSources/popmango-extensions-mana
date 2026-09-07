@@ -2,7 +2,12 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaFire (current: v1.0.0)
+## MangaFire (current: v1.0.1)
+
+### Changed
+
+- The source carries the site's own mark instead of the stand-in it shipped with. A source
+  already installed keeps the icon it was added with, so this needs the update to land.
 
 ### Added
 
