@@ -2,7 +2,32 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## MangaFire (current: v1.0.1)
+## MangaFire (current: v1.0.2)
+
+### Changed
+
+- No row writes a symbol under a title any more. A glyph belongs on a labelled row, where
+  the key says what it stands for; on the line under a title it is a mark with nothing to
+  read it against. The format now reads plainly there, and the symbols stay on the title
+  page and on the rows Latest Updates draws.
+- Trending is two rows deep rather than three.
+- Latest Updates is a vertical list carrying the chapter and how long ago it landed as rows
+  of their own, which is the one style the app draws those in.
+- Recently Added is a plain single strip of covers. What is new about it is the artwork,
+  and it has no ranking or chapter to report underneath.
+
+### Added
+
+- Chapters can be read as the site's volume releases instead, from Settings. A title the
+  site publishes no volumes for falls back to its chapters rather than opening empty.
+- The several uploads the site lists for one chapter are all shown by default, so a
+  particular group's release can be picked. Merging them into one row is a setting, and
+  only then does preferring the official upload decide which one survives — earlier
+  releases merged always, with no way to see what had been dropped.
+- A content-rating setting of the source's own, alongside the app's. Both have to allow a
+  grade for it to be asked for, so whichever is stricter wins.
+
+## MangaFire (v1.0.1)
 
 ### Changed
 
