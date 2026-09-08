@@ -2,7 +2,25 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## RokariComics (current: v1.0.0)
+## RokariComics (current: v1.0.1)
+
+### Changed
+
+- The home page is reordered: the hero, then Popular Weekly, Popular All-Time and
+  Recommendation, with Latest Updates, Popular Today and Popular Monthly following in the
+  order they were in.
+- Every plain strip of covers now says the same thing under a title — the chapter the theme
+  prints on the card — so the line reads as one thing wherever it is met rather than as a
+  different measure per row.
+- The weekly chart says only where the site put it, `#1`, and gives the rest rows of its
+  own: its genres, then its latest chapter. No more than two genres are named; a third
+  wraps and crowds the tile out of its row.
+- A ranked row carries a chapter at last. The site's Popular widget prints a rank, a cover
+  and genres and no chapter at all, so the label is taken from elsewhere on the same page,
+  where the grid does print one — a lookup across a document already parsed, not a second
+  request. A title the rest of the page never mentions falls back to its genres.
+
+## RokariComics (v1.0.0)
 
 ### Added
 
@@ -38,7 +56,17 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.0)
+## ValirScans (current: v1.0.1)
+
+### Changed
+
+- Editors' Picks now sits above Latest Comic Updates.
+- Every plain strip of covers says the same two numbers the site grades a title by, in the
+  same order — `★ 8.4 • ⏯︎ 1.2M` — so the line reads as one thing wherever it is met
+  rather than as a different measure per row. A title graded neither way says what it is
+  instead of leaving the line empty.
+
+## ValirScans (v1.0.0)
 
 ### Added
 

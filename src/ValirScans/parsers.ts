@@ -190,15 +190,6 @@ function formatChapterNumber(value: number | null | undefined): string {
   return String(Number(value));
 }
 
-function genreNames(series: ValirSeries): string[] {
-  return (series.genres ?? [])
-    .map((entry: ValirGenre) => {
-      const genre = entry.genre ?? entry;
-      return cleanText(genre.name) || (genre.slug ? titleCase(genre.slug.replace(/-/g, " ")) : "");
-    })
-    .filter(Boolean);
-}
-
 // ========================= The pages =========================
 
 export function parseHome(html: string): HomeSections {
@@ -483,34 +474,29 @@ export function parseReader(html: string): ReaderContent {
 /**
  * What a tile writes under its title.
  *
- * This line carries no symbols anywhere but the hero. A glyph belongs on a labelled info
- * row, where the key says what it stands for; under a title it is a mark with nothing to
- * read it against. The hero is the exception because it draws no rows of its own, so the
- * numbers the site ranks it on have nowhere else to go.
+ * Every plain strip of covers says the same two numbers the site grades a title by, in the
+ * same order, so the line reads as one thing wherever it is met rather than as a different
+ * measure per row. The hero says them too, leading with what it was read.
  *
- * Each row says the thing its own ranking is about, so no two say the same thing down the
- * page: a chart leads with where the site put it, a today row with what it was read, a
- * shelf with what the series is, and a newest row with what it is about.
+ * The two rows that are not strips say something else: a chart leads with where the site
+ * put it, and a grouped list says nothing at all, because its chapters are rows of their
+ * own beneath the title and repeating the newest here would print it twice.
  */
 function buildSubtitle(series: ValirSeries, style: SubtitleStyle, rank: number): string {
   const kind = kindLabel(series);
   const views = compactCount(series.viewCount);
   const score = formatScore(series.rating);
+  const viewLabel = views ? `${VIEWS_MARK} ${views}` : "";
 
   switch (style) {
     case "hero":
-      return [views ? `${VIEWS_MARK} ${views}` : "", score].filter(Boolean).join(" • ") || kind;
+      return [viewLabel, score].filter(Boolean).join(" • ") || kind;
     case "rank":
       return [rank > 0 ? `#${rank}` : "", kind].filter(Boolean).join(" • ");
-    case "views":
-      return views ? `${views} views` : kind;
-    case "kind":
-      return [kind, statusLabel(series)].filter(Boolean).join(" • ");
-    case "genres":
-      // Two genres: a third wraps and pushes the tile out of its row.
-      return genreNames(series).slice(0, 2).join(", ") || kind;
-    // A grouped list writes its chapters as rows beneath the title, so repeating the
-    // newest one here would print it twice.
+    // A title the site has graded neither way falls back to what it is, rather than
+    // leaving the line empty.
+    case "stats":
+      return [score, viewLabel].filter(Boolean).join(" • ") || kind;
     default:
       return "";
   }

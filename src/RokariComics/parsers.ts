@@ -29,6 +29,7 @@ import {
 import {
   BASE_URL,
   DIRECTORY_PATH,
+  GENRES_SHOWN,
   LATEST_CHAPTERS_SHOWN,
   LOCK_MARK,
   LOCK_SUFFIX,
@@ -119,6 +120,7 @@ function parseFeatured($: CheerioAPI): Card[] {
       title,
       cover: absoluteImage(slide.find("img").first(), BASE_URL),
       ...(chapter ? { chapter: clean(chapter) } : {}),
+      genres: [],
       chapters: [],
     });
   });
@@ -146,6 +148,7 @@ function parseCardRow($: CheerioAPI, scope: Cheerio<AnyNode>, selector: string):
       title,
       cover: absoluteImage(card.find("img").first(), BASE_URL),
       ...(chapter ? { chapter } : {}),
+      genres: [],
       chapters: [],
     });
   });
@@ -191,6 +194,7 @@ function parseLatest($: CheerioAPI): Card[] {
         title,
         cover: absoluteImage(card.find("img").first(), BASE_URL),
         ...(chapters[0] ? { chapter: chapters[0].label } : {}),
+        genres: [],
         chapters: chapters.slice(0, LATEST_CHAPTERS_SHOWN),
       });
     });
@@ -214,13 +218,16 @@ function parseRanking($: CheerioAPI, range: string): Card[] {
     if (!id || !title || seen.has(id)) return;
     seen.add(id);
 
-    const genres = firstText(row, "div.leftseries span").replace(/^\s*genres?\s*:\s*/i, "");
+    const genres = firstText(row, "div.leftseries span")
+      .replace(/^\s*genres?\s*:\s*/i, "")
+      .split(/\s*,\s*/)
+      .filter(Boolean);
 
     cards.push({
       id,
       title,
       cover: absoluteImage(row.find("img").first(), BASE_URL),
-      ...(genres ? { genres } : {}),
+      genres,
       rank: position + 1,
       chapters: [],
     });
@@ -233,7 +240,7 @@ function parseRanking($: CheerioAPI, range: string): Card[] {
 export function parseHome(html: string): Record<string, Card[]> {
   const $ = load(html);
 
-  return {
+  const sections: Record<string, Card[]> = {
     [SectionID.Featured]: parseFeatured($),
     [SectionID.Latest]: parseLatest($),
     [SectionID.PopularToday]: parseCardRow($, $("div.popularslider"), "div.bsx"),
@@ -242,6 +249,35 @@ export function parseHome(html: string): Record<string, Card[]> {
     [SectionID.PopularMonthly]: parseRanking($, RANKING_RANGE[SectionID.PopularMonthly] ?? ""),
     [SectionID.PopularAllTime]: parseRanking($, RANKING_RANGE[SectionID.PopularAllTime] ?? ""),
   };
+
+  fillRankedChapters(sections);
+  return sections;
+}
+
+/**
+ * The chapter a ranked row does not print.
+ *
+ * The theme's Popular widget gives each entry a rank, a cover and its genres, and nothing
+ * else — no chapter. The rest of the same page does print one, though, and a title in the
+ * chart is usually somewhere in the grid as well, so the label is taken from there. It is
+ * a lookup across a document already parsed, not a second request: a chart row that must
+ * fetch each of its titles is the pattern this repository has rewritten most often.
+ */
+function fillRankedChapters(sections: Record<string, Card[]>): void {
+  const known = new Map<string, string>();
+  for (const id of [SectionID.Latest, SectionID.PopularToday, SectionID.Recommendation]) {
+    for (const card of sections[id] ?? []) {
+      if (card.chapter && !known.has(card.id)) known.set(card.id, card.chapter);
+    }
+  }
+  if (known.size === 0) return;
+
+  for (const id of [SectionID.PopularWeekly, SectionID.PopularMonthly, SectionID.PopularAllTime]) {
+    for (const card of sections[id] ?? []) {
+      const chapter = known.get(card.id);
+      if (chapter && !card.chapter) card.chapter = chapter;
+    }
+  }
 }
 
 // ========================= Browsing =========================
@@ -556,22 +592,23 @@ function sliceBalanced(source: string, start: number): string | undefined {
 /**
  * What a tile writes under its title.
  *
- * This line carries no symbols anywhere but the hero. A glyph belongs on a labelled info
- * row, where the key says what it stands for; under a title it is a mark with nothing to
- * read it against. The hero is the exception because it draws no rows of its own.
+ * Every plain strip of covers names the chapter the theme prints on the card, so the line
+ * reads as one thing wherever it is met. The detailed chart says only where the site put
+ * it — everything else it knows goes to rows of its own beneath — and a grouped list says
+ * nothing at all, its chapters being rows already.
+ *
+ * The line carries no symbols anywhere: a glyph belongs on a labelled row, where the key
+ * says what it stands for.
  */
 function buildSubtitle(card: Card, style: SubtitleStyle): string {
   switch (style) {
-    case "hero":
-      return card.chapter ?? "";
     case "rank":
-      // A ranked row leads with where the site put it, and says what the title is about
-      // rather than repeating a chapter number seven titles down the column.
-      return [card.rank ? `#${card.rank}` : "", card.genres ?? ""].filter(Boolean).join(" • ");
+      return card.rank ? `#${card.rank}` : "";
+    case "hero":
     case "chapter":
-      return card.chapter ?? "";
-    // A grouped list draws its chapters as rows beneath the title, so repeating the newest
-    // one here would print it twice.
+      // The Popular widget prints no chapter of its own, so a ranked title the rest of the
+      // page never mentions falls back to what it is about rather than to a blank line.
+      return card.chapter ?? card.genres.slice(0, GENRES_SHOWN).join(", ");
     default:
       return "";
   }
@@ -589,9 +626,10 @@ function buildInfoRows(card: Card, style: SubtitleStyle): Pair[] {
   if (style !== "rank") return [];
 
   const rows: Pair[] = [];
-  if (card.rank) rows.push({ key: "Rank", value: `#${card.rank}` });
-  if (card.genres) rows.push({ key: "Genres", value: card.genres });
-  if (card.chapter) rows.push({ key: "Latest", value: card.chapter });
+  // Two genres: a third wraps and pushes the tile out of its row.
+  const genres = card.genres.slice(0, GENRES_SHOWN).join(", ");
+  if (genres) rows.push({ key: "Genres", value: genres });
+  if (card.chapter) rows.push({ key: "Chapter", value: card.chapter });
   return rows;
 }
 

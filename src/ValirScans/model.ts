@@ -101,6 +101,13 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     viewMore: false,
   },
   {
+    id: SectionID.EditorsPicks,
+    title: "Editors' Picks",
+    subtitle: "Chosen by the site",
+    style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
+  },
+  {
     id: SectionID.LatestComics,
     title: "Latest Comic Updates",
     subtitle: "Fresh chapters as they land",
@@ -111,13 +118,6 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.PopularToday,
     title: "Popular Today",
     subtitle: "What is being read right now",
-    style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
-  },
-  {
-    id: SectionID.EditorsPicks,
-    title: "Editors' Picks",
-    subtitle: "Chosen by the site",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
@@ -134,12 +134,12 @@ export const SECTION_SUBTITLES: Record<string, SubtitleStyle> = {
   [SectionID.Featured]: "hero",
   [SectionID.MostPopular]: "rank",
   [SectionID.LatestComics]: "chapters",
-  [SectionID.PopularToday]: "views",
-  [SectionID.EditorsPicks]: "kind",
-  [SectionID.NewSeries]: "genres",
+  [SectionID.PopularToday]: "stats",
+  [SectionID.EditorsPicks]: "stats",
+  [SectionID.NewSeries]: "stats",
 };
 
-export type SubtitleStyle = "hero" | "rank" | "chapters" | "views" | "kind" | "genres";
+export type SubtitleStyle = "hero" | "rank" | "chapters" | "stats";
 
 export const FilterID = {
   Genres: "genres",

@@ -38,6 +38,9 @@ export const TAXONOMY_LIFETIME_MS = 24 * 60 * 60 * 1000;
 /** How many of a title's newest chapters a Latest Updates row lists beneath it. */
 export const LATEST_CHAPTERS_SHOWN = 3;
 
+/** How many genres a ranked row names. A third wraps and crowds the tile out of its row. */
+export const GENRES_SHOWN = 2;
+
 export const SectionID = {
   Featured: "featured",
   Latest: "latest-updates",
@@ -64,12 +67,12 @@ export const SECTION_SUBTITLES: Record<string, SubtitleStyle> = {
   [SectionID.PopularToday]: "chapter",
   [SectionID.Recommendation]: "chapter",
   [SectionID.PopularWeekly]: "rank",
-  [SectionID.PopularMonthly]: "rank",
-  [SectionID.PopularAllTime]: "rank",
+  [SectionID.PopularMonthly]: "chapter",
+  [SectionID.PopularAllTime]: "chapter",
 };
 
 /**
- * The home page, top to bottom as the site builds it, under its own names.
+ * The home page, under the site's own names.
  *
  * Every row is read out of one document — the theme renders its whole front page, sidebar
  * included — so all seven together cost a single request rather than one each.
@@ -91,6 +94,27 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     viewMore: false,
   },
   {
+    id: SectionID.PopularWeekly,
+    title: "Popular Weekly",
+    subtitle: "Most read over the last seven days",
+    style: SectionStyle.DetailedDoubleRowPaged,
+    viewMore: false,
+  },
+  {
+    id: SectionID.PopularAllTime,
+    title: "Popular All-Time",
+    subtitle: "The catalogue's best read, all time",
+    style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
+  },
+  {
+    id: SectionID.Recommendation,
+    title: "Recommendation",
+    subtitle: "The site's own picks",
+    style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
+  },
+  {
     id: SectionID.Latest,
     title: "Latest Updates",
     subtitle: "Fresh chapters as they land",
@@ -105,30 +129,9 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     viewMore: false,
   },
   {
-    id: SectionID.Recommendation,
-    title: "Recommendation",
-    subtitle: "The site's own picks",
-    style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
-  },
-  {
-    id: SectionID.PopularWeekly,
-    title: "Popular Weekly",
-    subtitle: "Most read over the last seven days",
-    style: SectionStyle.DetailedDoubleRowPaged,
-    viewMore: false,
-  },
-  {
     id: SectionID.PopularMonthly,
     title: "Popular Monthly",
     subtitle: "Most read over the last month",
-    style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
-  },
-  {
-    id: SectionID.PopularAllTime,
-    title: "Popular All-Time",
-    subtitle: "The catalogue's best read, all time",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
@@ -189,7 +192,7 @@ export type Card = {
   cover: string;
   /** The chapter label the theme prints on the card, already the site's own wording. */
   chapter?: string;
-  genres?: string;
+  genres: string[];
   /** The site's own position in a ranked row. */
   rank?: number;
   /** What a Latest Updates card lists beneath the title: newest chapters, newest first. */

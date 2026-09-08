@@ -91,7 +91,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.0.0",
+  version: "1.0.1",
   description: "Comics from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
@@ -304,10 +304,10 @@ class ValirScansSource
     if (!sectionById(DISCOVER_SECTIONS, sectionID)) return { items: [] };
 
     const allowed = link.context?.allowedContentRatings;
-    const style = SECTION_SUBTITLES[sectionID] ?? "kind";
+    const style = SECTION_SUBTITLES[sectionID] ?? "stats";
 
     if (sectionID === SectionID.NewSeries) {
-      const { results } = await this.browse({ page: 1, sort: SortID.Newest }, allowed, "genres");
+      const { results } = await this.browse({ page: 1, sort: SortID.Newest }, allowed);
       return { items: results };
     }
 
@@ -333,11 +333,10 @@ class ValirScansSource
   private async browse(
     query: BrowseQuery,
     allowed: readonly ContentRating[] | undefined,
-    style: "genres" | "kind" = "kind",
   ): Promise<PagedSearchResult> {
     const { series, hasMore } = parseBrowse(await this.api.fetchBrowse(query));
     return {
-      results: permitted(series, allowed).map((entry) => toHighlight(entry, style)),
+      results: permitted(series, allowed).map((entry) => toHighlight(entry, "stats")),
       // The site's own count decides where the list ends, so a page that lost a row to
       // the rating policy still runs on to the end rather than stopping short.
       isLastPage: !hasMore,
@@ -372,7 +371,7 @@ class ValirScansSource
 
     // The New Series row's "view more" opens the same listing it is cut from.
     if (request.listId === SectionID.NewSeries) {
-      return this.browse({ page: pageOf(request), sort: SortID.Newest }, allowed, "genres");
+      return this.browse({ page: pageOf(request), sort: SortID.Newest }, allowed);
     }
 
     const filters = new FilterReader(request);
