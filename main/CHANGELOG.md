@@ -2,7 +2,19 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.4)
+## Mkissa (current: v1.0.5)
+
+### Fixed
+
+- Chapters opened to an error saying the site had returned no pages. The reader's check for
+  the site having loaded looked for a framework the site does not use, so the wait could
+  never end. It now looks for what the site actually ships, and asks the host the site's own
+  reader asks.
+- The rows beneath a title on a popular tile were losing the score to the pill over the
+  cover. Those tiles draw no pill, so the score now leads their rows as well as the line
+  under the title.
+
+## Mkissa (v1.0.4)
 
 ### Fixed
 
@@ -64,7 +76,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
 - Settings for image quality and adult content.
 
-## RokariComics (current: v1.0.2)
+## RokariComics (current: v1.0.3)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+## RokariComics (v1.0.2)
 
 ### Changed
 
@@ -126,7 +147,22 @@ First release. Manga, manhwa and manhua from mkissa.to:
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.4)
+## ValirScans (current: v1.0.5)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## ValirScans (v1.0.4)
 
 ### Changed
 
@@ -199,7 +235,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.0.4)
+## RinkoComics (current: v1.0.5)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+## RinkoComics (v1.0.4)
 
 ### Changed
 
@@ -303,7 +348,22 @@ First release. Manga, manhwa and manhua from mkissa.to:
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.0.7)
+## MangaFire (current: v1.0.8)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## MangaFire (v1.0.7)
 
 ### Changed
 
@@ -404,7 +464,22 @@ First release. Manga, manhwa and manhua from mkissa.to:
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.14)
+## StoneScape (current: v1.0.15)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## StoneScape (v1.0.14)
 
 ### Changed
 
@@ -601,7 +676,22 @@ First release. Manga, manhwa and manhua from mkissa.to:
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.9)
+## MangaUpdates (current: v1.0.10)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## MangaUpdates (v1.0.9)
 
 ### Changed
 
@@ -704,7 +794,22 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.21)
+## XCOMIC (current: v1.0.22)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## XCOMIC (v1.0.21)
 
 ### Changed
 
@@ -846,7 +951,22 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.12)
+## FlameComics (current: v1.0.13)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## FlameComics (v1.0.12)
 
 ### Changed
 
@@ -914,7 +1034,22 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.35)
+## Kagane (current: v1.0.36)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## Kagane (v1.0.35)
 
 ### Changed
 
