@@ -2,7 +2,20 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.9)
+## Mkissa (current: v1.0.10)
+
+### Fixed
+
+- Chapters still opened on an error. The reader was listening for the site's own request for
+  its page list, which cannot work here: the site's first inline script pins a pristine
+  `JSON.parse` taken from an iframe realm and parses through that, expressly so a hook
+  installed afterwards sees nothing — and this app can only run a function after a page's own
+  scripts, never before them. The reader now makes the request itself from inside the site's
+  page, which is all the WebView was ever needed for, and reads the answer back by polling.
+- A reader that fails now says why — the status the API gave, or the page's own refusal —
+  instead of guessing at a slow connection.
+
+## Mkissa (v1.0.9)
 
 ### Fixed
 
