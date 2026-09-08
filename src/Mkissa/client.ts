@@ -46,7 +46,7 @@ export class MkissaApi {
   private async runGraphQL<T>(query: string, variables: Record<string, unknown>): Promise<T> {
     const response = await this.http.post(API_URL, {
       body: { query, variables },
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: { "content-type": "application/json" },
     });
 
     if (response.status >= 400) {

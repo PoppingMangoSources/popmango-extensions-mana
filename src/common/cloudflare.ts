@@ -14,8 +14,15 @@ const POLL_INTERVAL_MS = 25;
 // Two, so a request that raced the clearance cookie being written still gets a turn.
 const RETRY_ATTEMPTS = 2;
 
-/** Most of these sites are Next.js apps, so their own bundle is the proof of a real page. */
-const SITE_LOADED = 'script[src*="/_next/"], script[src*="/dist/"], script[src*="/static/"]';
+/**
+ * A site's own bundle is the proof of a real page, so this names how each stack ships one.
+ *
+ * The last entry is SvelteKit, which starts itself from a dynamic `import()` inside an
+ * inline script and so carries no `<script src>` at all — its preloaded stylesheets are the
+ * only tag a selector can reach. A challenge interstitial serves none of these.
+ */
+const SITE_LOADED =
+  'script[src*="/_next/"], script[src*="/dist/"], script[src*="/static/"], link[href*="/_app/immutable/"]';
 
 /**
  * Classifies the loaded page as the site itself, a challenge that will need a person, a

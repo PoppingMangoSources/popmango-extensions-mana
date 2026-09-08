@@ -66,6 +66,21 @@ function asArray(value) {
 }
 
 /**
+ * Serialises a request body the way the app's own host does.
+ *
+ * Sources pass a POST body as an object and the host encodes it as JSON — Node's `fetch`
+ * instead stringifies it to `[object Object]`, which every JSON API answers with a 400. That
+ * made this harness report a source's own bug for anything posting a body, so it is encoded
+ * here rather than left to the default.
+ */
+function encodeBody(body) {
+  if (body == null || typeof body === "string") return body ?? undefined;
+  if (body instanceof URLSearchParams || body instanceof ArrayBuffer) return body;
+  if (ArrayBuffer.isView(body)) return body;
+  return JSON.stringify(body);
+}
+
+/**
  * Reads the private fields `NetworkClientBuilder` sets. The builder ships in
  * `@mana-app/types` and calls `new NetworkClient(this)`, so the field names
  * here are the actual contract, not a guess.
@@ -120,7 +135,7 @@ export class NetworkClient {
       raw = await fetch(target, {
         method: prepared.method ?? "GET",
         headers,
-        body: prepared.body,
+        body: encodeBody(prepared.body),
         redirect: "follow",
         signal: controller.signal,
       });
