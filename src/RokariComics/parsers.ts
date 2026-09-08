@@ -652,8 +652,8 @@ function buildInfoRows(card: Card, style: SubtitleStyle): Pair[] {
 export function toHighlight(card: Card, style: SubtitleStyle): Highlight {
   const subtitle = buildSubtitle(card, style);
   const info = buildInfoRows(card, style);
-  // The score is the pill over the cover rather than a line under the title: the app draws
-  // it on every shape of tile, so it is said once and in the same place everywhere.
+  // The pill takes the score the theme prints in a card's corner. The cards here carry no
+  // count, no type and no status, so a card without a score simply wears no pill.
   const badge = toBadge(card.score);
 
   return {

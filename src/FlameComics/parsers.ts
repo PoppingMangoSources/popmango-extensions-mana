@@ -16,7 +16,7 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, relativeTime, summaryFromHtml } from "../common/index.ts";
+import { clean, firstFilled, relativeTime, summaryFromHtml, toBadge } from "../common/index.ts";
 import {
   BASE_URL,
   CDN_URL,
@@ -103,7 +103,15 @@ export function parseHighlight(
   const categories = categoriesOf(item);
   const latest = item.chapters?.[0];
 
-  // Every listing carries the status and the like count the site shows as a heart.
+  // The pill falls through the house order. The site grades nothing, so what it counts —
+  // the likes it shows as a heart — comes first, then what the title is, then where it has
+  // got to. Whatever the pill takes is left out of the lines below it.
+  const likes = item.likes == null ? "" : `♥ ${item.likes}`;
+  const kind = clean(item.type ?? "");
+  const state = clean(item.status ?? "");
+  const taken = firstFilled(likes, kind ? `♤ ${kind}` : "", state ? `◌ ${state}` : "");
+  const badge = toBadge(taken);
+
   const info: Pair[] = [];
   if (latest) {
     info.push({
@@ -111,12 +119,14 @@ export function parseHighlight(
       value: relativeTime(new Date(latest.release_date * 1000)),
     });
   }
-  if (item.status) info.push({ key: "Status", value: item.status });
-  if (item.likes != null) info.push({ key: "Likes", value: `♥ ${item.likes}` });
+  if (state && !taken.endsWith(state)) info.push({ key: "Status", value: state });
+  if (likes && likes !== taken) info.push({ key: "Likes", value: likes });
 
   const subtitle =
     style === "stats"
-      ? [item.type, item.likes == null ? "" : `♥ ${item.likes}`].filter(Boolean).join(" | ")
+      ? kind && taken.endsWith(kind)
+        ? ""
+        : kind
       : style === "chapter" && latest
         ? `Chapter ${formatChapterNumber(latest.chapter)}`
         : "";
@@ -126,6 +136,7 @@ export function parseHighlight(
     title: clean(item.title),
     cover: buildCoverUrl(item),
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length > 0 ? { info } : {}),
     contentRating: parseRating(categories),
     webUrl: seriesUrl(item.series_id),

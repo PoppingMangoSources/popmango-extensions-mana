@@ -504,8 +504,12 @@ function buildSubtitle(
     // A title whose reading the pill is already showing, or that the site has counted none
     // for, falls back to what it is rather than leaving the line empty.
     case "hero":
-    case "stats":
-      return (taken === viewLabel ? "" : viewLabel) || kind;
+    case "stats": {
+      const counted = taken === viewLabel ? "" : viewLabel;
+      // The pill may already be showing the type, in which case the line says nothing
+      // rather than saying it twice.
+      return counted || (taken.endsWith(kind) && kind ? "" : kind);
+    }
     default:
       return "";
   }
@@ -537,10 +541,17 @@ function buildInfoRows(series: ValirSeries, style: SubtitleStyle, taken: string)
 }
 
 export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0): Highlight {
-  // The pill takes the rating, and the view count when the site has graded a title
-  // nothing; whatever it takes is then left out of the lines below it.
+  // The pill falls through the house order: what the site grades the title, then what it
+  // is, then where it has got to. Whatever it takes is left out of the lines below it.
   const views = compactCount(series.viewCount);
-  const taken = firstFilled(formatScore(series.rating), views ? `${VIEWS_MARK} ${views}` : "");
+  const kind = kindLabel(series);
+  const state = statusLabel(series);
+  const taken = firstFilled(
+    formatScore(series.rating),
+    views ? `${VIEWS_MARK} ${views}` : "",
+    kind ? `♤ ${kind}` : "",
+    state ? `◌ ${state}` : "",
+  );
 
   const subtitle = buildSubtitle(series, style, rank, taken);
   const info = buildInfoRows(series, style, taken);

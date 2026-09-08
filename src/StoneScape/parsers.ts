@@ -188,10 +188,12 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   // Two genres: the third wraps and pushes the tile out of its row.
   const genres = (series.genres ?? []).slice(0, 2).map(genreTitle).filter(Boolean);
 
-  // The pill takes the score, and what the series has been read when the site has graded
-  // it nothing; whatever it takes is then left out of the lines below it.
+  // The pill falls through the house order: what the site grades the series, then what it
+  // is, then where it has got to. Whatever it takes is left out of the lines below it.
   const viewLabel = views ? `⏯︎ ${views}` : "";
-  const taken = firstFilled(score, viewLabel);
+  const kind = formatKind(series);
+  const state = statusOf(series);
+  const taken = firstFilled(score, viewLabel, kind ? `♤ ${kind}` : "", state);
 
   const info = hero
     ? []
@@ -234,7 +236,10 @@ function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
       parts.views && `⏯︎ ${parts.views}` !== parts.taken
         ? { key: "Views", value: `⏯︎ ${parts.views}` }
         : undefined,
-    status: parts.status ? { key: "Status", value: parts.status } : undefined,
+    status:
+      parts.status && parts.status !== parts.taken
+        ? { key: "Status", value: parts.status }
+        : undefined,
   };
 
   // A format-led row gives its subtitle over to the format alone, so the count the section
@@ -266,10 +271,10 @@ function buildSubtitle(
   switch (style) {
     case "hero":
       return [chapterLabel, viewLabel].filter(Boolean).join(" | ");
-    // The state of the series moves to a row of its own beneath the views, leaving the
-    // line under the title to say what the series is.
+    // The pill above already says what the series is, so this line says nothing rather
+    // than saying it twice.
     case "kind":
-      return `♤ ${formatKind(series)}`;
+      return "";
     // A row ranked by reading says what it was ranked on; a title with none falls back
     // to the chapter rather than showing an empty line.
     case "views":

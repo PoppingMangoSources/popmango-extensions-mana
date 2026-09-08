@@ -355,12 +355,24 @@ The text is the whole of a source's say in it: the app owns the tint, the blur a
 shape, and hides a pill whose text is empty or blank. That makes it the right home for the
 single number a site grades a title by.
 
-Take the best number the site has for *that* title, in order — the rating first, then what
-it has been read, then nothing at all rather than an empty pill. `firstFilled` in
-`src/common/highlights.ts` picks it and `toBadge` wraps it:
+Take the best thing the site says about *that* title, falling through the house order:
+
+1. **what the site grades it** — a rating, else what it has been read, else the likes,
+   follows or comments it counts;
+2. **what the title is** — its type;
+3. **where it has got to** — its status;
+4. nothing, which is a bare cover rather than an empty pill.
+
+`firstFilled` in `src/common/highlights.ts` picks the first one the site filled in and
+`toBadge` wraps it; `Mark` there holds the glyphs so every source spells them alike:
 
 ```ts
-const taken = firstFilled(formatScore(series.rating), viewLabel);
+const taken = firstFilled(
+  formatScore(series.rating),
+  views ? `${Mark.Views} ${views}` : "",
+  kind ? `${Mark.Type} ${kind}` : "",
+  state ? `${Mark.Status} ${state}` : "",
+);
 const badge = toBadge(taken);
 ```
 

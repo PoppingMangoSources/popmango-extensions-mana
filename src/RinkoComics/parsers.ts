@@ -24,6 +24,7 @@ import {
   resolveUrl,
   summaryFromHtml,
   text,
+  toBadge,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -257,11 +258,20 @@ export function parseGenres(html: string): Option[] {
 }
 
 /**
+ * The pill over a tile's cover.
+ *
+ * The site counts what a title has been read and grades it nothing else, so that count is
+ * what the pill carries. A card the site prints no count on wears no pill.
+ */
+function buildBadge(card: Card): string {
+  return card.views ? `${VIEWS_MARK} ${card.views}` : "";
+}
+
+/**
  * What a tile writes under its title.
  *
- * A hero card draws no rows of its own, so the two numbers the site prints on a ranked card
- * — what has been read, and how much there is — have nowhere else to go and are written
- * here behind the house mark for views.
+ * The count is on the pill above, so a ranked card says how much there is to read instead
+ * — the other number the site prints on it.
  *
  * Latest Releases says nothing on this line: its chapters are rows of their own beneath it,
  * and repeating the newest one here would print it twice.
@@ -269,12 +279,7 @@ export function parseGenres(html: string): Option[] {
 function buildSubtitle(card: Card, sectionId: string): string {
   if (sectionId === SectionID.Latest) return "";
 
-  if (sectionId === SectionID.Hot) {
-    const views = card.views ? `${VIEWS_MARK} ${card.views}` : "";
-    const chapters = card.chapterCount ? `Ch. ${card.chapterCount}` : "";
-    const stats = [views, chapters].filter(Boolean).join(" • ");
-    if (stats) return stats;
-  }
+  if (sectionId === SectionID.Hot && card.chapterCount) return `Ch. ${card.chapterCount}`;
 
   return card.genres.slice(0, 3).join(", ");
 }
@@ -293,12 +298,14 @@ function buildInfoRows(card: Card): Pair[] {
 export function toHighlight(card: Card, sectionId: string): Highlight {
   const subtitle = buildSubtitle(card, sectionId);
   const info = sectionId === SectionID.Latest ? buildInfoRows(card) : [];
+  const badge = toBadge(buildBadge(card));
 
   return {
     id: card.id,
     title: card.title,
     cover: card.cover,
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length === 0 ? {} : { info }),
     // The catalogue is all-ages; the site publishes nothing it grades otherwise.
     contentRating: ContentRating.SAFE,

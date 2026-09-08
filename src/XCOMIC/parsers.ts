@@ -84,6 +84,17 @@ function parseContentType(type: string | null | undefined): ContentType | undefi
   }
 }
 
+/** The site's own words for what a title is and where it has got to, as it spells them. */
+function kindLabel(type: string | null | undefined): string {
+  const value = clean(type ?? "");
+  return value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : "";
+}
+
+function statusLabel(status: string | null | undefined): string {
+  const value = clean(status ?? "");
+  return value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : "";
+}
+
 function parseStatus(status: string | null | undefined): PublicationStatus | undefined {
   switch ((status ?? "").toLowerCase()) {
     case "ongoing":
@@ -171,11 +182,21 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   const follows = compactCount(comic.follows);
   const comments = compactCount(comic.comments_total);
 
-  // The pill takes the score, and the follower count when the site has graded a title
-  // nothing — this API returns no view count on a listing row, so that is the next number
-  // it has. Whatever the pill takes is then left out of the rows below it.
+  // The pill falls through the house order: what the site grades a title, then what it is,
+  // then where it has got to. This API returns no view count on a listing row, so the
+  // follows and comments it does count come next. Whatever the pill takes is then left out
+  // of the rows below it.
   const followLabel = follows ? `♥ ${follows}` : "";
-  const taken = firstFilled(score, followLabel);
+  const commentLabel = comments ? `🗨︎ ${comments}` : "";
+  const kind = kindLabel(comic.type);
+  const state = statusLabel(comic.originalStatus);
+  const taken = firstFilled(
+    score,
+    followLabel,
+    commentLabel,
+    kind ? `♤ ${kind}` : "",
+    state ? `◌ ${state}` : "",
+  );
 
   const info: Pair[] = [];
   if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
@@ -185,7 +206,9 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   if (followLabel && followLabel !== taken) info.push({ key: "Follows", value: followLabel });
   // The bubble carries U+FE0E so it draws as a filled mark like the star and heart above
   // it: a `Pair` takes plain text, and the bare codepoint would render in colour.
-  if (comments) info.push({ key: "Comments", value: `🗨︎ ${comments}` });
+  if (commentLabel && commentLabel !== taken) {
+    info.push({ key: "Comments", value: commentLabel });
+  }
 
   const subtitle = number ? `Chapter ${number}` : "";
   const badge = toBadge(taken);

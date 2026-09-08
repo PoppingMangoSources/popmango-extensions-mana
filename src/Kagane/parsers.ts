@@ -13,7 +13,7 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { decodeEntities, parseDate } from "../common/index.ts";
+import { Mark, decodeEntities, firstFilled, parseDate, toBadge } from "../common/index.ts";
 import {
   BASE_URL,
   CHAPTER_GROUP_REGEX,
@@ -127,12 +127,35 @@ function formatStatus(book: SeriesSummary): string | undefined {
   }
 }
 
-export function formatDescriptor(book: SeriesSummary): string | undefined {
+/** The site's own word for the format. "Other" says nothing, so it is not printed. */
+export function formatKind(book: SeriesSummary): string {
   const format = book.format?.trim();
+  return format && format.toLowerCase() !== "other" ? format.toUpperCase() : "";
+}
+
+/**
+ * The pill over a tile's cover.
+ *
+ * A listing row here carries no rating and no count — the rating lives on the title page —
+ * so the pill says what the title *is*, and where it has got to when the site has not said
+ * what it is.
+ */
+export function highlightBadge(book: SeriesSummary): string {
+  const kind = formatKind(book);
+  const status = formatStatus(book) ?? "";
+  return firstFilled(kind ? `${Mark.Type} ${kind}` : "", status ? `${Mark.Status} ${status}` : "");
+}
+
+/** What is left to say under the title once the pill has taken its half. */
+export function formatDescriptor(book: SeriesSummary): string | undefined {
+  const taken = highlightBadge(book);
+  const kind = formatKind(book);
+  const status = formatStatus(book) ?? "";
+
   const parts = [
-    format && format.toLowerCase() !== "other" ? format.toUpperCase() : undefined,
-    formatStatus(book),
-  ].filter((part): part is string => Boolean(part));
+    kind && taken.endsWith(kind) ? "" : kind,
+    status && taken.endsWith(status) ? "" : status,
+  ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
@@ -178,11 +201,14 @@ export function parseHighlight(
   coverFor: (imageId: string) => string,
   extra?: { subtitle?: string; info?: Pair[] },
 ): Highlight {
+  const badge = toBadge(highlightBadge(book));
+
   return {
     id: book.series_id,
     title: formatTitle(book.title, options, book.source_id),
     cover: book.cover_image_id ? coverFor(book.cover_image_id) : "",
     ...(extra?.subtitle ? { subtitle: extra.subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(extra?.info && extra.info.length > 0 ? { info: extra.info } : {}),
     contentRating: parseContentRating(book.content_rating),
     webUrl: seriesUrl(book.series_id),

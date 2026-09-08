@@ -94,16 +94,17 @@ rows in a detailed list. Only the vertical list styles render it.
 ## `src/common/highlights.ts` — the tile's pill, and where a request came from
 
 ```ts
-// The best number the site has for this title, in this order.
-const taken = firstFilled(formatScore(series.rating), viewLabel);
+// The best thing the site says about this title, in the house order.
+const taken = firstFilled(score, viewLabel, kindLabel, statusLabel);
 const badge = toBadge(taken);                       // undefined for an empty label
 return { id, title, cover, ...(badge === undefined ? {} : { badge }), … };
 ```
 
 `Highlight.badge` is a frosted pill the app draws **over the cover on every shape of tile**,
-heroes and plain strips alike, so it is the one place a number belongs. `firstFilled` falls
-through the candidates in order: the rating, then what the title has been read, then `""`
-for a cover with no pill. Whatever it took must come out of that card's subtitle and its
+heroes and plain strips alike, so it is the one place these belong. `firstFilled` falls
+through the candidates in order: what the site grades the title (a rating, else what it has
+been read, else its likes, follows or comments), then what the title is, then where it has
+got to, then `""` for a cover with no pill. `Mark` holds the glyphs. Whatever it took must come out of that card's subtitle and its
 info rows, or the same number is printed twice — and since which one it took varies per
 title, compare against `taken` rather than assuming. The app owns the tint, blur and shape;
 the text is all a source supplies.

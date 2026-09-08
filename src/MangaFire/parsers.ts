@@ -13,7 +13,14 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, decodeEntities, relativeTime, summaryFromHtml } from "../common/index.ts";
+import {
+  clean,
+  decodeEntities,
+  firstFilled,
+  relativeTime,
+  summaryFromHtml,
+  toBadge,
+} from "../common/index.ts";
 import {
   BASE_URL,
   type ChapterItem,
@@ -145,7 +152,7 @@ function formatScore(rating: number | null | undefined): string {
  * what it stands for; on the line under a title it is a mark with nothing to read it
  * against. Only `buildInfoRows` and the title page use them.
  */
-function buildSubtitle(item: TitleItem, style: SubtitleStyle): string {
+function buildSubtitle(item: TitleItem, style: SubtitleStyle, taken: string): string {
   const chapter = formatChapterNumber(item.latestChapter);
   const chapterLabel = chapter ? `Chapter ${chapter}` : "";
   const kind = kindLabel(item.type);
@@ -153,12 +160,14 @@ function buildSubtitle(item: TitleItem, style: SubtitleStyle): string {
   const rank = item.rank != null && Number.isFinite(item.rank) && item.rank > 0 ? item.rank : 0;
 
   switch (style) {
+    // The pill above may already be saying what the title is, in which case this line
+    // does not repeat it.
     case "hero":
-      return [chapterLabel, kind].filter(Boolean).join(" | ");
+      return [chapterLabel, taken.endsWith(kind) && kind ? "" : kind].filter(Boolean).join(" | ");
     // A ranked row says where the site put it; the same row on a title it did not rank
-    // falls back to the format rather than showing an empty line.
+    // falls back to the chapter rather than showing an empty line.
     case "kind":
-      return [rank ? `#${rank}` : "", kind].filter(Boolean).join(" • ") || chapterLabel;
+      return (rank ? `#${rank}` : "") || chapterLabel;
     case "updated":
       return [chapterLabel, updated ? relativeTime(updated) : ""].filter(Boolean).join(" • ");
     default:
@@ -170,7 +179,7 @@ function buildSubtitle(item: TitleItem, style: SubtitleStyle): string {
  * The key/value rows a vertical list draws beneath a title, which is the only style that
  * renders them — so they are built for that row alone rather than on every tile.
  */
-function buildInfoRows(item: TitleItem): Pair[] {
+function buildInfoRows(item: TitleItem, taken: string): Pair[] {
   const rows: Pair[] = [];
 
   const chapter = formatChapterNumber(item.latestChapter);
@@ -180,20 +189,26 @@ function buildInfoRows(item: TitleItem): Pair[] {
   if (updated) rows.push({ key: "Updated", value: relativeTime(updated) });
 
   const kind = kindLabel(item.type);
-  if (kind) rows.push({ key: "Type", value: `♤ ${kind}` });
+  if (kind && !taken.endsWith(kind)) rows.push({ key: "Type", value: `♤ ${kind}` });
 
   return rows;
 }
 
 export function parseHighlight(item: TitleItem, style: SubtitleStyle = "chapter"): Highlight {
-  const subtitle = buildSubtitle(item, style);
-  const info = style === "updated" ? buildInfoRows(item) : [];
+  // A listing row here carries no rating, no count and no status, so the pill says the one
+  // thing it does carry: what the title is.
+  const kind = kindLabel(item.type);
+  const badge = toBadge(firstFilled(kind ? `♤ ${kind}` : ""));
+
+  const subtitle = buildSubtitle(item, style, badge?.text ?? "");
+  const info = style === "updated" ? buildInfoRows(item, badge?.text ?? "") : [];
 
   return {
     id: item.hid,
     title: decodeEntities(clean(item.title)),
     cover: coverUrl(item),
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length === 0 ? {} : { info }),
     webUrl: titleUrl(item.hid),
   };

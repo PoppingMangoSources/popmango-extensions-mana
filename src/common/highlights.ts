@@ -18,15 +18,38 @@ export function toBadge(text: string | undefined | null): Badge | undefined {
 }
 
 /**
+ * The house marks, so every source spells them the same.
+ *
+ * These are the text-presentation forms on purpose: a pill and a `Pair` both take plain
+ * text, and the bare codepoints would draw in colour beside the filled marks around them.
+ * `⏯︎` and `🗨︎` carry U+FE0E for exactly that reason.
+ */
+export const Mark = {
+  Rating: "★",
+  Views: "⏯︎",
+  /** The same heart serves a like and a follow; a site only ever counts one of them. */
+  Likes: "♥",
+  Comments: "🗨︎",
+  Type: "♤",
+  Status: "◌",
+  Locked: "🔒",
+} as const;
+
+/**
  * The first of these the site actually filled in, or `""` when it filled in none.
  *
- * A pill wants the best number a site has for a title, and not every title has the best
- * one: a rating is the first choice, what it has been read is the next, and a cover with
- * no pill at all is the last resort. Pass them in that order.
+ * A pill wants the best thing a site says about a title, and not every title has the best
+ * one — so pass the candidates in the house order and let it fall through:
+ *
+ * 1. what the site grades it — a rating, else what it has been read, else the likes,
+ *    follows or comments it counts;
+ * 2. what the title *is* — its type;
+ * 3. where the title has got to — its status;
+ * 4. nothing, which is a bare cover rather than an empty pill.
  *
  * Compare the answer against the candidates to see which one was taken — whatever the pill
  * carries has to come out of that card's subtitle and its info rows, or the tile says the
- * same number twice.
+ * same thing twice.
  */
 export function firstFilled(...candidates: (string | undefined | null)[]): string {
   for (const candidate of candidates) {

@@ -10,7 +10,7 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, decodeEntities, summaryFromHtml, toBadge } from "../common/index.ts";
+import { clean, decodeEntities, firstFilled, summaryFromHtml, toBadge } from "../common/index.ts";
 import { ADULT_GENRES, BASE_URL, MATURE_GENRES, type Series } from "./model.ts";
 
 export function seriesUrl(series: Series): string {
@@ -96,14 +96,20 @@ export function parseHighlight(series: Series, hitTitle?: string): Highlight {
   const { title } = titlesOf(series);
   const score = ratingOf(series);
 
+  // The pill falls through the house order: what the site grades a title, then what it is,
+  // then where it has got to. Whatever it takes is left out of the lines below it.
+  const kind = clean(series.type ?? "");
+  const state = clean(series.status ?? "").split("\n")[0] ?? "";
+  const taken = firstFilled(score, kind ? `♤ ${kind}` : "", state ? `◌ ${state}` : "");
+  const badge = toBadge(taken);
+
   const info: Pair[] = [];
-  if (series.type) info.push({ key: "Type", value: series.type });
+  if (kind && !taken.endsWith(kind)) info.push({ key: "Type", value: kind });
   if (series.year) info.push({ key: "Year", value: series.year });
 
-  const subtitle = [series.type, series.year].filter(Boolean).join(" • ");
-  // The score is the pill over the cover rather than a row beneath it: the app draws it on
-  // every shape of tile, so it is said once and in the same place everywhere.
-  const badge = toBadge(score);
+  const subtitle = [taken.endsWith(kind) && kind ? "" : kind, series.year]
+    .filter(Boolean)
+    .join(" • ");
 
   return {
     id: String(series.series_id ?? ""),

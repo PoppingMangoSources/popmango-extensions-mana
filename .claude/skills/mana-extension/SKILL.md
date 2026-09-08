@@ -163,8 +163,9 @@ The failures this repo has actually shipped, each silent:
       lists to sheets on its own, and `SearchTagsSection` is always inline
 - [ ] `context.allowedContentRatings` honoured through the site's own filtering, not by
       dropping rows after the fact
-- [ ] The pill takes the best number the site has for that title — the rating, else what it
-      has been read — and whatever it took is gone from that card's subtitle and info rows
+- [ ] The pill takes the best thing the site says about that title — what it grades it,
+      else what it is, else where it has got to — and whatever it took is gone from that
+      card's subtitle and info rows
 - [ ] Anything `getContent` fetches beyond the details themselves is skipped when
       `isMigration(context)`, or a migration buys it once per title and throws it away
 - [ ] A challenge judged cleared by the site's own scripts appearing, never by markers
