@@ -10,10 +10,9 @@ export const BASE_URL = "https://mkissa.to";
 /**
  * The API host.
  *
- * The site's own page talks to `api.mkissa.net`, and that host answers it — but it rejects
- * this source's requests with a 400 while this one serves every query, so the reader and the
- * catalogue both go here. Both answer only to the site's origin, which is why every request
- * below carries `origin` and `referer` for BASE_URL rather than for this host.
+ * The site's own page talks to `api.mkissa.net`; this host serves the same schema and is the
+ * one this source has been verified against. Either answers only to the site's own origin,
+ * which is why every request carries `origin` and `referer` for BASE_URL, not for this host.
  */
 export const API_URL = "https://api.allanime.day/api";
 

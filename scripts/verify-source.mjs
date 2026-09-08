@@ -166,7 +166,11 @@ async function checkImageUrls(urls, target) {
       }
       const response = await fetch(request?.url ?? url, { headers });
       const type = response.headers.get("content-type") ?? "";
-      if (!response.ok || !type.startsWith("image/")) {
+      // What this is looking for is a 404 or an HTML error page dressed as a 200. Some image
+      // proxies answer without a content-type at all, and calling those unreachable reports a
+      // cover that renders perfectly well in the app as broken.
+      const served = response.ok && (type === "" || type.startsWith("image/"));
+      if (!served) {
         broken.push(`${url} -> HTTP ${response.status} ${type}`);
       }
     } catch (error) {
@@ -212,12 +216,20 @@ function isValidDate(value) {
 function checkChapters(chapters) {
   assert(Array.isArray(chapters), "getChapters did not return an array");
   assert(chapters.length > 0, "getChapters returned 0 chapters");
-  chapters.forEach((chapter, index) => {
-    assert(typeof chapter.chapterId === "string" && chapter.chapterId, `chapter ${index}: no id`);
-    assert(Number.isFinite(chapter.number), `chapter ${index}: number is not finite`);
-    assert(chapter.index === index, `chapter ${index}: index is ${chapter.index}, expected ${index}`);
-    assert(isValidDate(chapter.date), `chapter ${index}: bad date`);
+  chapters.forEach((chapter, at) => {
+    assert(typeof chapter.chapterId === "string" && chapter.chapterId, `chapter ${at}: no id`);
+    assert(Number.isFinite(chapter.number), `chapter ${at}: number is not finite`);
+    assert(Number.isInteger(chapter.index), `chapter ${at}: index ${chapter.index} is not an integer`);
+    assert(isValidDate(chapter.date), `chapter ${at}: bad date`);
   });
+
+  // `index` is a chapter's place in the run, not its place in this array: a source that
+  // serves its list newest-first still numbers from the oldest chapter. So the indices are
+  // checked as a set — 0 to n-1, each used once — whatever order they arrive in.
+  const indices = new Set(chapters.map((chapter) => chapter.index));
+  assert(indices.size === chapters.length, "chapter indices are not unique");
+  const gap = chapters.findIndex((_, position) => !indices.has(position));
+  assert(gap === -1, `chapter indices are not contiguous from 0 — ${gap} is missing`);
   const dated = chapters.filter((c) => c.date.getTime() > 0).length;
   return `${chapters.length} chapters, ${dated} with real dates`;
 }
