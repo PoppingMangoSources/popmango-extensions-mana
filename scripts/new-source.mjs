@@ -138,6 +138,7 @@ console.log("");
 console.log("next:");
 console.log(`  1. drop an icon at assets/${name}.png (project root, not src/)`);
 console.log(`  2. fill in the selectors in src/${name}/main.ts and the filters in model.ts`);
-console.log(`  3. put a real contentId/chapterId in scripts/probes/${name}.json`);
+console.log(`  3. put a real contentId in scripts/probes/${name}.json — empty skips`);
+console.log("     getContent, getChapters and getChapterData without saying so");
 console.log(`  4. bun run typecheck && bun run build && bun run verify ${name}`);
 console.log("  5. bun run readme to add it to the README table");

@@ -18,6 +18,7 @@ adding or fixing a source; the failure modes here are mostly silent.
 | `assets/` | Source icons, named `<Source>.png` — the only folder the toolchain packages |
 | `scripts/` | Build, page generation, README generation, verification harness |
 | `scripts/probes/` | Per-source fixtures naming a title and chapter for `bun run verify` |
+| `scripts/harness/` | The host shims `verify` runs a built bundle against |
 | `scripts/site/` | The published page's stylesheet |
 | `media/` | README artwork and per-source icons |
 
@@ -31,11 +32,14 @@ bun run typecheck        # the gate that matters — the bundler does not check 
 bun run lint
 bun run format:check
 bun run build            # bundles src/ into dist/ and renders the repository page
+bun run check            # every source against the repository's own rules
 bun run verify <Name>    # contract test against the live site
 bun run readme           # regenerates the README table from dist/sources.json
 ```
 
-Run all four gates before calling a change done.
+Run all four gates before calling a change done. `verify` needs the network, which this
+sandbox does not have — CI is where a source meets its site, so read the Contract run rather
+than assuming a green local build means anything about the live site.
 
 ## Conventions
 
@@ -45,7 +49,16 @@ Run all four gates before calling a change done.
 - No `any`. `strict` and `noUncheckedIndexedAccess` are on.
 - Prefer moving a helper into `src/common/` over copying it into a second source.
 - The runtime is bare V8/JavaScriptCore: no `fetch`, no `URL`, no `crypto.subtle`, no
-  `TextDecoder`. `src/common/` has replacements for each.
+  `TextDecoder`. `src/common/` has replacements for each. `crypto-js` bundles and runs there
+  for a primitive `src/common/aes.ts` does not carry.
+- A `WebViewPage` is asked with `evaluate(fn, …)`, never `evaluateScript`. The host declares
+  `args` in the page's own scope on every script and it outlives the call, so a second
+  `evaluateScript` against one page throws — and a loop that polls a page is the usual way to
+  meet that. A function handed to `evaluate` must return a settled JSON value, not a promise,
+  and can reference nothing outside its own body.
+- The pill over a cover and the rows beneath a title answer to different rules: the pill
+  takes the best single thing the site says and comes out of the subtitle; the rows keep
+  everything, because the tiles that draw rows draw no pill.
 
 ## Versioning
 

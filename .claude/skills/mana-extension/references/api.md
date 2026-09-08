@@ -80,6 +80,9 @@ Host globals available: `NetworkClient`, `NetworkClientBuilder` (imported from t
 package), `CloudflareError`, `NetworkError`, `ObjectStore`, `SecureStore`, `WebViewPage`.
 
 **No `crypto.subtle`.** A site that AES-encrypts its image list needs `src/common/aes.ts`.
+For a primitive that file does not carry, `crypto-js` is a dependency here and bundles into
+the source intact — it needs no `Buffer`, `process`, `require` or host `crypto`, and has been
+run in a bare V8 context to confirm it. See `toolkit.md` for the size it costs.
 
 ### `WebViewPage`
 

@@ -321,4 +321,29 @@ Never hand back an invalid `Date` — it fails the contract test and renders bro
 The runtime has **no `crypto.subtle`**, so sites that AES-encrypt their image lists need
 this: `aesCbcDecrypt(ciphertext, key, iv, padding)` with `"zero"`, `"pkcs7"` or `"none"`
 padding, plus `decodeHex`, `base64ToBytes` and `bytesToUtf8`.
-Verified against the FIPS-197 and SP 800-38A vectors.
+Verified against the FIPS-197 and SP 800-38A vectors, and differentially against both
+Node's own AES-CBC and `crypto-js` over 180 random vectors across all three key lengths.
+
+### `crypto-js`, when a hand-rolled primitive is not worth writing
+
+`crypto-js` is a dependency of this repo and **bundles and runs in the source runtime** —
+verified in a bare V8 context with no `Buffer`, `process`, `require` or `crypto` present:
+AES-CBC round-trips and `MD5("abc")`/`SHA256("abc")` give their known answers. It is the
+right answer for a site needing a primitive `aes.ts` does not carry — a hash, HMAC,
+RC4, AES-ECB, PBKDF2 — rather than writing a second cipher by hand.
+
+```ts
+import CryptoJS from "crypto-js";
+const plain = CryptoJS.AES.decrypt(blob, CryptoJS.enc.Hex.parse(keyHex), {
+  iv: CryptoJS.enc.Hex.parse(ivHex),
+  mode: CryptoJS.mode.CBC,
+  padding: CryptoJS.pad.NoPadding,
+}).toString(CryptoJS.enc.Utf8);
+```
+
+Two things to weigh. It costs about **63 KB** in the bundle (a plain source is ~176 KB, the
+same source with `crypto-js` ~240 KB), and the default import pulls the whole library —
+esbuild does not tree-shake it, so a source wanting only AES pays for the hashes too. And it
+replaces a *primitive*, never a site's own code: Mangago derives its descrambling key by
+running a slice of the site's `chapter.js` in a WebView, and no crypto library substitutes
+for that.

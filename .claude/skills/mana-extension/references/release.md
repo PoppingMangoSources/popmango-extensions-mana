@@ -107,3 +107,15 @@ branch only exists after the first successful workflow run.
 - [ ] `assets/<Name>.png` exists and matches `info.thumbnail`
 - [ ] `media/sources/<name>.png` exists for the README row
 - [ ] `scripts/probes/<Name>.json` has a real `contentId`
+
+The probe fixture is the only thing that decides whether `getContent`, `getChapters` and
+`getChapterData` are exercised at all. An empty `contentId` skips all three silently, which
+is how Mkissa shipped a reader that had never once opened a chapter. Two flags say why a
+check cannot run, so a genuine break still reads as FAIL:
+
+| Key | Effect |
+| :-- | :----- |
+| `contentId` | Required, or the three title-page checks are skipped |
+| `chapterId` | Optional; without it the newest chapter from `getChapters` is used |
+| `pagesNeedWebView` | `getChapterData` reports SKIP — no browser here can be the site's page |
+| `pagesDependOnUpstream` | `getChapterData` reports SKIP when the third party has no pages |

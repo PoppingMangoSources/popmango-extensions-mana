@@ -81,7 +81,7 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `dates.ts` | `parseDate`, `parseChapterNumber`, `relativeTime` |
 | `urls.ts` | `UrlBuilder`, `resolveUrl`, `hostOf` |
 | `html.ts` | `text`, `clean`, `imageSrc`, `summaryOf`, `parseStatus`, `hasNextPage` |
-| `aes.ts` | `aesCbcDecrypt`, `base64ToBytes`, `bytesToUtf8`, `decodeHex` |
+| `aes.ts` | `aesCbcDecrypt`, `base64ToBytes`, `bytesToUtf8`, `decodeHex`; `crypto-js` bundles and runs for anything it does not carry |
 
 A directory becomes a source when one of its files exports `class Target`. That is why
 `src/common/` is shared code and not an extension of its own — never put a `Target` in it.
@@ -137,7 +137,30 @@ not a pass**.
 When the network cannot reach the site at all — a sandboxed run, a proxy answering
 `Forbidden` for every host — the contract test proves nothing. Say so plainly rather than
 reporting the change as verified; a fix reasoned from a type signature is not a fix
-observed against the server.
+observed against the server. **CI is where a source meets its site**, so read the Contract
+run's log rather than the local build.
+
+### What the harness models, and what it cannot
+
+`scripts/harness/runtime.mjs` stands in for the app, so a difference between the two reads
+as the source's bug. Each of these was one:
+
+- **A POST body is an object**, and the host encodes it by the request's content type — a
+  form where the header says form, JSON otherwise. Node's `fetch` does neither and
+  stringifies it to `[object Object]`, which every API answers with 400. Three sources were
+  reported broken against live sites for months because of it.
+- **`Chapter.index` is a place in the run, not in the array.** A list served newest-first
+  still numbers from its oldest chapter, so the indices are checked as a set — 0 to n-1,
+  each used once — rather than against their position.
+- **An image proxy may answer 200 with no content type.** That is a served cover, not a
+  broken one; only a non-2xx or an explicitly non-image type is a failure.
+- **Rows are not compared against each other.** Two whose titles match today are the site
+  agreeing with itself — `period=week` against `period=month` — not one query wearing two
+  names, and what a row *asks* is not visible from what came back.
+- **There is no WebView here.** A source that reads its pages through one marks
+  `pagesNeedWebView` in its probe so the check reports SKIP with a reason rather than a
+  failure that says nothing. That also means the `evaluate`/`evaluateScript` trap above
+  cannot be caught by `verify` — check it by reading the code.
 
 Finish with `references/release.md`: version bump, CHANGELOG entry, README row.
 

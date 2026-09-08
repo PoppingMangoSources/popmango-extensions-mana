@@ -40,7 +40,9 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@types/crypto-js": "^4.2.2",
     "cheerio": "^1.2.0",
+    "crypto-js": "^4.2.0",
     "fflate": "^0.8.3"
   }
 }
