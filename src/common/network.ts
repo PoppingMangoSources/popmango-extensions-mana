@@ -168,6 +168,19 @@ function isEncodingFailure(error: unknown): boolean {
 /** Seconds before a WebView that will not navigate is abandoned. */
 const WEBVIEW_TIMEOUT_SECONDS = 20;
 
+/**
+ * The loaded document, as markup.
+ *
+ * Serialised into the page by `evaluate`, where a `document` exists; this runtime has none,
+ * so it is reached through a locally declared view of `globalThis`. It is a function rather
+ * than a script because the host declares `args` beside every script, in the page's own
+ * scope, where it outlives the call — a second `evaluateScript` on one page throws.
+ */
+function outerHtml(): string {
+  const page = globalThis as { document?: { documentElement: { outerHTML: string } } };
+  return page.document?.documentElement.outerHTML ?? "";
+}
+
 function expiresIn(seconds: number): Promise<never> {
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
   if (!timer) return new Promise(() => undefined);
@@ -198,7 +211,7 @@ async function readThroughWebView(url: string): Promise<string> {
     const work = (async () => {
       // `evaluate` on a page that has never navigated hangs until the host's own timeout.
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: WEBVIEW_TIMEOUT_SECONDS });
-      return page.evaluateScript<string>("document.documentElement.outerHTML");
+      return page.evaluate(outerHtml);
     })();
 
     return await Promise.race([work, expiresIn(WEBVIEW_TIMEOUT_SECONDS)]);

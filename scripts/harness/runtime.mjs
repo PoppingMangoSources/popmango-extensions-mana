@@ -152,7 +152,12 @@ export class NetworkClient {
       clearTimeout(timer);
     }
 
-    const data = await raw.text();
+    // `responseEncoding: "base64"` (types 0.0.27) hands a body back as base64 so a binary
+    // file survives the bridge; anything else is decoded as UTF-8 text as it always was.
+    const data =
+      prepared.responseEncoding === "base64"
+        ? Buffer.from(await raw.arrayBuffer()).toString("base64")
+        : await raw.text();
     const response = {
       data,
       status: raw.status,

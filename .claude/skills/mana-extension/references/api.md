@@ -252,11 +252,26 @@ router to be listening, the click to route, and the answer to come back through 
 function that was hooked; when any of those fails it fails as a timeout with nothing to
 report.
 
-`evaluate(fn, ...args)` ships a **function** into the page, which typechecks and keeps its
-arguments and return value typed across the bridge; `evaluateScript` takes a string and is
-the fallback. The function body cannot see anything from this file, and this project has no
-DOM library, so reach the page's globals through a locally declared view of `globalThis`
-rather than pulling `lib.dom` in.
+**Use `evaluate`, not `evaluateScript`.** The host hands a script its arguments by declaring
+`args` in the page's own global scope — on every call, whether arguments are passed or not —
+and that declaration outlives the evaluation. So the *second* `evaluateScript` against one
+WebView throws `SyntaxError: Cannot declare a const variable twice: 'args'`. Anything that
+polls a page, installs something and then reads it back, or simply asks twice, dies on its
+second question. Caught and read as "not ready yet", which is the natural way to write such a
+loop, it turns into a silent wait for the whole budget: this repo shipped a Cloudflare bypass
+that had never once worked, and a reader that never opened a chapter.
+
+`evaluate(fn, ...args)` ships a **function** into the page and declares nothing beside it, so
+it can be called as often as you like. It also typechecks and keeps its arguments and return
+value typed across the bridge. The function body cannot see anything from this file — not a module constant, not an
+imported helper, nothing but its own arguments — so inline everything it needs and check the
+built bundle if in doubt. This project has no DOM library either, so reach the page's globals
+through a locally declared view of `globalThis` rather than pulling `lib.dom` in.
+
+**Return something JSON-shaped and already settled.** A promise does not survive the bridge:
+an `async` function that resolves to the answer hands back something that is not the answer,
+and the source reads it as nothing at all. Park the result on the page and poll for it with a
+second, synchronous `evaluate` instead.
 
 **`goto` resolving is not "the page is ready"** — it fires when a challenge page loads,
 which is the start of the wait. Poll a cheap `querySelector` probe until the site's own

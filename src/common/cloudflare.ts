@@ -24,29 +24,53 @@ const RETRY_ATTEMPTS = 2;
 const SITE_LOADED =
   'script[src*="/_next/"], script[src*="/dist/"], script[src*="/static/"], link[href*="/_app/immutable/"]';
 
+/** The page's own globals, as `probe` reaches them; this runtime has no DOM of its own. */
+type PageGlobals = {
+  document?: {
+    title?: string;
+    querySelector(selector: string): unknown;
+  };
+  _cf_chl_opt?: unknown;
+};
+
 /**
  * Classifies the loaded page as the site itself, a challenge that will need a person, a
  * challenge that may still finish on its own, or a page that has not settled yet.
  *
  * `goto` resolving is not the signal — it fires when the challenge page loads, which is
  * the start of the wait rather than the end.
+ *
+ * This is a function passed to `evaluate`, not a script passed to `evaluateScript`, and it
+ * has to stay one: the host hands a script its arguments by declaring `args` in the page's
+ * own scope, and that declaration outlives the evaluation — so the second poll of a loop
+ * like the one below throws "Cannot declare a const variable twice: 'args'". Caught and
+ * read as "not settled yet", that turned every bypass here into a silent wait for the whole
+ * budget. `evaluate` declares nothing beside the function it runs.
  */
-const PROBE = `(function () {
-  var markers = [];
-  if (/^just a moment/i.test((document.title || "").trim())) markers.push("title");
-  if (document.querySelector('script[src*="/cdn-cgi/challenge-platform/"]')) markers.push("script");
-  if (typeof globalThis._cf_chl_opt !== "undefined") markers.push("options");
+function probe(siteSelector: string): string {
+  const page = globalThis as PageGlobals;
+  const document = page.document;
+  if (!document) return "waiting";
 
-  // These two only appear once the challenge wants a person, so there is nothing to wait for.
-  if (document.querySelector('#challenge-error-title, #challenge-error-text, input[name="cf-turnstile-response"], .cf-turnstile, #cf-chl-widget')) {
+  const markers: string[] = [];
+  if (/^just a moment/i.test((document.title ?? "").trim())) markers.push("title");
+  if (document.querySelector('script[src*="/cdn-cgi/challenge-platform/"]')) markers.push("script");
+  if (typeof page._cf_chl_opt !== "undefined") markers.push("options");
+
+  // These only appear once the challenge wants a person, so there is nothing to wait for.
+  if (
+    document.querySelector(
+      '#challenge-error-title, #challenge-error-text, input[name="cf-turnstile-response"], .cf-turnstile, #cf-chl-widget',
+    )
+  ) {
     return "interactive";
   }
 
   // The site's own scripts having loaded is the only positive proof the page is real;
   // markers merely being absent also describes a blank or failed page.
-  if (document.querySelector(args[0])) return "site";
+  if (document.querySelector(siteSelector)) return "site";
   return markers.length > 0 ? "challenge" : "waiting";
-})();`;
+}
 
 // One WebView may be active per source, so a home page of many rows shares one attempt.
 let inFlight: Promise<boolean> | undefined;
@@ -72,7 +96,7 @@ async function runAttempt(url: string, siteSelector: string): Promise<boolean> {
 
     const deadline = Date.now() + CHALLENGE_BUDGET_MS;
     while (Date.now() < deadline) {
-      const state = await page.evaluateScript<string>(PROBE, [siteSelector]).catch(() => "waiting");
+      const state = await page.evaluate(probe, siteSelector).catch(() => "waiting");
 
       if (state === "site") return true;
       // A challenge that has asked for a person will not finish on its own; handing it

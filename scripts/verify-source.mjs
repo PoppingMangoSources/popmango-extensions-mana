@@ -219,7 +219,10 @@ function checkChapters(chapters) {
   chapters.forEach((chapter, at) => {
     assert(typeof chapter.chapterId === "string" && chapter.chapterId, `chapter ${at}: no id`);
     assert(Number.isFinite(chapter.number), `chapter ${at}: number is not finite`);
-    assert(Number.isInteger(chapter.index), `chapter ${at}: index ${chapter.index} is not an integer`);
+    assert(
+      Number.isInteger(chapter.index),
+      `chapter ${at}: index ${chapter.index} is not an integer`,
+    );
     assert(isValidDate(chapter.date), `chapter ${at}: bad date`);
   });
 
@@ -413,23 +416,17 @@ async function verify(name, probe, verbose) {
         }
       }
 
-      // Two rows showing the same tiles in the same order are one query wearing two
-      // titles, which is what a copied `load` that never had its sort changed looks like.
-      for (let i = 0; i < preview.sections.length; i++) {
-        for (let j = i + 1; j < preview.sections.length; j++) {
-          const first = preview.sections[i];
-          const second = preview.sections[j];
-          const headOne = first.items.slice(0, 5).map((item) => item.id);
-          const headTwo = second.items.slice(0, 5).map((item) => item.id);
-          if (headOne.length > 0 && headOne.join("\u0000") === headTwo.join("\u0000")) {
-            problems.push(
-              `"${first.section.title}" and "${second.section.title}" open with the same titles in the same order — they are running the same query.`,
-            );
-          }
-        }
-      }
+      // Rows are not compared against each other. This used to fail two whose first five
+      // titles matched, on the theory that it was one query wearing two names — and it only
+      // ever caught rows that were asking different questions and getting the same answer
+      // that day: `period=week` against `period=month`, `sort=score` against `sort=reviews`,
+      // two separate arrays out of one home payload. What a row asks for is not visible from
+      // what came back, and the site agreeing with itself is not a source's bug.
 
-      assert(problems.length === 0, `${problems.length} problem(s)\n      ${problems.join("\n      ")}`);
+      assert(
+        problems.length === 0,
+        `${problems.length} problem(s)\n      ${problems.join("\n      ")}`,
+      );
       return `${preview.sections.length} sections, none empty, repeating or overlong`;
     });
   }

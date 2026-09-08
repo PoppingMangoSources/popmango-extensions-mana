@@ -326,8 +326,7 @@ const repo = {
 };
 
 const built = new Date();
-const description =
-  "PoppingMango manga, manhwa, manhua and novel sources for the Mana app.";
+const description = "PoppingMango manga, manhwa, manhua and novel sources for the Mana app.";
 const data = JSON.stringify(repo).replace(/</g, "\\u003c");
 
 const html = `<!doctype html>

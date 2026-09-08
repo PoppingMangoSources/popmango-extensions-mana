@@ -5,18 +5,33 @@ import type { WebViewPageInstance } from "@mana-app/types";
 import { BASE_URL, type ChapterPageEdge, type PagesResponse } from "./model.ts";
 
 /**
- * The browser globals `probeReadiness` uses.
+ * The page's own globals, as the functions below reach them.
  *
- * It does not run here — `evaluate` ships it into the loaded page, where a DOM exists. This
- * source's own runtime is bare V8 and has none, so the page's globals are reached through a
- * locally declared view of `globalThis` rather than by pulling the DOM library in.
+ * None of them run here — `evaluate` serialises each one and runs it inside the loaded
+ * page, where a DOM and a `Response` exist. This source's runtime is bare V8 and has
+ * neither, so they are reached through a locally declared view of `globalThis` rather than
+ * by pulling the DOM library into the project.
+ *
+ * A serialised function carries nothing from this module with it, so each one names the
+ * stash in full rather than sharing a constant.
  */
+type PageLink = {
+  href: string;
+  dataset: { href: string };
+  click(): void;
+};
+
 type PageGlobals = {
   document?: {
     title?: string;
     querySelector(selector: string): unknown;
+    createElement(tag: string): PageLink;
+    body: { appendChild(node: PageLink): void };
   };
+  setTimeout?: (fn: () => void, ms: number) => unknown;
+  Response?: { prototype: { json(): Promise<unknown> } };
   _cf_chl_opt?: unknown;
+  __mkissaPages?: string;
 };
 
 /** A cold challenge in front of the site measures 15-20 seconds, so the budget clears that. */
@@ -33,9 +48,6 @@ const PAGES_TIMEOUT_MS = 20_000;
  * Each probe is a `querySelector` or a property read, so it is cheap.
  */
 const POLL_INTERVAL_MS = 250;
-
-/** Where the page leaves what it caught, read back one poll at a time. */
-const STASH = "__mkissaPages";
 
 /**
  * Whether the loaded page is the site, a challenge, or neither yet.
@@ -73,85 +85,98 @@ function probeReadiness(): { state: string } {
 /**
  * Listens for the page list on the two paths the site's own code can deliver it by.
  *
- * Asking the API directly and awaiting the answer would be less machinery, but the value has
- * to cross the Mana bridge to be seen here and a pending promise does not survive that
- * crossing. So the answer is left on a global for a later poll to read back as a plain
+ * Asking the API directly and awaiting the answer would be less machinery, but the value
+ * has to cross the Mana bridge to be seen here, and a promise does not survive that
+ * crossing. So the answer is parked on the page for a later poll to read back as a plain
  * string, which does.
  *
- * Both hooks are installed because either alone can miss: the site pins its own `JSON.parse`
- * through an iframe realm at boot, and reads some responses through `Response.json` instead.
+ * Both hooks are installed because either alone can miss: the site pins its own
+ * `JSON.parse` through an iframe realm at boot, and reads some responses through
+ * `Response.json` instead.
  */
-const INSTALL_HOOKS = `(function () {
-  var page = globalThis;
-  if (page.${STASH} !== undefined) return "already installed";
-  page.${STASH} = "";
+function installHooks(): string {
+  const page = globalThis as PageGlobals;
+  if (page.__mkissaPages !== undefined) return "already installed";
+  page.__mkissaPages = "";
 
-  var keep = function (raw) {
-    if (!page.${STASH} && typeof raw === "string" && raw) page.${STASH} = raw;
-  };
-  var carriesPages = function (value) {
-    return !!value && (!!value.chapterPages || (!!value.data && !!value.data.chapterPages));
+  const keep = (raw: unknown): void => {
+    if (!page.__mkissaPages && typeof raw === "string" && raw.length > 0) {
+      page.__mkissaPages = raw;
+    }
   };
 
-  try {
-    var originalJson = Response.prototype.json;
-    Response.prototype.json = function () {
-      return originalJson.call(this).then(function (body) {
+  const carriesPages = (value: unknown): boolean => {
+    const body = value as { chapterPages?: unknown; data?: { chapterPages?: unknown } } | null;
+    if (!body) return false;
+    return Boolean(body.chapterPages) || Boolean(body.data && body.data.chapterPages);
+  };
+
+  const response = page.Response;
+  if (response) {
+    const originalJson = response.prototype.json;
+    response.prototype.json = function patchedJson(this: unknown): Promise<unknown> {
+      return originalJson.call(this).then((body: unknown) => {
         if (carriesPages(body)) keep(JSON.stringify(body));
         return body;
       });
     };
-  } catch (jsonHookUnavailable) {}
+  }
 
-  try {
-    var originalParse = JSON.parse;
-    JSON.parse = function (text) {
-      var parsed = originalParse.apply(this, arguments);
-      if (carriesPages(parsed)) {
-        keep(typeof text === "string" ? text : JSON.stringify(parsed));
-      }
-      return parsed;
-    };
-  } catch (parseHookUnavailable) {}
+  const originalParse = JSON.parse;
+  JSON.parse = function patchedParse(text: string): unknown {
+    const parsed = originalParse(text);
+    if (carriesPages(parsed)) keep(typeof text === "string" ? text : JSON.stringify(parsed));
+    return parsed;
+  } as typeof JSON.parse;
 
   return "installed";
-})();`;
+}
 
 /**
  * Opens the chapter the way a reader would, so the site fetches its own page list.
  *
  * A click on an internal link is what hands the SPA to its router, and the router asks for
- * the list with whatever the site's own request carries. `[data-href]` is the site's mark on
- * its own links, so it appearing means the page has hydrated; the click goes out anyway once
- * that wait is spent, since an un-hydrated page still navigates.
+ * the list with whatever the site's own request carries. `[data-href]` is the site's mark
+ * on its own links, so it appearing means the page has hydrated; the click goes out anyway
+ * once that wait is spent, since an un-hydrated page still navigates.
  */
-const OPEN_CHAPTER = `(function () {
-  var path = args[0];
+function openChapter(path: string): string {
+  const page = globalThis as PageGlobals;
+  const document = page.document;
+  if (!document) return "no document";
 
-  var click = function () {
-    var link = document.createElement("a");
+  const click = (): void => {
+    const link = document.createElement("a");
     link.href = path;
     link.dataset.href = path;
     document.body.appendChild(link);
     link.click();
   };
 
-  var attempts = 0;
-  var waitForRouter = function () {
+  const timer = page.setTimeout;
+  if (!timer) {
+    click();
+    return "opened";
+  }
+
+  let attempts = 0;
+  const waitForRouter = (): void => {
     if (document.querySelector("[data-href]") || attempts > 120) {
       click();
       return;
     }
     attempts++;
-    setTimeout(waitForRouter, 50);
+    timer(waitForRouter, 50);
   };
   waitForRouter();
 
   return "opened";
-})();`;
+}
 
 /** Reads the stash as a plain string, which is what the bridge can carry back. */
-const READ_STASH = `(function () { return globalThis.${STASH} || ""; })();`;
+function readStash(): string {
+  return (globalThis as PageGlobals).__mkissaPages ?? "";
+}
 
 function delay(ms: number): Promise<void> {
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
@@ -197,12 +222,17 @@ async function waitForSite(page: WebViewPageInstance): Promise<void> {
   throw new Error("Mkissa did not finish loading in the reader.");
 }
 
-/** Polls the page for what its own code fetched, until it has it or the budget runs out. */
+/**
+ * Polls the page for what its own code fetched, until it has it or the budget runs out.
+ *
+ * A read that throws is not swallowed: the page answering with an error is the whole
+ * failure, and hiding it behind an empty string turns a broken reader into a slow one.
+ */
 async function waitForPages(page: WebViewPageInstance): Promise<string> {
   const deadline = Date.now() + PAGES_TIMEOUT_MS;
 
   while (Date.now() < deadline) {
-    const stash = await page.evaluateScript<string>(READ_STASH).catch(() => "");
+    const stash = await page.evaluate(readStash);
     if (typeof stash === "string" && stash.length > 0) return stash;
     await delay(POLL_INTERVAL_MS);
   }
@@ -213,8 +243,15 @@ async function waitForPages(page: WebViewPageInstance): Promise<string> {
 /**
  * A chapter's page list, taken from the site as the site itself fetches it.
  *
- * The API hands this list to the site's own page and to nothing else, so the page is loaded,
- * the chapter is opened inside it, and what the site fetches on the way is read back out.
+ * The API hands this list to the site's own page and to nothing else, so the page is
+ * loaded, the chapter is opened inside it, and what the site fetches on the way is read
+ * back out.
+ *
+ * Every step here uses `evaluate` rather than `evaluateScript`. The host hands a script its
+ * arguments by declaring `args` in the page's own scope, and that declaration outlives the
+ * evaluation — so a second `evaluateScript` on one WebView dies on "Cannot declare a const
+ * variable twice: 'args'", and this reader evaluates several times over one page.
+ * `evaluate` takes a function and declares nothing beside it.
  */
 export async function fetchPagesFromReader(
   seriesId: string,
@@ -234,10 +271,10 @@ export async function fetchPagesFromReader(
     await waitForSite(page);
 
     // Hooked before the chapter is opened, or the fetch it triggers goes by unseen.
-    await page.evaluateScript(INSTALL_HOOKS);
+    await page.evaluate(installHooks);
 
     const chapterPath = `/manga/${encodeURIComponent(seriesId)}/chapter-${encodeURIComponent(chapterId)}-${translationType}`;
-    await page.evaluateScript(OPEN_CHAPTER, [chapterPath]);
+    await page.evaluate(openChapter, chapterPath);
 
     const payload = await waitForPages(page);
     return payload ? parsePayload(payload) : undefined;

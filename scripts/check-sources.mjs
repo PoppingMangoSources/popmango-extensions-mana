@@ -212,7 +212,10 @@ function checkSource(source, catalog, changelog, base) {
   check(name, /^\d+\.\d+\.\d+$/.test(source.version), `version "${source.version}" is not X.Y.Z`);
   const heading = new RegExp(`^## ${name} \\(current: v(\\d+\\.\\d+\\.\\d+)\\)`, "m");
   const stated = heading.exec(changelog)?.[1];
-  const changelogAt = { file: "CHANGELOG.md", line: changelog.slice(0, heading.exec(changelog)?.index ?? 0).split("\n").length };
+  const changelogAt = {
+    file: "CHANGELOG.md",
+    line: changelog.slice(0, heading.exec(changelog)?.index ?? 0).split("\n").length,
+  };
   if (check(name, stated !== undefined, "no CHANGELOG heading", { file: "CHANGELOG.md" })) {
     check(
       name,
