@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.2)
+## Mkissa (current: v1.0.3)
+
+### Changed
+
+- The Popular rows say the score under the title. The app draws no pill over the small
+  thumbnails those rows use, so the score had nowhere to show on them; it goes on the line
+  instead, and the pill comes off those rows so nothing is said twice. What the row was
+  ranked on was on that line and in a row beneath it — it now keeps only the row.
+
+## Mkissa (v1.0.2)
 
 ### Fixed
 

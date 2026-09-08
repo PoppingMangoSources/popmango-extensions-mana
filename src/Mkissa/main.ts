@@ -73,6 +73,7 @@ import {
 } from "./model.ts";
 import {
   formatCount,
+  formatScore,
   parseChapters,
   parseContent,
   parseDateParts,
@@ -86,7 +87,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "mkissa",
   name: "Mkissa",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Manga, manhwa and manhua from mkissa.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -316,13 +317,15 @@ class MkissaSource
     const results = recommendations.flatMap((entry): Highlight[] => {
       const card = entry.anyCard;
       if (!card) return [];
-      const views = entry.pageStatus?.views ? formatCount(entry.pageStatus.views) : "";
+      const score = formatScore(card.score);
+      // These rows draw no pill over their thumbnails, so the score goes on the line under
+      // the title instead — and the badge comes off, or a row that did draw one would say
+      // it twice. What the row was ranked on stays a row of its own beneath.
+      const { badge: _badge, ...tile } = parseHighlight(card, rating);
       return [
         {
-          ...parseHighlight(card, rating),
-          // The score is the pill over the cover, so this line says what the row is
-          // ranked on instead of repeating it.
-          ...(views ? { subtitle: `${views} views` } : {}),
+          ...tile,
+          ...(score ? { subtitle: score } : {}),
           info: buildPopularInfo(card, entry.pageStatus?.views),
         },
       ];

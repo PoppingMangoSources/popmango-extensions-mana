@@ -101,7 +101,7 @@ export function buildImageUrl(url: string, quality: string): string {
 }
 
 /** The site grades out of ten, which is the scale the app's own pills are written on. */
-function formatScore(score: number | null | undefined): string {
+export function formatScore(score: number | null | undefined): string {
   if (score == null || !Number.isFinite(score) || score <= 0) return "";
   return `★ ${score.toFixed(1)}`;
 }
