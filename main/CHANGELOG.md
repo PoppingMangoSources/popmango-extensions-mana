@@ -1554,7 +1554,22 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.11)
+## Mangago (current: v1.0.12)
+
+### Changed
+
+- The deobfuscated `chapter.js` is kept between launches rather than only for the session.
+  Every chapter of every title decodes through the same script, so this was a request and a
+  pass over a few hundred kilobytes on the first chapter opened after every start. It is
+  stored against the script's own versioned URL, so the site bumping its reader misses the
+  stored copy instead of being handed a stale one, and a stored value is checked for every
+  marker the decode needs before it is trusted.
+- The AES this source decrypts its page list with is `crypto-js` rather than a cipher
+  written out here. The hand-written one was correct — the two agree on 450 vectors across
+  every key length and padding mode — and was still a hundred and forty-five lines of S-box
+  and key schedule to own.
+
+## Mangago (v1.0.11)
 
 ### Fixed
 
