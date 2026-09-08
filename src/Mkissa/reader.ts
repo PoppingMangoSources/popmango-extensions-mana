@@ -2,27 +2,20 @@
 
 import type { WebViewPageInstance } from "@mana-app/types";
 
-import {
-  API_URL,
-  BASE_URL,
-  PAGES_QUERY,
-  type ChapterPageEdge,
-  type PagesResponse,
-} from "./model.ts";
+import { BASE_URL, type ChapterPageEdge, type PagesResponse } from "./model.ts";
 
 /**
- * The browser globals the two functions below use.
+ * The browser globals `probeReadiness` uses.
  *
- * They do not run here — `page.evaluate` ships them into the loaded page, where a DOM and
- * a `fetch` exist. This source's own runtime is bare V8 and has neither, so they are
- * reached through `globalThis` rather than by pulling the DOM library into the project.
+ * It does not run here — `evaluate` ships it into the loaded page, where a DOM exists. This
+ * source's own runtime is bare V8 and has none, so the page's globals are reached through a
+ * locally declared view of `globalThis` rather than by pulling the DOM library in.
  */
 type PageGlobals = {
   document?: {
     title?: string;
     querySelector(selector: string): unknown;
   };
-  fetch?: (url: string, init: Record<string, unknown>) => Promise<{ text(): Promise<string> }>;
   _cf_chl_opt?: unknown;
 };
 
@@ -32,11 +25,17 @@ const PAGE_TIMEOUT_SECONDS = 40;
 /** How long to keep looking for the site's own scripts before giving up on the page. */
 const READY_TIMEOUT_MS = 25_000;
 
+/** How long to let the site fetch its own page list once the chapter has been opened. */
+const PAGES_TIMEOUT_MS = 20_000;
+
 /**
  * Fast enough that a challenge clearing in a few hundred milliseconds is noticed at once.
- * The probe is a `querySelector` against an already-parsed document, so it is cheap.
+ * Each probe is a `querySelector` or a property read, so it is cheap.
  */
 const POLL_INTERVAL_MS = 250;
+
+/** Where the page leaves what it caught, read back one poll at a time. */
+const STASH = "__mkissaPages";
 
 /**
  * Whether the loaded page is the site, a challenge, or neither yet.
@@ -72,28 +71,87 @@ function probeReadiness(): { state: string } {
 }
 
 /**
- * Runs the site's own page query from inside its own page.
+ * Listens for the page list on the two paths the site's own code can deliver it by.
  *
- * This is the whole point of the WebView: the request goes out with the cookies, the
- * origin and the clearance the page already holds, which is what the API answers to. It is
- * one round trip, awaited — nothing is hooked, nothing is clicked, and there is nothing to
- * poll for afterwards.
+ * Asking the API directly and awaiting the answer would be less machinery, but the value has
+ * to cross the Mana bridge to be seen here and a pending promise does not survive that
+ * crossing. So the answer is left on a global for a later poll to read back as a plain
+ * string, which does.
+ *
+ * Both hooks are installed because either alone can miss: the site pins its own `JSON.parse`
+ * through an iframe realm at boot, and reads some responses through `Response.json` instead.
  */
-function runPagesQuery(
-  endpoint: string,
-  query: string,
-  variables: Record<string, unknown>,
-): Promise<string> {
-  const request = (globalThis as PageGlobals).fetch;
-  if (!request) return Promise.resolve("");
+const INSTALL_HOOKS = `(function () {
+  var page = globalThis;
+  if (page.${STASH} !== undefined) return "already installed";
+  page.${STASH} = "";
 
-  return request(endpoint, {
-    method: "POST",
-    credentials: "include",
-    headers: { "content-type": "application/json", accept: "application/json, text/plain, */*" },
-    body: JSON.stringify({ query, variables }),
-  }).then((response) => response.text());
-}
+  var keep = function (raw) {
+    if (!page.${STASH} && typeof raw === "string" && raw) page.${STASH} = raw;
+  };
+  var carriesPages = function (value) {
+    return !!value && (!!value.chapterPages || (!!value.data && !!value.data.chapterPages));
+  };
+
+  try {
+    var originalJson = Response.prototype.json;
+    Response.prototype.json = function () {
+      return originalJson.call(this).then(function (body) {
+        if (carriesPages(body)) keep(JSON.stringify(body));
+        return body;
+      });
+    };
+  } catch (jsonHookUnavailable) {}
+
+  try {
+    var originalParse = JSON.parse;
+    JSON.parse = function (text) {
+      var parsed = originalParse.apply(this, arguments);
+      if (carriesPages(parsed)) {
+        keep(typeof text === "string" ? text : JSON.stringify(parsed));
+      }
+      return parsed;
+    };
+  } catch (parseHookUnavailable) {}
+
+  return "installed";
+})();`;
+
+/**
+ * Opens the chapter the way a reader would, so the site fetches its own page list.
+ *
+ * A click on an internal link is what hands the SPA to its router, and the router asks for
+ * the list with whatever the site's own request carries. `[data-href]` is the site's mark on
+ * its own links, so it appearing means the page has hydrated; the click goes out anyway once
+ * that wait is spent, since an un-hydrated page still navigates.
+ */
+const OPEN_CHAPTER = `(function () {
+  var path = args[0];
+
+  var click = function () {
+    var link = document.createElement("a");
+    link.href = path;
+    link.dataset.href = path;
+    document.body.appendChild(link);
+    link.click();
+  };
+
+  var attempts = 0;
+  var waitForRouter = function () {
+    if (document.querySelector("[data-href]") || attempts > 120) {
+      click();
+      return;
+    }
+    attempts++;
+    setTimeout(waitForRouter, 50);
+  };
+  waitForRouter();
+
+  return "opened";
+})();`;
+
+/** Reads the stash as a plain string, which is what the bridge can carry back. */
+const READ_STASH = `(function () { return globalThis.${STASH} || ""; })();`;
 
 function delay(ms: number): Promise<void> {
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
@@ -139,13 +197,24 @@ async function waitForSite(page: WebViewPageInstance): Promise<void> {
   throw new Error("Mkissa did not finish loading in the reader.");
 }
 
+/** Polls the page for what its own code fetched, until it has it or the budget runs out. */
+async function waitForPages(page: WebViewPageInstance): Promise<string> {
+  const deadline = Date.now() + PAGES_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const stash = await page.evaluateScript<string>(READ_STASH).catch(() => "");
+    if (typeof stash === "string" && stash.length > 0) return stash;
+    await delay(POLL_INTERVAL_MS);
+  }
+
+  return "";
+}
+
 /**
- * A chapter's page list, asked for as the site's own page would ask for it.
+ * A chapter's page list, taken from the site as the site itself fetches it.
  *
- * The page list is the one thing the API will not hand to an ordinary request, so the query
- * is run inside the WebView. Earlier this hooked `JSON.parse` and clicked a link to make the
- * site fetch the list itself; asking directly needs no router, no hook and no polling, and it
- * fails with a reason rather than a timeout.
+ * The API hands this list to the site's own page and to nothing else, so the page is loaded,
+ * the chapter is opened inside it, and what the site fetches on the way is read back out.
  */
 export async function fetchPagesFromReader(
   seriesId: string,
@@ -159,20 +228,19 @@ export async function fetchPagesFromReader(
 
   try {
     // The series page, with the query string the site's own links carry. It is the page the
-    // site serves in full, and a request made from it carries the origin the API expects.
-    const path = `${BASE_URL}/manga/${encodeURIComponent(seriesId)}?fromSearch=1`;
-    await page.goto(path, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_SECONDS });
+    // site serves in full, and the chapter is one in-app navigation away from it.
+    const seriesPath = `${BASE_URL}/manga/${encodeURIComponent(seriesId)}?fromSearch=1`;
+    await page.goto(seriesPath, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_SECONDS });
     await waitForSite(page);
 
-    const payload = await page.evaluate(runPagesQuery, API_URL, PAGES_QUERY, {
-      mangaId: seriesId,
-      chapterString: chapterId,
-      translationType,
-      limit: 1,
-      offset: 0,
-    });
+    // Hooked before the chapter is opened, or the fetch it triggers goes by unseen.
+    await page.evaluateScript(INSTALL_HOOKS);
 
-    return typeof payload === "string" ? parsePayload(payload) : undefined;
+    const chapterPath = `/manga/${encodeURIComponent(seriesId)}/chapter-${encodeURIComponent(chapterId)}-${translationType}`;
+    await page.evaluateScript(OPEN_CHAPTER, [chapterPath]);
+
+    const payload = await waitForPages(page);
+    return payload ? parsePayload(payload) : undefined;
   } finally {
     await page.close().catch(() => undefined);
   }
