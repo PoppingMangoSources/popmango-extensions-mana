@@ -324,6 +324,27 @@ padding, plus `decodeHex`, `base64ToBytes` and `bytesToUtf8`.
 Verified against the FIPS-197 and SP 800-38A vectors, and differentially against both
 Node's own AES-CBC and `crypto-js` over 180 random vectors across all three key lengths.
 
+### What is bundled, and what it weighs
+
+Three libraries are dependencies here, and each is compiled *into* every source that imports
+it — a `.mana` file has no shared runtime to load them from, so the cost is paid per source.
+Measured against a source that imports none, which is about 176 KB:
+
+| Library | Cost | For |
+| :------ | ---: | :-- |
+| `cheerio` | ~460 KB | Parsing a site that serves HTML. Reach for `src/common/html.ts` first |
+| `crypto-js` | ~63 KB | A primitive `src/common/aes.ts` does not carry |
+
+Both are proven in the app: four sources here ship cheerio, and the reference sources for
+this app ship crypto-js. Nothing else is available — no `moment`, no `html-entities`, no
+`TextEncoder` polyfill — because `src/common/` already answers each of those in a few lines
+against a runtime that has none of them, and a hundred kilobytes per source is a real price
+for a date format.
+
+An unused dependency is worse than none: `fflate` sat in this repo's `package.json` for
+months, imported by nothing, and `bun add` is the whole cost of putting it back the day a
+site serves a zipped chapter.
+
 ### `crypto-js`, when a hand-rolled primitive is not worth writing
 
 `crypto-js` is a dependency of this repo and **bundles and runs in the source runtime** —
