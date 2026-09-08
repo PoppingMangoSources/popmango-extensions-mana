@@ -86,7 +86,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "mkissa",
   name: "Mkissa",
-  version: "1.0.9",
+  version: "1.0.10",
   description: "Manga, manhwa and manhua from mkissa.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -372,8 +372,8 @@ class MkissaSource
 
     if (pages.length === 0) {
       throw new Error(
-        `Mkissa did not hand over the pages for chapter ${chapterId}. The site fetches its ` +
-          "own page list inside its reader, so a slow connection can outlast the wait — try again.",
+        `Mkissa returned an empty page list for chapter ${chapterId}. The reader reached the ` +
+          "site and the API answered, so this chapter has no pages under this translation.",
       );
     }
 
