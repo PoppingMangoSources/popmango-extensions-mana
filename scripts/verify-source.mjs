@@ -346,12 +346,13 @@ async function verify(name, probe, verbose) {
       return `"${content.title}"${content.cover ? "" : " (no cover)"}`;
     });
 
+    // The step reports whatever its body returns, and the later steps need the list, so the
+    // list is kept aside and the row is given the summary it would otherwise have swallowed.
     let chapters;
     if (target.getChapters) {
-      chapters = await step(results, "getChapters", async () => {
-        const found = await target.getChapters(contentId);
-        checkChapters(found);
-        return found;
+      await step(results, "getChapters", async () => {
+        chapters = await target.getChapters(contentId);
+        return checkChapters(chapters);
       });
     }
 

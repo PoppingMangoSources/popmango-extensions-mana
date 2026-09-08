@@ -32,7 +32,9 @@ const ABSOLUTE_URL_REGEX = /^https?:\/\//;
 
 export function buildThumbnailUrl(thumbnail?: string | null): string {
   const trimmed = thumbnail?.trim();
-  if (!trimmed) return `${THUMBNAIL_CDN}?w=250`;
+  // A title the site has no artwork for gets no URL at all: the CDN with nothing after it
+  // is a 404, and the app draws its own placeholder for an empty cover.
+  if (!trimmed) return "";
   if (ABSOLUTE_URL_REGEX.test(trimmed)) return trimmed;
   return `${THUMBNAIL_CDN}${trimmed.replace(/^\//, "")}?w=250`;
 }
@@ -42,7 +44,8 @@ function parseTitle(value: string): string {
 }
 
 export function seriesUrl(seriesId: string): string {
-  return `${BASE_URL}/manga/${seriesId}`;
+  // The query the site's own links carry; without it the page opens on a narrower view.
+  return `${BASE_URL}/manga/${seriesId}?fromSearch=1`;
 }
 
 export function parseRating(genres: string[]): ContentRating {
