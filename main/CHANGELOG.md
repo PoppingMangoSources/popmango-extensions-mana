@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## RokariComics (current: v1.0.1)
+## RokariComics (current: v1.0.2)
+
+### Changed
+
+- A score the theme prints in a card's corner is now the frosted pill over its cover. Not
+  every build of the theme fills that in, and a card without one draws no pill rather than
+  an empty one.
+
+## RokariComics (v1.0.1)
 
 ### Changed
 
@@ -56,7 +64,17 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.1)
+## ValirScans (current: v1.0.2)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile — so it is said once, and in the same place whether the tile is a
+  hero, a chart or a strip. It has come out of the strips' subtitle, which now reads
+  `⏯︎ 1.2M`, out of the hero's, and out of Most Popular's rows. The title page still lists
+  it, where no pill is drawn.
+
+## ValirScans (v1.0.1)
 
 ### Changed
 
@@ -289,7 +307,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.11)
+## StoneScape (current: v1.0.12)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile. It has come out of the line under the title and out of the info rows
+  with it, so the same number is not printed twice on one card. The title page still lists
+  it, where no pill is drawn.
+
+## StoneScape (v1.0.11)
 
 ### Fixed
 
@@ -459,7 +486,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.7)
+## MangaUpdates (current: v1.0.8)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile. It has come out of the line under the title and out of the info rows
+  with it, so the same number is not printed twice on one card. The title page still lists
+  it, where no pill is drawn.
+
+## MangaUpdates (v1.0.7)
 
 ### Fixed
 
@@ -544,7 +580,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.18)
+## XCOMIC (current: v1.0.19)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile. It has come out of the line under the title and out of the info rows
+  with it, so the same number is not printed twice on one card. The title page still lists
+  it, where no pill is drawn.
+
+## XCOMIC (v1.0.18)
 
 ### Fixed
 
@@ -659,7 +704,16 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.10)
+## FlameComics (current: v1.0.11)
+
+### Changed
+
+- A library migration no longer buys a Similar Titles lookup for every title it walks
+  through. The app now says when a request is a migration, and one wants only enough
+  metadata to match a title — so that extra request is skipped and everything else is
+  answered as before.
+
+## FlameComics (v1.0.10)
 
 ### Fixed
 
@@ -710,7 +764,16 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.33)
+## Kagane (current: v1.0.34)
+
+### Changed
+
+- A library migration no longer buys a related-editions lookup for every title it walks
+  through. The app now says when a request is a migration, and one wants only enough
+  metadata to match a title — so that extra request is skipped and everything else is
+  answered as before.
+
+## Kagane (v1.0.33)
 
 ### Fixed
 
