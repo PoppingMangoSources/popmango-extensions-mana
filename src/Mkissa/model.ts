@@ -7,9 +7,15 @@ import type { PageSectionSpec } from "../common/index.ts";
 export type DiscoverSection = PageSectionSpec & { limit?: number };
 
 export const BASE_URL = "https://mkissa.to";
-// The API lives on its own host and answers only to the site's own origin, which is why
-// every request below carries `origin` and `referer` for BASE_URL rather than for this one.
-export const API_URL = "https://api.mkissa.net/api";
+/**
+ * The API host.
+ *
+ * The site's own page talks to `api.mkissa.net`, and that host answers it — but it rejects
+ * this source's requests with a 400 while this one serves every query, so the reader and the
+ * catalogue both go here. Both answer only to the site's origin, which is why every request
+ * below carries `origin` and `referer` for BASE_URL rather than for this host.
+ */
+export const API_URL = "https://api.allanime.day/api";
 
 export const THUMBNAIL_CDN = "https://wp.youtube-anime.com/aln.youtube-anime.com/";
 export const IMAGE_CDN = "https://wp.youtube-anime.com";
