@@ -2,6 +2,50 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
+## Mkissa (current: v1.0.2)
+
+### Fixed
+
+- A prologue numbered 0 sat at the top of the chapter list instead of at its start, and the
+  app offered to open chapter 1 rather than it. The number was read with the one idiom that
+  cannot tell "chapter zero" from "carries no number at all". Chapter zero is now left where
+  the site put it, and a chapter the site really does leave unnumbered sorts above the run.
+
+### Changed
+
+- The reader asks the site's own API from inside the site's own page. It used to claim the
+  page's `JSON.parse`, plant a link and click it, then poll for whatever the router happened
+  to fetch — which needed the router to be listening, the click to route, and the list to
+  come back through the one function that had been hooked. Now the chapter's page is loaded
+  and the query is run there directly: one round trip, awaited, carrying the cookies and
+  origin the API answers to. Nothing is hooked, nothing is clicked, and a challenge is
+  handed to the app at once rather than waited out.
+- A challenge is judged by the site's own scripts appearing rather than by markers going
+  away, which is the rule the rest of the sources here follow — markers being absent also
+  describes a blank page.
+- A title's score is the frosted pill the app draws over its cover, and has come out of the
+  subtitle and the info rows so no tile says the same number twice. A popular row's line now
+  says what it was ranked on.
+- Images are asked for with the site's own referer, which its image host checks.
+
+## Mkissa (v1.0.1)
+
+### Changed
+
+- The page list is read from the site's own reader rather than from a signed request. The
+  signing was rejected in practice, and the hashing and cipher written for it are gone with
+  it.
+
+## Mkissa (v1.0.0)
+
+First release. Manga, manhwa and manhua from mkissa.to:
+
+- Five home rows — Popular, Popular This Week, Popular This Month, Latest Updates and
+  Recommended — each of which can be turned off in settings.
+- Search across the site's sixty-eight genres with include and exclude, a country filter,
+  and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
+- Settings for image quality and adult content.
+
 ## RokariComics (current: v1.0.2)
 
 ### Changed
