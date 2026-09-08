@@ -108,12 +108,12 @@ import {
   type ReaderCrypto,
 } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
-import { decodeHex } from "../common/aes.ts";
+import { decodeHex } from "../common/bytes.ts";
 
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.0.11",
+  version: "1.0.12",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -125,6 +125,9 @@ const info: SourceInfo = {
 const DETAIL_CACHE_MS = 60_000;
 
 /** The front page's carousel changes by the day, so a quarter of an hour is nothing. */
+/** Keyed by the script's own versioned URL, so a reader bump misses rather than goes stale. */
+const CHAPTER_JS_STORE_PREFIX = "mangago.chapter-js:";
+
 const FEATURED_CACHE_MS = 15 * 60 * 1000;
 
 const REDRAW_GATE_TIMEOUT_MS = 3_000;
@@ -578,17 +581,48 @@ class MangagoSource
     throw new Error("No usable reader page for this chapter");
   }
 
+  /**
+   * The deobfuscated `chapter.js`, kept across launches.
+   *
+   * Every chapter of every title decodes through the same script, and deobfuscating it costs
+   * a request and a pass over a few hundred kilobytes. The key is the script's own versioned
+   * URL, so the site bumping its reader misses the stored copy rather than being served a
+   * stale one — no expiry to choose, and none to get wrong.
+   *
+   * A stored value is validated before it is trusted: a truncated write, or one left by an
+   * older shape of this source, would otherwise be a chapter that never opens again. For the
+   * same reason only a validated decode is written back.
+   */
+  private async loadChapterJs(scriptUrl: string): Promise<string> {
+    const cached = this.scriptCache.get(scriptUrl);
+    if (cached) return cached;
+
+    const storeKey = `${CHAPTER_JS_STORE_PREFIX}${scriptUrl}`;
+    try {
+      const stored = await ObjectStore.string(storeKey);
+      if (stored && isUsableChapterJs(stored)) {
+        this.scriptCache.set(scriptUrl, stored);
+        return stored;
+      }
+    } catch {
+      // Unreadable or written by an older shape: fetch it again rather than fail.
+    }
+
+    const script = sojsonV4Decode(await this.fetchHtml(scriptUrl));
+    if (isUsableChapterJs(script)) {
+      this.scriptCache.set(scriptUrl, script);
+      await ObjectStore.set(storeKey, script).catch(() => undefined);
+    }
+    return script;
+  }
+
   private async loadCrypto(html: string, loadedUrl: string): Promise<ReaderCrypto> {
     const src = parseChapterJsUrl(html);
     if (!src) throw new Error("Could not find chapter.js");
 
     const scriptUrl = resolveChapterJsUrl(src, loadedUrl);
 
-    let script = this.scriptCache.get(scriptUrl);
-    if (!script) {
-      script = sojsonV4Decode(await this.fetchHtml(scriptUrl));
-      if (isUsableChapterJs(script)) this.scriptCache.set(scriptUrl, script);
-    }
+    const script = await this.loadChapterJs(scriptUrl);
 
     const keyHex = parseHexEncodedVariable(script, "key");
     const ivHex = parseHexEncodedVariable(script, "iv");

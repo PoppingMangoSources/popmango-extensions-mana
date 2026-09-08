@@ -18,5 +18,9 @@ export * from "./preferences.ts";
 export * from "./dates.ts";
 export * from "./urls.ts";
 export * from "./html.ts";
-export * from "./aes.ts";
+// `aes.ts` is deliberately absent. It imports `crypto-js`, whose modules mutate a shared
+// object and so cannot be tree-shaken — re-exporting it here put the whole cipher into every
+// source that imported anything at all from this barrel, at ninety kilobytes each. The one
+// source that decrypts imports `./aes.ts` directly.
+export * from "./bytes.ts";
 export * from "./cache.ts";

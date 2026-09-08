@@ -81,7 +81,8 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `dates.ts` | `parseDate`, `parseChapterNumber`, `relativeTime` |
 | `urls.ts` | `UrlBuilder`, `resolveUrl`, `hostOf` |
 | `html.ts` | `text`, `clean`, `imageSrc`, `summaryOf`, `parseStatus`, `hasNextPage` |
-| `aes.ts` | `aesCbcDecrypt`, `base64ToBytes`, `bytesToUtf8`, `decodeHex`; `crypto-js` bundles and runs for anything it does not carry |
+| `aes.ts` | `aesCbcDecrypt`, on `crypto-js`. Import it directly — it is not in the barrel |
+| `bytes.ts` | `base64ToBytes`, `bytesToUtf8`, `utf8ToBytes`, `decodeHex`, `bytesToBase64Url` |
 
 A directory becomes a source when one of its files exports `class Target`. That is why
 `src/common/` is shared code and not an extension of its own — never put a `Target` in it.

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { aesCbcDecrypt, base64ToBytes, bytesToUtf8 } from "../common/aes.ts";
+import { aesCbcDecrypt } from "../common/aes.ts";
+import { base64ToBytes, bytesToUtf8 } from "../common/bytes.ts";
 import { resolveUrl } from "../common/index.ts";
 import { DOMAIN, READER_MIRROR_HOSTS } from "./model.ts";
 import { parsePathAndQuery, readerOrigin } from "./client.ts";

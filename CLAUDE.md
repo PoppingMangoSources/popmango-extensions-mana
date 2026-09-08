@@ -52,8 +52,10 @@ than assuming a green local build means anything about the live site.
   `TextDecoder`. `src/common/` has replacements for each. `crypto-js` bundles and runs there
   for a primitive `src/common/aes.ts` does not carry.
 - A dependency is compiled into every source that imports it, so it is paid for per source —
-  `cheerio` about 460 KB, `crypto-js` about 63 KB, against a 176 KB source that imports
-  neither. Add one only when `src/common/` genuinely cannot answer it.
+  `cheerio` about 460 KB, `crypto-js` about 92 KB, against a 176 KB source that imports
+  neither. Add one only when `src/common/` genuinely cannot answer it, and never re-export a
+  side-effecting one from `src/common/index.ts`: esbuild cannot tree-shake those, so the
+  barrel hands it to every source that imports anything at all.
 - A `WebViewPage` is asked with `evaluate(fn, …)`, never `evaluateScript`. The host declares
   `args` in the page's own scope on every script and it outlives the call, so a second
   `evaluateScript` against one page throws — and a loop that polls a page is the usual way to

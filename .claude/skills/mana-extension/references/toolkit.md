@@ -333,17 +333,21 @@ Measured against a source that imports none, which is about 176 KB:
 | Library | Cost | For |
 | :------ | ---: | :-- |
 | `cheerio` | ~460 KB | Parsing a site that serves HTML. Reach for `src/common/html.ts` first |
-| `crypto-js` | ~63 KB | A primitive `src/common/aes.ts` does not carry |
+| `crypto-js` | ~92 KB | The AES in `src/common/aes.ts`, and any primitive it does not carry |
+| `fflate` | — | A site that serves a chapter zipped. Nothing imports it yet |
 
-Both are proven in the app: four sources here ship cheerio, and the reference sources for
-this app ship crypto-js. Nothing else is available — no `moment`, no `html-entities`, no
-`TextEncoder` polyfill — because `src/common/` already answers each of those in a few lines
-against a runtime that has none of them, and a hundred kilobytes per source is a real price
-for a date format.
+All are proven in the app: four sources here ship cheerio, Mangago ships crypto-js, and the
+reference sources for this app ship it too. Nothing else is worth adding — no `moment`, no
+`html-entities`, no `TextEncoder` polyfill — because `src/common/` already answers each in a
+few lines against a runtime that has none of them, and ninety kilobytes per source is a real
+price for a date format.
 
-An unused dependency is worse than none: `fflate` sat in this repo's `package.json` for
-months, imported by nothing, and `bun add` is the whole cost of putting it back the day a
-site serves a zipped chapter.
+**A side-effecting library must not be re-exported from `src/common/index.ts`.** crypto-js's
+modules work by mutating a shared object, so esbuild cannot tree-shake them: for one build
+here, `export * from "./aes.ts"` in the barrel put the whole cipher into all eleven sources —
+including the eight that never decrypt anything — at ninety kilobytes each. `aes.ts` is
+therefore imported directly by the one source that needs it, and only the byte helpers beside
+it, which import nothing, go through the barrel.
 
 ### `crypto-js`, when a hand-rolled primitive is not worth writing
 
