@@ -228,10 +228,37 @@ without checking them. `bun run typecheck` is the gate that catches it.
 JS bridge and no page-started hook**, so the Paperback and Tachiyomi trick of rewriting a
 page's HTML to install a hook before its own scripts run does not port.
 
-What does port: load a page, install a hook with `evaluateScript`, then make the page fetch
-something. A single-page app routed to within the page keeps the same JavaScript context,
-so a hook installed after the first load still catches the second request. State parked on
-`window` survives between `evaluateScript` calls for as long as no full navigation happens.
+**Ask the page; do not listen to it.** When a site answers an endpoint only to a caller
+carrying its own cookies, origin and clearance, load one of its pages and then make *that
+request from inside it* — the WebView already holds everything the endpoint checks:
+
+```ts
+await page.goto(chapterUrl, { waitUntil: "domcontentloaded", timeout: SECONDS });
+await waitForSite(page);                       // see below
+const body = await page.evaluate(runQuery, endpoint, query, variables);
+```
+
+That is one round trip, awaited. The tempting alternative — claim the page's `JSON.parse`,
+plant a link, click it, then poll for whatever the router happened to fetch — needs the
+router to be listening, the click to route, and the answer to come back through the one
+function that was hooked; when any of those fails it fails as a timeout with nothing to
+report. Mkissa was written that way first and reads its own API now.
+
+`evaluate(fn, ...args)` ships a **function** into the page, which typechecks and keeps its
+arguments and return value typed across the bridge; `evaluateScript` takes a string and is
+the fallback. The function body cannot see anything from this file, and this project has no
+DOM library, so reach the page's globals through a locally declared view of `globalThis`
+rather than pulling `lib.dom` in.
+
+**`goto` resolving is not "the page is ready"** — it fires when a challenge page loads,
+which is the start of the wait. Poll a cheap `querySelector` probe until the site's own
+bundle is there, and throw `CloudflareError` the moment challenge markers appear rather than
+waiting the budget out. `passChallenge` in `src/common/cloudflare.ts` is that loop for the
+ordinary case.
+
+A single-page app routed to within the page keeps the same JavaScript context, and state
+parked on `window` survives between calls for as long as no full navigation happens — worth
+knowing, but not a reason to prefer hooking over asking.
 
 ### What the built bundle carries
 

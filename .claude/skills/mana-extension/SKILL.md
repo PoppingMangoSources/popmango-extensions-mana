@@ -155,6 +155,8 @@ The failures this repo has actually shipped, each silent:
 - [ ] Chapter `title` carries the whole label — the app prints it verbatim and never
       joins `volume`/`number` onto it
 - [ ] `WebViewPage` navigated before `evaluate`, bounded by a timer, closed in `finally`
+- [ ] A WebView asks the site's own endpoint from inside its page rather than hooking the
+      page's parser and polling for what it happens to fetch
 - [ ] Redraw state serialised per image, not held in a bare field
 - [ ] Every home row costs one request — check the hero row especially
 - [ ] A server-filled option list uses a `*Sheet` builder — the host stopped promoting long
