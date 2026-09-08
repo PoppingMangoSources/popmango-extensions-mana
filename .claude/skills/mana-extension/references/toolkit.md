@@ -88,8 +88,31 @@ Section styles, and what each looks like on screen:
 | `DetailedVerticalList`, `DetailedVerticalListGrouped` | a vertical list; `Highlight.info` renders as key/value rows |
 | `Grid` | a plain grid |
 
-`Highlight.info` is a `Pair[]`, and it is what produces the `Rating / Chapters / Volumes`
+`Highlight.info` is a `Pair[]`, and it is what produces the `Chapters / Volumes / Updated`
 rows in a detailed list. Only the vertical list styles render it.
+
+## `src/common/highlights.ts` — the tile's pill, and where a request came from
+
+```ts
+const badge = toBadge(formatScore(series.rating));   // undefined for an empty label
+return { id, title, cover, ...(badge === undefined ? {} : { badge }), … };
+```
+
+`Highlight.badge` is a frosted pill the app draws **over the cover on every shape of tile**,
+heroes and plain strips alike, so it is the one place a rating belongs: put it here and take
+it out of the subtitle and the info rows, or the same number is printed twice on one card.
+The app owns the tint, blur and shape — the text is all a source supplies.
+
+`isMigration(context)` answers whether the host asked as part of moving a library between
+sources. Use it to skip whatever `getContent` fetches on top of the details themselves:
+
+```ts
+async getContent(contentId: string, context?: SourceContext): Promise<Content> {
+  const content = parseContent(await this.api.fetchSeries(contentId));
+  if (isMigration(context)) return content;
+  …the extra request…
+}
+```
 
 ## `src/common/preferences.ts` — the preference menu
 

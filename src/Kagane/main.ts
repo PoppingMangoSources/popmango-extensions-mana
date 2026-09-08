@@ -49,6 +49,7 @@ import {
   toPageSections,
   relativeTime,
   type PreferenceValue,
+  isMigration,
 } from "../common/index.ts";
 import { KaganeApi } from "./client.ts";
 import {
@@ -89,7 +90,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.0.33",
+  version: "1.0.34",
   description: "Manga, manhwa, manhua and comics from kagane.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -364,7 +365,7 @@ class KaganeSource
     );
   }
 
-  async getContent(contentId: string): Promise<Content> {
+  async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     const [details, titleOptions, showSpoilerTags, ids] = await Promise.all([
       this.fetchDetails(contentId),
       this.titleOptions(),
@@ -381,6 +382,10 @@ class KaganeSource
 
     const trackerId = details.tracker_id;
     if (!trackerId) return content;
+
+    // A migration walks a whole library through here and wants only enough to match a
+    // title, so the extra request below is bought once per title and thrown away.
+    if (isMigration(context)) return content;
 
     const related = await this.api
       .fetchRelated(trackerId)

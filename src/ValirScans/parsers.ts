@@ -19,6 +19,7 @@ import {
   relativeTime,
   resolveUrl,
   summaryFromHtml,
+  toBadge,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -481,22 +482,24 @@ export function parseReader(html: string): ReaderContent {
  * The two rows that are not strips say something else: a chart leads with where the site
  * put it, and a grouped list says nothing at all, because its chapters are rows of their
  * own beneath the title and repeating the newest here would print it twice.
+ *
+ * The rating is not on this line at all any more: it is the pill the app draws over the
+ * cover, which it draws on every shape of tile — so it is said once, and in the same place
+ * whether the tile is a hero, a chart or a strip.
  */
 function buildSubtitle(series: ValirSeries, style: SubtitleStyle, rank: number): string {
   const kind = kindLabel(series);
   const views = compactCount(series.viewCount);
-  const score = formatScore(series.rating);
   const viewLabel = views ? `${VIEWS_MARK} ${views}` : "";
 
   switch (style) {
-    case "hero":
-      return [viewLabel, score].filter(Boolean).join(" • ") || kind;
     case "rank":
       return [rank > 0 ? `#${rank}` : "", kind].filter(Boolean).join(" • ");
-    // A title the site has graded neither way falls back to what it is, rather than
+    // A title the site has counted no reading for falls back to what it is, rather than
     // leaving the line empty.
+    case "hero":
     case "stats":
-      return [score, viewLabel].filter(Boolean).join(" • ") || kind;
+      return viewLabel || kind;
     default:
       return "";
   }
@@ -521,8 +524,6 @@ function buildInfoRows(series: ValirSeries, style: SubtitleStyle): Pair[] {
   const rows: Pair[] = [];
   const views = compactCount(series.viewCount);
   if (views) rows.push({ key: "Views", value: `${VIEWS_MARK} ${views}` });
-  const score = formatScore(series.rating);
-  if (score) rows.push({ key: "Rating", value: score });
   const state = statusLabel(series);
   if (state) rows.push({ key: "Status", value: `◌ ${state}` });
   return rows;
@@ -531,6 +532,7 @@ function buildInfoRows(series: ValirSeries, style: SubtitleStyle): Pair[] {
 export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0): Highlight {
   const subtitle = buildSubtitle(series, style, rank);
   const info = buildInfoRows(series, style);
+  const badge = toBadge(formatScore(series.rating));
   const contentId = contentIdOf(series);
 
   return {
@@ -538,6 +540,7 @@ export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0)
     title: cleanText(series.title),
     cover: absolute(series.coverImage),
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length === 0 ? {} : { info }),
     contentRating: ratingOf(series),
     webUrl: contentUrl(contentId),

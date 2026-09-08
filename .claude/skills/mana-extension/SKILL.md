@@ -75,6 +75,7 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `filters.ts` | `FilterReader` |
 | `search.ts` | `buildSearchForm`, `resolveSortId` |
 | `sections.ts` | `SectionSpec`, `toPageSections`, `listResults`, `pageOf` |
+| `highlights.ts` | `toBadge` for a tile's pill, `isMigration` for the request's origin |
 | `preferences.ts` | `PreferenceStore`, `buildPreferenceMenu` |
 | `query.ts` | `withQuery` |
 | `dates.ts` | `parseDate`, `parseChapterNumber`, `relativeTime` |
@@ -160,6 +161,10 @@ The failures this repo has actually shipped, each silent:
       lists to sheets on its own, and `SearchTagsSection` is always inline
 - [ ] `context.allowedContentRatings` honoured through the site's own filtering, not by
       dropping rows after the fact
+- [ ] A rating lives in `Highlight.badge` and nowhere else on the tile — repeating it in the
+      subtitle or an info row says it twice on the same card
+- [ ] Anything `getContent` fetches beyond the details themselves is skipped when
+      `isMigration(context)`, or a migration buys it once per title and throws it away
 - [ ] A challenge judged cleared by the site's own scripts appearing, never by markers
       being absent — and one wanting a person handed over at once
 - [ ] `setStatusValidator` lets 403 and 503 reach the source, or a challenge cannot be told

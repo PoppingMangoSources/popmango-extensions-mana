@@ -23,6 +23,7 @@ import {
   resolveUrl,
   summaryFromHtml,
   text,
+  toBadge,
 } from "../common/index.ts";
 import {
   CONTENT_RATING_GENRES,
@@ -174,21 +175,22 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   if (genres.length > 0) {
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
-  if (score) info.push({ key: "Rating", value: score });
   if (follows) info.push({ key: "Follows", value: `♥ ${follows}` });
   // The bubble carries U+FE0E so it draws as a filled mark like the star and heart above
   // it: a `Pair` takes plain text, and the bare codepoint would render in colour.
   if (comments) info.push({ key: "Comments", value: `🗨︎ ${comments}` });
 
-  const subtitle = [number ? `Chapter ${number}` : "", hero ? score : ""]
-    .filter(Boolean)
-    .join(" | ");
+  const subtitle = number ? `Chapter ${number}` : "";
+  // The score is the pill over the cover rather than a line under the title: the app draws
+  // it on every shape of tile, so it is said once and in the same place everywhere.
+  const badge = toBadge(score);
 
   return {
     id: comic.id,
     title: cleanTitle(decodeEntities(clean(comic.name))),
     cover: absoluteUrl(comic.urlCover),
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     // A tile stretches its whole row past about four lines, so the rest is dropped.
     ...(hero || info.length === 0 ? {} : { info: info.slice(0, 4) }),
     contentRating: parseRating(comic),

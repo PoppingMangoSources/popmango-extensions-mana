@@ -10,7 +10,7 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, decodeEntities, summaryFromHtml } from "../common/index.ts";
+import { clean, decodeEntities, summaryFromHtml, toBadge } from "../common/index.ts";
 import { ADULT_GENRES, BASE_URL, MATURE_GENRES, type Series } from "./model.ts";
 
 export function seriesUrl(series: Series): string {
@@ -99,15 +99,18 @@ export function parseHighlight(series: Series, hitTitle?: string): Highlight {
   const info: Pair[] = [];
   if (series.type) info.push({ key: "Type", value: series.type });
   if (series.year) info.push({ key: "Year", value: series.year });
-  if (score) info.push({ key: "Rating", value: score });
 
   const subtitle = [series.type, series.year].filter(Boolean).join(" • ");
+  // The score is the pill over the cover rather than a row beneath it: the app draws it on
+  // every shape of tile, so it is said once and in the same place everywhere.
+  const badge = toBadge(score);
 
   return {
     id: String(series.series_id ?? ""),
     title: decodeEntities(clean(hitTitle ?? "")) || title,
     cover: series.image?.url?.original ?? series.image?.url?.thumb ?? "",
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length > 0 ? { info } : {}),
     contentRating: parseRating(series),
     webUrl: seriesUrl(series),

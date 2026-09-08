@@ -18,6 +18,7 @@ import {
   relativeTime,
   resolveUrl,
   summaryFromHtml,
+  toBadge,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -188,15 +189,19 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
 
   const info = hero
     ? []
-    : buildInfoRows(style, { chapter, uploaded, genres, score, views, status: statusOf(series) });
+    : buildInfoRows(style, { chapter, uploaded, genres, views, status: statusOf(series) });
 
-  const subtitle = buildSubtitle(series, style, { chapter, score, views });
+  const subtitle = buildSubtitle(series, style, { chapter, views });
+  // The score is the pill over the cover rather than a line under the title: the app draws
+  // it on every shape of tile, so it is said once and in the same place everywhere.
+  const badge = toBadge(score);
 
   return {
     id: series.slug,
     title: decodeEntities(clean(series.title)),
     cover: coverUrl(series),
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length === 0 ? {} : { info }),
     contentRating: parseRating(series.genres),
     webUrl: seriesUrl(series.slug),
@@ -207,7 +212,6 @@ type InfoParts = {
   chapter: string;
   uploaded: Date | undefined;
   genres: readonly string[];
-  score: string;
   views: string;
   status: string;
 };
@@ -220,7 +224,6 @@ function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
       parts.genres.length > 0
         ? { key: parts.genres.length > 1 ? "Genres" : "Genre", value: parts.genres.join(", ") }
         : undefined,
-    rating: parts.score ? { key: "Rating", value: parts.score } : undefined,
     views: parts.views ? { key: "Views", value: `⏯︎ ${parts.views}` } : undefined,
     status: parts.status ? { key: "Status", value: parts.status } : undefined,
   };
@@ -230,7 +233,7 @@ function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
   const order =
     style === "kind"
       ? ["views", "status", "latest", "updated"]
-      : ["latest", "updated", "genres", "rating", "views"];
+      : ["latest", "updated", "genres", "views"];
 
   return (
     order
@@ -244,14 +247,14 @@ function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
 function buildSubtitle(
   series: Series,
   style: SubtitleStyle,
-  parts: { chapter: string; score: string; views: string },
+  parts: { chapter: string; views: string },
 ): string {
   const chapterLabel = parts.chapter ? `Chapter ${parts.chapter}` : "";
   const viewLabel = parts.views ? `⏯︎ ${parts.views}` : "";
 
   switch (style) {
     case "hero":
-      return [chapterLabel, parts.score, viewLabel].filter(Boolean).join(" | ");
+      return [chapterLabel, viewLabel].filter(Boolean).join(" | ");
     // The state of the series moves to a row of its own beneath the views, leaving the
     // line under the title to say what the series is.
     case "kind":

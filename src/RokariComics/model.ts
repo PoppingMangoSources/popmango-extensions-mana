@@ -192,6 +192,8 @@ export type Card = {
   cover: string;
   /** The chapter label the theme prints on the card, already the site's own wording. */
   chapter?: string;
+  /** The score the theme prints in the card's corner, where its build fills one in. */
+  score?: string;
   genres: string[];
   /** The site's own position in a ranked row. */
   rank?: number;

@@ -1,6 +1,6 @@
 # The `@mana-app/types` surface and the runtime that consumes it
 
-Verified against `@mana-app/types@0.0.25` and `@mana-app/dev@0.1.14` by reading the
+Verified against `@mana-app/types@0.0.26` and `@mana-app/dev@0.1.14` by reading the
 type declarations and the runtime embedded in `mana-dev`.
 
 ## How the app decides what your source can do
@@ -158,30 +158,46 @@ alongside — so a group is a rendering hint, and each child keeps its own filte
 
 ### `SourceContext`
 
-`SearchRequest.context` and `PageLink.context` carry a `SourceContext`, which declares
-`allowedContentRatings` and is otherwise an open bag (`[key: string]: any`) the host fills.
-
-**`getContent` is gaining one as a second parameter.** The host uses it to say where the
-call came from — a library migration, for instance, wants only the metadata and cares far
-more about rate limits than about completeness. A source that fetches extras in
-`getContent` should skip them when the context says the caller does not want them:
+`SourceContext` is a closed interface with two readonly fields, not the open bag it used to
+be:
 
 ```ts
-async getContent(contentId: string, context?: SourceContext): Promise<Content> { … }
+enum SourceContextOrigin { MIGRATION = 0 }
+
+interface SourceContext {
+  readonly origin?: SourceContextOrigin;
+  readonly allowedContentRatings?: readonly ContentRating[];
+}
 ```
 
-JavaScript ignores an argument a function does not declare, so an older source keeps
-working and simply never sees the context — it is additive, not a break. Two sources here
-already pay for this: FlameComics fetches its Similar Titles row and Kagane its related
-editions, one extra request each, on every single title a migration walks through.
+It reaches a source three ways: as the **second argument to `getContent`**, as
+`SearchRequest.context`, and as `PageLink.context`.
 
-Do not guess the key that marks a migration. Wire the parameter when the shape is known;
-until then the cost is one wasted request per title, which is worth less than a wrong guess.
+`origin` says which host flow asked. `MIGRATION` is the only value defined, and the host
+does not always send one — so an absent context, or an absent `origin`, means an ordinary
+read and must keep behaving like one. A migration walks a whole library through
+`getContent` wanting only enough metadata to match a title, so anything a source fetches
+*on top of* the details is bought once per title and thrown away:
 
-`SearchRequest.context` and `PageLink.context` carry `allowedContentRatings`, the ratings
-the host will accept for this request. It is absent when the host states no policy. Honour
-it through the site's own filtering — a rating parameter, or the genres that imply one —
-never by dropping rows after the fact, which leaves short and ragged pages.
+```ts
+async getContent(contentId: string, context?: SourceContext): Promise<Content> {
+  const content = parseContent(await this.api.fetchSeries(contentId));
+  if (isMigration(context)) return content;
+  …the extra request that fills a Similar Titles row…
+}
+```
+
+`isMigration` is in `src/common/highlights.ts`. Two sources here pay for this and both wire
+it: FlameComics fetches its Similar Titles row and Kagane its related editions, one extra
+request each, on every title a migration walks through.
+
+JavaScript ignores an argument a function does not declare, so a source that never adds the
+parameter keeps working and simply never sees the context — it is additive, not a break.
+
+`allowedContentRatings` is the ratings the host will accept for this request, absent when
+the host states no policy. Honour it through the site's own filtering — a rating parameter,
+or the genres that imply one — never by dropping rows after the fact, which leaves short and
+ragged pages.
 
 `SearchRequest.filters` values are `FilterPrimitives`:
 `string | boolean | number | Option | Option[] | ExcludableMultiSelectProp`. **The shape
@@ -297,9 +313,26 @@ two callers cannot both observe the same tail. A single shared gate promise is n
 
 `ChapterData` is `{ pages?: ChapterPage[] }` where each page has `url` or a base64 `raw`.
 
-`Highlight` needs `id`, `title`, `cover`, and optionally `subtitle`, `badge`, `link`. A
-`link` carrying a `SearchRequest` makes the tile open a filtered list instead of a title —
-that is how a genre or character tile can open a pre-filtered list.
+`Highlight` needs `id`, `title`, `cover`, and optionally `subtitle`, `badge`, `info`,
+`link`. A `link` carrying a `SearchRequest` makes the tile open a filtered list instead of
+a title — that is how a genre or character tile can open a pre-filtered list.
+
+**`badge` is a frosted pill drawn over the cover**, on every shape of tile — plain strips
+and heroes alike — and `PageSectionLabel` takes one too:
+
+```ts
+type Badge = { text: string };   // badge: { text: "★ 8.4" }
+```
+
+The text is the whole of a source's say in it: the app owns the tint, the blur and the
+shape, and hides a pill whose text is empty or blank. That makes it the right home for the
+single number a site grades a title by. Put the rating there and **take it out of the
+subtitle and the info rows** — the badge shows on tiles that draw neither, so leaving it in
+both says it twice on the same card. `toBadge` in `src/common/highlights.ts` builds one and
+answers `undefined` for an empty label.
+
+`Content.info` is a different surface: it is the title page, where no badge is drawn, so
+the rating stays there.
 
 `additionalInfo` sections are built with the `additionalInfo.{staff,characters,links,tags,highlights}`
 helpers exported from the types package; do not hand-write the `type` discriminants.

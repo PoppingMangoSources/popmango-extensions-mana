@@ -25,6 +25,7 @@ import {
   resolveUrl,
   summaryOf,
   text,
+  toBadge,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -71,6 +72,17 @@ function firstText(scope: Cheerio<AnyNode>, ...selectors: string[]): string {
     if (value) return decodeEntities(value);
   }
   return "";
+}
+
+/**
+ * The score the theme prints in the corner of a card.
+ *
+ * Not every build of it fills this in, and not every row carries the element at all, so an
+ * absent score simply means no pill rather than an empty one.
+ */
+function cardScore(card: Cheerio<AnyNode>): string {
+  const value = firstText(card, "div.numscore", "div.rating div.numscore", "div.rt .numscore");
+  return /\d/.test(value) ? `★ ${value}` : "";
 }
 
 /** The theme writes a card's title in the link's `title` attribute as often as in its text. */
@@ -120,6 +132,7 @@ function parseFeatured($: CheerioAPI): Card[] {
       title,
       cover: absoluteImage(slide.find("img").first(), BASE_URL),
       ...(chapter ? { chapter: clean(chapter) } : {}),
+      ...(cardScore(slide) ? { score: cardScore(slide) } : {}),
       genres: [],
       chapters: [],
     });
@@ -148,6 +161,7 @@ function parseCardRow($: CheerioAPI, scope: Cheerio<AnyNode>, selector: string):
       title,
       cover: absoluteImage(card.find("img").first(), BASE_URL),
       ...(chapter ? { chapter } : {}),
+      ...(cardScore(card) ? { score: cardScore(card) } : {}),
       genres: [],
       chapters: [],
     });
@@ -194,6 +208,7 @@ function parseLatest($: CheerioAPI): Card[] {
         title,
         cover: absoluteImage(card.find("img").first(), BASE_URL),
         ...(chapters[0] ? { chapter: chapters[0].label } : {}),
+        ...(cardScore(card) ? { score: cardScore(card) } : {}),
         genres: [],
         chapters: chapters.slice(0, LATEST_CHAPTERS_SHOWN),
       });
@@ -227,6 +242,7 @@ function parseRanking($: CheerioAPI, range: string): Card[] {
       id,
       title,
       cover: absoluteImage(row.find("img").first(), BASE_URL),
+      ...(cardScore(row) ? { score: cardScore(row) } : {}),
       genres,
       rank: position + 1,
       chapters: [],
@@ -636,12 +652,16 @@ function buildInfoRows(card: Card, style: SubtitleStyle): Pair[] {
 export function toHighlight(card: Card, style: SubtitleStyle): Highlight {
   const subtitle = buildSubtitle(card, style);
   const info = buildInfoRows(card, style);
+  // The score is the pill over the cover rather than a line under the title: the app draws
+  // it on every shape of tile, so it is said once and in the same place everywhere.
+  const badge = toBadge(card.score);
 
   return {
     id: card.id,
     title: card.title,
     cover: card.cover,
     ...(subtitle ? { subtitle } : {}),
+    ...(badge === undefined ? {} : { badge }),
     ...(info.length === 0 ? {} : { info }),
     contentRating: ContentRating.SAFE,
     webUrl: contentUrl(card.id),

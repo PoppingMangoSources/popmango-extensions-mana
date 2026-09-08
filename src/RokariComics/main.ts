@@ -75,7 +75,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rokaricomics",
   name: "RokariComics",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Comics from rokaricomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,

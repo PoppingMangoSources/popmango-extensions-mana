@@ -28,6 +28,7 @@ import {
   type SearchRequest,
   type SortOption,
   type SourceConfig,
+  type SourceContext,
   type SourceInfo,
   type SourcePreferenceProvider,
 } from "@mana-app/types";
@@ -42,6 +43,7 @@ import {
   sectionById,
   toPageSections,
   type PreferenceValue,
+  isMigration,
 } from "../common/index.ts";
 import { FlameComicsApi } from "./client.ts";
 import {
@@ -75,7 +77,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.0.10",
+  version: "1.0.11",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -280,9 +282,13 @@ class FlameComicsSource
     };
   }
 
-  async getContent(contentId: string): Promise<Content> {
+  async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     const response = await this.api.fetchSeries<SeriesDetailResponse>(contentId);
     const content = parseContent(contentId, response.pageProps.series);
+
+    // A migration walks a whole library through here and wants only enough to match a
+    // title, so the extra request below is bought once per title and thrown away.
+    if (isMigration(context)) return content;
 
     // The recommendations are worth a row but never worth the title page: a route that
     // stops answering leaves the reader with everything else.

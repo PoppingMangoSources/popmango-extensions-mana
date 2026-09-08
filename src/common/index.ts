@@ -13,6 +13,7 @@ export * from "./query.ts";
 export * from "./filters.ts";
 export * from "./search.ts";
 export * from "./sections.ts";
+export * from "./highlights.ts";
 export * from "./preferences.ts";
 export * from "./dates.ts";
 export * from "./urls.ts";
