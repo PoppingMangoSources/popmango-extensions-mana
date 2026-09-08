@@ -2,7 +2,18 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.6)
+## Mkissa (current: v1.0.7)
+
+### Fixed
+
+- Chapters still opened on an error. The reader was asking the API from inside the site's
+  page and waiting for the answer to come back across to the source — but a reply that is
+  still pending does not survive that crossing, so the source saw nothing every time. It now
+  opens the chapter the way a reader would and reads what the site fetches on the way, which
+  is a plain string by the time anything has to cross. This is how the reference source for
+  this site does it, and it works where asking directly did not.
+
+## Mkissa (v1.0.6)
 
 ### Fixed
 
