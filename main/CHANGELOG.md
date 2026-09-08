@@ -2,144 +2,6 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.10)
-
-### Fixed
-
-- Chapters still opened on an error. The reader was listening for the site's own request for
-  its page list, which cannot work here: the site's first inline script pins a pristine
-  `JSON.parse` taken from an iframe realm and parses through that, expressly so a hook
-  installed afterwards sees nothing — and this app can only run a function after a page's own
-  scripts, never before them. The reader now makes the request itself from inside the site's
-  page, which is all the WebView was ever needed for, and reads the answer back by polling.
-- A reader that fails now says why — the status the API gave, or the page's own refusal —
-  instead of guessing at a slow connection.
-
-## Mkissa (v1.0.9)
-
-### Fixed
-
-- Chapters opened on an error every time. The reader asks the page it opened several
-  questions — install a listener, open the chapter, then read what came back — and the host
-  answers the first and throws on every one after it, so the chapter was never opened and
-  the reader waited out its budget for a list nobody had asked for. Every question is now put
-  in the form that can be asked more than once.
-- The same fault sat under the Cloudflare bypass this source shares with the others, which
-  polls the page it opened and so gave up on its second look every time.
-
-## Mkissa (v1.0.8)
-
-### Changed
-
-- A row of covers wears the rating as the pill over the artwork again, the way every other
-  source here does. The two rows that draw their information as lines beneath a thumbnail
-  keep it on the line instead — no pill is drawn over a thumbnail that small.
-
-## Mkissa (v1.0.7)
-
-### Fixed
-
-- Chapters still opened on an error. The reader was asking the API from inside the site's
-  page and waiting for the answer to come back across to the source — but a reply that is
-  still pending does not survive that crossing, so the source saw nothing every time. It now
-  opens the chapter the way a reader would and reads what the site fetches on the way, which
-  is a plain string by the time anything has to cross. This is how the reference source for
-  this site does it, and it works where asking directly did not.
-
-## Mkissa (v1.0.6)
-
-### Fixed
-
-- Some titles opened on an error saying the site had returned nothing. The details query was
-  missing an argument the API treats as required — without it the record comes back null for
-  those titles — so it is sent now, as the site's own page sends it.
-
-### Changed
-
-- The source talks to the host the site itself talks to, rather than to the older name that
-  answers the same schema.
-- A title page is one request rather than two. The API returns the details and the chapter
-  list from the same query, and this was asking for the same record twice.
-- Requests go out one a second, and a throttled one waits exactly as long as the API asks
-  before being sent again. Faster than that and it answers "Too many requests" instead of
-  with data.
-- The reader loads the series page the site's own links point at, which is the page the site
-  serves in full.
-
-## Mkissa (v1.0.5)
-
-### Fixed
-
-- Chapters opened to an error saying the site had returned no pages. The reader's check for
-  the site having loaded looked for a framework the site does not use, so the wait could
-  never end. It now looks for what the site actually ships, and asks the host the site's own
-  reader asks.
-- The rows beneath a title on a popular tile were losing the score to the pill over the
-  cover. Those tiles draw no pill, so the score now leads their rows as well as the line
-  under the title.
-
-## Mkissa (v1.0.4)
-
-### Fixed
-
-- Every chapter opened to an error saying the site had returned no pages. The source was
-  asking the wrong API host, and it was asking through a reader page whose readiness check
-  looked for a framework the site does not use, so the wait could never end. The page list
-  now comes back over an ordinary request, the way the site itself asks for it.
-
-## Mkissa (v1.0.3)
-
-### Changed
-
-- The Popular rows say the score under the title. The app draws no pill over the small
-  thumbnails those rows use, so the score had nowhere to show on them; it goes on the line
-  instead, and the pill comes off those rows so nothing is said twice. What the row was
-  ranked on was on that line and in a row beneath it — it now keeps only the row.
-
-## Mkissa (v1.0.2)
-
-### Fixed
-
-- A prologue numbered 0 sat at the top of the chapter list instead of at its start, and the
-  app offered to open chapter 1 rather than it. The number was read with the one idiom that
-  cannot tell "chapter zero" from "carries no number at all". Chapter zero is now left where
-  the site put it, and a chapter the site really does leave unnumbered sorts above the run.
-
-### Changed
-
-- The reader asks the site's own API from inside the site's own page. It used to claim the
-  page's `JSON.parse`, plant a link and click it, then poll for whatever the router happened
-  to fetch — which needed the router to be listening, the click to route, and the list to
-  come back through the one function that had been hooked. Now the chapter's page is loaded
-  and the query is run there directly: one round trip, awaited, carrying the cookies and
-  origin the API answers to. Nothing is hooked, nothing is clicked, and a challenge is
-  handed to the app at once rather than waited out.
-- A challenge is judged by the site's own scripts appearing rather than by markers going
-  away, which is the rule the rest of the sources here follow — markers being absent also
-  describes a blank page.
-- A title's score is the frosted pill the app draws over its cover, and has come out of the
-  subtitle and the info rows so no tile says the same number twice. A popular row's line now
-  says what it was ranked on.
-- Images are asked for with the site's own referer, which its image host checks.
-
-## Mkissa (v1.0.1)
-
-### Changed
-
-- The page list is read from the site's own reader rather than from a signed request. The
-  signing was rejected in practice, and the hashing and cipher written for it are gone with
-  it.
-
-## Mkissa (v1.0.0)
-
-First release. Manga, manhwa and manhua from mkissa.to:
-
-- Five home rows — Popular, Popular This Week, Popular This Month, Latest Updates and
-  Recommended — each of which can be turned off in settings.
-- Search across the site's sixty-eight genres with include and exclude, a country filter,
-  and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
-- Settings for image quality and adult content.
-
 ## RokariComics (current: v1.0.5)
 
 ### Fixed
@@ -668,7 +530,6 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - The hero carousel carries the view count alongside the chapter and the rating.
 - A view count anywhere in the source is marked with the same symbol the tiles use.
 
-
 ### Fixed
 
 - Every row now shows the series' own cover, exactly as the site serves it — the hero
@@ -681,7 +542,6 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - Each home row says the thing its own ranking is about instead of repeating the chapter
   number down the page: Popular This Week carries the format and status, Popular This
   Month the view count. A locked chapter is marked in words rather than with an emoji.
-
 
 ### Fixed
 
@@ -1020,7 +880,6 @@ First release. Manga, manhwa and manhua from mkissa.to:
   monochrome form as the star and the heart beside it. Dropping it left that row looking
   bare next to the two above it.
 
-
 ### Changed
 
 - Deduplicate Chapter List ships off. The site lists every group's upload, and collapsing
@@ -1276,7 +1135,6 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 
 - The view count in a title's summary is marked with the same symbol the other sources
   use, beside the star the rating already carried.
-
 
 ### Fixed
 
