@@ -94,14 +94,19 @@ rows in a detailed list. Only the vertical list styles render it.
 ## `src/common/highlights.ts` — the tile's pill, and where a request came from
 
 ```ts
-const badge = toBadge(formatScore(series.rating));   // undefined for an empty label
+// The best number the site has for this title, in this order.
+const taken = firstFilled(formatScore(series.rating), viewLabel);
+const badge = toBadge(taken);                       // undefined for an empty label
 return { id, title, cover, ...(badge === undefined ? {} : { badge }), … };
 ```
 
 `Highlight.badge` is a frosted pill the app draws **over the cover on every shape of tile**,
-heroes and plain strips alike, so it is the one place a rating belongs: put it here and take
-it out of the subtitle and the info rows, or the same number is printed twice on one card.
-The app owns the tint, blur and shape — the text is all a source supplies.
+heroes and plain strips alike, so it is the one place a number belongs. `firstFilled` falls
+through the candidates in order: the rating, then what the title has been read, then `""`
+for a cover with no pill. Whatever it took must come out of that card's subtitle and its
+info rows, or the same number is printed twice — and since which one it took varies per
+title, compare against `taken` rather than assuming. The app owns the tint, blur and shape;
+the text is all a source supplies.
 
 `isMigration(context)` answers whether the host asked as part of moving a library between
 sources. Use it to skip whatever `getContent` fetches on top of the details themselves:

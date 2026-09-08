@@ -17,6 +17,7 @@ import {
   clean,
   decodeEntities,
   relativeTime,
+  firstFilled,
   resolveUrl,
   summaryFromHtml,
   toBadge,
@@ -483,11 +484,16 @@ export function parseReader(html: string): ReaderContent {
  * put it, and a grouped list says nothing at all, because its chapters are rows of their
  * own beneath the title and repeating the newest here would print it twice.
  *
- * The rating is not on this line at all any more: it is the pill the app draws over the
- * cover, which it draws on every shape of tile — so it is said once, and in the same place
- * whether the tile is a hero, a chart or a strip.
+ * Neither number the site grades a title by is on this line when the pill above has it:
+ * the rating goes there by preference, the view count when the site graded the title
+ * nothing, and this line then says the next thing down rather than repeating the pill.
  */
-function buildSubtitle(series: ValirSeries, style: SubtitleStyle, rank: number): string {
+function buildSubtitle(
+  series: ValirSeries,
+  style: SubtitleStyle,
+  rank: number,
+  taken: string,
+): string {
   const kind = kindLabel(series);
   const views = compactCount(series.viewCount);
   const viewLabel = views ? `${VIEWS_MARK} ${views}` : "";
@@ -495,18 +501,18 @@ function buildSubtitle(series: ValirSeries, style: SubtitleStyle, rank: number):
   switch (style) {
     case "rank":
       return [rank > 0 ? `#${rank}` : "", kind].filter(Boolean).join(" • ");
-    // A title the site has counted no reading for falls back to what it is, rather than
-    // leaving the line empty.
+    // A title whose reading the pill is already showing, or that the site has counted none
+    // for, falls back to what it is rather than leaving the line empty.
     case "hero":
     case "stats":
-      return viewLabel || kind;
+      return (taken === viewLabel ? "" : viewLabel) || kind;
     default:
       return "";
   }
 }
 
-/** The rows a detailed tile draws, which is the only place a symbol is written. */
-function buildInfoRows(series: ValirSeries, style: SubtitleStyle): Pair[] {
+/** The rows a detailed tile draws, minus anything the pill over the cover already says. */
+function buildInfoRows(series: ValirSeries, style: SubtitleStyle, taken: string): Pair[] {
   if (style === "chapters") {
     return (series.chapters ?? []).slice(0, LATEST_CHAPTERS_SHOWN).map((chapter) => {
       const locked = !chapterIsAccessible(chapter);
@@ -523,16 +529,22 @@ function buildInfoRows(series: ValirSeries, style: SubtitleStyle): Pair[] {
 
   const rows: Pair[] = [];
   const views = compactCount(series.viewCount);
-  if (views) rows.push({ key: "Views", value: `${VIEWS_MARK} ${views}` });
+  const viewLabel = views ? `${VIEWS_MARK} ${views}` : "";
+  if (viewLabel && viewLabel !== taken) rows.push({ key: "Views", value: viewLabel });
   const state = statusLabel(series);
   if (state) rows.push({ key: "Status", value: `◌ ${state}` });
   return rows;
 }
 
 export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0): Highlight {
-  const subtitle = buildSubtitle(series, style, rank);
-  const info = buildInfoRows(series, style);
-  const badge = toBadge(formatScore(series.rating));
+  // The pill takes the rating, and the view count when the site has graded a title
+  // nothing; whatever it takes is then left out of the lines below it.
+  const views = compactCount(series.viewCount);
+  const taken = firstFilled(formatScore(series.rating), views ? `${VIEWS_MARK} ${views}` : "");
+
+  const subtitle = buildSubtitle(series, style, rank, taken);
+  const info = buildInfoRows(series, style, taken);
+  const badge = toBadge(taken);
   const contentId = contentIdOf(series);
 
   return {

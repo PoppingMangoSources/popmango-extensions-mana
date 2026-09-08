@@ -326,10 +326,21 @@ type Badge = { text: string };   // badge: { text: "★ 8.4" }
 
 The text is the whole of a source's say in it: the app owns the tint, the blur and the
 shape, and hides a pill whose text is empty or blank. That makes it the right home for the
-single number a site grades a title by. Put the rating there and **take it out of the
-subtitle and the info rows** — the badge shows on tiles that draw neither, so leaving it in
-both says it twice on the same card. `toBadge` in `src/common/highlights.ts` builds one and
-answers `undefined` for an empty label.
+single number a site grades a title by.
+
+Take the best number the site has for *that* title, in order — the rating first, then what
+it has been read, then nothing at all rather than an empty pill. `firstFilled` in
+`src/common/highlights.ts` picks it and `toBadge` wraps it:
+
+```ts
+const taken = firstFilled(formatScore(series.rating), viewLabel);
+const badge = toBadge(taken);
+```
+
+Then **take whatever the pill got out of that card's subtitle and its info rows.** The
+badge shows on tiles that draw neither, so leaving it in both says the same number twice on
+one card — and because the pill falls through, which number that is varies per title.
+Compare against `taken` rather than assuming.
 
 `Content.info` is a different surface: it is the title page, where no badge is drawn, so
 the rating stays there.

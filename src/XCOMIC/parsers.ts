@@ -23,6 +23,7 @@ import {
   resolveUrl,
   summaryFromHtml,
   text,
+  firstFilled,
   toBadge,
 } from "../common/index.ts";
 import {
@@ -170,20 +171,24 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   const follows = compactCount(comic.follows);
   const comments = compactCount(comic.comments_total);
 
+  // The pill takes the score, and the follower count when the site has graded a title
+  // nothing — this API returns no view count on a listing row, so that is the next number
+  // it has. Whatever the pill takes is then left out of the rows below it.
+  const followLabel = follows ? `♥ ${follows}` : "";
+  const taken = firstFilled(score, followLabel);
+
   const info: Pair[] = [];
   if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
   if (genres.length > 0) {
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
-  if (follows) info.push({ key: "Follows", value: `♥ ${follows}` });
+  if (followLabel && followLabel !== taken) info.push({ key: "Follows", value: followLabel });
   // The bubble carries U+FE0E so it draws as a filled mark like the star and heart above
   // it: a `Pair` takes plain text, and the bare codepoint would render in colour.
   if (comments) info.push({ key: "Comments", value: `🗨︎ ${comments}` });
 
   const subtitle = number ? `Chapter ${number}` : "";
-  // The score is the pill over the cover rather than a line under the title: the app draws
-  // it on every shape of tile, so it is said once and in the same place everywhere.
-  const badge = toBadge(score);
+  const badge = toBadge(taken);
 
   return {
     id: comic.id,

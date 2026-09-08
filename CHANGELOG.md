@@ -64,7 +64,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.2)
+## ValirScans (current: v1.0.3)
+
+### Changed
+
+- A title the site has graded nothing wears its view count as the pill instead, behind the
+  house mark for it — so a cover is not left bare just because nobody has rated it. The
+  line under the title then says what the title is, rather than repeating what the pill
+  above it is already showing.
+
+## ValirScans (v1.0.2)
 
 ### Changed
 
@@ -307,7 +316,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.12)
+## StoneScape (current: v1.0.13)
+
+### Changed
+
+- A title the site has graded nothing wears its view count as the pill instead, behind the
+  house mark for it — so a cover is not left bare just because nobody has rated it. The
+  Views row, and the count under the title, drop out of that card for as long as the pill
+  is the one showing it.
+
+## StoneScape (v1.0.12)
 
 ### Changed
 
@@ -580,7 +598,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.19)
+## XCOMIC (current: v1.0.20)
+
+### Changed
+
+- A title the site has graded nothing wears its follower count as the pill instead, behind
+  the house mark for it — so a cover is not left bare just because nobody has scored it.
+  The API returns no view count on a listing row, so that is the next number it has. The
+  Follows row drops out of that card for as long as the pill is the one showing it.
+
+## XCOMIC (v1.0.19)
 
 ### Changed
 

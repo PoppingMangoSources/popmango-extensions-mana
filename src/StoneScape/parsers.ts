@@ -18,6 +18,7 @@ import {
   relativeTime,
   resolveUrl,
   summaryFromHtml,
+  firstFilled,
   toBadge,
 } from "../common/index.ts";
 import {
@@ -187,14 +188,17 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   // Two genres: the third wraps and pushes the tile out of its row.
   const genres = (series.genres ?? []).slice(0, 2).map(genreTitle).filter(Boolean);
 
+  // The pill takes the score, and what the series has been read when the site has graded
+  // it nothing; whatever it takes is then left out of the lines below it.
+  const viewLabel = views ? `⏯︎ ${views}` : "";
+  const taken = firstFilled(score, viewLabel);
+
   const info = hero
     ? []
-    : buildInfoRows(style, { chapter, uploaded, genres, views, status: statusOf(series) });
+    : buildInfoRows(style, { chapter, uploaded, genres, views, status: statusOf(series), taken });
 
-  const subtitle = buildSubtitle(series, style, { chapter, views });
-  // The score is the pill over the cover rather than a line under the title: the app draws
-  // it on every shape of tile, so it is said once and in the same place everywhere.
-  const badge = toBadge(score);
+  const subtitle = buildSubtitle(series, style, { chapter, views, taken });
+  const badge = toBadge(taken);
 
   return {
     id: series.slug,
@@ -214,6 +218,8 @@ type InfoParts = {
   genres: readonly string[];
   views: string;
   status: string;
+  /** What the pill over the cover already says, which no row may repeat. */
+  taken: string;
 };
 
 function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
@@ -224,7 +230,10 @@ function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
       parts.genres.length > 0
         ? { key: parts.genres.length > 1 ? "Genres" : "Genre", value: parts.genres.join(", ") }
         : undefined,
-    views: parts.views ? { key: "Views", value: `⏯︎ ${parts.views}` } : undefined,
+    views:
+      parts.views && `⏯︎ ${parts.views}` !== parts.taken
+        ? { key: "Views", value: `⏯︎ ${parts.views}` }
+        : undefined,
     status: parts.status ? { key: "Status", value: parts.status } : undefined,
   };
 
@@ -247,10 +256,12 @@ function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
 function buildSubtitle(
   series: Series,
   style: SubtitleStyle,
-  parts: { chapter: string; views: string },
+  parts: { chapter: string; views: string; taken: string },
 ): string {
   const chapterLabel = parts.chapter ? `Chapter ${parts.chapter}` : "";
-  const viewLabel = parts.views ? `⏯︎ ${parts.views}` : "";
+  const counted = parts.views ? `⏯︎ ${parts.views}` : "";
+  // The pill above may already be showing the count, in which case this line does not.
+  const viewLabel = counted === parts.taken ? "" : counted;
 
   switch (style) {
     case "hero":
