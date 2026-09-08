@@ -642,6 +642,9 @@ function buildInfoRows(card: Card, style: SubtitleStyle): Pair[] {
   if (style !== "rank") return [];
 
   const rows: Pair[] = [];
+  // No pill is drawn over the thumbnail a ranked row uses, so the score the theme prints in
+  // the card's corner leads the rows — otherwise it is only ever on a pill nobody sees here.
+  if (card.score) rows.push({ key: "Rating", value: card.score });
   // Two genres: a third wraps and pushes the tile out of its row.
   const genres = card.genres.slice(0, GENRES_SHOWN).join(", ");
   if (genres) rows.push({ key: "Genres", value: genres });

@@ -53,7 +53,6 @@ import {
   GENRE_NAME_BY_ID,
   GENRE_OPTIONS,
   LATEST_QUERY,
-  PAGES_QUERY,
   PAGE_SIZE,
   POPULAR_QUERY,
   PREFERENCE_DEFAULTS,
@@ -67,7 +66,6 @@ import {
   type ChaptersResponse,
   type DetailsResponse,
   type MangaCard,
-  type PagesResponse,
   type PopularResponse,
   type RandomResponse,
   type SearchBodyOptions,
@@ -83,12 +81,13 @@ import {
   parsePageUrls,
   seriesUrl,
 } from "./parsers.ts";
+import { fetchPagesFromReader } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "mkissa",
   name: "Mkissa",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Manga, manhwa and manhua from mkissa.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -327,7 +326,7 @@ class MkissaSource
         {
           ...tile,
           ...(score ? { subtitle: score } : {}),
-          info: buildPopularInfo(card, entry.pageStatus?.views),
+          info: buildPopularInfo(card, score, entry.pageStatus?.views),
         },
       ];
     });
@@ -353,17 +352,14 @@ class MkissaSource
 
     // The site publishes each chapter under a translation type, and this source offers the
     // subbed run — the same one the chapter list was read from.
-    const data = await this.api.fetchGraphQL<PagesResponse>(PAGES_QUERY, {
-      mangaId: contentId,
-      chapterString: chapterId,
-      translationType: TRANSLATION_TYPE,
-      limit: 1,
-      offset: 0,
-    });
-    const pages = parsePageUrls(data, quality);
+    const data = await fetchPagesFromReader(contentId, chapterId, TRANSLATION_TYPE);
+    const pages = data ? parsePageUrls(data, quality) : [];
 
     if (pages.length === 0) {
-      throw new Error(`Mkissa returned no pages for chapter ${chapterId}.`);
+      throw new Error(
+        `Mkissa returned no pages for chapter ${chapterId}. The site serves its page list ` +
+          "to the reader only, so try again in a moment.",
+      );
     }
 
     return { pages: pages.map((url) => ({ url })) };
@@ -422,8 +418,16 @@ function relativeUpload(card: MangaCard): string {
  * The rows a detailed tile draws. The score is not among them: it is the pill over the
  * cover, and a tile drawing both would say the same number twice.
  */
-function buildPopularInfo(card: MangaCard, views: string | null | undefined) {
+/**
+ * The rows a popular tile draws.
+ *
+ * The score leads them and is also the line under the title. Nothing else on this tile
+ * carries it — these rows draw no pill — so a reader scanning the rows for a number finds
+ * one where every other section puts it.
+ */
+function buildPopularInfo(card: MangaCard, score: string, views: string | null | undefined) {
   const info: { key: string; value: string }[] = [];
+  if (score) info.push({ key: "Rating", value: score });
   const chapters = card.availableChapters?.sub;
   if (chapters != null) info.push({ key: "Chapters", value: String(chapters) });
   if (views) info.push({ key: "Views", value: `⏯︎ ${formatCount(views)}` });

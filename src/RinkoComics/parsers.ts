@@ -285,14 +285,23 @@ function buildSubtitle(card: Card, sectionId: string): string {
 }
 
 /**
- * The chapter rows a vertical list draws beneath a title — the site's own recent releases,
- * each against the time it landed, with a padlock on the ones it has held back.
+ * The rows a vertical list draws beneath a title — the site's own recent releases, each
+ * against the time it landed, with a padlock on the ones it has held back.
+ *
+ * The count leads them. No pill is drawn over the thumbnail a list like this uses, so the
+ * one number the site prints on the card would otherwise be nowhere on the tile at all.
  */
 function buildInfoRows(card: Card): Pair[] {
-  return card.chapters.map((chapter) => ({
-    key: chapter.locked ? `${LOCK_MARK} ${chapter.label}` : chapter.label,
-    value: chapter.uploaded ? relativeTime(chapter.uploaded) : "",
-  }));
+  const rows: Pair[] = [];
+  if (card.views) rows.push({ key: "Views", value: `${VIEWS_MARK} ${card.views}` });
+
+  for (const chapter of card.chapters) {
+    rows.push({
+      key: chapter.locked ? `${LOCK_MARK} ${chapter.label}` : chapter.label,
+      value: chapter.uploaded ? relativeTime(chapter.uploaded) : "",
+    });
+  }
+  return rows;
 }
 
 export function toHighlight(card: Card, sectionId: string): Highlight {

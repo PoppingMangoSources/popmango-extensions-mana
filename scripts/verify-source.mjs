@@ -364,10 +364,17 @@ async function verify(name, probe, verbose) {
         // for a given issue. `"pagesDependOnUpstream": true` in the probe marks
         // that as SKIP-with-reason instead of a failure, so a genuine parsing
         // break still shows up as FAIL.
+        //
+        // `"pagesNeedWebView": true` marks the other case: a site that hands its page
+        // list only to its own loaded page. There is no browser here to be that page, so
+        // the call cannot succeed and its failure says nothing about the source.
         let data;
         try {
           data = await target.getChapterData(contentId, chapterId);
         } catch (error) {
+          if (probe.pagesNeedWebView) {
+            throw new Skip("the page list is read through a WebView this harness cannot drive");
+          }
           if (probe.pagesDependOnUpstream) {
             throw new Skip(`upstream has no pages: ${firstLine(error)}`);
           }

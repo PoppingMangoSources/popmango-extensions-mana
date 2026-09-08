@@ -16,7 +16,15 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, firstFilled, relativeTime, summaryFromHtml, toBadge } from "../common/index.ts";
+import {
+  clean,
+  firstFilled,
+  relativeTime,
+  statusPill,
+  summaryFromHtml,
+  toBadge,
+  typePill,
+} from "../common/index.ts";
 import {
   BASE_URL,
   CDN_URL,
@@ -109,7 +117,7 @@ export function parseHighlight(
   const likes = item.likes == null ? "" : `♥ ${item.likes}`;
   const kind = clean(item.type ?? "");
   const state = clean(item.status ?? "");
-  const taken = firstFilled(likes, kind ? `♤ ${kind}` : "", state ? `◌ ${state}` : "");
+  const taken = firstFilled(likes, typePill(kind), statusPill(state));
   const badge = toBadge(taken);
 
   const info: Pair[] = [];
@@ -119,8 +127,10 @@ export function parseHighlight(
       value: relativeTime(new Date(latest.release_date * 1000)),
     });
   }
-  if (state && !taken.endsWith(state)) info.push({ key: "Status", value: state });
-  if (likes && likes !== taken) info.push({ key: "Likes", value: likes });
+  // A detailed row draws no pill over its thumbnail, so its rows carry the whole read —
+  // including whatever the pill took, which is not repeated anywhere near them.
+  if (state) info.push({ key: "Status", value: `◌ ${state}` });
+  if (likes) info.push({ key: "Likes", value: likes });
 
   const subtitle =
     style === "stats"

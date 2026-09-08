@@ -20,6 +20,7 @@ import {
   relativeTime,
   summaryFromHtml,
   toBadge,
+  typePill,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -179,7 +180,7 @@ function buildSubtitle(item: TitleItem, style: SubtitleStyle, taken: string): st
  * The key/value rows a vertical list draws beneath a title, which is the only style that
  * renders them — so they are built for that row alone rather than on every tile.
  */
-function buildInfoRows(item: TitleItem, taken: string): Pair[] {
+function buildInfoRows(item: TitleItem): Pair[] {
   const rows: Pair[] = [];
 
   const chapter = formatChapterNumber(item.latestChapter);
@@ -188,8 +189,10 @@ function buildInfoRows(item: TitleItem, taken: string): Pair[] {
   const updated = parseTimestamp(item.chapterUpdatedAt);
   if (updated) rows.push({ key: "Updated", value: relativeTime(updated) });
 
+  // No pill is drawn over the thumbnail a vertical list uses, so this row says what the
+  // title is even though the pill elsewhere says it too.
   const kind = kindLabel(item.type);
-  if (kind && !taken.endsWith(kind)) rows.push({ key: "Type", value: `♤ ${kind}` });
+  if (kind) rows.push({ key: "Type", value: `♤ ${kind}` });
 
   return rows;
 }
@@ -198,10 +201,10 @@ export function parseHighlight(item: TitleItem, style: SubtitleStyle = "chapter"
   // A listing row here carries no rating, no count and no status, so the pill says the one
   // thing it does carry: what the title is.
   const kind = kindLabel(item.type);
-  const badge = toBadge(firstFilled(kind ? `♤ ${kind}` : ""));
+  const badge = toBadge(firstFilled(typePill(kind)));
 
   const subtitle = buildSubtitle(item, style, badge?.text ?? "");
-  const info = style === "updated" ? buildInfoRows(item, badge?.text ?? "") : [];
+  const info = style === "updated" ? buildInfoRows(item) : [];
 
   return {
     id: item.hid,

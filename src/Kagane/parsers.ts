@@ -13,7 +13,15 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { Mark, decodeEntities, firstFilled, parseDate, toBadge } from "../common/index.ts";
+import {
+  Mark,
+  decodeEntities,
+  firstFilled,
+  parseDate,
+  statusPill,
+  toBadge,
+  typePill,
+} from "../common/index.ts";
 import {
   BASE_URL,
   CHAPTER_GROUP_REGEX,
@@ -143,7 +151,7 @@ export function formatKind(book: SeriesSummary): string {
 export function highlightBadge(book: SeriesSummary): string {
   const kind = formatKind(book);
   const status = formatStatus(book) ?? "";
-  return firstFilled(kind ? `${Mark.Type} ${kind}` : "", status ? `${Mark.Status} ${status}` : "");
+  return firstFilled(typePill(kind), statusPill(status));
 }
 
 /** What is left to say under the title once the pill has taken its half. */
@@ -178,8 +186,21 @@ export function parseLatestChapterDate(book: SeriesSummary): Date | undefined {
   return parseDate(latest.available_at ?? latest.created_at);
 }
 
+/**
+ * The rows a detailed tile shows.
+ *
+ * No pill is drawn over the small thumbnail those tiles use, so what the pill would have
+ * said has to be here too — otherwise a row is the only thing the reader sees and it is
+ * missing the two facts the tile led with everywhere else.
+ */
 export function buildInfoRows(book: SeriesSummary, genreNames: Record<string, string>): Pair[] {
   const rows: Pair[] = [];
+
+  const kind = formatKind(book);
+  if (kind) rows.push({ key: "Type", value: `${Mark.Type} ${kind}` });
+
+  const status = formatStatus(book);
+  if (status) rows.push({ key: "Status", value: `${Mark.Status} ${status}` });
 
   const books = book.current_books;
   if (typeof books === "number" && books > 0) rows.push({ key: "Chapters", value: String(books) });
@@ -192,7 +213,8 @@ export function buildInfoRows(book: SeriesSummary, genreNames: Record<string, st
     .slice(0, 2);
   if (genres.length > 0) rows.push({ key: "Genres", value: genres.join(", ") });
 
-  return rows;
+  // A tile stretches its whole row past about four lines, so the rest is dropped.
+  return rows.slice(0, 4);
 }
 
 export function parseHighlight(

@@ -19,8 +19,10 @@ import {
   relativeTime,
   firstFilled,
   resolveUrl,
+  statusPill,
   summaryFromHtml,
   toBadge,
+  typePill,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -515,8 +517,13 @@ function buildSubtitle(
   }
 }
 
-/** The rows a detailed tile draws, minus anything the pill over the cover already says. */
-function buildInfoRows(series: ValirSeries, style: SubtitleStyle, taken: string): Pair[] {
+/**
+ * The rows a detailed tile draws.
+ *
+ * No pill is drawn over the thumbnail those tiles use, so the rows carry the whole read —
+ * the rating included, which is otherwise only ever on the pill.
+ */
+function buildInfoRows(series: ValirSeries, style: SubtitleStyle): Pair[] {
   if (style === "chapters") {
     return (series.chapters ?? []).slice(0, LATEST_CHAPTERS_SHOWN).map((chapter) => {
       const locked = !chapterIsAccessible(chapter);
@@ -532,9 +539,10 @@ function buildInfoRows(series: ValirSeries, style: SubtitleStyle, taken: string)
   if (style !== "rank") return [];
 
   const rows: Pair[] = [];
+  const score = formatScore(series.rating);
+  if (score) rows.push({ key: "Rating", value: score });
   const views = compactCount(series.viewCount);
-  const viewLabel = views ? `${VIEWS_MARK} ${views}` : "";
-  if (viewLabel && viewLabel !== taken) rows.push({ key: "Views", value: viewLabel });
+  if (views) rows.push({ key: "Views", value: `${VIEWS_MARK} ${views}` });
   const state = statusLabel(series);
   if (state) rows.push({ key: "Status", value: `◌ ${state}` });
   return rows;
@@ -549,12 +557,12 @@ export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0)
   const taken = firstFilled(
     formatScore(series.rating),
     views ? `${VIEWS_MARK} ${views}` : "",
-    kind ? `♤ ${kind}` : "",
-    state ? `◌ ${state}` : "",
+    typePill(kind),
+    statusPill(state),
   );
 
   const subtitle = buildSubtitle(series, style, rank, taken);
-  const info = buildInfoRows(series, style, taken);
+  const info = buildInfoRows(series, style);
   const badge = toBadge(taken);
   const contentId = contentIdOf(series);
 

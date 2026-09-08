@@ -10,7 +10,16 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, decodeEntities, firstFilled, summaryFromHtml, toBadge } from "../common/index.ts";
+import {
+  Mark,
+  clean,
+  decodeEntities,
+  firstFilled,
+  statusPill,
+  summaryFromHtml,
+  toBadge,
+  typePill,
+} from "../common/index.ts";
 import { ADULT_GENRES, BASE_URL, MATURE_GENRES, type Series } from "./model.ts";
 
 export function seriesUrl(series: Series): string {
@@ -97,14 +106,17 @@ export function parseHighlight(series: Series, hitTitle?: string): Highlight {
   const score = ratingOf(series);
 
   // The pill falls through the house order: what the site grades a title, then what it is,
-  // then where it has got to. Whatever it takes is left out of the lines below it.
+  // then where it has got to. Whatever it takes comes out of the line under the title, but
+  // not out of the rows — no pill is drawn over the thumbnail those belong to.
   const kind = clean(series.type ?? "");
   const state = clean(series.status ?? "").split("\n")[0] ?? "";
-  const taken = firstFilled(score, kind ? `♤ ${kind}` : "", state ? `◌ ${state}` : "");
+  const taken = firstFilled(score, typePill(kind), statusPill(state));
   const badge = toBadge(taken);
 
   const info: Pair[] = [];
-  if (kind && !taken.endsWith(kind)) info.push({ key: "Type", value: kind });
+  if (score) info.push({ key: "Rating", value: score });
+  if (kind) info.push({ key: "Type", value: `${Mark.Type} ${kind}` });
+  if (state) info.push({ key: "Status", value: `${Mark.Status} ${state}` });
   if (series.year) info.push({ key: "Year", value: series.year });
 
   const subtitle = [taken.endsWith(kind) && kind ? "" : kind, series.year]

@@ -19,7 +19,9 @@ import {
   resolveUrl,
   summaryFromHtml,
   firstFilled,
+  statusPill,
   toBadge,
+  typePill,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -193,11 +195,13 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   const viewLabel = views ? `⏯︎ ${views}` : "";
   const kind = formatKind(series);
   const state = statusOf(series);
-  const taken = firstFilled(score, viewLabel, kind ? `♤ ${kind}` : "", state);
+  const taken = firstFilled(score, viewLabel, typePill(kind), statusPill(formatStatus(series)));
 
+  // A detailed row draws no pill over its thumbnail, so its rows are the whole of what the
+  // reader is told — they carry everything the site said, the pill's pick included.
   const info = hero
     ? []
-    : buildInfoRows(style, { chapter, uploaded, genres, views, status: statusOf(series), taken });
+    : buildInfoRows(style, { chapter, uploaded, genres, views, status: state, score });
 
   const subtitle = buildSubtitle(series, style, { chapter, views, taken });
   const badge = toBadge(taken);
@@ -220,41 +224,36 @@ type InfoParts = {
   genres: readonly string[];
   views: string;
   status: string;
-  /** What the pill over the cover already says, which no row may repeat. */
-  taken: string;
+  score: string;
 };
 
 function buildInfoRows(style: SubtitleStyle, parts: InfoParts): Pair[] {
   const rows: Record<string, Pair | undefined> = {
+    rating: parts.score ? { key: "Rating", value: parts.score } : undefined,
     latest: parts.chapter ? { key: "Latest", value: `Chapter ${parts.chapter}` } : undefined,
     updated: parts.uploaded ? { key: "Updated", value: relativeTime(parts.uploaded) } : undefined,
     genres:
       parts.genres.length > 0
         ? { key: parts.genres.length > 1 ? "Genres" : "Genre", value: parts.genres.join(", ") }
         : undefined,
-    views:
-      parts.views && `⏯︎ ${parts.views}` !== parts.taken
-        ? { key: "Views", value: `⏯︎ ${parts.views}` }
-        : undefined,
-    status:
-      parts.status && parts.status !== parts.taken
-        ? { key: "Status", value: parts.status }
-        : undefined,
+    views: parts.views ? { key: "Views", value: `⏯︎ ${parts.views}` } : undefined,
+    status: parts.status ? { key: "Status", value: parts.status } : undefined,
   };
 
   // A format-led row gives its subtitle over to the format alone, so the count the section
   // was ranked on leads the rows with the state of the series directly beneath it.
   const order =
     style === "kind"
-      ? ["views", "status", "latest", "updated"]
-      : ["latest", "updated", "genres", "views"];
+      ? ["rating", "views", "status", "latest"]
+      : ["rating", "latest", "updated", "genres", "views"];
 
   return (
     order
       .map((name) => rows[name])
       .filter((row): row is Pair => row !== undefined)
-      // A tile stretches its whole row past about four lines, so the rest is dropped.
-      .slice(0, 4)
+      // A tile stretches its whole row past about five lines. Everything the site said fits
+      // inside that, so nothing is dropped for want of room.
+      .slice(0, 5)
   );
 }
 

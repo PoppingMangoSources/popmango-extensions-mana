@@ -33,7 +33,31 @@ export const Mark = {
   Type: "♤",
   Status: "◌",
   Locked: "🔒",
+  /** The pill's own book, which reads where the outline spade does not. See `typePill`. */
+  TypePill: "📖",
 } as const;
+
+/**
+ * How a pill words what a title is, which is not how an info row words it.
+ *
+ * A `Pair` sits in a column with a key beside it, where a light outline mark is enough to
+ * tell the rows apart. The pill has none of that — it is a few characters over artwork — so
+ * it takes the filled book instead, which still reads at that size.
+ */
+export function typePill(kind: string | undefined | null): string {
+  const value = (kind ?? "").trim();
+  return value ? `${Mark.TypePill} ${value}` : "";
+}
+
+/**
+ * How a pill words where a title has got to: the word alone.
+ *
+ * "Ongoing" and "Completed" say what they are without help, and the pill is the last thing
+ * the chain reaches — a mark in front of it over the cover is decoration, not information.
+ */
+export function statusPill(state: string | undefined | null): string {
+  return (state ?? "").trim();
+}
 
 /**
  * The first of these the site actually filled in, or `""` when it filled in none.
@@ -48,8 +72,14 @@ export const Mark = {
  * 4. nothing, which is a bare cover rather than an empty pill.
  *
  * Compare the answer against the candidates to see which one was taken — whatever the pill
- * carries has to come out of that card's subtitle and its info rows, or the tile says the
- * same thing twice.
+ * carries comes out of that card's **subtitle**, or the tile says the same thing twice on
+ * two lines a thumb's width apart.
+ *
+ * Its **info rows** are not touched. A `Pair` list is the reader's read of a title — rating,
+ * genres, status, latest chapter, in that order every time — and a row silently missing
+ * because a pill happened to take it leaves a hole where the eye expects a number. The rows
+ * are far enough from the pill, and labelled, that the repetition reads as confirmation
+ * rather than clutter.
  */
 export function firstFilled(...candidates: (string | undefined | null)[]): string {
   for (const candidate of candidates) {

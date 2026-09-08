@@ -8,13 +8,21 @@ export type DiscoverSection = PageSectionSpec & { limit?: number };
 
 export const BASE_URL = "https://mkissa.to";
 /**
- * The API host.
+ * The catalogue host, for everything an ordinary request can ask for.
  *
- * The site's own page talks to `api.mkissa.net`; this host serves the same schema and is the
- * one this source has been verified against. Either answers only to the site's own origin,
- * which is why every request carries `origin` and `referer` for BASE_URL, not for this host.
+ * It answers only to the site's own origin, which is why every request carries `origin` and
+ * `referer` for BASE_URL rather than for this host.
  */
 export const API_URL = "https://api.allanime.day/api";
+
+/**
+ * The host the site's own reader calls, used only from inside the WebView.
+ *
+ * The page list is the one thing no ordinary request gets — it is answered to a caller
+ * carrying the page's cookies and clearance, so it is asked for from within the page, of the
+ * host that page itself asks.
+ */
+export const READER_API_URL = "https://api.mkissa.net/api";
 
 export const THUMBNAIL_CDN = "https://wp.youtube-anime.com/aln.youtube-anime.com/";
 export const IMAGE_CDN = "https://wp.youtube-anime.com";

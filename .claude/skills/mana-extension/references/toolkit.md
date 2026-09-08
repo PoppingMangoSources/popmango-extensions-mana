@@ -95,7 +95,7 @@ rows in a detailed list. Only the vertical list styles render it.
 
 ```ts
 // The best thing the site says about this title, in the house order.
-const taken = firstFilled(score, viewLabel, kindLabel, statusLabel);
+const taken = firstFilled(score, viewLabel, typePill(kind), statusPill(state));
 const badge = toBadge(taken);                       // undefined for an empty label
 return { id, title, cover, ...(badge === undefined ? {} : { badge }), … };
 ```
@@ -104,10 +104,15 @@ return { id, title, cover, ...(badge === undefined ? {} : { badge }), … };
 heroes and plain strips alike, so it is the one place these belong. `firstFilled` falls
 through the candidates in order: what the site grades the title (a rating, else what it has
 been read, else its likes, follows or comments), then what the title is, then where it has
-got to, then `""` for a cover with no pill. `Mark` holds the glyphs. Whatever it took must come out of that card's subtitle and its
-info rows, or the same number is printed twice — and since which one it took varies per
-title, compare against `taken` rather than assuming. The app owns the tint, blur and shape;
-the text is all a source supplies.
+got to, then `""` for a cover with no pill. `Mark` holds the glyphs, and `typePill` /
+`statusPill` word the last two the way a pill wants them — a filled `📖` for a type, nothing
+at all for a status, where a `Pair` uses the outline `♤` and `◌`.
+
+Whatever it took comes out of that card's **subtitle**, or the same thing is printed twice a
+thumb's width from itself; since which one it took varies per title, compare against `taken`
+rather than assuming. Its **info rows keep everything** — they only render on the `Detailed*`
+styles, whose small thumbnails carry no pill, so a row dropped for the pill's sake is a row
+nobody sees. The app owns the tint, blur and shape; the text is all a source supplies.
 
 `isMigration(context)` answers whether the host asked as part of moving a library between
 sources. Use it to skip whatever `getContent` fetches on top of the details themselves:

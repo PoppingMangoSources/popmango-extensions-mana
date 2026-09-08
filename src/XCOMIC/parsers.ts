@@ -24,7 +24,9 @@ import {
   summaryFromHtml,
   text,
   firstFilled,
+  statusPill,
   toBadge,
+  typePill,
 } from "../common/index.ts";
 import {
   CONTENT_RATING_GENRES,
@@ -184,31 +186,24 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
 
   // The pill falls through the house order: what the site grades a title, then what it is,
   // then where it has got to. This API returns no view count on a listing row, so the
-  // follows and comments it does count come next. Whatever the pill takes is then left out
-  // of the rows below it.
+  // follows and comments it does count come next. Whatever the pill takes stays in the rows
+  // below — no pill is drawn over the thumbnail those rows belong to.
   const followLabel = follows ? `♥ ${follows}` : "";
   const commentLabel = comments ? `🗨︎ ${comments}` : "";
   const kind = kindLabel(comic.type);
   const state = statusLabel(comic.originalStatus);
-  const taken = firstFilled(
-    score,
-    followLabel,
-    commentLabel,
-    kind ? `♤ ${kind}` : "",
-    state ? `◌ ${state}` : "",
-  );
+  const taken = firstFilled(score, followLabel, commentLabel, typePill(kind), statusPill(state));
 
   const info: Pair[] = [];
+  if (score) info.push({ key: "Rating", value: score });
   if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
   if (genres.length > 0) {
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
-  if (followLabel && followLabel !== taken) info.push({ key: "Follows", value: followLabel });
+  if (followLabel) info.push({ key: "Follows", value: followLabel });
   // The bubble carries U+FE0E so it draws as a filled mark like the star and heart above
   // it: a `Pair` takes plain text, and the bare codepoint would render in colour.
-  if (commentLabel && commentLabel !== taken) {
-    info.push({ key: "Comments", value: commentLabel });
-  }
+  if (commentLabel) info.push({ key: "Comments", value: commentLabel });
 
   const subtitle = number ? `Chapter ${number}` : "";
   const badge = toBadge(taken);

@@ -68,15 +68,24 @@ function asArray(value) {
 /**
  * Serialises a request body the way the app's own host does.
  *
- * Sources pass a POST body as an object and the host encodes it as JSON — Node's `fetch`
- * instead stringifies it to `[object Object]`, which every JSON API answers with a 400. That
- * made this harness report a source's own bug for anything posting a body, so it is encoded
- * here rather than left to the default.
+ * Sources pass a POST body as an object and the host encodes it by the request's own
+ * content type — a form where the header says form, JSON otherwise. Node's `fetch` does
+ * neither and stringifies the object to `[object Object]`, which every API answers with a
+ * 400, so this harness used to report a source's own bug for anything posting a body.
  */
-function encodeBody(body) {
+function encodeBody(body, contentType) {
   if (body == null || typeof body === "string") return body ?? undefined;
   if (body instanceof URLSearchParams || body instanceof ArrayBuffer) return body;
   if (ArrayBuffer.isView(body)) return body;
+
+  if (/application\/x-www-form-urlencoded/i.test(contentType ?? "")) {
+    const form = new URLSearchParams();
+    for (const [key, value] of Object.entries(body)) {
+      if (value != null) form.set(key, String(value));
+    }
+    return form.toString();
+  }
+
   return JSON.stringify(body);
 }
 
@@ -135,7 +144,7 @@ export class NetworkClient {
       raw = await fetch(target, {
         method: prepared.method ?? "GET",
         headers,
-        body: encodeBody(prepared.body),
+        body: encodeBody(prepared.body, headers["content-type"] ?? headers["Content-Type"]),
         redirect: "follow",
         signal: controller.signal,
       });

@@ -380,19 +380,27 @@ Take the best thing the site says about *that* title, falling through the house 
 const taken = firstFilled(
   formatScore(series.rating),
   views ? `${Mark.Views} ${views}` : "",
-  kind ? `${Mark.Type} ${kind}` : "",
-  state ? `${Mark.Status} ${state}` : "",
+  typePill(kind),
+  statusPill(state),
 );
 const badge = toBadge(taken);
 ```
 
-Then **take whatever the pill got out of that card's subtitle and its info rows.** The
-badge shows on tiles that draw neither, so leaving it in both says the same number twice on
-one card — and because the pill falls through, which number that is varies per title.
-Compare against `taken` rather than assuming.
+**The pill words the last two itself.** `typePill` puts the filled book `📖` in front of a
+type and `statusPill` puts nothing at all in front of a status. The outline marks a `Pair`
+uses — `♤` and `◌` — read against a key in a column; over artwork, at pill size, the book
+reads and the spade does not, and "Ongoing" needs no mark to be understood. Use those two
+helpers rather than composing the marks by hand.
 
-`Content.info` is a different surface: it is the title page, where no badge is drawn, so
-the rating stays there.
+Then **take whatever the pill got out of that card's subtitle** — the two sit a thumb's
+width apart on a plain strip, and the pill falls through, so compare against `taken` rather
+than assuming which one it was.
+
+**Its info rows keep everything.** `Highlight.info` only renders on the `Detailed*` styles,
+and no pill is drawn over the small thumbnails those use — so a row dropped because a pill
+"already said it" is a row the reader never sees. Every source's rows carry the site's whole
+read: rating, count, type, status, chapter, in a stable order, whether or not the pill took
+one of them. `Content.info`, the title page, is the same: no badge is drawn there either.
 
 `additionalInfo` sections are built with the `additionalInfo.{staff,characters,links,tags,highlights}`
 helpers exported from the types package; do not hand-write the `type` discriminants.
