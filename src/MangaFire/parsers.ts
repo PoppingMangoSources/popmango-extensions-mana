@@ -20,6 +20,7 @@ import {
   relativeTime,
   summaryFromHtml,
   toBadge,
+  titleCase,
   typePill,
 } from "../common/index.ts";
 import {
@@ -106,9 +107,7 @@ function parseContentType(type: string | null | undefined): ContentType {
 
 /** The site's own word for the format, which is what a tile writes under the title. */
 function kindLabel(type: string | null | undefined): string {
-  const value = clean(type ?? "");
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  return titleCase(clean(type ?? ""));
 }
 
 const EXPLICIT_GENRES = new Set(["hentai", "adult", "smut"]);

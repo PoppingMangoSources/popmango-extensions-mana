@@ -75,7 +75,7 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `filters.ts` | `FilterReader` |
 | `search.ts` | `buildSearchForm`, `resolveSortId` |
 | `sections.ts` | `SectionSpec`, `toPageSections`, `listResults`, `pageOf` |
-| `highlights.ts` | `toBadge`/`firstFilled`/`typePill`/`statusPill` for a tile's pill, `isMigration` for the origin |
+| `highlights.ts` | `toBadge`/`firstFilled`/`typePill`/`statusPill`/`titleCase` for a tile's pill, `isMigration` for the origin |
 | `preferences.ts` | `PreferenceStore`, `buildPreferenceMenu` |
 | `query.ts` | `withQuery` |
 | `dates.ts` | `parseDate`, `parseChapterNumber`, `relativeTime` |
@@ -168,6 +168,9 @@ The failures this repo has actually shipped, each silent:
       and whatever it took is gone from that card's **subtitle**
 - [ ] Info rows carry the site's whole read, the pill's pick included — `Detailed*` tiles
       draw no pill, so a row left out for the pill's sake is a row nobody sees
+- [ ] Every type and status passes through `titleCase`, so no tile shows one site's
+      `ONGOING` beside another's `ongoing`
+- [ ] A `Detailed*` section carries no `badge` at all — the pill is for rows of covers
 - [ ] Anything `getContent` fetches beyond the details themselves is skipped when
       `isMigration(context)`, or a migration buys it once per title and throws it away
 - [ ] A challenge judged cleared by the site's own scripts appearing, never by markers

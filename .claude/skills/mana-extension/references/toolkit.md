@@ -105,8 +105,9 @@ heroes and plain strips alike, so it is the one place these belong. `firstFilled
 through the candidates in order: what the site grades the title (a rating, else what it has
 been read, else its likes, follows or comments), then what the title is, then where it has
 got to, then `""` for a cover with no pill. `Mark` holds the glyphs, and `typePill` /
-`statusPill` word the last two the way a pill wants them — a filled `📖` for a type, nothing
-at all for a status, where a `Pair` uses the outline `♤` and `◌`.
+`statusPill` word the last two the way a pill wants them — a filled `📖` for a type and `🔗`
+for a status, where a `Pair` uses the outline `♤` and `◌`. Both run the word through
+`titleCase`, which every type and status should pass through wherever it is shown.
 
 Whatever it took comes out of that card's **subtitle**, or the same thing is printed twice a
 thumb's width from itself; since which one it took varies per title, compare against `taken`

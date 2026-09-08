@@ -387,10 +387,16 @@ const badge = toBadge(taken);
 ```
 
 **The pill words the last two itself.** `typePill` puts the filled book `📖` in front of a
-type and `statusPill` puts nothing at all in front of a status. The outline marks a `Pair`
-uses — `♤` and `◌` — read against a key in a column; over artwork, at pill size, the book
-reads and the spade does not, and "Ongoing" needs no mark to be understood. Use those two
-helpers rather than composing the marks by hand.
+type and `statusPill` the filled `🔗` in front of a status. The outline marks a `Pair` uses —
+`♤` and `◌` — read against a key in a column; over artwork at pill size they all but
+disappear. Use those two helpers rather than composing the marks by hand.
+
+Both run their word through `titleCase`, and so should every type or status a source puts in
+a row: sites write these as `ONGOING`, `manhwa`, `ON_HIATUS` and `Hiatus`, and one site's
+shouting beside another's whisper reads as a bug. It retypes a phrase the site wrote in a
+single case, reads a column's underscores as the spaces they stand for, and leaves alone both
+a phrase the site capitalised itself and a short all-capitals word, which is an initialism —
+MangaUpdates files western comics under `OEL`, and "Oel" is not a word.
 
 Then **take whatever the pill got out of that card's subtitle** — the two sit a thumb's
 width apart on a plain strip, and the pill falls through, so compare against `taken` rather

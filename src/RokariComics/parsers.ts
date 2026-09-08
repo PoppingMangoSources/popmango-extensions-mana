@@ -25,6 +25,7 @@ import {
   resolveUrl,
   summaryOf,
   text,
+  titleCase,
   toBadge,
 } from "../common/index.ts";
 import {
@@ -403,8 +404,8 @@ export function parseContent(html: string, contentId: string): Content {
     (name): name is string => name !== undefined,
   );
 
-  const state = detail($, "status");
-  const kind = detail($, "type");
+  const state = titleCase(detail($, "status"));
+  const kind = titleCase(detail($, "type"));
   const score = firstText(
     $.root(),
     "div.rating strong",

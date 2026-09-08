@@ -21,6 +21,7 @@ import {
   firstFilled,
   relativeTime,
   statusPill,
+  titleCase,
   summaryFromHtml,
   toBadge,
   typePill,
@@ -115,8 +116,8 @@ export function parseHighlight(
   // the likes it shows as a heart — comes first, then what the title is, then where it has
   // got to. Whatever the pill takes is left out of the lines below it.
   const likes = item.likes == null ? "" : `♥ ${item.likes}`;
-  const kind = clean(item.type ?? "");
-  const state = clean(item.status ?? "");
+  const kind = titleCase(clean(item.type ?? ""));
+  const state = titleCase(clean(item.status ?? ""));
   const taken = firstFilled(likes, typePill(kind), statusPill(state));
   const badge = toBadge(taken);
 

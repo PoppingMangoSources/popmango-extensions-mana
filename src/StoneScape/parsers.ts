@@ -20,6 +20,7 @@ import {
   summaryFromHtml,
   firstFilled,
   statusPill,
+  titleCase,
   toBadge,
   typePill,
 } from "../common/index.ts";
@@ -155,9 +156,7 @@ function formatKind(series: Series): string {
 }
 
 function formatStatus(series: Series): string {
-  const status = (series.publicationStatus ?? "").trim().toLowerCase();
-  if (!status) return "";
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  return titleCase(series.publicationStatus);
 }
 
 /**

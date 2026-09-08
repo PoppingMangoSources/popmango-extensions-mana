@@ -2,7 +2,15 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.7)
+## Mkissa (current: v1.0.8)
+
+### Changed
+
+- A row of covers wears the rating as the pill over the artwork again, the way every other
+  source here does. The two rows that draw their information as lines beneath a thumbnail
+  keep it on the line instead — no pill is drawn over a thumbnail that small.
+
+## Mkissa (v1.0.7)
 
 ### Fixed
 
@@ -107,7 +115,15 @@ First release. Manga, manhwa and manhua from mkissa.to:
   and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
 - Settings for image quality and adult content.
 
-## RokariComics (current: v1.0.3)
+## RokariComics (current: v1.0.4)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+
+## RokariComics (v1.0.3)
 
 ### Fixed
 
@@ -178,7 +194,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.5)
+## ValirScans (current: v1.0.6)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## ValirScans (v1.0.5)
 
 ### Fixed
 
@@ -266,7 +292,15 @@ First release. Manga, manhwa and manhua from mkissa.to:
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.0.5)
+## RinkoComics (current: v1.0.6)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+
+## RinkoComics (v1.0.5)
 
 ### Fixed
 
@@ -379,7 +413,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.0.8)
+## MangaFire (current: v1.0.9)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## MangaFire (v1.0.8)
 
 ### Fixed
 
@@ -495,7 +539,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.15)
+## StoneScape (current: v1.0.16)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## StoneScape (v1.0.15)
 
 ### Fixed
 
@@ -707,7 +761,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.10)
+## MangaUpdates (current: v1.0.11)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## MangaUpdates (v1.0.10)
 
 ### Fixed
 
@@ -825,7 +889,17 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.22)
+## XCOMIC (current: v1.0.23)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## XCOMIC (v1.0.22)
 
 ### Fixed
 
@@ -982,7 +1056,17 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.13)
+## FlameComics (current: v1.0.14)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## FlameComics (v1.0.13)
 
 ### Fixed
 
@@ -1065,7 +1149,17 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.36)
+## Kagane (current: v1.0.37)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## Kagane (v1.0.36)
 
 ### Fixed
 

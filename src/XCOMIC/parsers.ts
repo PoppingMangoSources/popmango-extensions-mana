@@ -25,6 +25,7 @@ import {
   text,
   firstFilled,
   statusPill,
+  titleCase,
   toBadge,
   typePill,
 } from "../common/index.ts";
@@ -88,13 +89,11 @@ function parseContentType(type: string | null | undefined): ContentType | undefi
 
 /** The site's own words for what a title is and where it has got to, as it spells them. */
 function kindLabel(type: string | null | undefined): string {
-  const value = clean(type ?? "");
-  return value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : "";
+  return titleCase(clean(type ?? ""));
 }
 
 function statusLabel(status: string | null | undefined): string {
-  const value = clean(status ?? "");
-  return value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : "";
+  return titleCase(clean(status ?? ""));
 }
 
 function parseStatus(status: string | null | undefined): PublicationStatus | undefined {

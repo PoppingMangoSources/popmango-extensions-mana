@@ -16,6 +16,7 @@ import {
   decodeEntities,
   firstFilled,
   statusPill,
+  titleCase,
   summaryFromHtml,
   toBadge,
   typePill,
@@ -108,8 +109,8 @@ export function parseHighlight(series: Series, hitTitle?: string): Highlight {
   // The pill falls through the house order: what the site grades a title, then what it is,
   // then where it has got to. Whatever it takes comes out of the line under the title, but
   // not out of the rows — no pill is drawn over the thumbnail those belong to.
-  const kind = clean(series.type ?? "");
-  const state = clean(series.status ?? "").split("\n")[0] ?? "";
+  const kind = titleCase(clean(series.type ?? ""));
+  const state = titleCase(clean(series.status ?? "").split("\n")[0] ?? "");
   const taken = firstFilled(score, typePill(kind), statusPill(state));
   const badge = toBadge(taken);
 

@@ -24,6 +24,7 @@ import {
   resolveUrl,
   summaryFromHtml,
   text,
+  titleCase,
   toBadge,
 } from "../common/index.ts";
 import {
@@ -370,7 +371,7 @@ export function parseContent(html: string, contentId: string): Content {
   const status = parseStatus(firstText(page, ".comic-status span:last-child", ".comic-status"));
 
   const info: Pair[] = [];
-  const state = firstText(page, ".comic-status span:last-child");
+  const state = titleCase(firstText(page, ".comic-status span:last-child"));
   if (state) info.push({ key: "Status", value: `◌ ${state}` });
 
   return {

@@ -20,6 +20,7 @@ import {
   firstFilled,
   resolveUrl,
   statusPill,
+  titleCase,
   summaryFromHtml,
   toBadge,
   typePill,
@@ -140,10 +141,6 @@ function absolute(path: string | null | undefined): string {
 
 function cleanText(value: string | null | undefined): string {
   return decodeEntities(clean(value ?? ""));
-}
-
-function titleCase(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
 
 /** The site's own word for the format, with its underscores read as spaces. */

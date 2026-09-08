@@ -35,7 +35,41 @@ export const Mark = {
   Locked: "🔒",
   /** The pill's own book, which reads where the outline spade does not. See `typePill`. */
   TypePill: "📖",
+  /** The pill's own status mark, which the outline ring is too faint to be at that size. */
+  StatusPill: "🔗",
 } as const;
+
+/** A word of this many letters or fewer, written in capitals, is read as an initialism. */
+const INITIALISM_LENGTH = 3;
+
+/**
+ * A site's own word for a type or a status, however that site happened to shout it.
+ *
+ * Sites spell these every way there is — `ONGOING`, `manhwa`, `ON_HIATUS`, `Hiatus` — and a
+ * tile carrying one site's shouting beside another's whisper reads as a mistake. Each word
+ * is retyped in title case, and the underscores a database column uses between them are read
+ * as the spaces they stand for.
+ *
+ * Two things are left exactly as the site wrote them: a word it capitalised itself, which is
+ * a choice rather than a column, and a short all-capitals word, which is an initialism —
+ * MangaUpdates files its western comics under `OEL`, and "Oel" is not a word.
+ */
+export function titleCase(value: string | undefined | null): string {
+  const text = (value ?? "").replace(/_/g, " ").trim();
+  if (!text) return "";
+
+  // Judged over the whole phrase, not word by word: "ON HIATUS" is a shouted status and
+  // wants retyping, while the "ON" inside it read alone would look like an initialism.
+  const shouted = text === text.toUpperCase() && text !== text.toLowerCase();
+  const whispered = text === text.toLowerCase() && text !== text.toUpperCase();
+  if (!shouted && !whispered) return text;
+  if (shouted && !/[\s\-/]/.test(text) && text.length <= INITIALISM_LENGTH) return text;
+
+  return text.replace(/[^\s\-/]+/g, (word) => {
+    const lower = word.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  });
+}
 
 /**
  * How a pill words what a title is, which is not how an info row words it.
@@ -45,18 +79,19 @@ export const Mark = {
  * it takes the filled book instead, which still reads at that size.
  */
 export function typePill(kind: string | undefined | null): string {
-  const value = (kind ?? "").trim();
+  const value = titleCase(kind);
   return value ? `${Mark.TypePill} ${value}` : "";
 }
 
 /**
- * How a pill words where a title has got to: the word alone.
+ * How a pill words where a title has got to.
  *
- * "Ongoing" and "Completed" say what they are without help, and the pill is the last thing
- * the chain reaches — a mark in front of it over the cover is decoration, not information.
+ * The ring a `Pair` uses is a thin outline that all but disappears at pill size over
+ * artwork, so the pill takes a filled mark instead, as it does for a type.
  */
 export function statusPill(state: string | undefined | null): string {
-  return (state ?? "").trim();
+  const value = titleCase(state);
+  return value ? `${Mark.StatusPill} ${value}` : "";
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   firstFilled,
   parseDate,
   statusPill,
+  titleCase,
   toBadge,
   typePill,
 } from "../common/index.ts";
@@ -138,7 +139,7 @@ function formatStatus(book: SeriesSummary): string | undefined {
 /** The site's own word for the format. "Other" says nothing, so it is not printed. */
 export function formatKind(book: SeriesSummary): string {
   const format = book.format?.trim();
-  return format && format.toLowerCase() !== "other" ? format.toUpperCase() : "";
+  return format && format.toLowerCase() !== "other" ? titleCase(format) : "";
 }
 
 /**

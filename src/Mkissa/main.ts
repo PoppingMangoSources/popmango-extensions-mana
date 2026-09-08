@@ -86,7 +86,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "mkissa",
   name: "Mkissa",
-  version: "1.0.7",
+  version: "1.0.8",
   description: "Manga, manhwa and manhua from mkissa.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -291,9 +291,12 @@ class MkissaSource
       const results = data.mangas.edges.flatMap((card): Highlight[] => {
         const latest = card.availableChaptersDetail?.sub?.[0];
         if (!latest) return [];
+        // A grouped list draws no pill over its thumbnail, so the tile carries none rather
+        // than one nobody sees. This query returns no score to put in it either way.
+        const { badge: _badge, ...tile } = parseHighlight(card, rating);
         return [
           {
-            ...parseHighlight(card, rating),
+            ...tile,
             subtitle: `Chapter ${latest}`,
             info: [{ key: `Chapter ${latest}`, value: relativeUpload(card) }],
           },
@@ -312,20 +315,26 @@ class MkissaSource
       allowUnknown: false,
     });
 
+    // A detailed row draws no pill over its thumbnail, so the score goes on the line under
+    // the title there and the pill comes off. A row of covers keeps its pill, where the
+    // score reads over the artwork as it does everywhere else in the app.
+    const detailed = sectionId === SectionID.PopularWeek;
+
     const recommendations = data.queryPopular.recommendations;
     const results = recommendations.flatMap((entry): Highlight[] => {
       const card = entry.anyCard;
       if (!card) return [];
+
       const score = formatScore(card.score);
-      // These rows draw no pill over their thumbnails, so the score goes on the line under
-      // the title instead — and the badge comes off, or a row that did draw one would say
-      // it twice. What the row was ranked on stays a row of its own beneath.
-      const { badge: _badge, ...tile } = parseHighlight(card, rating);
+      const { badge, ...tile } = parseHighlight(card, rating);
+      const info = buildPopularInfo(card, score, entry.pageStatus?.views);
+
       return [
         {
           ...tile,
-          ...(score ? { subtitle: score } : {}),
-          info: buildPopularInfo(card, score, entry.pageStatus?.views),
+          ...(detailed ? {} : badge === undefined ? {} : { badge }),
+          ...(detailed && score ? { subtitle: score } : {}),
+          info,
         },
       ];
     });
