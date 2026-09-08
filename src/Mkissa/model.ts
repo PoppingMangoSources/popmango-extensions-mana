@@ -8,21 +8,14 @@ export type DiscoverSection = PageSectionSpec & { limit?: number };
 
 export const BASE_URL = "https://mkissa.to";
 /**
- * The catalogue host, for everything an ordinary request can ask for.
+ * The API, which is the same host the site's own page talks to.
  *
  * It answers only to the site's own origin, which is why every request carries `origin` and
- * `referer` for BASE_URL rather than for this host.
+ * `referer` for BASE_URL rather than for this host. The page list is the one thing it will
+ * not hand to an ordinary request; that is asked for from inside the WebView, of this same
+ * host, which is what the site's reader does.
  */
-export const API_URL = "https://api.allanime.day/api";
-
-/**
- * The host the site's own reader calls, used only from inside the WebView.
- *
- * The page list is the one thing no ordinary request gets — it is answered to a caller
- * carrying the page's cookies and clearance, so it is asked for from within the page, of the
- * host that page itself asks.
- */
-export const READER_API_URL = "https://api.mkissa.net/api";
+export const API_URL = "https://api.mkissa.net/api";
 
 export const THUMBNAIL_CDN = "https://wp.youtube-anime.com/aln.youtube-anime.com/";
 export const IMAGE_CDN = "https://wp.youtube-anime.com";
@@ -232,14 +225,24 @@ export const LATEST_QUERY = `query($search: SearchInput, $size: Int, $page: Int,
   }
 }`;
 
-export const DETAILS_QUERY = `query($id: String!) {
-  manga(_id: $id) { _id name thumbnail description authors genres tags status altNames englishName }
-}`;
-
-export const CHAPTERS_QUERY = `query($id: String!, $showId: String!) {
-  manga(_id: $id) { _id name availableChaptersDetail }
+/**
+ * The details and the chapter list, in one request.
+ *
+ * `search` is not a filter here: without `fromSearch` the API resolves `manga` to null for
+ * some titles and the screen opens on an error. The two used to be separate queries, but
+ * the API answers both in one and a title page costs half as much this way.
+ */
+export const DETAILS_QUERY = `query($id: String!, $showId: String!, $search: SearchInput) {
+  manga(_id: $id, search: $search) {
+    _id name thumbnail description authors genres tags status altNames englishName availableChaptersDetail
+  }
   episodeInfos(showId: $showId, episodeNumStart: 0, episodeNumEnd: 9999) { episodeIdNum notes uploadDates }
 }`;
+
+/** What `DETAILS_QUERY` needs beyond the id, so the two callers cannot disagree on it. */
+export function detailsVariables(contentId: string): Record<string, unknown> {
+  return { id: contentId, showId: `manga@${contentId}`, search: { fromSearch: true } };
+}
 
 // `manga` must be selected or chapterPages resolves to null.
 export const PAGES_QUERY = `query($mangaId: String!, $translationType: VaildTranslationTypeMangaEnumType!, $chapterString: String!, $limit: Int!, $offset: Int) {
@@ -287,6 +290,7 @@ export type RandomResponse = { queryRandomRecommendation?: MangaCard[] | null };
 
 export type MangaDetail = {
   _id: string;
+  availableChaptersDetail?: AvailableChaptersDetail | null;
   name: string;
   thumbnail?: string | null;
   description?: string | null;
@@ -298,7 +302,10 @@ export type MangaDetail = {
   englishName?: string | null;
 };
 
-export type DetailsResponse = { manga: MangaDetail };
+export type DetailsResponse = {
+  manga: MangaDetail | null;
+  episodeInfos?: EpisodeInfo[] | null;
+};
 
 export type AvailableChaptersDetail = { sub?: string[] };
 
@@ -309,7 +316,11 @@ export type EpisodeInfo = {
 };
 
 export type ChaptersResponse = {
-  manga: { _id: string; name: string; availableChaptersDetail?: AvailableChaptersDetail | null };
+  manga: {
+    _id: string;
+    name: string;
+    availableChaptersDetail?: AvailableChaptersDetail | null;
+  } | null;
   episodeInfos?: EpisodeInfo[] | null;
 };
 

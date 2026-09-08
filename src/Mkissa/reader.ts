@@ -3,9 +3,9 @@
 import type { WebViewPageInstance } from "@mana-app/types";
 
 import {
+  API_URL,
   BASE_URL,
   PAGES_QUERY,
-  READER_API_URL,
   type ChapterPageEdge,
   type PagesResponse,
 } from "./model.ts";
@@ -143,10 +143,9 @@ async function waitForSite(page: WebViewPageInstance): Promise<void> {
  * A chapter's page list, asked for as the site's own page would ask for it.
  *
  * The page list is the one thing the API will not hand to an ordinary request, so the query
- * is run inside the WebView, against the host the site's own reader calls. Earlier this
- * hooked `JSON.parse` and clicked a link to make the site fetch the list itself; asking
- * directly needs no router, no hook and no polling, and it fails with a reason rather than a
- * timeout.
+ * is run inside the WebView. Earlier this hooked `JSON.parse` and clicked a link to make the
+ * site fetch the list itself; asking directly needs no router, no hook and no polling, and it
+ * fails with a reason rather than a timeout.
  */
 export async function fetchPagesFromReader(
   seriesId: string,
@@ -159,12 +158,13 @@ export async function fetchPagesFromReader(
   const page = await factory.create({ timeout: PAGE_TIMEOUT_SECONDS });
 
   try {
-    // The chapter's own page, so a request from it carries a referer the API expects.
-    const path = `${BASE_URL}/manga/${encodeURIComponent(seriesId)}/chapter-${encodeURIComponent(chapterId)}-sub`;
+    // The series page, with the query string the site's own links carry. It is the page the
+    // site serves in full, and a request made from it carries the origin the API expects.
+    const path = `${BASE_URL}/manga/${encodeURIComponent(seriesId)}?fromSearch=1`;
     await page.goto(path, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_SECONDS });
     await waitForSite(page);
 
-    const payload = await page.evaluate(runPagesQuery, READER_API_URL, PAGES_QUERY, {
+    const payload = await page.evaluate(runPagesQuery, API_URL, PAGES_QUERY, {
       mangaId: seriesId,
       chapterString: chapterId,
       translationType,

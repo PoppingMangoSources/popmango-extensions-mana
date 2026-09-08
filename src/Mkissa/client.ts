@@ -5,6 +5,19 @@ import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from 
 import { withChallengeRetry } from "../common/index.ts";
 import { API_URL, BASE_URL, type GraphQLResponse } from "./model.ts";
 
+/** The API's own throttle message, which names how long it wants to be left alone. */
+const RETRY_AFTER_REGEX = /again in (\d+)\s*second/i;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+function delay(ms: number): Promise<void> {
+  const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
+  if (!timer) return Promise.resolve();
+  return new Promise((resolve) => {
+    timer(() => resolve(), ms);
+  });
+}
+
 function isCloudflareChallenge(response: NetworkResponse): boolean {
   const headers = response.headers ?? {};
   const key = Object.keys(headers).find((name) => name.toLowerCase() === "cf-mitigated");
@@ -16,7 +29,9 @@ export class MkissaApi {
 
   private get http(): NetworkClient {
     this.client ??= new NetworkClientBuilder()
-      .setRateLimit(3, 1)
+      // One a second: the API answers a faster caller with "Too many requests, please try
+      // again in N seconds" rather than with data.
+      .setRateLimit(1, 1)
       // The API's own error text is more useful than a generic non-2xx throw.
       .setStatusValidator(() => true)
       .addRequestInterceptor(async (request: NetworkRequest) => ({
@@ -38,9 +53,31 @@ export class MkissaApi {
     return this.client;
   }
 
-  /** Runs a GraphQL operation over POST, which needs no signature. */
+  /**
+   * Runs a GraphQL operation over POST, waiting out the API's own throttle.
+   *
+   * Under load the API answers "Too many requests, please try again in N seconds" instead of
+   * data, and it says how long to wait — so the wait is taken from the message rather than
+   * guessed at, and the request is simply asked again.
+   */
   async fetchGraphQL<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-    return withChallengeRetry(BASE_URL, () => this.runGraphQL<T>(query, variables));
+    return withChallengeRetry(BASE_URL, async () => {
+      let wait = RETRY_DELAY_MS;
+
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await this.runGraphQL<T>(query, variables);
+        } catch (error) {
+          if (attempt >= MAX_RETRIES) throw error;
+
+          const seconds = RETRY_AFTER_REGEX.exec(error instanceof Error ? error.message : "")?.[1];
+          if (seconds === undefined) throw error;
+
+          wait = Number(seconds) * 1000;
+          await delay(wait);
+        }
+      }
+    });
   }
 
   private async runGraphQL<T>(query: string, variables: Record<string, unknown>): Promise<T> {

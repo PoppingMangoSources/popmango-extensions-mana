@@ -45,9 +45,9 @@ import {
 import { MkissaApi } from "./client.ts";
 import {
   BASE_URL,
-  CHAPTERS_QUERY,
   COUNTRY_OPTIONS,
   DETAILS_QUERY,
+  detailsVariables,
   DISCOVER_SECTIONS,
   FilterID,
   GENRE_NAME_BY_ID,
@@ -63,7 +63,6 @@ import {
   SectionID,
   SortID,
   TRANSLATION_TYPE,
-  type ChaptersResponse,
   type DetailsResponse,
   type MangaCard,
   type PopularResponse,
@@ -87,7 +86,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "mkissa",
   name: "Mkissa",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Manga, manhwa and manhua from mkissa.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -335,16 +334,23 @@ class MkissaSource
   }
 
   async getContent(contentId: string): Promise<Content> {
-    const data = await this.api.fetchGraphQL<DetailsResponse>(DETAILS_QUERY, { id: contentId });
+    const data = await this.api.fetchGraphQL<DetailsResponse>(
+      DETAILS_QUERY,
+      detailsVariables(contentId),
+    );
+    if (!data.manga) throw new Error("Mkissa returned nothing for that title.");
     return parseContent(contentId, data.manga);
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const data = await this.api.fetchGraphQL<ChaptersResponse>(CHAPTERS_QUERY, {
-      id: contentId,
-      showId: `manga@${contentId}`,
-    });
-    return parseChapters(data, contentId);
+    // The same query as the details: the API answers both halves at once, so a title page
+    // is one request rather than two asking the same server for the same record.
+    const data = await this.api.fetchGraphQL<DetailsResponse>(
+      DETAILS_QUERY,
+      detailsVariables(contentId),
+    );
+    if (!data.manga) throw new Error("Mkissa returned no chapters for that title.");
+    return parseChapters({ manga: data.manga, episodeInfos: data.episodeInfos }, contentId);
   }
 
   async getChapterData(contentId: string, chapterId: string): Promise<ChapterData> {

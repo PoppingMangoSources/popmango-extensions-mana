@@ -2,7 +2,27 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.5)
+## Mkissa (current: v1.0.6)
+
+### Fixed
+
+- Some titles opened on an error saying the site had returned nothing. The details query was
+  missing an argument the API treats as required — without it the record comes back null for
+  those titles — so it is sent now, as the site's own page sends it.
+
+### Changed
+
+- The source talks to the host the site itself talks to, rather than to the older name that
+  answers the same schema.
+- A title page is one request rather than two. The API returns the details and the chapter
+  list from the same query, and this was asking for the same record twice.
+- Requests go out one a second, and a throttled one waits exactly as long as the API asks
+  before being sent again. Faster than that and it answers "Too many requests" instead of
+  with data.
+- The reader loads the series page the site's own links point at, which is the page the site
+  serves in full.
+
+## Mkissa (v1.0.5)
 
 ### Fixed
 

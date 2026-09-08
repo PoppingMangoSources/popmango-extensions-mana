@@ -168,7 +168,7 @@ function parseChapterName(notes: string): string {
 }
 
 export function parseChapters(data: ChaptersResponse, seriesId: string): Chapter[] {
-  const numbers = data.manga.availableChaptersDetail?.sub ?? [];
+  const numbers = data.manga?.availableChaptersDetail?.sub ?? [];
 
   const infoByNumber = new Map<string, EpisodeInfo>();
   for (const info of data.episodeInfos ?? []) {
