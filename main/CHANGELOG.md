@@ -2,7 +2,19 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.8)
+## Mkissa (current: v1.0.9)
+
+### Fixed
+
+- Chapters opened on an error every time. The reader asks the page it opened several
+  questions — install a listener, open the chapter, then read what came back — and the host
+  answers the first and throws on every one after it, so the chapter was never opened and
+  the reader waited out its budget for a list nobody had asked for. Every question is now put
+  in the form that can be asked more than once.
+- The same fault sat under the Cloudflare bypass this source shares with the others, which
+  polls the page it opened and so gave up on its second look every time.
+
+## Mkissa (v1.0.8)
 
 ### Changed
 
@@ -115,7 +127,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   and the site's three sort orders. Pasting a series link or an `id:` opens it directly.
 - Settings for image quality and adult content.
 
-## RokariComics (current: v1.0.4)
+## RokariComics (current: v1.0.5)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## RokariComics (v1.0.4)
 
 ### Changed
 
@@ -194,7 +215,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.6)
+## ValirScans (current: v1.0.7)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## ValirScans (v1.0.6)
 
 ### Changed
 
@@ -889,7 +919,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.23)
+## XCOMIC (current: v1.0.24)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## XCOMIC (v1.0.23)
 
 ### Changed
 
@@ -1056,7 +1095,16 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.14)
+## FlameComics (current: v1.0.15)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## FlameComics (v1.0.14)
 
 ### Changed
 
@@ -1149,7 +1197,16 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.37)
+## Kagane (current: v1.0.38)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## Kagane (v1.0.37)
 
 ### Changed
 
