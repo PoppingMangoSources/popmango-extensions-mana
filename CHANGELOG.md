@@ -2,7 +2,16 @@
 
 Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
 
-## Mkissa (current: v1.0.3)
+## Mkissa (current: v1.0.4)
+
+### Fixed
+
+- Every chapter opened to an error saying the site had returned no pages. The source was
+  asking the wrong API host, and it was asking through a reader page whose readiness check
+  looked for a framework the site does not use, so the wait could never end. The page list
+  now comes back over an ordinary request, the way the site itself asks for it.
+
+## Mkissa (v1.0.3)
 
 ### Changed
 

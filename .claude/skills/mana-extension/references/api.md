@@ -228,9 +228,17 @@ without checking them. `bun run typecheck` is the gate that catches it.
 JS bridge and no page-started hook**, so the Paperback and Tachiyomi trick of rewriting a
 page's HTML to install a hook before its own scripts run does not port.
 
-**Ask the page; do not listen to it.** When a site answers an endpoint only to a caller
-carrying its own cookies, origin and clearance, load one of its pages and then make *that
-request from inside it* — the WebView already holds everything the endpoint checks:
+**First prove the plain request fails.** A WebView is the most expensive thing a source can
+open and the easiest to get subtly wrong, and "the endpoint must want the site's cookies"
+is a guess until a capture says so. Read the network log of a client that works: if it
+reaches the endpoint over an ordinary request, so can the source, and the only thing that
+was ever missing is a header or the right host. Mkissa was written on that guess and read
+its API through a WebView for two releases; the log showed a plain POST carrying nothing
+but `origin` and `referer`, and deleting the WebView fixed it.
+
+**Ask the page; do not listen to it.** When a site *does* answer an endpoint only to a
+caller carrying its own cookies, origin and clearance, load one of its pages and then make
+*that request from inside it* — the WebView already holds everything the endpoint checks:
 
 ```ts
 await page.goto(chapterUrl, { waitUntil: "domcontentloaded", timeout: SECONDS });
@@ -242,7 +250,7 @@ That is one round trip, awaited. The tempting alternative — claim the page's `
 plant a link, click it, then poll for whatever the router happened to fetch — needs the
 router to be listening, the click to route, and the answer to come back through the one
 function that was hooked; when any of those fails it fails as a timeout with nothing to
-report. Mkissa was written that way first and reads its own API now.
+report.
 
 `evaluate(fn, ...args)` ships a **function** into the page, which typechecks and keeps its
 arguments and return value typed across the bridge; `evaluateScript` takes a string and is
@@ -254,7 +262,9 @@ rather than pulling `lib.dom` in.
 which is the start of the wait. Poll a cheap `querySelector` probe until the site's own
 bundle is there, and throw `CloudflareError` the moment challenge markers appear rather than
 waiting the budget out. `passChallenge` in `src/common/cloudflare.ts` is that loop for the
-ordinary case.
+ordinary case. Take the probe's selectors from the site's own HTML — a Next.js probe
+(`#__next`, `/_next/`) against a SvelteKit site never matches, and the source spends its
+whole budget waiting for a page that is already on screen.
 
 A single-page app routed to within the page keeps the same JavaScript context, and state
 parked on `window` survives between calls for as long as no full navigation happens — worth

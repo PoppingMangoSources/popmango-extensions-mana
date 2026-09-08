@@ -7,9 +7,9 @@ import type { PageSectionSpec } from "../common/index.ts";
 export type DiscoverSection = PageSectionSpec & { limit?: number };
 
 export const BASE_URL = "https://mkissa.to";
-// The site answers on both names; the signing bootstrap is tried on each in turn.
-export const MIRROR_HOSTS = ["mkissa.to", "allmanga.to"];
-export const API_URL = "https://api.allanime.day/api";
+// The API lives on its own host and answers only to the site's own origin, which is why
+// every request below carries `origin` and `referer` for BASE_URL rather than for this one.
+export const API_URL = "https://api.mkissa.net/api";
 
 export const THUMBNAIL_CDN = "https://wp.youtube-anime.com/aln.youtube-anime.com/";
 export const IMAGE_CDN = "https://wp.youtube-anime.com";
@@ -25,11 +25,6 @@ export const PAGE_SIZE = 20;
  * a run that does not carry it.
  */
 export const TRANSLATION_TYPE = "sub";
-
-// Bump when the site rotates its reader bundle.
-export const BUILD_ID = "13";
-export const TS_BUCKET_MS = 5 * 60 * 1000;
-export const SIGNING_PART_A = "f5dc46e6f42968c5ed0eab602d6ae8f2107991006f02876947e64fcb75d53da6";
 
 export const FilterID = {
   Country: "country",
