@@ -108,7 +108,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.3)
+## ValirScans (current: v1.0.4)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## ValirScans (v1.0.3)
 
 ### Changed
 
@@ -172,7 +181,15 @@ First release. Manga, manhwa and manhua from mkissa.to:
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.0.3)
+## RinkoComics (current: v1.0.4)
+
+### Changed
+
+- A tile's pill carries what the site counts a title has been read, behind the house mark
+  for it. The hero's line under the title then says how much there is to read — the other
+  number the site prints on a ranked card — rather than repeating the count above it.
+
+## RinkoComics (v1.0.3)
 
 ### Fixed
 
@@ -268,7 +285,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.0.6)
+## MangaFire (current: v1.0.7)
+
+### Changed
+
+- A tile's pill carries what the title is — a listing row here is graded nothing and
+  counted nothing, so that is the one thing it has. The format has come out of the
+  subtitle and the info rows with it, and a ranked row now says only where the site put
+  it. The title page still lists the type, where no pill is drawn.
+
+## MangaFire (v1.0.6)
 
 ### Fixed
 
@@ -360,7 +386,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.13)
+## StoneScape (current: v1.0.14)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## StoneScape (v1.0.13)
 
 ### Changed
 
@@ -548,7 +583,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.8)
+## MangaUpdates (current: v1.0.9)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## MangaUpdates (v1.0.8)
 
 ### Changed
 
@@ -642,7 +686,16 @@ First release. Manga, manhwa and manhua from mkissa.to:
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.20)
+## XCOMIC (current: v1.0.21)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## XCOMIC (v1.0.20)
 
 ### Changed
 
@@ -775,7 +828,15 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.11)
+## FlameComics (current: v1.0.12)
+
+### Changed
+
+- A tile's pill carries the likes the site counts, then what the title is, then where it
+  has got to. Whatever it takes is left out of that card's subtitle and info rows, so
+  nothing is said twice.
+
+## FlameComics (v1.0.11)
 
 ### Changed
 
@@ -835,7 +896,15 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.34)
+## Kagane (current: v1.0.35)
+
+### Changed
+
+- A tile's pill carries what the title is, and where it has got to when the site has not
+  said what it is — a listing row here is graded nothing and counted nothing, so that is
+  what it has. The line under the title keeps whichever half the pill did not take.
+
+## Kagane (v1.0.34)
 
 ### Changed
 
