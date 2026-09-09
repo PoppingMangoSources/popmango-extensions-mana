@@ -59,8 +59,12 @@ than assuming a green local build means anything about the live site.
 - A `WebViewPage` is asked with `evaluate(fn, …)`, never `evaluateScript`. The host declares
   `args` in the page's own scope on every script and it outlives the call, so a second
   `evaluateScript` against one page throws — and a loop that polls a page is the usual way to
-  meet that. A function handed to `evaluate` must return a settled JSON value, not a promise,
-  and can reference nothing outside its own body.
+  meet that. A function handed to `evaluate` may be `async` and is awaited; it must resolve
+  to a JSON value and can reference nothing outside its own body.
+- A WebView opened only to borrow the site's origin loads a script-free document there —
+  `/robots.txt` — never the site's own page. The origin and the cookie jar are all the
+  endpoint checks; the application brings its bundle, its ads, a readiness wait to write, and
+  whatever its own scripts do to keep a source out.
 - The pill over a cover and the rows beneath a title answer to different rules: the pill
   takes the best single thing the site says and comes out of the subtitle; the rows keep
   everything, because the tiles that draw rows draw no pill.

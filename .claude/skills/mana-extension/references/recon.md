@@ -23,6 +23,17 @@ the response interceptor (`buildClient` in `src/common/network.ts` already does 
 `bun run verify` to report SKIP rather than PASS. After that, if you're controlling the
 browser do the challenge and continue or have your human do it for you.
 
+**A refusal need not be an HTTP status.** A JSON API can gate a query *inside* a 200: a
+GraphQL reply carries `errors` beside `data`, and a source that treats every 200 as data
+never sees the gate. Read the envelope — errors, and whether `data` came back empty — and
+look for the site's own marker in the message. One site here answers a gated query with
+`errors: ["… NEED_CAPTCHA …"]` and a 200; another answers a caller it is throttling with
+"Too many requests, please try again in N seconds", which also says how long to wait.
+
+Where the gate is the origin rather than a puzzle, re-issue that one request from inside a
+page on the site — see the WebView section of `api.md`, and note that the page to load is
+`/robots.txt`, not the site's own application.
+
 ## Target 1 — Home sections
 
 What the landing page offers, plus whatever "popular" / "latest" / category routes exist.

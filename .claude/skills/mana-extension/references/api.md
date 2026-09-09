@@ -239,21 +239,70 @@ was ever missing is a header or the right host. Mkissa was written on that guess
 its API through a WebView for two releases; the log showed a plain POST carrying nothing
 but `origin` and `referer`, and deleting the WebView fixed it.
 
-**Ask the page; do not listen to it.** When a site *does* answer an endpoint only to a
-caller carrying its own cookies, origin and clearance, load one of its pages and then make
-*that request from inside it* — the WebView already holds everything the endpoint checks:
+**Ask the page; do not listen to it.** When a site *does* answer only a caller carrying its
+own origin, cookies and clearance, make the request *from inside a page on that origin*:
 
 ```ts
-await page.goto(chapterUrl, { waitUntil: "domcontentloaded", timeout: SECONDS });
-await waitForSite(page);                       // see below
-const body = await page.evaluate(runQuery, endpoint, query, variables);
+// page-fetch.ts — @ts-nocheck. This does not run here; `evaluate` serialises it into the
+// page, where `fetch` and the site's cookies exist and this project's types do not.
+export async function postGraphql(url: string, body: string): Promise<string> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "*/*" },
+    credentials: "include",
+    body,
+  });
+  return await response.text();
+}
 ```
 
-That is one round trip, awaited. The tempting alternative — claim the page's `JSON.parse`,
-plant a link, click it, then poll for whatever the router happened to fetch — needs the
-router to be listening, the click to route, and the answer to come back through the one
-function that was hooked; when any of those fails it fails as a timeout with nothing to
-report.
+```ts
+const page = await WebViewPage.create();
+await page.goto(`${BASE_URL}/robots.txt`, { waitUntil: "load" });
+return page.evaluate<string, [string, string]>(postGraphql, API_URL, body);
+```
+
+**Load a script-free document on the origin, not the site's own page.** `/robots.txt` is
+the whole trick, and it is the part that is easy to get wrong. What the endpoint checks is
+the origin and the cookie jar; running the site's application buys nothing and costs a
+great deal — its bundle, its ads, its hydration, and every defence its own scripts mount.
+One site here freezes a pristine `JSON.parse` taken from a throwaway iframe onto `window`
+in its first inline script, with a comment saying it is there so a hook installed later
+cannot see the parse. A source that loads `/robots.txt` never meets any of that, is ready
+on `load` with no readiness poll to write, and issues its request in one round trip.
+
+`credentials: "include"` is what carries the app's cookie jar — including any clearance the
+reader has already granted through `config.cloudflareResolutionURL`. Without it the request
+goes out cookieless and the gate is still shut.
+
+**Reach for the page only once the ordinary request has been refused.** Post through the
+source's own client first; a WebView is the expensive path and most endpoints do not need
+it. And read the refusal properly: a GraphQL API answers **200 with an `errors` array**, so
+a source that treats any 200 as data never sees the gate at all. Look for the site's own
+marker in those errors — `NEED_CAPTCHA` on one site here — re-issue that one request through
+the page, and throw `CloudflareError` only if it is still refused:
+
+```ts
+const direct = envelope(await this.http.post(API_URL, { headers, body }));
+if (!direct.captcha) return dataOf(direct);
+
+const throughPage = envelope(await this.pageRequest(JSON.stringify(body)));
+if (!throughPage.captcha) return dataOf(throughPage);
+
+throw new CloudflareError(BASE_URL);
+```
+
+Note the two body shapes. The host serialises an object body itself from the content type,
+so the direct call passes an object; the page's own `fetch` wants a string, so that one is
+stringified. Passing a string to the host encodes it twice and the API sees a quoted blob.
+
+**Listening for the site's own request is a last resort, and often impossible.** Rewriting
+a page's HTML to install a hook before its own scripts run — the Paperback and Tachiyomi
+approach — has no equivalent here, and a hook installed after the fact is exactly what the
+`JSON.parse` pin above defeats. Claiming the page's parser, planting a link, clicking it and
+polling for whatever the router fetched needs the router to be listening, the click to
+route, and the answer to come back through the one function that was hooked; when any of
+those fails it fails as a timeout with nothing to report.
 
 **Use `evaluate`, not `evaluateScript`.** The host hands a script its arguments by declaring
 `args` in the page's own global scope — on every call, whether arguments are passed or not —
@@ -271,13 +320,15 @@ imported helper, nothing but its own arguments — so inline everything it needs
 built bundle if in doubt. This project has no DOM library either, so reach the page's globals
 through a locally declared view of `globalThis` rather than pulling `lib.dom` in.
 
-**Return something JSON-shaped and already settled.** A promise does not survive the bridge:
-an `async` function that resolves to the answer hands back something that is not the answer,
-and the source reads it as nothing at all. Park the result on the page and poll for it with a
-second, synchronous `evaluate` instead.
+**An `async` function is fine.** `evaluate` is declared `Promise<Awaited<Result>>` and means
+it: a function that returns a promise is awaited in the page and its resolved value crosses
+the bridge. The value itself must be JSON — a string, a number, a plain object — so return
+`response.text()` and parse it on this side rather than handing back a `Response`.
 
-**`goto` resolving is not "the page is ready"** — it fires when a challenge page loads,
-which is the start of the wait. Poll a cheap `querySelector` probe until the site's own
+**`goto` resolving is not "the page is ready"** *when the page is an application*. On a
+static document there is nothing to wait for and `waitUntil: "load"` is enough — another
+reason to prefer one. On a real page it fires when a challenge page loads, which is the
+start of the wait. Poll a cheap `querySelector` probe until the site's own
 bundle is there, and throw `CloudflareError` the moment challenge markers appear rather than
 waiting the budget out. `passChallenge` in `src/common/cloudflare.ts` is that loop for the
 ordinary case. Take the probe's selectors from the site's own HTML — a Next.js probe

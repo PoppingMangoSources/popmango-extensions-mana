@@ -182,8 +182,14 @@ The failures this repo has actually shipped, each silent:
 - [ ] `evaluate(fn, …)` everywhere, never `evaluateScript` — the host declares `args` in the
       page's own scope and it outlives the call, so a second `evaluateScript` on one page
       throws, and a polling loop that catches that waits out its budget having done nothing
-- [ ] A function sent to `evaluate` returns a settled JSON value, not a promise, and
-      references nothing outside its own body
+- [ ] A function sent to `evaluate` returns a JSON value — a string, a number, a plain
+      object — and references nothing outside its own body. It may be `async`; the host
+      awaits it
+- [ ] A WebView opened only to borrow the site's origin loads a **script-free document**
+      there (`/robots.txt`), not the site's own page — the application buys nothing and
+      brings its bundle, its ads and whatever its scripts do to defend themselves
+- [ ] The ordinary client is tried first, and a 200 carrying a GraphQL `errors` array is
+      read as the refusal it is before the WebView is opened at all
 - [ ] A WebView asks the site's own endpoint from inside its page rather than hooking the
       page's parser and polling for what it happens to fetch
 - [ ] Redraw state serialised per image, not held in a bare field
