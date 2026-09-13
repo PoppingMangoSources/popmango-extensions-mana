@@ -841,7 +841,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.0)
+## XCOMIC (current: v1.1.1)
+
+### Fixed
+
+- Latest Uploads did not list what the site lists. It was reading the whole catalogue sorted
+  by last update rather than the site's own uploads feed, which is a different order and a
+  different set of titles. It reads the feed again, and a title is one row however many
+  chapters it published at once — the feed repeats it once per upload and the site shows it
+  once.
+
+## XCOMIC (v1.1.0)
 
 ### Changed
 

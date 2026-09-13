@@ -18,6 +18,7 @@ import {
   type ChapterSource,
   type DeepLinkContext,
   type Form,
+  type Highlight,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -63,6 +64,7 @@ import {
   FilterID,
   GENRE_MODE_OPTIONS,
   LANGUAGE_OPTIONS,
+  LATEST_UPLOADS_QUERY,
   LETTER_MODE_OPTIONS,
   MIRROR_OPTIONS,
   PAGE_SIZE,
@@ -83,6 +85,7 @@ import {
   type ChapterListPage,
   type ChapterListResponse,
   type ChapterPagesResponse,
+  type LatestUploadsResponse,
   type ComicNodeResponse,
   type RecentlyAddedResponse,
 } from "./model.ts";
@@ -101,7 +104,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -338,6 +341,38 @@ class XCOMICSource
   ): Promise<PagedSearchResult> {
     await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
+
+    if (sectionId === SectionID.LatestUploads) {
+      const [data, cleanTitle] = await Promise.all([
+        this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
+          // This feed pages by cursor; it rejects a `page` outright.
+          select: { size: PAGE_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
+        }),
+        this.titleCleaner(),
+      ]);
+
+      const feed = data.get_comic_latestUploads;
+
+      // A title that published three chapters at once is three entries in the feed, and the
+      // site lists it once. Keeping the first entry keeps the newest of them, because the
+      // feed is already in publication order.
+      const seen = new Set<string>();
+      const results = (feed?.items ?? []).flatMap((entry): Highlight[] => {
+        const comic = entry.comic?.data;
+        if (!comic || seen.has(comic.id)) return [];
+        seen.add(comic.id);
+        return [parseHighlight(comic, { latest: entry.chapters?.[0]?.data, cleanTitle })];
+      });
+
+      // The cursor has to move backwards or the feed hands back the page just read; the
+      // site answering with its own starting point again would page forever.
+      const next = feed?.before;
+      if (next != null && (cursor === undefined || next < cursor)) {
+        this.feedCursors.set(`${sectionId}:${page + 1}`, next);
+        return { results, isLastPage: results.length === 0 };
+      }
+      return { results, isLastPage: true };
+    }
 
     if (sectionId === SectionID.RecentlyAdded) {
       const [data, cleanTitle] = await Promise.all([

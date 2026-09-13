@@ -382,10 +382,6 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     id: SectionID.LatestUploads,
     title: "Latest Uploads",
     style: SectionStyle.DetailedVerticalListGrouped,
-    // The site's own uploads feed hands back a comic stripped of everything but its name,
-    // cover and genres — no score, no follows, no comments — so a detailed row built from it
-    // had nothing to show. Browsing by latest update is the same order over the whole title.
-    sort: SortID.Update,
   },
   {
     id: SectionID.ViewsTotal,
@@ -458,8 +454,31 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
     data {${LISTING_FIELDS}
       altNames
       summary { html }
-      chapterNodes_last(amount: 1) {
-        data { serial chaNum dateCreate dateModify datePublic }
+      chapterNodes_last(amount: 1) { data { serial chaNum } }
+    }
+  }
+}`;
+
+/**
+ * The site's own uploads feed, which is what its home page lists and the order it lists in.
+ *
+ * The comic it hands back is a light one — a name, a cover, its genres — and asking that
+ * node for the counts a listing row carries empties the whole feed, so the fields here are
+ * the ones it actually has.
+ */
+export const LATEST_UPLOADS_QUERY = `
+query get_comic_latestUploads($select: Comic_LatestUploads_Select) {
+  get_comic_latestUploads(select: $select) {
+    before
+    items {
+      comic {
+        data {
+          id name urlPath urlCover
+          translatedLanguage type contentRating genres tags
+        }
+      }
+      chapters(amount: 1) {
+        data { id serial chaNum urlPath dateCreate dateModify datePublic }
       }
     }
   }
@@ -574,6 +593,13 @@ export type ChapterData = {
 export type ComicNode = { data: ComicData };
 
 export type BrowseResponse = { get_comic_browse_items?: ComicNode[] | null };
+
+export type LatestUploadsResponse = {
+  get_comic_latestUploads?: {
+    before?: number | null;
+    items?: { comic?: ComicNode | null; chapters?: { data: ChapterData }[] | null }[] | null;
+  } | null;
+};
 
 export type RecentlyAddedResponse = {
   get_comic_recentlyAdded?: { before?: number | null; items?: ComicNode[] | null } | null;
