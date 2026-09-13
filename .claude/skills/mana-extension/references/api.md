@@ -477,5 +477,11 @@ and no pill is drawn over the small thumbnails those use — so a row dropped be
 read: rating, count, type, status, chapter, in a stable order, whether or not the pill took
 one of them. `Content.info`, the title page, is the same: no badge is drawn there either.
 
+**About four rows fit** before a tile stretches its whole row, so a source with more to say
+than that has to choose rather than let `slice` decide for it — a row silently falling off
+the end is the same hole as a row dropped for the pill. Short marked counts read fine on one
+line together (`♥ 12.3K · 🗨︎ 1.2K · ✎ 216`), which is usually how a site prints them anyway;
+what a reader scans for — the rating, the upload time — keeps a row of its own.
+
 `additionalInfo` sections are built with the `additionalInfo.{staff,characters,links,tags,highlights}`
 helpers exported from the types package; do not hand-write the `type` discriminants.

@@ -30,6 +30,8 @@ export const Mark = {
   /** The same heart serves a like and a follow; a site only ever counts one of them. */
   Likes: "♥",
   Comments: "🗨︎",
+  /** A written opinion rather than a posted one, which is what sets it apart from a comment. */
+  Reviews: "✎",
   Type: "♤",
   Status: "◌",
   Locked: "🔒",

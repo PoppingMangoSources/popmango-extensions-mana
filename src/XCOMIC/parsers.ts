@@ -24,6 +24,7 @@ import {
   summaryFromHtml,
   text,
   firstFilled,
+  Mark,
   statusPill,
   titleCase,
   toBadge,
@@ -192,16 +193,27 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   const score = formatScore(comic.score_val);
   const follows = compactCount(comic.follows);
   const comments = compactCount(comic.comments_total);
+  const reviews = compactCount(comic.reviews);
 
   // The pill falls through the house order: what the site grades a title, then what it is,
   // then where it has got to. This API returns no view count on a listing row, so the
-  // follows and comments it does count come next. Whatever the pill takes stays in the rows
-  // below — no pill is drawn over the thumbnail those rows belong to.
-  const followLabel = follows ? `♥ ${follows}` : "";
-  const commentLabel = comments ? `🗨︎ ${comments}` : "";
+  // follows, comments and reviews it does count come next. Whatever the pill takes stays in
+  // the rows below — no pill is drawn over the thumbnail those rows belong to.
+  const followLabel = follows ? `${Mark.Likes} ${follows}` : "";
+  // The bubble carries U+FE0E so it draws as a filled mark beside the heart: a `Pair` takes
+  // plain text, and the bare codepoint would render in colour.
+  const commentLabel = comments ? `${Mark.Comments} ${comments}` : "";
+  const reviewLabel = reviews ? `${Mark.Reviews} ${reviews}` : "";
   const kind = kindLabel(comic.type);
   const state = statusLabel(comic.originalStatus);
-  const taken = firstFilled(score, followLabel, commentLabel, typePill(kind), statusPill(state));
+  const taken = firstFilled(
+    score,
+    followLabel,
+    commentLabel,
+    reviewLabel,
+    typePill(kind),
+    statusPill(state),
+  );
 
   const info: Pair[] = [];
   if (score) info.push({ key: "Rating", value: score });
@@ -209,10 +221,10 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   if (genres.length > 0) {
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
-  if (followLabel) info.push({ key: "Follows", value: followLabel });
-  // The bubble carries U+FE0E so it draws as a filled mark like the star and heart above
-  // it: a `Pair` takes plain text, and the bare codepoint would render in colour.
-  if (commentLabel) info.push({ key: "Comments", value: commentLabel });
+  // Four rows is the whole budget and these three are one short number each, so they share a
+  // line the way the site prints them — a row apiece would have pushed reviews off the tile.
+  const counted = [followLabel, commentLabel, reviewLabel].filter(Boolean);
+  if (counted.length > 0) info.push({ key: "Community", value: counted.join(" · ") });
 
   const subtitle = number ? `Chapter ${number}` : "";
   const badge = toBadge(taken);

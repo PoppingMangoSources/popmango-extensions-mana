@@ -792,7 +792,16 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.25)
+## XCOMIC (current: v1.0.26)
+
+### Changed
+
+- A detailed tile carries every count the site prints under a title. Comments were being cut
+  off the end of the rows and reviews were never shown at all, so the follows, comments and
+  reviews now share one line the way the site prints them, leaving the rating, the upload
+  time and the genres a row each.
+
+## XCOMIC (v1.0.25)
 
 ### Fixed
 
