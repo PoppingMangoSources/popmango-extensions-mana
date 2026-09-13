@@ -799,9 +799,11 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - Latest Uploads was empty. The site moved the feed from comics to titles and inverted its
   shape on the way: an entry used to carry one comic and its newest chapter, and now carries
   several chapters, each holding the comic it belongs to. It also pages by `first`/`limit`
-  rather than by `size`. The row is the chapter again, so a title that published three at
-  once is three rows rather than one, and a chapter the site has withdrawn is not a row at
-  all.
+  rather than by `size`. A title is still one row, showing its newest chapter — but a title
+  whose newest chapter the site has since withdrawn now falls back to the one before it
+  instead of dropping out of the row entirely.
+- The row reads in time order again. Entries arrive grouped by title rather than by when
+  they were published, which is not the order a row called "latest" should be in.
 - The feed no longer pages forever. It answers a request carrying its own cursor with that
   same cursor, so the walk now stops unless the cursor has actually moved backwards.
 

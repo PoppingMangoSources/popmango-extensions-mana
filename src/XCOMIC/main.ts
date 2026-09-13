@@ -358,13 +358,21 @@ class XCOMICSource
 
       const feed = data.get_title_latestUploads;
 
-      // Each item holds several chapters and each chapter holds its own comic, so the rows
-      // are the chapters rather than the items — a title that published three at once is
-      // three rows. They arrive grouped by title, so the whole page is re-sorted by
-      // publication time to read as the feed it is called.
+      // An entry is a title carrying its newest few chapters, each holding the comic it
+      // belongs to. Three are asked for so a title whose newest chapter has been withdrawn
+      // still shows the one before it — but the row is the title, so only the newest living
+      // chapter becomes one. Emitting a row per chapter turns a page of thirty-six titles
+      // into a hundred-odd rows, which is a listing rather than the strip this row is.
       const results = (feed?.items ?? [])
-        .flatMap((entry) => entry.chapters ?? [])
-        .filter((chapter) => chapter.data.dbStatus === "normal")
+        .flatMap((entry) => {
+          const live = (entry.chapters ?? []).filter((one) => one.data.dbStatus === "normal");
+          const newest = live.sort(
+            (left, right) => publishedAt(right.data) - publishedAt(left.data),
+          )[0];
+          return newest ? [newest] : [];
+        })
+        // Entries arrive grouped by title, not in time order, so the page is sorted to read
+        // as the feed it is named after.
         .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
         .flatMap((chapter): Highlight[] => {
           const comic = chapter.data.comicNode?.data;
