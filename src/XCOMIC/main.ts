@@ -94,6 +94,7 @@ import {
   parseContent,
   parseFilterTaxonomy,
   parseHighlight,
+  publishedAt,
   parseLanguage,
   parsePageUrls,
   type FilterTaxonomy,
@@ -104,7 +105,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.24",
+  version: "1.0.25",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -346,20 +347,39 @@ class XCOMICSource
       const [data, cleanTitle] = await Promise.all([
         this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
           // This feed pages by cursor; it rejects a `page` outright.
-          select: { size: PAGE_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
+          select: {
+            first: 0,
+            limit: PAGE_SIZE,
+            ...(cursor === undefined ? {} : { before: cursor }),
+          },
         }),
         this.titleCleaner(),
       ]);
 
-      const feed = data.get_comic_latestUploads;
-      const results = (feed?.items ?? []).flatMap((entry): Highlight[] => {
-        const comic = entry.comic?.data;
-        if (!comic) return [];
-        return [parseHighlight(comic, { latest: entry.chapters?.[0]?.data, cleanTitle })];
-      });
+      const feed = data.get_title_latestUploads;
 
-      if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
-      return { results, isLastPage: feed?.before == null || results.length === 0 };
+      // Each item holds several chapters and each chapter holds its own comic, so the rows
+      // are the chapters rather than the items — a title that published three at once is
+      // three rows. They arrive grouped by title, so the whole page is re-sorted by
+      // publication time to read as the feed it is called.
+      const results = (feed?.items ?? [])
+        .flatMap((entry) => entry.chapters ?? [])
+        .filter((chapter) => chapter.data.dbStatus === "normal")
+        .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
+        .flatMap((chapter): Highlight[] => {
+          const comic = chapter.data.comicNode?.data;
+          if (!comic) return [];
+          return [parseHighlight(comic, { latest: chapter.data, cleanTitle })];
+        });
+
+      // The cursor has to move backwards or the feed hands back the page just read; the
+      // site answering with its own starting point again would page forever.
+      const next = feed?.before;
+      if (next != null && (cursor === undefined || next < cursor)) {
+        this.feedCursors.set(`${sectionId}:${page + 1}`, next);
+        return { results, isLastPage: results.length === 0 };
+      }
+      return { results, isLastPage: true };
     }
 
     if (sectionId === SectionID.RecentlyAdded) {

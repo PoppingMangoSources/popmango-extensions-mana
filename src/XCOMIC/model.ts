@@ -459,14 +459,27 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
   }
 }`;
 
+/**
+ * The latest-uploads feed, which the site now keys by title rather than by comic.
+ *
+ * The shape inverted with the rename: an item used to carry one comic and its newest
+ * chapter, and now carries several chapters, each holding the comic it belongs to. So a
+ * title that published three chapters at once arrives as one item with three, and the
+ * reader wants them as three rows.
+ */
 export const LATEST_UPLOADS_QUERY = `
-query get_comic_latestUploads($select: Comic_LatestUploads_Select) {
-  get_comic_latestUploads(select: $select) {
+query get_title_latestUploads($select: Title_LatestUploads_Select) {
+  get_title_latestUploads(select: $select) {
     before
     items {
-      comic { data {${LISTING_FIELDS}
-      } }
-      chapters(amount: 1) { data { id serial chaNum urlPath dateCreate dateModify datePublic } }
+      chapters(amount: 3) {
+        id
+        data {
+          id serial chaNum urlPath dbStatus dateCreate dateModify datePublic
+          comicNode { data {${LISTING_FIELDS}
+          } }
+        }
+      }
     }
   }
 }`;
@@ -574,6 +587,10 @@ export type ChapterData = {
   srcName?: string | null;
   groupNodes?: NamedNode[] | null;
   userNode?: NamedNode | null;
+  /** Anything but `normal` is a chapter the site has withdrawn but still lists. */
+  dbStatus?: string | null;
+  /** Only the latest-uploads feed fills this: the comic the chapter belongs to. */
+  comicNode?: ComicNode | null;
 };
 
 export type ComicNode = { data: ComicData };
@@ -581,9 +598,9 @@ export type ComicNode = { data: ComicData };
 export type BrowseResponse = { get_comic_browse_items?: ComicNode[] | null };
 
 export type LatestUploadsResponse = {
-  get_comic_latestUploads?: {
+  get_title_latestUploads?: {
     before?: number | null;
-    items?: { comic?: ComicNode | null; chapters?: { data: ChapterData }[] | null }[] | null;
+    items?: { chapters?: { data: ChapterData }[] | null }[] | null;
   } | null;
 };
 

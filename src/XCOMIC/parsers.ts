@@ -120,6 +120,16 @@ function parseTimestamp(value: number | string | null | undefined): Date | undef
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+/**
+ * When the site published a chapter, as a number to sort a feed by.
+ *
+ * A chapter the site gave no date sorts last rather than first, which is where an unknown
+ * belongs in a list called "latest".
+ */
+export function publishedAt(chapter: ChapterData): number {
+  return parseTimestamp(chapter.datePublic ?? chapter.dateCreate)?.getTime() ?? 0;
+}
+
 function formatChapterNumber(chapter: ChapterData | null | undefined): string | undefined {
   const raw = chapter?.chaNum ?? chapter?.serial;
   const value = typeof raw === "string" ? Number.parseFloat(raw) : raw;
