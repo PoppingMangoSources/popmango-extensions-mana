@@ -1,8 +1,17 @@
 # Changelog
 
-Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Never `1.1.0`.
+Versions only ever bump the patch digit — `1.1.0` → `1.1.1` → `1.1.2`. Never `1.2.0`. Every
+source was renumbered to `1.1.0` in one go; before that they counted up from `1.0.0`.
 
-## RokariComics (current: v1.0.5)
+## RokariComics (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## RokariComics (v1.0.5)
 
 ### Fixed
 
@@ -90,7 +99,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.0.7)
+## ValirScans (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## ValirScans (v1.0.7)
 
 ### Fixed
 
@@ -197,7 +214,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.0.6)
+## RinkoComics (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## RinkoComics (v1.0.6)
 
 ### Changed
 
@@ -318,7 +343,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.0.9)
+## MangaFire (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## MangaFire (v1.0.9)
 
 ### Changed
 
@@ -444,7 +477,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.0.16)
+## StoneScape (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## StoneScape (v1.0.16)
 
 ### Changed
 
@@ -664,7 +705,15 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.0.11)
+## MangaUpdates (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## MangaUpdates (v1.0.11)
 
 ### Changed
 
@@ -792,7 +841,17 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.28)
+## XCOMIC (current: v1.1.0)
+
+### Changed
+
+- Latest Uploads is back to naming one chapter under a title. Listing the three newest read
+  as a wall of numbers where a single line had been enough.
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## XCOMIC (v1.0.28)
 
 ### Changed
 
@@ -1025,7 +1084,15 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.0.15)
+## FlameComics (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## FlameComics (v1.0.15)
 
 ### Fixed
 
@@ -1127,7 +1194,15 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.0.38)
+## Kagane (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## Kagane (v1.0.38)
 
 ### Fixed
 
@@ -1483,7 +1558,15 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.0.12)
+## Mangago (current: v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## Mangago (v1.0.12)
 
 ### Changed
 
