@@ -382,6 +382,10 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     id: SectionID.LatestUploads,
     title: "Latest Uploads",
     style: SectionStyle.DetailedVerticalListGrouped,
+    // The site's own uploads feed hands back a comic stripped of everything but its name,
+    // cover and genres — no score, no follows, no comments — so a detailed row built from it
+    // had nothing to show. Browsing by latest update is the same order over the whole title.
+    sort: SortID.Update,
   },
   {
     id: SectionID.ViewsTotal,
@@ -454,31 +458,8 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
     data {${LISTING_FIELDS}
       altNames
       summary { html }
-      chapterNodes_last(amount: 1) { data { serial chaNum } }
-    }
-  }
-}`;
-
-/**
- * The latest-uploads feed, which the site now keys by title rather than by comic.
- *
- * The shape inverted with the rename: an item used to carry one comic and its newest
- * chapter, and now carries several chapters, each holding the comic it belongs to. So a
- * title that published three chapters at once arrives as one item with three, and the
- * reader wants them as three rows.
- */
-export const LATEST_UPLOADS_QUERY = `
-query get_title_latestUploads($select: Title_LatestUploads_Select) {
-  get_title_latestUploads(select: $select) {
-    before
-    items {
-      chapters(amount: 3) {
-        id
-        data {
-          id serial chaNum urlPath dbStatus dateCreate dateModify datePublic
-          comicNode { data {${LISTING_FIELDS}
-          } }
-        }
+      chapterNodes_last(amount: 1) {
+        data { serial chaNum dateCreate dateModify datePublic }
       }
     }
   }
@@ -532,7 +513,7 @@ query get_comic_chapterList_uniqList($select: Select_Comic_ChapterList_UniqList)
 
 /** Every upload, including a second scanlator's take on a chapter already listed. */
 export const CHAPTERS_FULL_QUERY = `
-query get_comic_chapterList_fullList($select: Select_Comic_ChapterList_FullList) {
+query get_comic_chapterList_fullList($select: Select_Comic_ChapterList) {
   get_comic_chapterList_fullList(select: $select) {${CHAPTER_FIELDS}
   }
 }`;
@@ -589,20 +570,11 @@ export type ChapterData = {
   userNode?: NamedNode | null;
   /** Anything but `normal` is a chapter the site has withdrawn but still lists. */
   dbStatus?: string | null;
-  /** Only the latest-uploads feed fills this: the comic the chapter belongs to. */
-  comicNode?: ComicNode | null;
 };
 
 export type ComicNode = { data: ComicData };
 
 export type BrowseResponse = { get_comic_browse_items?: ComicNode[] | null };
-
-export type LatestUploadsResponse = {
-  get_title_latestUploads?: {
-    before?: number | null;
-    items?: { chapters?: { data: ChapterData }[] | null }[] | null;
-  } | null;
-};
 
 export type RecentlyAddedResponse = {
   get_comic_recentlyAdded?: { before?: number | null; items?: ComicNode[] | null } | null;

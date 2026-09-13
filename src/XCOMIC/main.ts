@@ -18,7 +18,6 @@ import {
   type ChapterSource,
   type DeepLinkContext,
   type Form,
-  type Highlight,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -64,7 +63,6 @@ import {
   FilterID,
   GENRE_MODE_OPTIONS,
   LANGUAGE_OPTIONS,
-  LATEST_UPLOADS_QUERY,
   LETTER_MODE_OPTIONS,
   MIRROR_OPTIONS,
   PAGE_SIZE,
@@ -86,7 +84,6 @@ import {
   type ChapterListResponse,
   type ChapterPagesResponse,
   type ComicNodeResponse,
-  type LatestUploadsResponse,
   type RecentlyAddedResponse,
 } from "./model.ts";
 import {
@@ -94,7 +91,6 @@ import {
   parseContent,
   parseFilterTaxonomy,
   parseHighlight,
-  publishedAt,
   parseLanguage,
   parsePageUrls,
   type FilterTaxonomy,
@@ -105,7 +101,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.26",
+  version: "1.0.27",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -146,7 +142,7 @@ class XCOMICSource
     "xcomic.taxonomy",
     TAXONOMY_LIFETIME_MS,
   );
-  // The two feeds page by cursor while the app counts pages, so the cursor for the next
+  // Recently Added pages by cursor while the app counts pages, so the cursor for the next
   // page is remembered as each one is read. Paging is sequential, so this keeps up.
   private readonly feedCursors = new Map<string, number>();
 
@@ -342,53 +338,6 @@ class XCOMICSource
   ): Promise<PagedSearchResult> {
     await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
-
-    if (sectionId === SectionID.LatestUploads) {
-      const [data, cleanTitle] = await Promise.all([
-        this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
-          // This feed pages by cursor; it rejects a `page` outright.
-          select: {
-            first: 0,
-            limit: PAGE_SIZE,
-            ...(cursor === undefined ? {} : { before: cursor }),
-          },
-        }),
-        this.titleCleaner(),
-      ]);
-
-      const feed = data.get_title_latestUploads;
-
-      // An entry is a title carrying its newest few chapters, each holding the comic it
-      // belongs to. Three are asked for so a title whose newest chapter has been withdrawn
-      // still shows the one before it — but the row is the title, so only the newest living
-      // chapter becomes one. Emitting a row per chapter turns a page of thirty-six titles
-      // into a hundred-odd rows, which is a listing rather than the strip this row is.
-      const results = (feed?.items ?? [])
-        .flatMap((entry) => {
-          const live = (entry.chapters ?? []).filter((one) => one.data.dbStatus === "normal");
-          const newest = live.sort(
-            (left, right) => publishedAt(right.data) - publishedAt(left.data),
-          )[0];
-          return newest ? [newest] : [];
-        })
-        // Entries arrive grouped by title, not in time order, so the page is sorted to read
-        // as the feed it is named after.
-        .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
-        .flatMap((chapter): Highlight[] => {
-          const comic = chapter.data.comicNode?.data;
-          if (!comic) return [];
-          return [parseHighlight(comic, { latest: chapter.data, cleanTitle })];
-        });
-
-      // The cursor has to move backwards or the feed hands back the page just read; the
-      // site answering with its own starting point again would page forever.
-      const next = feed?.before;
-      if (next != null && (cursor === undefined || next < cursor)) {
-        this.feedCursors.set(`${sectionId}:${page + 1}`, next);
-        return { results, isLastPage: results.length === 0 };
-      }
-      return { results, isLastPage: true };
-    }
 
     if (sectionId === SectionID.RecentlyAdded) {
       const [data, cleanTitle] = await Promise.all([

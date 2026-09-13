@@ -792,7 +792,30 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.26)
+## XCOMIC (current: v1.0.27)
+
+### Fixed
+
+- The chapter list failed outright with "Bad Request". The site dropped the input type the
+  full list was asking for, and the full list is what this source asks for unless the
+  deduplicating setting is turned on — so every title opened to an error. It now names the
+  type the site still has.
+- Latest Uploads showed a title's genres and nothing else. The site's uploads feed hands back
+  a comic stripped of its score, follows and comments, so the row had nothing to put in its
+  lines. The row is browsed by latest update instead, which is the same order over the whole
+  title and carries everything a row on this page carries.
+
+### Changed
+
+- The counts get a line each again rather than sharing one. Three of them on a line was
+  truncated by the tile it was meant to fit inside, which is worse than the row it saved.
+  Reviews are left to the title page, and the counts are now asked for ahead of the genres so
+  the cut at four rows falls on the line a reader is least likely to want.
+- A tile carries the upload time wherever it came from. Only Latest Uploads used to show it,
+  because only that feed handed a chapter over; every listing has been asked for the newest
+  chapter's date since, so every detailed row shows when a title last moved.
+
+## XCOMIC (v1.0.26)
 
 ### Changed
 
