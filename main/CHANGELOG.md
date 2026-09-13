@@ -792,7 +792,20 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.24)
+## XCOMIC (current: v1.0.25)
+
+### Fixed
+
+- Latest Uploads was empty. The site moved the feed from comics to titles and inverted its
+  shape on the way: an entry used to carry one comic and its newest chapter, and now carries
+  several chapters, each holding the comic it belongs to. It also pages by `first`/`limit`
+  rather than by `size`. The row is the chapter again, so a title that published three at
+  once is three rows rather than one, and a chapter the site has withdrawn is not a row at
+  all.
+- The feed no longer pages forever. It answers a request carrying its own cursor with that
+  same cursor, so the walk now stops unless the cursor has actually moved backwards.
+
+## XCOMIC (v1.0.24)
 
 ### Fixed
 
