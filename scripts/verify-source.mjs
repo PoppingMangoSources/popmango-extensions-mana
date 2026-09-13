@@ -49,9 +49,14 @@ function parseArgs(argv) {
   return args;
 }
 
-function loadTarget(bundlePath) {
+/**
+ * `settings` in a probe seeds the key-value store the source reads its preferences from,
+ * so a source can be driven under something other than its defaults. A source that only
+ * ever makes sense at its defaults leaves it out and gets them.
+ */
+function loadTarget(bundlePath, settings = {}) {
   const code = fs.readFileSync(bundlePath, "utf-8");
-  const store = new ManaStore();
+  const store = new ManaStore(settings);
 
   const sandbox = {
     NetworkClient,
@@ -243,7 +248,7 @@ async function verify(name, probe, verbose) {
     throw new Error(`${bundlePath} not found — run "bun run build" first`);
   }
 
-  const target = loadTarget(bundlePath);
+  const target = loadTarget(bundlePath, probe.settings ?? {});
   if (target.onEnvironmentLoaded) await target.onEnvironmentLoaded();
 
   const results = [];
