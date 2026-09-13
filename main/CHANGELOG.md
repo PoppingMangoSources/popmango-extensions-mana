@@ -3,6 +3,35 @@
 Versions only ever bump the patch digit — `1.1.0` → `1.1.1` → `1.1.2`. Never `1.2.0`. Every
 source was renumbered to `1.1.0` in one go; before that they counted up from `1.0.0`.
 
+## MangaDex (current: v1.1.0)
+
+### Added
+
+- Initial release.
+
+## MangaDex (current: v1.1.0)
+
+### Added
+
+- A source for mangadex.org, reading its own API rather than its pages.
+- The home page is the site's own six rows in the site's own order: Popular New Titles,
+  Latest Updates, Seasonal, Recommended, Self-Published and Recently Added. Each can be
+  turned off, and a row that is off costs no request.
+- Seasonal, Recommended and Self-Published are the curator's own lists, found by name
+  rather than pinned to an id — the seasonal list is replaced four times a year, and the
+  newest one whose season has actually started is the one the site is showing.
+- Latest Updates is one row per title. The uploads feed lists a chapter at a time, so a
+  title that published three at once is three entries and the site shows it once.
+- Filters are the site's own: content rating, publication status, demographic, original
+  language, year, author or artist, and every tag the site has, in the four groups it files
+  them under. The tag list is read from the site once a day, with a bundled copy standing
+  in until then so the form is never empty.
+- Chapters carry their group, their language and their volume. A chapter that only points
+  at a publisher's own app has no pages here and is left out, and the placeholder groups
+  are excluded by default as the site's own reader excludes them.
+- Settings for translated languages, cover quality, data saver, and forcing port 443 for a
+  network that allows nothing else out.
+
 ## RokariComics (current: v1.1.0)
 
 ### Changed
