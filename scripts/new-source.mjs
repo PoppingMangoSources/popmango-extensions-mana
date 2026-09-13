@@ -95,7 +95,7 @@ main = main
   .replace(/id: "template",/, `id: "${id}",`)
   .replace(/name: "Template",/, `name: "${name}",`)
   .replace(/thumbnail: "[^"]*",/, `thumbnail: "${name}.png",`)
-  .replace(/version: "[^"]*",/, 'version: "1.0.0",')
+  .replace(/version: "[^"]*",/, 'version: "1.1.0",')
   .replace(/description: "[^"]*",/, `description: "${description.replace(/"/g, '\\"')}",`)
   .replace(/owningLinks: \[[^\]]*\],/, `owningLinks: ["${hostOf(url)}"],`);
 fs.writeFileSync(mainPath, main, "utf-8");
@@ -123,7 +123,7 @@ const changelogPath = path.join(ROOT, "CHANGELOG.md");
 if (fs.existsSync(changelogPath)) {
   const changelog = fs.readFileSync(changelogPath, "utf-8");
   if (!changelog.includes(`## ${name} (current:`)) {
-    const section = `## ${name} (current: v1.0.0)\n\n### Added\n\n- Initial release.\n\n`;
+    const section = `## ${name} (current: v1.1.0)\n\n### Added\n\n- Initial release.\n\n`;
     const firstSection = changelog.indexOf("\n## ");
     const updated =
       firstSection === -1

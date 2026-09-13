@@ -214,7 +214,7 @@ The failures this repo has actually shipped, each silent:
       from an ordinary error
 - [ ] Identical requests in flight share one promise, so a refresh does not ask twice
 - [ ] No cap on a section that already matches the default page size
-- [ ] Version bumped by one **patch** digit — `1.0.1`, never `1.1.0`, whatever changed
+- [ ] Version bumped by one **patch** digit — `1.1.1`, never `1.2.0`, whatever changed
 
 ## Performance
 

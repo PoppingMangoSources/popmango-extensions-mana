@@ -39,12 +39,16 @@ class really declares it and that `Target` extends the class you edited.
 
 ## Version
 
-**Only ever bump the patch digit: `1.0.0` → `1.0.1` → `1.0.2`.** Never `1.1.0`, never
+**Only ever bump the patch digit: `1.1.0` → `1.1.1` → `1.1.2`.** Never `1.2.0`, never
 `2.0.0`. Every release is the next patch, whatever it contains — a selector fix, a new
 section, a new preference, a reworked home page. Mixed bump sizes make the history
 confusing and messy to read, and nothing in the app treats a minor bump differently.
 
-A new source starts at `1.0.0` and counts up from there.
+A new source starts at `1.1.0`, where the rest of them are, and counts up from there.
+
+Every source was set to `1.1.0` in one go once the sources stopped being a moving target —
+the counts had spread from `1.0.5` to `1.0.38` while each was still learning its site. That
+was a one-off renumbering, not a precedent: the minor digit does not move again.
 
 The single exception, which needs asking about first rather than deciding alone: content
 ids or chapter ids changing shape invalidates every reader's library. Raise it before

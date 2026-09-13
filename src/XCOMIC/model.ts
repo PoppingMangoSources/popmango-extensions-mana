@@ -458,8 +458,8 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
     data {${LISTING_FIELDS}
       altNames
       summary { html }
-      chapterNodes_last(amount: 3) {
-        data { serial chaNum dname dateCreate dateModify datePublic }
+      chapterNodes_last(amount: 1) {
+        data { serial chaNum dateCreate dateModify datePublic }
       }
     }
   }

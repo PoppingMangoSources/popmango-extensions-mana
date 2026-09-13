@@ -71,10 +71,15 @@ than assuming a green local build means anything about the live site.
 
 ## Versioning
 
-Sources only ever bump the patch digit: `1.0.0` → `1.0.1` → `1.0.2`. **Never `1.1.0`, never
+Sources only ever bump the patch digit: `1.1.0` → `1.1.1` → `1.1.2`. **Never `1.2.0`, never
 `2.0.0`**, whatever the release contains — a fix, a new section, a new setting, a rewritten
 home page. Mixed bump sizes make the history confusing and messy, and the app treats them
-all alike. A new source starts at `1.0.0`.
+all alike. A new source starts at `1.1.0`, where the rest of them are.
+
+Every source was set to `1.1.0` at once when the sources stopped being a moving target: the
+patch counts had drifted from `1.0.5` to `1.0.38` while each was still finding its site's
+quirks, and a shared number is a cleaner place to carry on from. That was a one-off. The
+minor digit does not move again.
 
 ## Git
 
