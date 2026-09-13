@@ -450,7 +450,7 @@ export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
 const LISTING_FIELDS = `
       id name urlPath urlCover
       translatedLanguage type contentRating genres tags
-      score_val follows reviews comments_total chaps_normal`;
+      score_val follows comments_total chaps_normal`;
 
 export const BROWSE_QUERY = `
 query get_comic_browse_items($select: Comic_Browse_Select) {
@@ -458,8 +458,8 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
     data {${LISTING_FIELDS}
       altNames
       summary { html }
-      chapterNodes_last(amount: 1) {
-        data { serial chaNum dateCreate dateModify datePublic }
+      chapterNodes_last(amount: 3) {
+        data { serial chaNum dname dateCreate dateModify datePublic }
       }
     }
   }
@@ -487,7 +487,7 @@ query get_comicNode($id: ID!) {
       publisherNodes { data { name } }
       summary { html }
       urlPath urlCover
-      score_val follows reviews comments_total chaps_normal
+      score_val follows comments_total chaps_normal
     }
   }
 }`;
@@ -549,7 +549,6 @@ export type ComicData = {
   // The API has been seen sending this as a string as well as a number.
   score_val?: number | string | null;
   follows?: number | null;
-  reviews?: number | null;
   comments_total?: number | null;
   chaps_normal?: number | null;
   chapterNodes_last?: { data?: ChapterData | null }[] | null;

@@ -792,7 +792,18 @@ Versions only ever bump the patch digit — `1.0.0` → `1.0.1` → `1.0.2`. Nev
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.0.27)
+## XCOMIC (current: v1.0.28)
+
+### Changed
+
+- A Latest Uploads row lists the title's three newest chapters and when each landed, which is
+  how an uploads row reads everywhere else. The newest one is no longer repeated as a
+  subtitle above the line that already names it.
+- Reviews are gone. The count is off the title page and out of every query; the site's own
+  Most Reviews row and sort stay, since those are for finding a title rather than reading a
+  number off one.
+
+## XCOMIC (v1.0.27)
 
 ### Fixed
 

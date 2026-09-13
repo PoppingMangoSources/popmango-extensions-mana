@@ -101,7 +101,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.0.27",
+  version: "1.0.28",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -365,7 +365,10 @@ class XCOMICSource
         sort: spec?.sort ?? SortID.Score,
         ...(await this.preferenceDefaults(context)),
       }),
-      spec?.style === SectionStyle.SimpleHeroPaged,
+      {
+        hero: spec?.style === SectionStyle.SimpleHeroPaged,
+        chapters: sectionId === SectionID.LatestUploads,
+      },
     );
   }
 
@@ -479,7 +482,10 @@ class XCOMICSource
     };
   }
 
-  private async browse(select: BrowseSelect, hero = false): Promise<PagedSearchResult> {
+  private async browse(
+    select: BrowseSelect,
+    shape: { hero?: boolean; chapters?: boolean } = {},
+  ): Promise<PagedSearchResult> {
     const [data, cleanTitle] = await Promise.all([
       this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
       this.titleCleaner(),
@@ -487,7 +493,7 @@ class XCOMICSource
     const nodes = data.get_comic_browse_items ?? [];
 
     return {
-      results: nodes.map((node) => parseHighlight(node.data, { cleanTitle, hero })),
+      results: nodes.map((node) => parseHighlight(node.data, { cleanTitle, ...shape })),
       isLastPage: nodes.length < select.size,
     };
   }

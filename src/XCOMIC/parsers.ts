@@ -156,6 +156,26 @@ function formatScore(score: number | string | null | undefined): string {
   return `★ ${value.toFixed(1)}`;
 }
 
+/**
+ * The newest chapters a listing row carries, as one line each: the chapter, then when it
+ * landed. The site's own uploads page reads this way, and so does every other reader's.
+ */
+function recentChapters(comic: ComicData): Pair[] {
+  return (
+    (comic.chapterNodes_last ?? [])
+      .flatMap((node) => (node.data ? [node.data] : []))
+      .map((chapter) => ({ chapter, at: parseTimestamp(chapter.dateModify ?? chapter.datePublic) }))
+      // The field is named for the last chapters but says nothing about their order, and a row
+      // that opens on anything but the newest reads as stale.
+      .sort((left, right) => (right.at?.getTime() ?? 0) - (left.at?.getTime() ?? 0))
+      .flatMap(({ chapter, at }) => {
+        const number = formatChapterNumber(chapter);
+        const name = number ? `Chapter ${number}` : clean(chapter.dname ?? "");
+        return name && at ? [{ key: name, value: relativeTime(at) }] : [];
+      })
+  );
+}
+
 /** How a reader's title settings rewrite the site's own name for a series. */
 export type TitleCleaner = (title: string) => string;
 
@@ -166,6 +186,8 @@ export type HighlightOptions = {
   cleanTitle?: TitleCleaner;
   /** A hero card shows no info rows, so its stats have to ride along in the subtitle. */
   hero?: boolean;
+  /** An uploads row lists the title's newest chapters in its lines rather than its stats. */
+  chapters?: boolean;
 };
 
 /**
@@ -173,7 +195,7 @@ export type HighlightOptions = {
  * alongside the cover, so the tile carries them without a second request.
  */
 export function parseHighlight(comic: ComicData, options: HighlightOptions = {}): Highlight {
-  const { latest, cleanTitle = asIs, hero = false } = options;
+  const { latest, cleanTitle = asIs, hero = false, chapters = false } = options;
 
   // A browse row carries its newest chapter the same way the uploads feed hands one over, so
   // the tile reads the same either way rather than losing its upload time off a listing.
@@ -202,16 +224,21 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   // Four rows is the whole budget, so the counts are asked for ahead of the genres: what the
   // site grades and counts is what a reader compares two tiles by, and the genres are already
   // on the title page a tap away.
-  const info: Pair[] = [];
-  if (score) info.push({ key: "Rating", value: score });
-  if (uploaded) info.push({ key: "Updated", value: relativeTime(uploaded) });
-  if (followLabel) info.push({ key: "Likes", value: followLabel });
-  if (commentLabel) info.push({ key: "Comments", value: commentLabel });
-  if (genres.length > 0) {
-    info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
-  }
+  const info: Pair[] = chapters
+    ? recentChapters(comic)
+    : [
+        ...(score ? [{ key: "Rating", value: score }] : []),
+        ...(uploaded ? [{ key: "Updated", value: relativeTime(uploaded) }] : []),
+        ...(followLabel ? [{ key: "Likes", value: followLabel }] : []),
+        ...(commentLabel ? [{ key: "Comments", value: commentLabel }] : []),
+        ...(genres.length > 0
+          ? [{ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") }]
+          : []),
+      ];
 
-  const subtitle = number ? `Chapter ${number}` : "";
+  // The chapter rows already open with the newest one, so a subtitle naming it again would
+  // print the same chapter twice, a line apart.
+  const subtitle = number && !chapters ? `Chapter ${number}` : "";
   const badge = toBadge(taken);
 
   return {
@@ -243,7 +270,6 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
   const score = formatScore(comic.score_val);
   if (score) info.push({ key: "Score", value: score });
   if (comic.follows != null) info.push({ key: "Follows", value: String(comic.follows) });
-  if (comic.reviews != null) info.push({ key: "Reviews", value: String(comic.reviews) });
   if (comic.comments_total != null) {
     info.push({ key: "Comments", value: String(comic.comments_total) });
   }
