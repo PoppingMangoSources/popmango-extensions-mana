@@ -460,25 +460,25 @@ query get_comic_browse_items($select: Comic_Browse_Select) {
 }`;
 
 /**
- * The site's own uploads feed, which is what its home page lists and the order it lists in.
+ * The latest-uploads feed, which the site keys by title rather than by comic.
  *
- * The comic it hands back is a light one — a name, a cover, its genres — and asking that
- * node for the counts a listing row carries empties the whole feed, so the fields here are
- * the ones it actually has.
+ * `get_comic_latestUploads` still answers and still validates, but it answers with nothing —
+ * an empty feed, not an error — so a source reading it shows an empty row and no reason why.
+ * This is the one that carries the uploads. An item is a title holding its newest chapters,
+ * each of which holds the comic it belongs to.
  */
 export const LATEST_UPLOADS_QUERY = `
-query get_comic_latestUploads($select: Comic_LatestUploads_Select) {
-  get_comic_latestUploads(select: $select) {
+query get_title_latestUploads($select: Title_LatestUploads_Select) {
+  get_title_latestUploads(select: $select) {
     before
     items {
-      comic {
+      chapters(amount: 3) {
+        id
         data {
-          id name urlPath urlCover
-          translatedLanguage type contentRating genres tags
+          id serial chaNum urlPath dbStatus dateCreate dateModify datePublic
+          comicNode { data {${LISTING_FIELDS}
+          } }
         }
-      }
-      chapters(amount: 1) {
-        data { id serial chaNum urlPath dateCreate dateModify datePublic }
       }
     }
   }
@@ -588,6 +588,8 @@ export type ChapterData = {
   userNode?: NamedNode | null;
   /** Anything but `normal` is a chapter the site has withdrawn but still lists. */
   dbStatus?: string | null;
+  /** Only the latest-uploads feed fills this: the comic the chapter belongs to. */
+  comicNode?: ComicNode | null;
 };
 
 export type ComicNode = { data: ComicData };
@@ -595,9 +597,9 @@ export type ComicNode = { data: ComicData };
 export type BrowseResponse = { get_comic_browse_items?: ComicNode[] | null };
 
 export type LatestUploadsResponse = {
-  get_comic_latestUploads?: {
+  get_title_latestUploads?: {
     before?: number | null;
-    items?: { comic?: ComicNode | null; chapters?: { data: ChapterData }[] | null }[] | null;
+    items?: { chapters?: { data: ChapterData }[] | null }[] | null;
   } | null;
 };
 

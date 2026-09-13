@@ -94,6 +94,7 @@ import {
   parseContent,
   parseFilterTaxonomy,
   parseHighlight,
+  publishedAt,
   parseLanguage,
   parsePageUrls,
   type FilterTaxonomy,
@@ -104,7 +105,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.1",
+  version: "1.1.2",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -346,23 +347,37 @@ class XCOMICSource
       const [data, cleanTitle] = await Promise.all([
         this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
           // This feed pages by cursor; it rejects a `page` outright.
-          select: { size: PAGE_SIZE, ...(cursor === undefined ? {} : { before: cursor }) },
+          select: {
+            first: 0,
+            limit: PAGE_SIZE,
+            ...(cursor === undefined ? {} : { before: cursor }),
+          },
         }),
         this.titleCleaner(),
       ]);
 
-      const feed = data.get_comic_latestUploads;
+      const feed = data.get_title_latestUploads;
 
-      // A title that published three chapters at once is three entries in the feed, and the
-      // site lists it once. Keeping the first entry keeps the newest of them, because the
-      // feed is already in publication order.
-      const seen = new Set<string>();
-      const results = (feed?.items ?? []).flatMap((entry): Highlight[] => {
-        const comic = entry.comic?.data;
-        if (!comic || seen.has(comic.id)) return [];
-        seen.add(comic.id);
-        return [parseHighlight(comic, { latest: entry.chapters?.[0]?.data, cleanTitle })];
-      });
+      // An item is a title carrying its newest few chapters, each holding the comic it
+      // belongs to. Three are asked for so a title whose newest chapter has been withdrawn
+      // still shows the one before it — but the row is the title, so only the newest living
+      // chapter becomes one.
+      const results = (feed?.items ?? [])
+        .flatMap((entry) => {
+          const live = (entry.chapters ?? []).filter((one) => one.data.dbStatus === "normal");
+          const newest = live.sort(
+            (left, right) => publishedAt(right.data) - publishedAt(left.data),
+          )[0];
+          return newest ? [newest] : [];
+        })
+        // Items arrive grouped by title, not in time order, so the page is sorted to read as
+        // the feed it is named after.
+        .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
+        .flatMap((chapter): Highlight[] => {
+          const comic = chapter.data.comicNode?.data;
+          if (!comic) return [];
+          return [parseHighlight(comic, { latest: chapter.data, cleanTitle })];
+        });
 
       // The cursor has to move backwards or the feed hands back the page just read; the
       // site answering with its own starting point again would page forever.
