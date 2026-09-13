@@ -841,7 +841,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.1)
+## XCOMIC (current: v1.1.2)
+
+### Fixed
+
+- Latest Uploads reads the feed that actually carries the uploads. The last release moved it
+  to `get_comic_latestUploads`, which the site still accepts and still answers — with an
+  empty feed, and no error to say so. It is back on the title-keyed feed, still one row per
+  title showing its newest chapter, and the page is sorted by publication time because the
+  feed hands its items over grouped by title instead.
+
+## XCOMIC (v1.1.1)
 
 ### Fixed
 
