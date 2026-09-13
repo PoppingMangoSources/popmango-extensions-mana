@@ -841,7 +841,16 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.2)
+## XCOMIC (current: v1.1.3)
+
+### Fixed
+
+- A title that carries two comics lists both again. The row was taken from the feed's item,
+  which is the title, so a series with a second team's upload in the same batch showed only
+  one of them. The rows come off the chapters instead and a comic is kept once, at its newest
+  upload, which is where the site puts it.
+
+## XCOMIC (v1.1.2)
 
 ### Fixed
 

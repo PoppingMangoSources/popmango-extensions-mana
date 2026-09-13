@@ -105,7 +105,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -358,24 +358,21 @@ class XCOMICSource
 
       const feed = data.get_title_latestUploads;
 
-      // An item is a title carrying its newest few chapters, each holding the comic it
-      // belongs to. Three are asked for so a title whose newest chapter has been withdrawn
-      // still shows the one before it — but the row is the title, so only the newest living
-      // chapter becomes one.
+      // An item is a title holding the chapters it just published, each of which holds the
+      // comic it belongs to — and one title can carry more than one comic, so the rows are
+      // taken from the chapters rather than from the items. They arrive grouped by title
+      // rather than in time order, so the whole page is sorted before it is cut down: the
+      // first chapter a comic appears in is then its newest, and the rest of that comic's
+      // uploads are the same row over again.
+      const seen = new Set<string>();
       const results = (feed?.items ?? [])
-        .flatMap((entry) => {
-          const live = (entry.chapters ?? []).filter((one) => one.data.dbStatus === "normal");
-          const newest = live.sort(
-            (left, right) => publishedAt(right.data) - publishedAt(left.data),
-          )[0];
-          return newest ? [newest] : [];
-        })
-        // Items arrive grouped by title, not in time order, so the page is sorted to read as
-        // the feed it is named after.
+        .flatMap((entry) => entry.chapters ?? [])
+        .filter((chapter) => chapter.data.dbStatus === "normal")
         .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
         .flatMap((chapter): Highlight[] => {
           const comic = chapter.data.comicNode?.data;
-          if (!comic) return [];
+          if (!comic || seen.has(comic.id)) return [];
+          seen.add(comic.id);
           return [parseHighlight(comic, { latest: chapter.data, cleanTitle })];
         });
 
