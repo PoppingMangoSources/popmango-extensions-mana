@@ -36,7 +36,7 @@
     "@mana-app/dev": "^0.1.14",
     "@mana-app/types": "^0.0.27",
     "@types/crypto-js": "^4.2.2",
-    "oxfmt": "^0.66.0",
+    "oxfmt": "^0.67.0",
     "oxlint": "^1.65.0",
     "typescript": "^7.0.2"
   },
