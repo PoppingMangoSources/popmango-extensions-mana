@@ -106,7 +106,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.7",
+  version: "1.1.8",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -466,7 +466,11 @@ class XCOMICSource
         chapCount: filters.option(FilterID.ChapterCount),
         releaseYearMin: yearMin,
         releaseYearMax: yearMax,
-        ignoreGlobalGenres: await this.preferences.flag(PreferenceID.IgnoreGenreBlocklist),
+        // Only when asked for: browse answers an internal error to a request that carries
+        // this at all, so it is left out rather than sent as false.
+        ...((await this.preferences.flag(PreferenceID.IgnoreGenreBlocklist))
+          ? { ignoreGlobalGenres: true }
+          : {}),
       }),
     );
   }
@@ -528,10 +532,6 @@ class XCOMICSource
       origStatus: null,
       siteStatus: null,
       chapCount: "",
-      // The site applies its own account-level filters unless told to stand aside.
-      ignoreGlobalULangs: true,
-      ignoreGlobalGenres: false,
-      ignoreGlobalBlocks: true,
       ...rest,
     };
   }

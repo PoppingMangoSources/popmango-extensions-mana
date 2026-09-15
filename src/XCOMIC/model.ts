@@ -668,7 +668,11 @@ export type BrowseSelect = {
   origStatus: string | null;
   siteStatus: string | null;
   chapCount: string;
-  ignoreGlobalULangs: boolean;
-  ignoreGlobalGenres: boolean;
-  ignoreGlobalBlocks: boolean;
+  /**
+   * Asks the site to stand its own account-level filtering aside.
+   *
+   * Sent only when a reader turned it on. Browse began answering an internal error to
+   * every request carrying one of these, and the site's own clients send none of them.
+   */
+  ignoreGlobalGenres?: boolean;
 };
