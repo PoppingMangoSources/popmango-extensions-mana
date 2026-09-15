@@ -871,7 +871,15 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.14)
+## XCOMIC (current: v1.1.15)
+
+### Changed
+
+- The publisher tag reads `On the Way to Meet Mom [WEBTOON]` again, in square brackets, as
+  Kagane writes its own. The two sit next to each other in the app, and one labelling a
+  title differently from the other reads as a bug rather than as a choice.
+
+## XCOMIC (v1.1.14)
 
 ### Changed
 

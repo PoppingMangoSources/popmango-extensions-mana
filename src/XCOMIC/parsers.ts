@@ -225,7 +225,9 @@ function displayTitle(comic: ComicData, cleanTitle: TitleCleaner, showTeam: bool
   const tag = team.toLowerCase();
   if (ending.endsWith(`(${tag})`) || ending.endsWith(`[${tag}]`)) return name;
 
-  return `${name} (${team})`;
+  // Square, as Kagane writes its own source tags: the two sources sit next to each other in
+  // the app and a title labelled one way in one and another way in the other reads as a bug.
+  return `${name} [${team}]`;
 }
 
 /** How a reader's title settings rewrite the site's own name for a series. */

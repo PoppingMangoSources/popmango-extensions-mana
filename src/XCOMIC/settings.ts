@@ -72,7 +72,7 @@ export function buildSettingsSections(taxonomy: TaxonomyLists): PreferenceSectio
       footer:
         "One series published by several teams or houses is several entries here, all under " +
         "the same name — showing the source tags each with who published it, as 'On the Way " +
-        "to Meet Mom (WEBTOON)'. Version tags are markers like '(Official)' or '(Yaoi)'. " +
+        "to Meet Mom [WEBTOON]'. Version tags are markers like '(Official)' or '(Yaoi)'. " +
         "Titles already saved to your library keep the name they were added under until you " +
         "refresh them.",
       fields: [
