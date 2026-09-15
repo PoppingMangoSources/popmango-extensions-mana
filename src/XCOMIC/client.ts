@@ -171,7 +171,19 @@ export class XCOMICApi {
       }
 
       if (parsed.errors?.length) {
-        throw new Error(parsed.errors.map((error) => error.message).join("\n"));
+        // The site answers every rejected query with the same "Internal Server Error",
+        // so the line and column it points at are the whole of what it will tell us
+        // about which field it would not serve.
+        throw new Error(
+          parsed.errors
+            .map((error) => {
+              const at = error.locations?.[0];
+              const where = at?.line ? ` at ${at.line}:${at.column ?? 0}` : "";
+              const code = error.extensions?.code ? ` [${error.extensions.code}]` : "";
+              return `${error.message}${where}${code}`;
+            })
+            .join("\n"),
+        );
       }
       if (!parsed.data) throw new Error("XCOMIC returned no data");
 

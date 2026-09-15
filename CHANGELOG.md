@@ -870,7 +870,15 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.6)
+## XCOMIC (current: v1.1.7)
+
+### Changed
+
+- A rejected query says where it was rejected. The site answers every one of them with the
+  same "Internal Server Error" and no detail, but it does point at a line and column, and
+  that is the only way to tell which field it has stopped serving.
+
+## XCOMIC (v1.1.6)
 
 ### Fixed
 

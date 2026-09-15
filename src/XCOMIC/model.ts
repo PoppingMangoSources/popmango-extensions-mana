@@ -554,7 +554,15 @@ query get_chapterNode($id: ID!) {
   get_chapterNode(id: $id) { data { imageUrls } }
 }`;
 
-export type GraphQLResponse<T> = { data?: T; errors?: { message: string }[] };
+export type GraphQLResponse<T> = {
+  data?: T;
+  errors?: {
+    message: string;
+    /** Where in the query the server gave up, which is the only clue it offers. */
+    locations?: { line?: number; column?: number }[] | null;
+    extensions?: { code?: string | null } | null;
+  }[];
+};
 
 export type NamedNode = { data?: { name?: string | null } | null };
 
