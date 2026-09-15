@@ -870,7 +870,16 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.5)
+## XCOMIC (current: v1.1.6)
+
+### Fixed
+
+- Every browsing row and search still came back empty. The site stopped answering the
+  browse endpoint for a summary or a title's other names, which fails the whole query
+  rather than the field — and a tile shows neither, so it no longer asks. The same field
+  list without them is what every other endpoint already answers.
+
+## XCOMIC (v1.1.5)
 
 ### Fixed
 

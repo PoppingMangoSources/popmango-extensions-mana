@@ -460,12 +460,12 @@ const LISTING_FIELDS = `
 const TEAM_FIELD = `
       subName`;
 
+// A tile shows neither a summary nor a title's other names, and browse is the one endpoint
+// that rejected asking for them — the same field list without them answers everywhere else.
 export const BROWSE_QUERY = `
 query get_comic_browse_items($select: Comic_Browse_Select) {
   get_comic_browse_items(select: $select) {
     data {${LISTING_FIELDS}
-      altNames
-      summary { html }
       chapterNodes_last(amount: 1) { data { serial chaNum } }
     }
   }
