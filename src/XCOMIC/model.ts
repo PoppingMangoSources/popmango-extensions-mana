@@ -448,7 +448,8 @@ export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
 const LISTING_FIELDS = `
       id name urlPath urlCover
       translatedLanguage type contentRating genres tags
-      score_val follows comments_total chaps_normal`;
+      score_val follows comments_total chaps_normal
+      views { field count }`;
 
 /**
  * The team behind an edition, which only some of the endpoints' types carry.
@@ -549,6 +550,7 @@ query get_comicNode($id: ID!) {
       summary { html }
       urlPath urlCover
       score_val follows comments_total chaps_normal
+      views { field count }
     }
   }
 }`;
@@ -559,7 +561,7 @@ const CHAPTER_FIELDS = `
       data {
         id serial chaNum volNum dname title urlPath
         dateCreate dateModify datePublic
-        srcName
+        srcName srcTitle
         groupNodes { data { name } }
         userNode { data { name } }
       }
@@ -626,6 +628,13 @@ export type ComicData = {
   follows?: number | null;
   comments_total?: number | null;
   chaps_normal?: number | null;
+  /**
+   * Views, counted once per window rather than as a single total.
+   *
+   * `field` is the same id the sort options use — `views_d000` is every view the site has
+   * ever counted, `views_h024` the last day's — so the total is the `views_d000` bucket.
+   */
+  views?: { field?: string | null; count?: number | null }[] | null;
   /** When the newest chapter went up. Browse states it on the title rather than naming one. */
   chapterPublishedAt?: number | string | null;
   chapterNodes_last?: { data?: ChapterData | null }[] | null;
@@ -644,6 +653,8 @@ export type ChapterData = {
   dateModify?: number | string | null;
   datePublic?: number | string | null;
   srcName?: string | null;
+  /** The aggregator's name as the site writes it, where `srcName` is its bare slug. */
+  srcTitle?: string | null;
   groupNodes?: NamedNode[] | null;
   userNode?: NamedNode | null;
   /** Anything but `normal` is a chapter the site has withdrawn but still lists. */

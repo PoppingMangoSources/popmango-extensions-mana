@@ -171,6 +171,22 @@ function compactCount(value: number | null | undefined): string {
   return String(value);
 }
 
+/** Every view the site has counted, which is the bucket its own "Total" sort reads. */
+const TOTAL_VIEWS_FIELD = "views_d000";
+
+function totalViews(comic: ComicData): number | undefined {
+  const buckets = comic.views ?? [];
+  const total = buckets.find((bucket) => bucket?.field === TOTAL_VIEWS_FIELD)?.count;
+  if (typeof total === "number" && Number.isFinite(total)) return total;
+
+  // A comic the site counts by window but not in total still has a largest window, and
+  // that reads better than saying nothing about a title people plainly read.
+  const counts = buckets
+    .map((bucket) => bucket?.count)
+    .filter((count): count is number => typeof count === "number" && Number.isFinite(count));
+  return counts.length > 0 ? Math.max(...counts) : undefined;
+}
+
 /**
  * The site marks its own rating with a filled star, so the tiles do too. The listing
  * endpoints have been seen quoting the number, hence the coercion.
@@ -225,6 +241,14 @@ export type HighlightOptions = {
    * carried under every other row's.
    */
   countChapters?: boolean;
+  /**
+   * Whether this tile draws its info rows, and so draws no pill at all.
+   *
+   * The two say the same thing in different registers — a pill is the best single number
+   * over the artwork, the rows are the whole read — and a tile carrying both repeats itself
+   * a thumb's width apart.
+   */
+  detailed?: boolean;
 };
 
 /**
@@ -238,6 +262,7 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
     showTeam = true,
     hero = false,
     countChapters = false,
+    detailed = false,
   } = options;
 
   // A browse row carries its newest chapter the same way the uploads feed hands one over, so
@@ -253,20 +278,29 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   const genres = (comic.genres ?? []).slice(0, 2).map(formatGenre).filter(Boolean);
 
   const score = formatScore(comic.score_val);
+  const views = compactCount(totalViews(comic));
   const follows = compactCount(comic.follows);
   const comments = compactCount(comic.comments_total);
 
-  // The pill falls through the house order: what the site grades a title, then what it is,
-  // then where it has got to. This API returns no view count on a listing row, so the
-  // follows and comments it does count come next. Whatever the pill takes stays in the rows
-  // below — no pill is drawn over the thumbnail those rows belong to.
+  // The pill falls through the house order: what the site grades a title, then what it has
+  // been read, then what it counts, then what the title is, then where it has got to.
+  // Browse answers per title and counts no views there, so a browse tile picks up again at
+  // the follows.
+  const viewLabel = views ? `${Mark.Views} ${views}` : "";
   const followLabel = follows ? `${Mark.Likes} ${follows}` : "";
   // The bubble carries U+FE0E so it draws as a filled mark beside the heart: a `Pair` takes
   // plain text, and the bare codepoint would render in colour.
   const commentLabel = comments ? `${Mark.Comments} ${comments}` : "";
   const kind = kindLabel(comic.type);
   const state = statusLabel(comic.originalStatus);
-  const taken = firstFilled(score, followLabel, commentLabel, typePill(kind), statusPill(state));
+  const taken = firstFilled(
+    score,
+    viewLabel,
+    followLabel,
+    commentLabel,
+    typePill(kind),
+    statusPill(state),
+  );
 
   // Four rows is the whole budget, so the counts are asked for ahead of the genres: what the
   // site grades and counts is what a reader compares two tiles by, and the genres are already
@@ -283,7 +317,7 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   const chapters = comic.chaps_normal ?? 0;
   const counted = countChapters && chapters > 0 ? `${chapters} Chapters` : "";
   const subtitle = number ? `Chapter ${number}` : counted;
-  const badge = toBadge(taken);
+  const badge = detailed ? undefined : toBadge(taken);
 
   return {
     id: comic.id,
@@ -368,6 +402,8 @@ export function parseContent(
   const info: Pair[] = [];
   const score = formatScore(comic.score_val);
   if (score) info.push({ key: "Score", value: score });
+  const views = totalViews(comic);
+  if (views != null) info.push({ key: "Views", value: views.toLocaleString("en-US") });
   if (comic.follows != null) info.push({ key: "Follows", value: String(comic.follows) });
   if (comic.comments_total != null) {
     info.push({ key: "Comments", value: String(comic.comments_total) });
@@ -454,15 +490,12 @@ export function parseChapters(
       .join(": ");
 
     // `srcName` is the aggregator an upload came through rather than the team that made
-    // it, so the edition's own team is named first where the site states one.
-    const source = clean(entry.srcName ?? "");
+    // it, so the edition's own team is named first where the site states one. `srcTitle` is
+    // how the site writes that aggregator out, where `srcName` is the bare slug behind it.
+    const source = decodeEntities(clean(entry.srcTitle ?? "")) || titleCase(entry.srcName);
     const groups = names(entry.groupNodes);
     const uploader = clean(entry.userNode?.data?.name ?? "");
-    const scanlator =
-      team ||
-      groups.join(", ") ||
-      (source ? source.charAt(0).toUpperCase() + source.slice(1) : "") ||
-      uploader;
+    const scanlator = team || groups.join(", ") || source || uploader;
 
     const volume = Number.parseFloat(String(entry.volNum ?? ""));
 

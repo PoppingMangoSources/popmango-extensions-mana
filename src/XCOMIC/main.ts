@@ -42,6 +42,7 @@ import {
   buildSearchForm,
   pageOf,
   resolveSortId,
+  isDetailedStyle,
   sectionById,
   toPageSections,
   type PreferenceValue,
@@ -107,7 +108,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.11",
+  version: "1.1.12",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -349,6 +350,8 @@ class XCOMICSource
   ): Promise<PagedSearchResult> {
     await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
+    // A row that draws each tile's info rows draws no pill over its cover.
+    const detailed = isDetailedStyle(sectionById(DISCOVER_SECTIONS, sectionId)?.style);
 
     if (sectionId === SectionID.LatestUploads) {
       const [data, cleanTitle, showTeam] = await Promise.all([
@@ -381,7 +384,7 @@ class XCOMICSource
           const comic = chapter.data.comicNode?.data;
           if (!comic || seen.has(comic.id)) return [];
           seen.add(comic.id);
-          return [parseHighlight(comic, { latest: chapter.data, cleanTitle, showTeam })];
+          return [parseHighlight(comic, { latest: chapter.data, cleanTitle, showTeam, detailed })];
         });
 
       // The cursor has to move backwards or the feed hands back the page just read; the
@@ -408,7 +411,7 @@ class XCOMICSource
 
       const feed = data.get_comic_recentlyAdded;
       const results = (feed?.items ?? []).map((node) =>
-        parseHighlight(node.data, { cleanTitle, showTeam }),
+        parseHighlight(node.data, { cleanTitle, showTeam, detailed }),
       );
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
@@ -424,6 +427,7 @@ class XCOMICSource
         ...(await this.preferenceDefaults(context)),
       }),
       spec?.style === SectionStyle.SimpleHeroPaged,
+      detailed,
     );
   }
 
@@ -537,7 +541,11 @@ class XCOMICSource
     };
   }
 
-  private async browse(select: BrowseSelect, hero = false): Promise<PagedSearchResult> {
+  private async browse(
+    select: BrowseSelect,
+    hero = false,
+    detailed = false,
+  ): Promise<PagedSearchResult> {
     const [data, cleanTitle, showTeam] = await Promise.all([
       this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
       this.titleCleaner(),
@@ -547,7 +555,9 @@ class XCOMICSource
 
     return {
       results: nodes
-        .map((node) => parseTitleHighlight(node, select.incTLangs, { cleanTitle, showTeam, hero }))
+        .map((node) =>
+          parseTitleHighlight(node, select.incTLangs, { cleanTitle, showTeam, hero, detailed }),
+        )
         .filter((highlight): highlight is Highlight => highlight !== undefined),
       // Counted before a title with no edition in the reader's languages is dropped: the
       // page the site served is what says whether another one follows it.

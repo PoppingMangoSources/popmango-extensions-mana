@@ -3,7 +3,14 @@
 Versions only ever bump the patch digit — `1.1.0` → `1.1.1` → `1.1.2`. Never `1.2.0`. Every
 source was renumbered to `1.1.0` in one go; before that they counted up from `1.0.0`.
 
-## MangaDex (current: v1.1.0)
+## MangaDex (current: v1.1.1)
+
+### Changed
+
+- The rule deciding which rows draw a pill moved into the shared runtime, where a second
+  source now reads it too. No change to what the app shows.
+
+## MangaDex (v1.1.0)
 
 ### Added
 
@@ -864,7 +871,23 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.11)
+## XCOMIC (current: v1.1.12)
+
+### Added
+
+- A tile says how widely a title has been read. The site counts views per window rather
+  than as one total, so the pill takes the window covering everything it has ever counted,
+  and the title page counts them under the score. Views sit second in the pill's order,
+  behind the rating and ahead of the likes.
+
+### Changed
+
+- A row that draws each tile's info rows no longer draws a pill over the cover as well.
+  Latest Uploads, Most Reviews and Most Views (24 hours) were saying the same number twice.
+- A chapter names the aggregator it came through as the site writes it rather than as the
+  bare slug behind it, where no team or group is named.
+
+## XCOMIC (v1.1.11)
 
 ### Added
 

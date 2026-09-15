@@ -9,7 +9,6 @@ import {
   SearchExcludableMultiPickerSheet,
   SearchPicker,
   SearchTextField,
-  SectionStyle,
   type Chapter,
   type ChapterData,
   type ChapterSource,
@@ -40,6 +39,7 @@ import {
   isMigration,
   pageOf,
   resolveSortId,
+  isDetailedStyle,
   sectionById,
   toPageSections,
   type PreferenceValue,
@@ -97,7 +97,7 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -111,18 +111,8 @@ const config: SourceConfig = {
   cloudflareResolutionURL: BASE_URL,
 };
 
-/** The styles that draw info rows under a thumbnail, and so draw no pill over it. */
-const DETAILED_STYLES = new Set<SectionStyle>([
-  SectionStyle.DetailedSingleRowPaged,
-  SectionStyle.DetailedDoubleRowPaged,
-  SectionStyle.DetailedTripleRowPaged,
-  SectionStyle.DetailedVerticalList,
-  SectionStyle.DetailedVerticalListGrouped,
-]);
-
 function isDetailed(sectionId: string): boolean {
-  const style = sectionById(DISCOVER_SECTIONS, sectionId)?.style;
-  return style !== undefined && DETAILED_STYLES.has(style);
+  return isDetailedStyle(sectionById(DISCOVER_SECTIONS, sectionId)?.style);
 }
 
 /** Which of the site's four ratings a host policy leaves standing. */

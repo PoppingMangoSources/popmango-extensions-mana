@@ -1,4 +1,9 @@
-import type { PageSection, PagedSearchResult, SearchRequest, SectionStyle } from "@mana-app/types";
+import {
+  SectionStyle,
+  type PageSection,
+  type PagedSearchResult,
+  type SearchRequest,
+} from "@mana-app/types";
 
 export type PageSectionSpec = {
   id: string;
@@ -33,6 +38,26 @@ export function sectionById<T extends PageSectionSpec>(
 ): T | undefined {
   if (!id) return undefined;
   return specs.find((spec) => spec.id === id);
+}
+
+/** The styles that draw a tile's info rows, and so draw no pill over its cover. */
+const DETAILED_STYLES = new Set<SectionStyle>([
+  SectionStyle.DetailedSingleRowPaged,
+  SectionStyle.DetailedDoubleRowPaged,
+  SectionStyle.DetailedTripleRowPaged,
+  SectionStyle.DetailedVerticalList,
+  SectionStyle.DetailedVerticalListGrouped,
+]);
+
+/**
+ * Whether a section's tiles carry rows rather than a pill.
+ *
+ * The two answer to different rules and never appear together: a pill is the best single
+ * thing a site says, squeezed over the artwork, and the rows are the reader's whole read of
+ * a title. A tile drawing both says the same number twice a thumb's width apart.
+ */
+export function isDetailedStyle(style: SectionStyle | undefined): boolean {
+  return style !== undefined && DETAILED_STYLES.has(style);
 }
 
 export function listResults(
