@@ -36,6 +36,7 @@ import {
   type ChapterData,
   type ComicData,
   type NamedNode,
+  type TitleNode,
 } from "./model.ts";
 
 function absoluteUrl(target: string | null | undefined): string {
@@ -203,6 +204,13 @@ export type HighlightOptions = {
   showTeam?: boolean;
   /** A hero card shows no info rows, so its stats have to ride along in the subtitle. */
   hero?: boolean;
+  /**
+   * Whether the run's length stands in for a chapter number in the subtitle.
+   *
+   * Browse names no newest chapter, so the tile would otherwise lose the line it has
+   * carried under every other row's.
+   */
+  countChapters?: boolean;
 };
 
 /**
@@ -210,7 +218,13 @@ export type HighlightOptions = {
  * alongside the cover, so the tile carries them without a second request.
  */
 export function parseHighlight(comic: ComicData, options: HighlightOptions = {}): Highlight {
-  const { latest, cleanTitle = asIs, showTeam = true, hero = false } = options;
+  const {
+    latest,
+    cleanTitle = asIs,
+    showTeam = true,
+    hero = false,
+    countChapters = false,
+  } = options;
 
   // A browse row carries its newest chapter the same way the uploads feed hands one over, so
   // the tile reads the same either way rather than losing its upload time off a listing.
@@ -248,13 +262,15 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
     info.push({ key: genres.length > 1 ? "Genres" : "Genre", value: genres.join(", ") });
   }
 
-  const subtitle = number ? `Chapter ${number}` : "";
+  const chapters = comic.chaps_normal ?? 0;
+  const counted = countChapters && chapters > 0 ? `${chapters} Chapters` : "";
+  const subtitle = number ? `Chapter ${number}` : counted;
   const badge = toBadge(taken);
 
   return {
     id: comic.id,
     title: displayTitle(comic, cleanTitle, showTeam),
-    cover: absoluteUrl(comic.urlCover),
+    cover: absoluteUrl(comic.urlCover || comic.remoteCoverUrl),
     ...(subtitle ? { subtitle } : {}),
     ...(badge === undefined ? {} : { badge }),
     // A tile stretches its whole row past about four lines, so the rest is dropped.
@@ -262,6 +278,57 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
     contentRating: parseRating(comic),
     webUrl: seriesUrl(comic),
   };
+}
+
+/**
+ * The edition of a title a browse tile stands for, as a comic the rest of the source can read.
+ *
+ * A title is the work; a comic is one team's translation of it into one language, and every
+ * id the source hands the app — a tile's, a chapter list's, a library entry's — is a comic's.
+ * So a title is narrowed to the edition in the first language the reader asked for, longest
+ * run winning a tie, and the title's own cover and counts are kept: they are the work's
+ * totals, which is what the site prints on its own browse page.
+ *
+ * A title with no editions at all is nothing a reader can open, and is left out.
+ */
+export function parseTitleHighlight(
+  node: TitleNode,
+  languages: readonly string[],
+  options: HighlightOptions = {},
+): Highlight | undefined {
+  const editions = (node.comicNodes ?? [])
+    .map((edition) => edition.data)
+    .filter((edition) => Boolean(edition?.id));
+  if (editions.length === 0) return undefined;
+
+  const preferred =
+    languages.length === 0
+      ? editions
+      : editions.filter((edition) => languages.includes(edition.translatedLanguage ?? ""));
+
+  const chosen = [...(preferred.length > 0 ? preferred : editions)].sort((left, right) => {
+    const order =
+      languages.indexOf(left.translatedLanguage ?? "") -
+      languages.indexOf(right.translatedLanguage ?? "");
+    return order || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0);
+  })[0];
+  if (!chosen) return undefined;
+
+  return parseHighlight(
+    {
+      ...node.data,
+      id: chosen.id,
+      name: chosen.name || node.data.name,
+      translatedLanguage: chosen.translatedLanguage ?? null,
+      // The counts stay the work's, as the site prints them, except the run: a reader is
+      // about to open this edition, not every translation of it at once.
+      chaps_normal: chosen.chaps_normal ?? node.data.chaps_normal ?? null,
+      // The title's `urlPath` points at the work, and a reader tapping through to the site
+      // should land on the edition the tile named.
+      urlPath: null,
+    },
+    { ...options, countChapters: true },
+  );
 }
 
 export function parseContent(

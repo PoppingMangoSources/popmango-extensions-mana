@@ -7,12 +7,6 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 
 ### Added
 
-- Initial release.
-
-## MangaDex (current: v1.1.0)
-
-### Added
-
 - A source for mangadex.org, reading its own API rather than its pages.
 - The home page is the site's own six rows in the site's own order: Popular New Titles,
   Latest Updates, Seasonal, Recommended, Self-Published and Recently Added. Each can be
@@ -870,15 +864,28 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.8)
+## XCOMIC (current: v1.1.9)
 
 ### Fixed
 
-- Every browsing row and search came back empty. The site began answering its browse
-  endpoint with an internal error — pointed at the endpoint itself rather than at anything
-  asked of it — for any request telling it to stand its own account-level filtering aside.
-  Two of those flags were sent on every request and are gone; the third is sent only when a
-  reader turns it on.
+- Every browsing row and search came back empty. The site's comic browse endpoint now
+  throws inside its own resolver whatever it is asked — no field and no filter makes any
+  difference to it — and browsing reads the site's own title endpoint instead. A title is
+  the work and holds one comic per edition of it, so a tile stands for the edition in the
+  first language the reader asked for, longest run winning a tie.
+
+### Changed
+
+- A browse tile names the length of the run where it used to name the newest chapter, which
+  is what the title endpoint counts.
+
+## XCOMIC (v1.1.8)
+
+### Changed
+
+- Browse no longer tells the site to stand its own account-level filtering aside. Two of
+  those flags were sent on every request and are gone; the third is sent only when a reader
+  turns it on.
 
 ## XCOMIC (v1.1.7)
 

@@ -94,6 +94,7 @@ import {
   parseContent,
   parseFilterTaxonomy,
   parseHighlight,
+  parseTitleHighlight,
   teamOf,
   publishedAt,
   parseLanguage,
@@ -106,7 +107,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.8",
+  version: "1.1.9",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -462,12 +463,15 @@ class XCOMICSource
         incGenresMode: filters.option(FilterID.IncludeMode) || "and",
         excGenresMode: filters.option(FilterID.ExcludeMode) || "or",
         origStatus: filters.option(FilterID.OriginalStatus) || null,
-        siteStatus: filters.option(FilterID.UploadStatus) || null,
         chapCount: filters.option(FilterID.ChapterCount),
         releaseYearMin: yearMin,
         releaseYearMax: yearMax,
-        // Only when asked for: browse answers an internal error to a request that carries
-        // this at all, so it is left out rather than sent as false.
+        // Both of these are left out entirely rather than sent empty: they are the two
+        // fields the site's own clients never send, and browse throws inside its resolver
+        // rather than saying which field it choked on.
+        ...(filters.option(FilterID.UploadStatus)
+          ? { siteStatus: filters.option(FilterID.UploadStatus) }
+          : {}),
         ...((await this.preferences.flag(PreferenceID.IgnoreGenreBlocklist))
           ? { ignoreGlobalGenres: true }
           : {}),
@@ -514,8 +518,6 @@ class XCOMICSource
       where: "browse",
       page,
       size,
-      // The offset of this page into the whole result set.
-      init: (page - 1) * size,
       sortby: sort,
       word: "",
       incOLangs: [],
@@ -530,7 +532,6 @@ class XCOMICSource
       releaseYearMin: null,
       releaseYearMax: null,
       origStatus: null,
-      siteStatus: null,
       chapCount: "",
       ...rest,
     };
@@ -542,10 +543,14 @@ class XCOMICSource
       this.titleCleaner(),
       this.showTeam(),
     ]);
-    const nodes = data.get_comic_browse_items ?? [];
+    const nodes = data.get_title_browse_items ?? [];
 
     return {
-      results: nodes.map((node) => parseHighlight(node.data, { cleanTitle, showTeam, hero })),
+      results: nodes
+        .map((node) => parseTitleHighlight(node, select.incTLangs, { cleanTitle, showTeam, hero }))
+        .filter((highlight): highlight is Highlight => highlight !== undefined),
+      // Counted before a title with no edition in the reader's languages is dropped: the
+      // page the site served is what says whether another one follows it.
       isLastPage: nodes.length < select.size,
     };
   }

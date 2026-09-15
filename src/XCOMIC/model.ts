@@ -460,14 +460,39 @@ const LISTING_FIELDS = `
 const TEAM_FIELD = `
       subName`;
 
-// A tile shows neither a summary nor a title's other names, and browse is the one endpoint
-// that rejected asking for them — the same field list without them answers everywhere else.
+/**
+ * Browse, which the site keys by title rather than by comic.
+ *
+ * `get_comic_browse_items` still validates but throws inside its own resolver — every
+ * request to it comes back `INTERNAL_SERVER_ERROR` against a null `get_comic_browse_items`,
+ * whatever the fields or the filters. The site's own browse page reads titles, and a title
+ * carries the editions of it as `comicNodes`; the one matching the reader's language is the
+ * entry a tile stands for, since a comic id is what the rest of the source is keyed by.
+ *
+ * The field names differ from every other endpoint's — this type spells them in snake
+ * case — so they are aliased back to the shape the parsers already read.
+ */
 export const BROWSE_QUERY = `
-query get_comic_browse_items($select: Comic_Browse_Select) {
-  get_comic_browse_items(select: $select) {
-    data {${LISTING_FIELDS}
-      chapterNodes_last(amount: 1) { data { serial chaNum } }
+query get_title_browse_items($select: Title_Browse_Select) {
+  get_title_browse_items(select: $select) {
+    data {
+      id
+      name: title
+      urlPath
+      urlCover: cover_local_url
+      remoteCoverUrl: cover_url
+      originalLanguage: original_language
+      translatedLanguages: translated_languages
+      type: type_id
+      contentRating: content_rating_id
+      genres: genre_ids
+      tags: format_ids
+      score_val: vote_val
+      follows: total_follows
+      comments_total: total_comments
+      chaps_normal: total_chapters
     }
+    comicNodes { data { id name translatedLanguage chaps_normal } }
   }
 }`;
 
@@ -574,8 +599,12 @@ export type ComicData = {
   altNames?: string[] | null;
   urlPath?: string | null;
   urlCover?: string | null;
+  /** Where browse keeps the cover it has not mirrored yet; the local one is empty then. */
+  remoteCoverUrl?: string | null;
   originalLanguage?: string | null;
   translatedLanguage?: string | null;
+  /** Browse answers per title, so it names every language an edition of one was made in. */
+  translatedLanguages?: string[] | null;
   originalStatus?: string | null;
   uploadStatus?: string | null;
   type?: string | null;
@@ -616,7 +645,10 @@ export type ChapterData = {
 
 export type ComicNode = { data: ComicData };
 
-export type BrowseResponse = { get_comic_browse_items?: ComicNode[] | null };
+/** A title as browse returns it: the work itself, plus one comic per edition of it. */
+export type TitleNode = { data: ComicData; comicNodes?: ComicNode[] | null };
+
+export type BrowseResponse = { get_title_browse_items?: TitleNode[] | null };
 
 export type LatestUploadsResponse = {
   get_title_latestUploads?: {
@@ -651,7 +683,6 @@ export type BrowseSelect = {
   where: "browse" | "letter";
   page: number;
   size: number;
-  init: number;
   sortby: string;
   word: string;
   incOLangs: string[];
@@ -666,13 +697,14 @@ export type BrowseSelect = {
   releaseYearMin: number | null;
   releaseYearMax: number | null;
   origStatus: string | null;
-  siteStatus: string | null;
   chapCount: string;
+  /** Where the site has got to with an edition, sent only where a reader picked one. */
+  siteStatus?: string;
   /**
    * Asks the site to stand its own account-level filtering aside.
    *
-   * Sent only when a reader turned it on. Browse began answering an internal error to
-   * every request carrying one of these, and the site's own clients send none of them.
+   * Sent only when a reader turned it on: the site's own clients send none of these, and a
+   * field browse does not expect is a field it can throw on.
    */
   ignoreGlobalGenres?: boolean;
 };
