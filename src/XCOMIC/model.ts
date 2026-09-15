@@ -471,6 +471,9 @@ const TEAM_FIELD = `
  *
  * The field names differ from every other endpoint's — this type spells them in snake
  * case — so they are aliased back to the shape the parsers already read.
+ *
+ * `comicNodes` is the one field here the site's own page does not ask for. It answers all
+ * the same, and it is the only thing that turns a title back into something openable.
  */
 export const BROWSE_QUERY = `
 query get_title_browse_items($select: Title_Browse_Select) {
@@ -487,10 +490,12 @@ query get_title_browse_items($select: Title_Browse_Select) {
       contentRating: content_rating_id
       genres: genre_ids
       tags: format_ids
+      originalStatus: status
       score_val: vote_val
       follows: total_follows
       comments_total: total_comments
       chaps_normal: total_chapters
+      chapterPublishedAt: chap_last_public_at
     }
     comicNodes { data { id name translatedLanguage chaps_normal } }
   }
@@ -621,6 +626,8 @@ export type ComicData = {
   follows?: number | null;
   comments_total?: number | null;
   chaps_normal?: number | null;
+  /** When the newest chapter went up. Browse states it on the title rather than naming one. */
+  chapterPublishedAt?: number | string | null;
   chapterNodes_last?: { data?: ChapterData | null }[] | null;
 };
 

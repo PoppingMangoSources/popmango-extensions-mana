@@ -864,7 +864,21 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.9)
+## XCOMIC (current: v1.1.10)
+
+### Added
+
+- A browse tile says when the last chapter went up again. The title endpoint names no
+  chapter but does state the time, which the tile had lost with the move to it.
+- A browse tile says where a title has got to where the site states it, so one with nothing
+  graded, counted or typed still carries a pill.
+
+### Fixed
+
+- A title nobody has followed or commented on took a pill saying none rather than falling
+  through to its rating or its type, and carried a row saying none as well.
+
+## XCOMIC (v1.1.9)
 
 ### Fixed
 

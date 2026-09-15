@@ -113,8 +113,16 @@ function parseStatus(status: string | null | undefined): PublicationStatus | und
   }
 }
 
-/** Timestamps arrive as seconds or milliseconds depending on the field. */
+/**
+ * Timestamps arrive as seconds or milliseconds depending on the field, and browse states
+ * its one as a date the site wrote out rather than counted.
+ */
 function parseTimestamp(value: number | string | null | undefined): Date | undefined {
+  if (typeof value === "string" && !/^\d+$/.test(value.trim())) {
+    const written = new Date(value);
+    return Number.isNaN(written.getTime()) ? undefined : written;
+  }
+
   const number = typeof value === "string" ? Number.parseInt(value, 10) : value;
   if (number == null || !Number.isFinite(number) || number <= 0) return undefined;
 
@@ -149,9 +157,15 @@ function formatGenre(genre: string | null | undefined): string {
     .trim();
 }
 
-/** Six figures of follows would push everything else off the row. */
+/**
+ * Six figures of follows would push everything else off the row.
+ *
+ * A count of none is nothing the site has said about a title, so it reads as absent rather
+ * than as a zero — otherwise a tile nobody has followed yet takes a pill saying so, and the
+ * rating or the type that should have had it never gets a look in.
+ */
 function compactCount(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value) || value < 0) return "";
+  if (value == null || !Number.isFinite(value) || value <= 0) return "";
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
   return String(value);
@@ -230,7 +244,11 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   // the tile reads the same either way rather than losing its upload time off a listing.
   const newest = latest ?? comic.chapterNodes_last?.[0]?.data ?? undefined;
   const number = formatChapterNumber(newest);
-  const uploaded = newest ? parseTimestamp(newest.dateModify ?? newest.datePublic) : undefined;
+  // Browse names no chapter but does say when the last one went up, so the tile keeps its
+  // upload time either way.
+  const uploaded = newest
+    ? parseTimestamp(newest.dateModify ?? newest.datePublic)
+    : parseTimestamp(comic.chapterPublishedAt);
   // Two genres: the third wraps and pushes the tile out of its row.
   const genres = (comic.genres ?? []).slice(0, 2).map(formatGenre).filter(Boolean);
 
