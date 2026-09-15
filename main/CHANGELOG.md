@@ -870,7 +870,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.4)
+## XCOMIC (current: v1.1.5)
+
+### Fixed
+
+- Every browsing row and search came back empty. The browse endpoint answers a lighter
+  comic than the feeds do, and asking it for the team behind an edition failed the whole
+  query rather than leaving the field null. Only the endpoints whose answer carries it are
+  asked for it now; a browse row reads the team out of the name, where the site writes it
+  for older records anyway.
+
+## XCOMIC (v1.1.4)
 
 ### Fixed
 
