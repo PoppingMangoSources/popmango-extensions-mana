@@ -464,11 +464,14 @@ export function parseChapters(
       (source ? source.charAt(0).toUpperCase() + source.slice(1) : "") ||
       uploader;
 
+    const volume = Number.parseFloat(String(entry.volNum ?? ""));
+
     return {
       chapterId: entry.id,
       number,
       numbered,
       index: 0,
+      ...(Number.isFinite(volume) ? { volume } : {}),
       // The app prints this verbatim and never joins the number onto it.
       title: label || (numbered ? `Chapter ${number}` : "Chapter"),
       date: parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ?? new Date(0),

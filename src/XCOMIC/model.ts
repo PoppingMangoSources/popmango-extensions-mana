@@ -557,7 +557,7 @@ const CHAPTER_FIELDS = `
     paging { next total }
     items {
       data {
-        id serial chaNum dname title urlPath
+        id serial chaNum volNum dname title urlPath
         dateCreate dateModify datePublic
         srcName
         groupNodes { data { name } }
@@ -635,6 +635,8 @@ export type ChapterData = {
   id: string;
   serial?: number | null;
   chaNum?: number | string | null;
+  /** Which volume a chapter was collected into, where the site knows of one. */
+  volNum?: number | string | null;
   dname?: string | null;
   title?: string | null;
   urlPath?: string | null;
