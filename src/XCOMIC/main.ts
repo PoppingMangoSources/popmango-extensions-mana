@@ -94,6 +94,7 @@ import {
   parseContent,
   parseFilterTaxonomy,
   parseHighlight,
+  teamOf,
   publishedAt,
   parseLanguage,
   parsePageUrls,
@@ -105,7 +106,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.3",
+  version: "1.1.4",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -295,6 +296,11 @@ class XCOMICSource
     setBaseUrl(await this.preferences.text(PreferenceID.Mirror, BASE_URL));
   }
 
+  /** Whether a tile names the team behind its edition, read once rather than per row. */
+  private showTeam(): Promise<boolean> {
+    return this.preferences.flag(PreferenceID.ShowSourceInTitle);
+  }
+
   /** Reader-configured title rewriting, resolved once per call rather than per row. */
   private async titleCleaner(): Promise<TitleCleaner> {
     const [strip, custom] = await Promise.all([
@@ -344,7 +350,7 @@ class XCOMICSource
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
 
     if (sectionId === SectionID.LatestUploads) {
-      const [data, cleanTitle] = await Promise.all([
+      const [data, cleanTitle, showTeam] = await Promise.all([
         this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
           // This feed pages by cursor; it rejects a `page` outright.
           select: {
@@ -354,6 +360,7 @@ class XCOMICSource
           },
         }),
         this.titleCleaner(),
+        this.showTeam(),
       ]);
 
       const feed = data.get_title_latestUploads;
@@ -373,7 +380,7 @@ class XCOMICSource
           const comic = chapter.data.comicNode?.data;
           if (!comic || seen.has(comic.id)) return [];
           seen.add(comic.id);
-          return [parseHighlight(comic, { latest: chapter.data, cleanTitle })];
+          return [parseHighlight(comic, { latest: chapter.data, cleanTitle, showTeam })];
         });
 
       // The cursor has to move backwards or the feed hands back the page just read; the
@@ -387,7 +394,7 @@ class XCOMICSource
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
-      const [data, cleanTitle] = await Promise.all([
+      const [data, cleanTitle, showTeam] = await Promise.all([
         this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
           select: {
             size: RECENTLY_ADDED_SIZE,
@@ -395,10 +402,13 @@ class XCOMICSource
           },
         }),
         this.titleCleaner(),
+        this.showTeam(),
       ]);
 
       const feed = data.get_comic_recentlyAdded;
-      const results = (feed?.items ?? []).map((node) => parseHighlight(node.data, { cleanTitle }));
+      const results = (feed?.items ?? []).map((node) =>
+        parseHighlight(node.data, { cleanTitle, showTeam }),
+      );
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
       return { results, isLastPage: feed?.before == null || results.length === 0 };
@@ -527,14 +537,15 @@ class XCOMICSource
   }
 
   private async browse(select: BrowseSelect, hero = false): Promise<PagedSearchResult> {
-    const [data, cleanTitle] = await Promise.all([
+    const [data, cleanTitle, showTeam] = await Promise.all([
       this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
       this.titleCleaner(),
+      this.showTeam(),
     ]);
     const nodes = data.get_comic_browse_items ?? [];
 
     return {
-      results: nodes.map((node) => parseHighlight(node.data, { cleanTitle, hero })),
+      results: nodes.map((node) => parseHighlight(node.data, { cleanTitle, showTeam, hero })),
       isLastPage: nodes.length < select.size,
     };
   }
@@ -542,14 +553,15 @@ class XCOMICSource
   async getContent(contentId: string): Promise<Content> {
     await this.applyMirror();
 
-    const [data, cleanTitle] = await Promise.all([
+    const [data, cleanTitle, showTeam] = await Promise.all([
       this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
       this.titleCleaner(),
+      this.showTeam(),
     ]);
     const comic = data.get_comicNode?.data;
     if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);
 
-    return parseContent(comic, cleanTitle);
+    return parseContent(comic, cleanTitle, showTeam);
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
@@ -580,8 +592,9 @@ class XCOMICSource
       }
     }
 
-    const language = parseLanguage(comic.get_comicNode?.data.translatedLanguage);
-    return parseChapters(entries, language);
+    const data = comic.get_comicNode?.data;
+    const language = parseLanguage(data?.translatedLanguage);
+    return parseChapters(entries, language, data ? teamOf(data) : "");
   }
 
   private async chapterPage(

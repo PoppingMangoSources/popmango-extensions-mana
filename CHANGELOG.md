@@ -870,7 +870,20 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.3)
+## XCOMIC (current: v1.1.4)
+
+### Fixed
+
+- A series published by several teams reads as several copies of itself. Each is its own
+  entry on the site, under the same name, so a row of them said the same thing three times
+  over. Each now names the team behind it — the site's own `subName`, or the bracketed
+  suffix older records carry in the name instead. A new setting under Titles turns the
+  label off.
+- A chapter names the team that made it rather than the aggregator it arrived through.
+  `srcName` is the route an upload took, not its scanlator, so it now comes after both the
+  edition's own team and the groups credited on the chapter.
+
+## XCOMIC (v1.1.3)
 
 ### Fixed
 

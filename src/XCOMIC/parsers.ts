@@ -166,6 +166,31 @@ function formatScore(score: number | string | null | undefined): string {
   return `★ ${value.toFixed(1)}`;
 }
 
+/**
+ * The team behind an edition of a title.
+ *
+ * One series published by several teams is several comics here, each with its own id,
+ * cover and chapter run but the same name — so a row of them reads as the same title over
+ * and over. `subName` is what the site labels them apart by; records made before that
+ * field existed carry the team in a bracketed suffix on the name instead.
+ */
+export function teamOf(comic: ComicData): string {
+  const stated = clean(comic.subName ?? "");
+  if (stated) return decodeEntities(stated);
+
+  const bracketed = /\[([^\]]+)\]\s*$/.exec(clean(comic.name));
+  return bracketed?.[1] ? decodeEntities(bracketed[1].trim()) : "";
+}
+
+/** The title as a tile shows it, tagged with its team when more than one publishes it. */
+function displayTitle(comic: ComicData, cleanTitle: TitleCleaner, showTeam: boolean): string {
+  const name = cleanTitle(decodeEntities(clean(comic.name)));
+  const team = showTeam ? teamOf(comic) : "";
+  // A name that already ends in the team reads as a stutter with it appended again.
+  if (!team || name.toLowerCase().endsWith(`[${team.toLowerCase()}]`)) return name;
+  return `${name} [${team}]`;
+}
+
 /** How a reader's title settings rewrite the site's own name for a series. */
 export type TitleCleaner = (title: string) => string;
 
@@ -174,6 +199,8 @@ const asIs: TitleCleaner = (title) => title;
 export type HighlightOptions = {
   latest?: ChapterData;
   cleanTitle?: TitleCleaner;
+  /** Whether a title shared by several teams names the one this edition belongs to. */
+  showTeam?: boolean;
   /** A hero card shows no info rows, so its stats have to ride along in the subtitle. */
   hero?: boolean;
 };
@@ -183,7 +210,7 @@ export type HighlightOptions = {
  * alongside the cover, so the tile carries them without a second request.
  */
 export function parseHighlight(comic: ComicData, options: HighlightOptions = {}): Highlight {
-  const { latest, cleanTitle = asIs, hero = false } = options;
+  const { latest, cleanTitle = asIs, showTeam = true, hero = false } = options;
 
   // A browse row carries its newest chapter the same way the uploads feed hands one over, so
   // the tile reads the same either way rather than losing its upload time off a listing.
@@ -226,7 +253,7 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
 
   return {
     id: comic.id,
-    title: cleanTitle(decodeEntities(clean(comic.name))),
+    title: displayTitle(comic, cleanTitle, showTeam),
     cover: absoluteUrl(comic.urlCover),
     ...(subtitle ? { subtitle } : {}),
     ...(badge === undefined ? {} : { badge }),
@@ -237,7 +264,11 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
   };
 }
 
-export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs): Content {
+export function parseContent(
+  comic: ComicData,
+  cleanTitle: TitleCleaner = asIs,
+  showTeam = true,
+): Content {
   const tags: Tag[] = [...(comic.genres ?? []), ...(comic.tags ?? [])]
     .map((name) => clean(name))
     .filter(Boolean)
@@ -261,7 +292,7 @@ export function parseContent(comic: ComicData, cleanTitle: TitleCleaner = asIs):
   const staff = staffItems(comic);
 
   return {
-    title: cleanTitle(decodeEntities(clean(comic.name))),
+    title: displayTitle(comic, cleanTitle, showTeam),
     cover: absoluteUrl(comic.urlCover),
     summary: summaryFromHtml(comic.summary?.html ?? ""),
     additionalTitles: (comic.altNames ?? [])
@@ -318,7 +349,11 @@ function staffItems(comic: ComicData): StaffItem[] {
 }
 
 /** Chapters come from one endpoint newest first; only `index` is derived from the number. */
-export function parseChapters(entries: readonly ChapterData[], language: string): Chapter[] {
+export function parseChapters(
+  entries: readonly ChapterData[],
+  language: string,
+  team = "",
+): Chapter[] {
   const parsed = entries.map((entry) => {
     const value = Number.parseFloat(formatChapterNumber(entry) ?? "");
     // Whether the site stated a number at all, which is not the same as whether it is
@@ -333,12 +368,15 @@ export function parseChapters(entries: readonly ChapterData[], language: string)
       .map(decodeEntities)
       .join(": ");
 
+    // `srcName` is the aggregator an upload came through rather than the team that made
+    // it, so the edition's own team is named first where the site states one.
     const source = clean(entry.srcName ?? "");
     const groups = names(entry.groupNodes);
     const uploader = clean(entry.userNode?.data?.name ?? "");
     const scanlator =
-      (source ? source.charAt(0).toUpperCase() + source.slice(1) : "") ||
+      team ||
       groups.join(", ") ||
+      (source ? source.charAt(0).toUpperCase() + source.slice(1) : "") ||
       uploader;
 
     return {

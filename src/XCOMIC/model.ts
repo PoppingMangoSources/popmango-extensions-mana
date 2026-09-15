@@ -104,6 +104,7 @@ export const PreferenceID = {
   CustomTitleRegex: "custom-title-regex",
   IgnoreGenreBlocklist: "ignore-genre-blocklist",
   DeduplicateChapters: "deduplicate-chapters",
+  ShowSourceInTitle: "show-source-in-title",
   SectionPrefix: "section",
 } as const;
 
@@ -423,6 +424,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   // Off: the site lists every group's upload, and collapsing them by chapter number hides
   // translations a reader may have come for.
   [PreferenceID.DeduplicateChapters]: false,
+  [PreferenceID.ShowSourceInTitle]: true,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),
@@ -444,7 +446,7 @@ export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
 
 /** What every listing tile needs, so a row never costs a second request to fill in. */
 const LISTING_FIELDS = `
-      id name urlPath urlCover
+      id name subName urlPath urlCover
       translatedLanguage type contentRating genres tags
       score_val follows comments_total chaps_normal`;
 
@@ -497,7 +499,7 @@ export const COMIC_QUERY = `
 query get_comicNode($id: ID!) {
   get_comicNode(id: $id) {
     data {
-      id name altNames
+      id name subName altNames
       originalLanguage translatedLanguage
       originalStatus uploadStatus
       type demographics contentRating genres tags
@@ -549,6 +551,8 @@ export type NamedNode = { data?: { name?: string | null } | null };
 export type ComicData = {
   id: string;
   name: string;
+  /** The team behind this edition. A title published by several has one comic each. */
+  subName?: string | null;
   altNames?: string[] | null;
   urlPath?: string | null;
   urlCover?: string | null;

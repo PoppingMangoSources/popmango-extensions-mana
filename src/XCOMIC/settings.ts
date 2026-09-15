@@ -70,9 +70,16 @@ export function buildSettingsSections(taxonomy: TaxonomyLists): PreferenceSectio
     {
       header: "Titles",
       footer:
-        "Version tags are markers like '(Official)' or '(Yaoi)'. Titles already saved to your " +
-        "library keep the name they were added under until you refresh them.",
+        "One series published by several teams is several entries here, all under the same " +
+        "name — showing the source tags each with the team behind it. Version tags are " +
+        "markers like '(Official)' or '(Yaoi)'. Titles already saved to your library keep " +
+        "the name they were added under until you refresh them.",
       fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.ShowSourceInTitle,
+          title: "Show Source In Title",
+        },
         {
           type: "toggle" as const,
           key: PreferenceID.RemoveTitleVersion,
