@@ -870,7 +870,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.7)
+## XCOMIC (current: v1.1.8)
+
+### Fixed
+
+- Every browsing row and search came back empty. The site began answering its browse
+  endpoint with an internal error — pointed at the endpoint itself rather than at anything
+  asked of it — for any request telling it to stand its own account-level filtering aside.
+  Two of those flags were sent on every request and are gone; the third is sent only when a
+  reader turns it on.
+
+## XCOMIC (v1.1.7)
 
 ### Changed
 
