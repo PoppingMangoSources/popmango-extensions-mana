@@ -198,28 +198,34 @@ function formatScore(score: number | string | null | undefined): string {
 }
 
 /**
- * The team behind an edition of a title.
+ * Who published an edition of a title — a scanlation team, or a house like WEBTOON or Tapas.
  *
- * One series published by several teams is several comics here, each with its own id,
+ * One series published by several of them is several comics here, each with its own id,
  * cover and chapter run but the same name — so a row of them reads as the same title over
- * and over. `subName` is what the site labels them apart by; records made before that
- * field existed carry the team in a bracketed suffix on the name instead.
+ * and over. `subName` is what the site labels them apart by; records made before that field
+ * existed carry the name in a bracketed or parenthesised suffix on the title instead.
  */
 export function teamOf(comic: ComicData): string {
   const stated = clean(comic.subName ?? "");
   if (stated) return decodeEntities(stated);
 
-  const bracketed = /\[([^\]]+)\]\s*$/.exec(clean(comic.name));
-  return bracketed?.[1] ? decodeEntities(bracketed[1].trim()) : "";
+  const suffixed = /[[(]([^\])]+)[\])]\s*$/.exec(clean(comic.name));
+  return suffixed?.[1] ? decodeEntities(suffixed[1].trim()) : "";
 }
 
-/** The title as a tile shows it, tagged with its team when more than one publishes it. */
+/** The title as a tile shows it, tagged with its publisher when more than one publishes it. */
 function displayTitle(comic: ComicData, cleanTitle: TitleCleaner, showTeam: boolean): string {
   const name = cleanTitle(decodeEntities(clean(comic.name)));
   const team = showTeam ? teamOf(comic) : "";
-  // A name that already ends in the team reads as a stutter with it appended again.
-  if (!team || name.toLowerCase().endsWith(`[${team.toLowerCase()}]`)) return name;
-  return `${name} [${team}]`;
+  if (!team) return name;
+
+  // A name already ending in the publisher reads as a stutter with it appended again —
+  // whichever way round the site happened to write that suffix.
+  const ending = name.toLowerCase();
+  const tag = team.toLowerCase();
+  if (ending.endsWith(`(${tag})`) || ending.endsWith(`[${tag}]`)) return name;
+
+  return `${name} (${team})`;
 }
 
 /** How a reader's title settings rewrite the site's own name for a series. */
@@ -371,6 +377,9 @@ export function parseTitleHighlight(
       ...node.data,
       id: chosen.id,
       name: chosen.name || node.data.name,
+      // The publisher an edition came from belongs to the edition, so it has to be carried
+      // over rather than left behind on the work the tile was built from.
+      subName: chosen.subName ?? null,
       translatedLanguage: chosen.translatedLanguage ?? null,
       // The counts stay the work's, as the site prints them, except the run: a reader is
       // about to open this edition, not every translation of it at once.

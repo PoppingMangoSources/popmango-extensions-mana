@@ -871,7 +871,21 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.12)
+## XCOMIC (current: v1.1.13)
+
+### Fixed
+
+- Browsing rows never named who published an entry. The site states that on the edition
+  rather than on the work, and browse reads works — so the rows that had carried the label
+  all along were the only ones showing it, and every browsing row showed none.
+
+### Changed
+
+- The publisher an entry came from reads as `On the Way to Meet Mom (WEBTOON)` rather than
+  in square brackets, which is how the site's other readers write it. A title the site
+  already wrote a suffix onto keeps the site's own wording untouched.
+
+## XCOMIC (v1.1.12)
 
 ### Added
 

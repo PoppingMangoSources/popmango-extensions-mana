@@ -475,6 +475,8 @@ const TEAM_FIELD = `
  *
  * `comicNodes` is the one field here the site's own page does not ask for. It answers all
  * the same, and it is the only thing that turns a title back into something openable.
+ * `subName` rides along with it: the label belongs to the edition, not to the work, so
+ * asking for it on the title itself would answer nothing.
  */
 export const BROWSE_QUERY = `
 query get_title_browse_items($select: Title_Browse_Select) {
@@ -498,7 +500,7 @@ query get_title_browse_items($select: Title_Browse_Select) {
       chaps_normal: total_chapters
       chapterPublishedAt: chap_last_public_at
     }
-    comicNodes { data { id name translatedLanguage chaps_normal } }
+    comicNodes { data { id name subName translatedLanguage chaps_normal } }
   }
 }`;
 
