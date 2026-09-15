@@ -871,7 +871,16 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.13)
+## XCOMIC (current: v1.1.14)
+
+### Changed
+
+- Search lists every edition of a match rather than the one a browsing row would have
+  picked. A series carried by several teams or houses is several entries on the site, and a
+  reader searching for it is usually after a particular one — each is named by its
+  publisher and carries its own chapter count. Browsing rows still name a work once.
+
+## XCOMIC (v1.1.13)
 
 ### Fixed
 

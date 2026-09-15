@@ -339,57 +339,72 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
 }
 
 /**
- * The edition of a title a browse tile stands for, as a comic the rest of the source can read.
+ * Every edition of a title, as comics the rest of the source can read, best first.
  *
- * A title is the work; a comic is one team's translation of it into one language, and every
- * id the source hands the app — a tile's, a chapter list's, a library entry's — is a comic's.
- * So a title is narrowed to the edition in the first language the reader asked for, longest
- * run winning a tie, and the title's own cover and counts are kept: they are the work's
- * totals, which is what the site prints on its own browse page.
+ * A title is the work; a comic is one team's or one publisher's rendering of it into one
+ * language, and every id the source hands the app — a tile's, a chapter list's, a library
+ * entry's — is a comic's. An edition inherits the work's cover and counts, which are what
+ * the site prints on its own browse page, and overrides only what is its own.
  *
- * A title with no editions at all is nothing a reader can open, and is left out.
+ * The order is the reader's languages first, longest run breaking a tie. A title with no
+ * editions at all is nothing a reader can open, and comes back empty.
  */
-export function parseTitleHighlight(
+export function parseTitleHighlights(
   node: TitleNode,
   languages: readonly string[],
   options: HighlightOptions = {},
-): Highlight | undefined {
+): Highlight[] {
   const editions = (node.comicNodes ?? [])
     .map((edition) => edition.data)
     .filter((edition) => Boolean(edition?.id));
-  if (editions.length === 0) return undefined;
+  if (editions.length === 0) return [];
 
   const preferred =
     languages.length === 0
       ? editions
       : editions.filter((edition) => languages.includes(edition.translatedLanguage ?? ""));
 
-  const chosen = [...(preferred.length > 0 ? preferred : editions)].sort((left, right) => {
-    const order =
-      languages.indexOf(left.translatedLanguage ?? "") -
-      languages.indexOf(right.translatedLanguage ?? "");
-    return order || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0);
-  })[0];
-  if (!chosen) return undefined;
+  return [...(preferred.length > 0 ? preferred : editions)]
+    .sort((left, right) => {
+      const order =
+        languages.indexOf(left.translatedLanguage ?? "") -
+        languages.indexOf(right.translatedLanguage ?? "");
+      return order || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0);
+    })
+    .map((edition) =>
+      parseHighlight(
+        {
+          ...node.data,
+          id: edition.id,
+          name: edition.name || node.data.name,
+          // The publisher an edition came from belongs to the edition, so it has to be
+          // carried over rather than left behind on the work the tile was built from.
+          subName: edition.subName ?? null,
+          translatedLanguage: edition.translatedLanguage ?? null,
+          // The counts stay the work's, as the site prints them, except the run: a reader
+          // is about to open this edition, not every translation of it at once.
+          chaps_normal: edition.chaps_normal ?? node.data.chaps_normal ?? null,
+          // The title's `urlPath` points at the work, and a reader tapping through to the
+          // site should land on the edition the tile named.
+          urlPath: null,
+        },
+        { ...options, countChapters: true },
+      ),
+    );
+}
 
-  return parseHighlight(
-    {
-      ...node.data,
-      id: chosen.id,
-      name: chosen.name || node.data.name,
-      // The publisher an edition came from belongs to the edition, so it has to be carried
-      // over rather than left behind on the work the tile was built from.
-      subName: chosen.subName ?? null,
-      translatedLanguage: chosen.translatedLanguage ?? null,
-      // The counts stay the work's, as the site prints them, except the run: a reader is
-      // about to open this edition, not every translation of it at once.
-      chaps_normal: chosen.chaps_normal ?? node.data.chaps_normal ?? null,
-      // The title's `urlPath` points at the work, and a reader tapping through to the site
-      // should land on the edition the tile named.
-      urlPath: null,
-    },
-    { ...options, countChapters: true },
-  );
+/**
+ * The one edition a browse row stands for.
+ *
+ * A ranked row is a list of works, so it names each one once; search lists them all, where
+ * a reader is looking for a particular team rather than for whatever ranks highest.
+ */
+export function parseTitleHighlight(
+  node: TitleNode,
+  languages: readonly string[],
+  options: HighlightOptions = {},
+): Highlight | undefined {
+  return parseTitleHighlights(node, languages, options)[0];
 }
 
 export function parseContent(

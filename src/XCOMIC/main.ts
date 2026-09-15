@@ -96,6 +96,7 @@ import {
   parseFilterTaxonomy,
   parseHighlight,
   parseTitleHighlight,
+  parseTitleHighlights,
   teamOf,
   publishedAt,
   parseLanguage,
@@ -108,7 +109,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.13",
+  version: "1.1.14",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -426,8 +427,7 @@ class XCOMICSource
         sort: spec?.sort ?? SortID.Score,
         ...(await this.preferenceDefaults(context)),
       }),
-      spec?.style === SectionStyle.SimpleHeroPaged,
-      detailed,
+      { hero: spec?.style === SectionStyle.SimpleHeroPaged, detailed },
     );
   }
 
@@ -480,6 +480,9 @@ class XCOMICSource
           ? { ignoreGlobalGenres: true }
           : {}),
       }),
+      // A reader searching for a series wants the edition they follow, not whichever one a
+      // ranked row would have picked for them, so every team's is listed.
+      { everyEdition: true },
     );
   }
 
@@ -543,24 +546,26 @@ class XCOMICSource
 
   private async browse(
     select: BrowseSelect,
-    hero = false,
-    detailed = false,
+    options: { hero?: boolean; detailed?: boolean; everyEdition?: boolean } = {},
   ): Promise<PagedSearchResult> {
+    const { hero = false, detailed = false, everyEdition = false } = options;
+
     const [data, cleanTitle, showTeam] = await Promise.all([
       this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
       this.titleCleaner(),
       this.showTeam(),
     ]);
     const nodes = data.get_title_browse_items ?? [];
+    const tile = { cleanTitle, showTeam, hero, detailed };
 
     return {
-      results: nodes
-        .map((node) =>
-          parseTitleHighlight(node, select.incTLangs, { cleanTitle, showTeam, hero, detailed }),
-        )
-        .filter((highlight): highlight is Highlight => highlight !== undefined),
-      // Counted before a title with no edition in the reader's languages is dropped: the
-      // page the site served is what says whether another one follows it.
+      results: nodes.flatMap((node) =>
+        everyEdition
+          ? parseTitleHighlights(node, select.incTLangs, tile)
+          : (parseTitleHighlight(node, select.incTLangs, tile) ?? []),
+      ),
+      // Counted over the titles the site served rather than the editions they expanded to:
+      // the page it answered is what says whether another one follows it.
       isLastPage: nodes.length < select.size,
     };
   }
