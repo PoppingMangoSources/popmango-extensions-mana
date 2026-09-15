@@ -446,9 +446,19 @@ export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
 
 /** What every listing tile needs, so a row never costs a second request to fill in. */
 const LISTING_FIELDS = `
-      id name subName urlPath urlCover
+      id name urlPath urlCover
       translatedLanguage type contentRating genres tags
       score_val follows comments_total chaps_normal`;
+
+/**
+ * The team behind an edition, which only some of the endpoints' types carry.
+ *
+ * `get_comic_browse_items` answers a lighter comic than the feeds do, and asking it for a
+ * field that type does not have fails the whole query rather than leaving the field null —
+ * so a browse row falls back to the team the site wrote into the name instead.
+ */
+const TEAM_FIELD = `
+      subName`;
 
 export const BROWSE_QUERY = `
 query get_comic_browse_items($select: Comic_Browse_Select) {
@@ -478,7 +488,7 @@ query get_title_latestUploads($select: Title_LatestUploads_Select) {
         id
         data {
           id serial chaNum urlPath dbStatus dateCreate dateModify datePublic
-          comicNode { data {${LISTING_FIELDS}
+          comicNode { data {${LISTING_FIELDS}${TEAM_FIELD}
           } }
         }
       }
@@ -490,7 +500,7 @@ export const RECENTLY_ADDED_QUERY = `
 query get_comic_recentlyAdded($select: Comic_RecentlyAdded_Select) {
   get_comic_recentlyAdded(select: $select) {
     before
-    items { data {${LISTING_FIELDS}
+    items { data {${LISTING_FIELDS}${TEAM_FIELD}
     } }
   }
 }`;
