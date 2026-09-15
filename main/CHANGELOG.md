@@ -864,7 +864,14 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.10)
+## XCOMIC (current: v1.1.11)
+
+### Added
+
+- A chapter carries the volume it was collected into, where the site states one. The
+  chapter's own line is unchanged — it already says so where the site says so.
+
+## XCOMIC (v1.1.10)
 
 ### Added
 
