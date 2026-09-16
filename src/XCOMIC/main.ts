@@ -109,7 +109,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.16",
+  version: "1.1.17",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -447,12 +447,21 @@ class XCOMICSource
     const chosenRatings = filters.options(FilterID.ContentRatings);
     const chosenLanguages = filters.options(FilterID.TranslatedLanguages);
 
+    const sort = resolveSortId(SORT_OPTIONS, request, SortID.Score);
+    const word = request.query?.trim() ?? "";
+
+    // Looking for one series and ranking the whole catalogue are different jobs. A word
+    // with no order asked for is the first: the reader has a series in mind and wants the
+    // team they follow, so every edition is listed. Ordering it — or filtering with no word
+    // at all — is the second, which the site answers a work at a time, and so does this.
+    const everyEdition = word !== "" && sort === SortID.Score;
+
     return this.browse(
       this.browseSelect({
         page: pageOf(request),
         size: PAGE_SIZE,
-        sort: resolveSortId(SORT_OPTIONS, request, SortID.Score),
-        word: request.query?.trim() ?? "",
+        sort,
+        word,
         // The site files formats among its genres, so both selections travel together.
         where: filters.option(FilterID.LetterMode) === "letter" ? "letter" : "browse",
         incTypes: chosenTypes.length > 0 ? chosenTypes : defaults.incTypes,
@@ -480,9 +489,7 @@ class XCOMICSource
           ? { ignoreGlobalGenres: true }
           : {}),
       }),
-      // A reader searching for a series wants the edition they follow, not whichever one a
-      // ranked row would have picked for them, so every team's is listed.
-      { everyEdition: true },
+      { everyEdition },
     );
   }
 

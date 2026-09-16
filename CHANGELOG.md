@@ -871,7 +871,16 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.16)
+## XCOMIC (current: v1.1.17)
+
+### Changed
+
+- Only a plain word search lists every edition of a match. Ordering the results, or
+  filtering with no word at all, is the catalogue-ranking job the site answers a work at a
+  time, and now so does this — so a sort no longer returns the same series twenty times
+  over before reaching the next one.
+
+## XCOMIC (v1.1.16)
 
 ### Fixed
 
