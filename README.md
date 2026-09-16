@@ -59,7 +59,7 @@ becomes available to install.
 | <img src="media/sources/rokaricomics.png" width="22" align="top"/> **RokariComics** | [rokaricomics.com](https://rokaricomics.com) | Safe | v1.1.0 |
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.1.0 |
 | <img src="media/sources/valirscans.png" width="22" align="top"/> **ValirScans** | [valirscans.org](https://valirscans.org) | Mixed | v1.1.0 |
-| <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.1.15 |
+| <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.1.16 |
 <!-- sources:end -->
 
 ## Reporting a problem

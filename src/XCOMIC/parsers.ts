@@ -198,19 +198,30 @@ function formatScore(score: number | string | null | undefined): string {
 }
 
 /**
+ * A marker the site's own importer parked in `subName` — `src-site:mka`, `src-site:mfx`.
+ *
+ * It names where a record was scraped from, not who made the edition, and a reader has no
+ * use for it. Matched by shape rather than by prefix: a tag is one unspaced word, a colon
+ * and no space after it, which a team called "Team: Alpha" is not.
+ */
+const MACHINE_TAG = /^[a-z0-9_-]+:\S*$/i;
+
+/**
  * Who published an edition of a title — a scanlation team, or a house like WEBTOON or Tapas.
  *
  * One series published by several of them is several comics here, each with its own id,
  * cover and chapter run but the same name — so a row of them reads as the same title over
- * and over. `subName` is what the site labels them apart by; records made before that field
- * existed carry the name in a bracketed or parenthesised suffix on the title instead.
+ * and over. `subName` is what the site labels them apart by; where it holds a machine tag
+ * instead, or nothing at all, the site has usually left the name in a bracketed suffix on
+ * the title, which is the same answer written somewhere else.
  */
 export function teamOf(comic: ComicData): string {
   const stated = clean(comic.subName ?? "");
-  if (stated) return decodeEntities(stated);
+  if (stated && !MACHINE_TAG.test(stated)) return decodeEntities(stated);
 
   const suffixed = /[[(]([^\])]+)[\])]\s*$/.exec(clean(comic.name));
-  return suffixed?.[1] ? decodeEntities(suffixed[1].trim()) : "";
+  const suffix = suffixed?.[1]?.trim();
+  return suffix && !MACHINE_TAG.test(suffix) ? decodeEntities(suffix) : "";
 }
 
 /** The title as a tile shows it, tagged with its publisher when more than one publishes it. */
