@@ -871,7 +871,16 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.15)
+## XCOMIC (current: v1.1.16)
+
+### Fixed
+
+- An entry read `Kill The Villainess [src-site:mka]`, and its chapters named the same thing
+  as their scanlator. The site's importer parks a marker for where it scraped a record in
+  the same field it names the publisher in; that is not a publisher, and it is dropped. A
+  title whose marker sits beside a real team in the name falls back to the team.
+
+## XCOMIC (v1.1.15)
 
 ### Changed
 
