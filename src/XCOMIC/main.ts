@@ -68,6 +68,7 @@ import {
   GENRE_MODE_OPTIONS,
   LANGUAGE_OPTIONS,
   LATEST_UPLOADS_QUERY,
+  LATEST_UPLOADS_SIZE,
   LETTER_MODE_OPTIONS,
   MIRROR_OPTIONS,
   PAGE_SIZE,
@@ -115,7 +116,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.20",
+  version: "1.1.21",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -371,7 +372,7 @@ class XCOMICSource
           // This feed pages by cursor; it rejects a `page` outright.
           select: {
             first: 0,
-            limit: PAGE_SIZE,
+            limit: LATEST_UPLOADS_SIZE,
             ...(cursor === undefined ? {} : { before: cursor }),
           },
         }),

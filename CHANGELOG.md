@@ -941,7 +941,15 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.20)
+## XCOMIC (current: v1.1.21)
+
+### Fixed
+
+- Latest Uploads could outgrow what a home row is for. The feed hands back three chapters
+  per title, and a busy page of thirty-six titles came to sixty-one entries — one past the
+  app's ceiling for a strip. Twenty titles are asked for now, which cannot exceed it.
+
+## XCOMIC (v1.1.20)
 
 ### Added
 

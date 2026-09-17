@@ -101,6 +101,14 @@ export const CHAPTER_FULL_PAGE_SIZE = 100;
 /** How many chapter pages may be in flight at once before the site answers 429. */
 export const CHAPTER_REQUEST_BATCH = 3;
 export const RECENTLY_ADDED_SIZE = 50;
+/**
+ * Titles asked of the uploads feed, which hands back three chapters for each.
+ *
+ * A home row is a strip rather than a listing, and the app's own ceiling is sixty. Twenty
+ * titles can expand to sixty rows and no further, so the row cannot outgrow it however
+ * busy the feed is — a page of thirty-six already produced sixty-one.
+ */
+export const LATEST_UPLOADS_SIZE = 20;
 // The site's own home page draws six of these; a row in the app has space for more.
 export const RANDOM_SIZE = 24;
 
