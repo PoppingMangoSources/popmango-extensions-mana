@@ -77,6 +77,8 @@ export const CHAPTER_PAGE_SIZE = 1000;
 // The full list repeats every scanlator's upload, so it is read in smaller pages.
 export const CHAPTER_FULL_PAGE_SIZE = 100;
 export const RECENTLY_ADDED_SIZE = 50;
+// The site's own home page draws six of these; a row in the app has space for more.
+export const RANDOM_SIZE = 24;
 
 export const FilterID = {
   Types: "types",
@@ -328,6 +330,7 @@ export const SectionID = {
   TopRated: "top_rated",
   MostReviews: "most_reviews",
   MostFollows: "most_follows",
+  Random: "random",
   LatestUploads: "latest_uploads",
   MostChapters: "most_chapters",
   RecentlyAdded: "recently_added",
@@ -353,8 +356,15 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: SectionID.MostFollows,
     title: "Most Follows",
-    style: SectionStyle.SimpleSingleRow,
+    style: SectionStyle.DetailedDoubleRowPaged,
     sort: SortID.Follows,
+  },
+  {
+    id: SectionID.Random,
+    title: "Random Comics",
+    style: SectionStyle.SimpleSingleRow,
+    // A handful picked fresh each time is not a list to page through.
+    viewMore: false,
   },
   {
     id: SectionID.LatestUploads,
@@ -443,9 +453,15 @@ const TEAM_FIELD = `
  * `subName` rides along with it: the label belongs to the edition, not to the work, so
  * asking for it on the title itself would answer nothing.
  */
-export const BROWSE_QUERY = `
-query get_title_browse_items($select: Title_Browse_Select) {
-  get_title_browse_items(select: $select) {
+/**
+ * A title as the endpoints keyed by work answer it, aliased to the shape the parsers read.
+ *
+ * `comicNodes` is the one field here the site's own page does not ask for. It answers all
+ * the same, and it is the only thing that turns a title back into something openable.
+ * `subName` rides along with it: the label belongs to the edition, not to the work, so
+ * asking for it on the title itself would answer nothing.
+ */
+const TITLE_FIELDS = `
     data {
       id
       name: title
@@ -465,7 +481,18 @@ query get_title_browse_items($select: Title_Browse_Select) {
       chaps_normal: total_chapters
       chapterPublishedAt: chap_last_public_at
     }
-    comicNodes { data { id name subName translatedLanguage chaps_normal } }
+    comicNodes { data { id name subName translatedLanguage chaps_normal } }`;
+
+export const BROWSE_QUERY = `
+query get_title_browse_items($select: Title_Browse_Select) {
+  get_title_browse_items(select: $select) {${TITLE_FIELDS}
+  }
+}`;
+
+/** A handful of titles picked at random, which the site's own home page draws six of. */
+export const RANDOM_QUERY = `
+query get_title_randomList($select: Title_RandomList_Select) {
+  get_title_randomList(select: $select) {${TITLE_FIELDS}
   }
 }`;
 
@@ -636,6 +663,8 @@ export type ComicNode = { data: ComicData };
 export type TitleNode = { data: ComicData; comicNodes?: ComicNode[] | null };
 
 export type BrowseResponse = { get_title_browse_items?: TitleNode[] | null };
+
+export type RandomResponse = { get_title_randomList?: TitleNode[] | null };
 
 export type LatestUploadsResponse = {
   get_title_latestUploads?: {

@@ -871,7 +871,19 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.18)
+## XCOMIC (current: v1.1.19)
+
+### Added
+
+- A Random Comics row, under Most Follows, off the site's own random endpoint. It picks a
+  fresh handful every time the home page is drawn, so it offers no page two.
+
+### Changed
+
+- Most Follows draws each tile's rows now rather than a pill over the cover, matching Most
+  Reviews above it.
+
+## XCOMIC (v1.1.18)
 
 ### Removed
 

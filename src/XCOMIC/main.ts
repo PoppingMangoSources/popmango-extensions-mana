@@ -71,6 +71,8 @@ import {
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
   PreferenceID,
+  RANDOM_QUERY,
+  RANDOM_SIZE,
   RECENTLY_ADDED_QUERY,
   RECENTLY_ADDED_SIZE,
   SORT_OPTIONS,
@@ -87,6 +89,7 @@ import {
   type ChapterListResponse,
   type ChapterPagesResponse,
   type LatestUploadsResponse,
+  type RandomResponse,
   type ComicNodeResponse,
   type RecentlyAddedResponse,
 } from "./model.ts";
@@ -109,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.18",
+  version: "1.1.19",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -396,6 +399,23 @@ class XCOMICSource
         return { results, isLastPage: results.length === 0 };
       }
       return { results, isLastPage: true };
+    }
+
+    if (sectionId === SectionID.Random) {
+      const [data, cleanTitle, showTeam] = await Promise.all([
+        this.api.query<RandomResponse>(RANDOM_QUERY, { select: { amount: RANDOM_SIZE } }),
+        this.titleCleaner(),
+        this.showTeam(),
+      ]);
+
+      const languages = await this.preferences.strings(PreferenceID.Languages);
+      return {
+        results: (data.get_title_randomList ?? []).flatMap(
+          (node) => parseTitleHighlight(node, languages, { cleanTitle, showTeam, detailed }) ?? [],
+        ),
+        // The site picks a fresh handful every time it is asked; there is no page two.
+        isLastPage: true,
+      };
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
