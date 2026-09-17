@@ -13,6 +13,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  panelMode,
   clean,
   decodeEntities,
   relativeTime,
@@ -332,6 +333,11 @@ export function parseContent(series: Series): Content {
   const views = compactCount(viewCount(series));
   if (views) info.push({ key: "Views", value: `⏯︎ ${views}` });
 
+  const panel = panelMode({
+    type: parseContentType(series),
+    tags: tags.map((tag) => tag.title),
+  });
+
   return {
     title,
     cover: coverUrl(series),
@@ -340,6 +346,7 @@ export function parseContent(series: Series): Content {
     tags,
     ...(status === undefined ? {} : { status }),
     contentType: parseContentType(series),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseRating(genres),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),

@@ -23,6 +23,7 @@ import {
   parseStatus,
   relativeTime,
   resolveUrl,
+  panelMode,
   summaryOf,
   text,
   titleCase,
@@ -423,6 +424,10 @@ export function parseContent(html: string, contentId: string): Content {
 
   const status = parseStatus(state);
 
+  // The catalogue is comics throughout, so the only thing that separates a strip from a
+  // paged release here is a genre naming it one.
+  const panel = panelMode({ tags: tags.map((tag) => tag.title) });
+
   return {
     title,
     cover,
@@ -431,6 +436,7 @@ export function parseContent(html: string, contentId: string): Content {
     tags,
     ...(status === undefined ? {} : { status }),
     contentType: ContentType.COMIC,
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     // The site publishes nothing it grades as adult, and its own catalogue carries no
     // rating of its own to read one off.
     contentRating: ContentRating.SAFE,

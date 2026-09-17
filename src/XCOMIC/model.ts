@@ -48,6 +48,28 @@ export function setBaseUrl(url: string): void {
   activeBaseUrl = chosen;
 }
 
+// The reader's languages, kept beside the mirror for the same reason: the client builds its
+// headers inside an interceptor, which has no preference store to await.
+let acceptLanguageHeader = "en";
+
+/**
+ * What to send as `Accept-Language`, from the languages the reader asked for.
+ *
+ * The site reads it — the same query answers different editions under different values —
+ * and its own codes underscore their regional variants where the header hyphenates them.
+ */
+export function setLanguages(codes: readonly string[]): void {
+  const header = codes
+    .map((code) => code.trim().split("_").join("-"))
+    .filter((code) => code && code !== "-t")
+    .join(",");
+  acceptLanguageHeader = header || "en";
+}
+
+export function acceptLanguage(): string {
+  return acceptLanguageHeader;
+}
+
 /** Remembers the host that answered, so the next request starts there. */
 export function setActiveBaseUrl(url: string): void {
   if (isMirror(url)) activeBaseUrl = url;
@@ -76,6 +98,8 @@ export const PAGE_SIZE = 36;
 export const CHAPTER_PAGE_SIZE = 1000;
 // The full list repeats every scanlator's upload, so it is read in smaller pages.
 export const CHAPTER_FULL_PAGE_SIZE = 100;
+/** How many chapter pages may be in flight at once before the site answers 429. */
+export const CHAPTER_REQUEST_BATCH = 3;
 export const RECENTLY_ADDED_SIZE = 50;
 // The site's own home page draws six of these; a row in the app has space for more.
 export const RANDOM_SIZE = 24;
@@ -536,11 +560,12 @@ query get_comicNode($id: ID!) {
     data {
       id name subName altNames
       originalLanguage translatedLanguage
-      originalStatus uploadStatus
+      originalStatus uploadStatus readDirection
       type demographics contentRating genres tags
       authorNodes { data { name } }
       artistNodes { data { name } }
       publisherNodes { data { name } }
+      tagNodes { data { name } }
       summary { html }
       urlPath urlCover
       score_val follows comments_total chaps_normal
@@ -553,7 +578,7 @@ const CHAPTER_FIELDS = `
     paging { next total }
     items {
       data {
-        id serial chaNum volNum dname title urlPath
+        id dbStatus serial chaNum volNum dname title urlPath
         dateCreate dateModify datePublic
         srcName srcTitle
         groupNodes { data { name } }
@@ -608,6 +633,8 @@ export type ComicData = {
   translatedLanguages?: string[] | null;
   originalStatus?: string | null;
   uploadStatus?: string | null;
+  /** Which way the site says to read it: `ttb` for a strip, `rtl` or `ltr` for pages. */
+  readDirection?: string | null;
   type?: string | null;
   demographics?: string[] | null;
   contentRating?: string | null;
@@ -616,6 +643,8 @@ export type ComicData = {
   authorNodes?: NamedNode[] | null;
   artistNodes?: NamedNode[] | null;
   publisherNodes?: NamedNode[] | null;
+  /** The site's own wording for its tags, where `genres` and `tags` carry bare slugs. */
+  tagNodes?: NamedNode[] | null;
   summary?: { html?: string | null } | null;
   // The API has been seen sending this as a string as well as a number.
   score_val?: number | string | null;

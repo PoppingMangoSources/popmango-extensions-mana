@@ -16,6 +16,7 @@ import {
 import {
   Mark,
   decodeEntities,
+  panelMode,
   firstFilled,
   parseDate,
   statusPill,
@@ -278,6 +279,8 @@ export function parseContent(
   const status = parseStatus(details.upload_status);
   const contentType = parseContentType(details.format);
 
+  const panel = panelMode({ type: contentType, tags: tags.map((tag) => tag.title) });
+
   return {
     title: formatTitle(details.title, options, details.source_id, details.edition_info),
     cover: details.series_covers?.[0]?.image_id ? coverFor(details.series_covers[0]!.image_id) : "",
@@ -285,6 +288,7 @@ export function parseContent(
     additionalTitles: alternateTitles,
     tags,
     ...(contentType === undefined ? {} : { contentType }),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseContentRating(details.content_rating),
     ...(status === undefined ? {} : { status }),
     webUrl: seriesUrl(seriesId),

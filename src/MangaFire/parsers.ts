@@ -14,6 +14,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  panelMode,
   clean,
   decodeEntities,
   firstFilled,
@@ -261,6 +262,11 @@ export function parseContent(details: TitleDetails): Content {
     .map((name) => decodeEntities(clean(name)))
     .filter((name) => name && name.toLowerCase() !== title.toLowerCase());
 
+  const panel = panelMode({
+    type: parseContentType(details.type),
+    tags: tags.map((tag) => tag.title),
+  });
+
   return {
     title,
     cover: coverUrl(details),
@@ -269,6 +275,7 @@ export function parseContent(details: TitleDetails): Content {
     tags,
     ...(status === undefined ? {} : { status }),
     contentType: parseContentType(details.type),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseRating(genres),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),

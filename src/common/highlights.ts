@@ -135,3 +135,14 @@ export function firstFilled(...candidates: (string | undefined | null)[]): strin
 export function isMigration(context: SourceContext | undefined): boolean {
   return context?.origin === SourceContextOrigin.MIGRATION;
 }
+
+/**
+ * Drops anything the site gave no cover for.
+ *
+ * A tile is a cover with a name under it. One with nothing to draw is a grey rectangle the
+ * reader cannot tell from a failed load, and every row here is a strip of covers — so a
+ * title the site has not illustrated yet is left out rather than shown as a hole.
+ */
+export function withCovers<T extends { cover?: string }>(items: readonly T[]): T[] {
+  return items.filter((item) => Boolean(item.cover?.trim()));
+}

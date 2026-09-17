@@ -13,7 +13,15 @@ import {
   type Tag,
 } from "@mana-app/types";
 
-import { clean, imageSrc, parseDate, resolveUrl, text, UrlBuilder } from "../common/index.ts";
+import {
+  clean,
+  imageSrc,
+  panelMode,
+  parseDate,
+  resolveUrl,
+  text,
+  UrlBuilder,
+} from "../common/index.ts";
 import { canonicalReaderUrl } from "./reader.ts";
 import {
   DOMAIN,
@@ -243,6 +251,11 @@ export function parseContent(
 
   const isWebtoon = tagTitles.some((genre) => genre.toLowerCase() === "webtoons");
 
+  const panel = panelMode({
+    type: isWebtoon ? ContentType.MANHWA : ContentType.MANGA,
+    tags: tagTitles,
+  });
+
   return {
     title,
     cover: coverUrl(info.find("img").first()),
@@ -250,6 +263,7 @@ export function parseContent(
     additionalTitles,
     tags,
     contentType: isWebtoon ? ContentType.MANHWA : ContentType.MANGA,
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: ratingForGenres(tagTitles),
     ...(status === undefined ? {} : { status }),
     webUrl: absoluteUrl(contentId),

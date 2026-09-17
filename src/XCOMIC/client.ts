@@ -9,6 +9,7 @@ import {
   withChallengeRetry,
 } from "../common/index.ts";
 import {
+  acceptLanguage,
   baseUrl,
   mirrorCandidates,
   mirrorOrigin,
@@ -49,7 +50,12 @@ export class XCOMICApi {
         const origin = mirrorOrigin(request.url) ?? baseUrl();
         return {
           ...request,
-          headers: { origin, referer: `${origin}/`, ...request.headers },
+          headers: {
+            origin,
+            referer: `${origin}/`,
+            "accept-language": acceptLanguage(),
+            ...request.headers,
+          },
         };
       })
       .addResponseInterceptor(async (response: NetworkResponse) => {

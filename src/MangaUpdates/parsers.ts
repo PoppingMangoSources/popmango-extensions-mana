@@ -12,6 +12,7 @@ import {
 
 import {
   Mark,
+  panelMode,
   clean,
   decodeEntities,
   firstFilled,
@@ -165,6 +166,8 @@ export function parseContent(series: Series): Content {
     .filter((name) => name.length > 0);
   if (publishers.length > 0) info.push({ key: "Publishers", value: publishers.join(", ") });
 
+  const panel = panelMode({ type: contentType, tags: tags.map((tag) => tag.title) });
+
   return {
     title,
     cover: series.image?.url?.original ?? series.image?.url?.thumb ?? "",
@@ -173,6 +176,7 @@ export function parseContent(series: Series): Content {
     tags,
     ...(status === undefined ? {} : { status }),
     ...(contentType === undefined ? {} : { contentType }),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseRating(series),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),

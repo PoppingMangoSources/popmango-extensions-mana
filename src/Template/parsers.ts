@@ -28,6 +28,7 @@ import {
   parseStatus,
   resolveUrl,
   slugify,
+  panelMode,
   summaryOf,
   text,
 } from "../common/index.ts";
@@ -95,12 +96,17 @@ export function parseContent(html: string, contentId: string): Content {
   // default to ONGOING, which shows the reader something untrue.
   const status = parseStatus(text($(".status").first()));
 
+  // The catalogue is comics throughout, so the only thing that separates a strip from a
+  // paged release here is a genre naming it one.
+  const panel = panelMode({ tags: tags.map((tag) => tag.title) });
+
   return {
     title: text($("h1").first()),
     cover: absoluteImage($(".cover img").first(), BASE_URL),
     summary: summaryOf($(".summary").first()),
     tags,
     contentType: ContentType.COMIC,
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: ContentRating.SAFE,
     ...(status === undefined ? {} : { status }),
     webUrl: contentUrl(contentId),

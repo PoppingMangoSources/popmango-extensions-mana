@@ -21,6 +21,8 @@ import {
   resolveUrl,
   statusPill,
   titleCase,
+  contentTypeOf,
+  panelMode,
   summaryFromHtml,
   toBadge,
   typePill,
@@ -325,6 +327,13 @@ export function parseContent(page: ValirSeriesPage, contentId: string): Content 
   const views = compactCount(series.viewCount);
   if (views) info.push({ key: "Views", value: `${VIEWS_MARK} ${views}` });
 
+  // The site writes the format out — Manhwa, Manhua, Manga — and it decides which way the
+  // reader opens, where the content type below is a blanket answer for the whole catalogue.
+  const panel = panelMode({
+    type: contentTypeOf(series.type),
+    tags: tags.map((tag) => tag.title),
+  });
+
   return {
     title,
     cover: absolute(series.coverImage),
@@ -334,6 +343,7 @@ export function parseContent(page: ValirSeriesPage, contentId: string): Content 
     ...(status === undefined ? {} : { status }),
     // Novels are not offered here, so a title reached this way is a comic.
     contentType: ContentType.COMIC,
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: ratingOf(series),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),

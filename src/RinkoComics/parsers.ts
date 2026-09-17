@@ -22,6 +22,7 @@ import {
   parseDate,
   relativeTime,
   resolveUrl,
+  panelMode,
   summaryFromHtml,
   text,
   titleCase,
@@ -374,6 +375,10 @@ export function parseContent(html: string, contentId: string): Content {
   const state = titleCase(firstText(page, ".comic-status span:last-child"));
   if (state) info.push({ key: "Status", value: `◌ ${state}` });
 
+  // The catalogue is comics throughout, so the only thing that separates a strip from a
+  // paged release here is a genre naming it one.
+  const panel = panelMode({ tags: tags.map((tag) => tag.title) });
+
   return {
     title,
     cover,
@@ -384,6 +389,7 @@ export function parseContent(html: string, contentId: string): Content {
     // The site files novels separately and they are not offered here, so a title reached
     // this way is a comic.
     contentType: ContentType.COMIC,
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: ContentRating.SAFE,
     ...(creators.length > 0 ? { creators } : {}),
     ...(info.length > 0 ? { info } : {}),

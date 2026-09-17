@@ -17,6 +17,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  panelMode,
   clean,
   firstFilled,
   relativeTime,
@@ -195,6 +196,8 @@ export function parseContent(seriesId: string, detail: SeriesDetail): Content {
     .map((name) => name.trim())
     .filter(Boolean);
 
+  const panel = panelMode({ type: contentType, tags: tags.map((tag) => tag.title) });
+
   return {
     title: clean(detail.title),
     cover: buildCoverUrl(detail),
@@ -203,6 +206,7 @@ export function parseContent(seriesId: string, detail: SeriesDetail): Content {
     tags,
     ...(status === undefined ? {} : { status }),
     ...(contentType === undefined ? {} : { contentType }),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseRating(categories),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     webUrl: seriesUrl(seriesId),

@@ -78,7 +78,7 @@ import {
 const info: SourceInfo = {
   id: "template",
   name: "Template",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Starting point for a Mana content source",
   website: BASE_URL,
   rating: CatalogRating.SAFE,

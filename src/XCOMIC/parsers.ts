@@ -19,6 +19,7 @@ import {
 import {
   clean,
   decodeEntities,
+  panelMode,
   relativeTime,
   resolveUrl,
   summaryFromHtml,
@@ -425,14 +426,35 @@ export function parseContent(
   cleanTitle: TitleCleaner = asIs,
   showTeam = true,
 ): Content {
-  const tags: Tag[] = [...(comic.genres ?? []), ...(comic.tags ?? [])]
+  // `tagNodes` is the site's own wording for the same things the slug lists name, so the
+  // two overlap and are matched case-blind rather than by id.
+  const seenTags = new Set<string>();
+  const tags: Tag[] = [
+    ...(comic.genres ?? []),
+    ...(comic.tags ?? []),
+    ...(comic.demographics ?? []),
+    ...names(comic.tagNodes),
+  ]
     .map((name) => clean(name))
-    .filter(Boolean)
+    .filter((name) => {
+      if (!name) return false;
+      const key = name.toLowerCase().replace(/[\s_-]+/g, "");
+      if (seenTags.has(key)) return false;
+      seenTags.add(key);
+      return true;
+    })
     // The id stays the site's own slug, which is what the genre filter matches on.
     .map((name) => ({ id: name.toLowerCase(), title: formatGenre(name) }));
 
-  const status = parseStatus(comic.originalStatus);
+  // A title the site has finished uploading but not marked as finished writing still has
+  // somewhere it has got to, and its upload status is the only thing that says so.
+  const status = parseStatus(comic.originalStatus) ?? parseStatus(comic.uploadStatus);
   const contentType = parseContentType(comic.type);
+  const panel = panelMode({
+    direction: comic.readDirection,
+    type: contentType,
+    tags: tags.map((tag) => tag.id),
+  });
   const creators = [...names(comic.authorNodes), ...names(comic.artistNodes)];
 
   // The stat line the site prints under the title, in its own order.
@@ -459,6 +481,7 @@ export function parseContent(
     tags,
     ...(status === undefined ? {} : { status }),
     ...(contentType === undefined ? {} : { contentType }),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseRating(comic),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),
@@ -512,44 +535,49 @@ export function parseChapters(
   language: string,
   team = "",
 ): Chapter[] {
-  const parsed = entries.map((entry) => {
-    const value = Number.parseFloat(formatChapterNumber(entry) ?? "");
-    // Whether the site stated a number at all, which is not the same as whether it is
-    // zero: a prologue numbered 0 opens the run, while a notice carrying no number must
-    // sit past its end so it is never the resume point.
-    const numbered = Number.isFinite(value);
-    const number = numbered ? value : 0;
+  // The site keeps a withdrawn chapter in the list and serves no pages for it, so a reader
+  // who taps one gets an empty reader rather than a missing row.
+  const parsed = entries
+    .filter((entry) => (entry.dbStatus ?? "normal") === "normal")
+    .map((entry) => {
+      const value = Number.parseFloat(formatChapterNumber(entry) ?? "");
+      // Whether the site stated a number at all, which is not the same as whether it is
+      // zero: a prologue numbered 0 opens the run, while a notice carrying no number must
+      // sit past its end so it is never the resume point.
+      const numbered = Number.isFinite(value);
+      const number = numbered ? value : 0;
 
-    const label = [clean(entry.dname ?? ""), clean(entry.title ?? "")]
-      .filter(Boolean)
-      .filter((value, position, values) => position === 0 || value !== values[0])
-      .map(decodeEntities)
-      .join(": ");
+      const label = [clean(entry.dname ?? ""), clean(entry.title ?? "")]
+        .filter(Boolean)
+        .filter((value, position, values) => position === 0 || value !== values[0])
+        .map(decodeEntities)
+        .join(": ");
 
-    // `srcName` is the aggregator an upload came through rather than the team that made
-    // it, so the edition's own team is named first where the site states one. `srcTitle` is
-    // how the site writes that aggregator out, where `srcName` is the bare slug behind it.
-    const source = decodeEntities(clean(entry.srcTitle ?? "")) || titleCase(entry.srcName);
-    const groups = names(entry.groupNodes);
-    const uploader = clean(entry.userNode?.data?.name ?? "");
-    const scanlator = team || groups.join(", ") || source || uploader;
+      // `srcName` is the aggregator an upload came through rather than the team that made
+      // it, so the edition's own team is named first where the site states one. `srcTitle` is
+      // how the site writes that aggregator out, where `srcName` is the bare slug behind it.
+      const source = decodeEntities(clean(entry.srcTitle ?? "")) || titleCase(entry.srcName);
+      const groups = names(entry.groupNodes);
+      const uploader = clean(entry.userNode?.data?.name ?? "");
+      const scanlator = team || groups.join(", ") || source || uploader;
 
-    const volume = Number.parseFloat(String(entry.volNum ?? ""));
+      const volume = Number.parseFloat(String(entry.volNum ?? ""));
 
-    return {
-      chapterId: entry.id,
-      number,
-      numbered,
-      index: 0,
-      ...(Number.isFinite(volume) ? { volume } : {}),
-      // The app prints this verbatim and never joins the number onto it.
-      title: label || (numbered ? `Chapter ${number}` : "Chapter"),
-      date: parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ?? new Date(0),
-      language: language || DefinedLanguages.ENGLISH,
-      ...(entry.urlPath ? { webUrl: absoluteUrl(entry.urlPath) } : {}),
-      ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
-    };
-  });
+      return {
+        chapterId: entry.id,
+        number,
+        numbered,
+        index: 0,
+        ...(Number.isFinite(volume) ? { volume } : {}),
+        // The app prints this verbatim and never joins the number onto it.
+        title: label || (numbered ? `Chapter ${number}` : "Chapter"),
+        date:
+          parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ?? new Date(0),
+        language: language || DefinedLanguages.ENGLISH,
+        ...(entry.urlPath ? { webUrl: absoluteUrl(entry.urlPath) } : {}),
+        ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
+      };
+    });
 
   // index 0 must be the earliest numbered chapter, or the app resumes partway through.
   // Anything the site left unnumbered — a notice or an extra — is indexed after the run.

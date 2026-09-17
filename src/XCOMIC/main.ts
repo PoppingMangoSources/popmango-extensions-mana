@@ -45,6 +45,7 @@ import {
   isDetailedStyle,
   sectionById,
   toPageSections,
+  withCovers,
   type PreferenceValue,
 } from "../common/index.ts";
 import { XCOMICApi } from "./client.ts";
@@ -56,6 +57,7 @@ import {
   CHAPTER_FULL_PAGE_SIZE,
   CHAPTER_PAGES_QUERY,
   CHAPTER_PAGE_SIZE,
+  CHAPTER_REQUEST_BATCH,
   COMIC_QUERY,
   CONTENT_RATING_OPTIONS,
   CHAPTER_COUNT_OPTIONS,
@@ -82,6 +84,7 @@ import {
   TITLE_VERSION_REGEX,
   TYPE_OPTIONS,
   setBaseUrl,
+  setLanguages,
   searchPageUrl,
   type BrowseResponse,
   type BrowseSelect,
@@ -112,7 +115,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.19",
+  version: "1.1.20",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -299,7 +302,12 @@ class XCOMICSource
 
   /** Every request path starts here so the mirror setting is in force before a URL is built. */
   private async applyMirror(): Promise<void> {
-    setBaseUrl(await this.preferences.text(PreferenceID.Mirror, BASE_URL));
+    const [mirror, languages] = await Promise.all([
+      this.preferences.text(PreferenceID.Mirror, BASE_URL),
+      this.preferences.strings(PreferenceID.Languages),
+    ]);
+    setBaseUrl(mirror);
+    setLanguages(languages);
   }
 
   /** Whether a tile names the team behind its edition, read once rather than per row. */
@@ -390,15 +398,16 @@ class XCOMICSource
           seen.add(comic.id);
           return [parseHighlight(comic, { latest: chapter.data, cleanTitle, showTeam, detailed })];
         });
+      const covered = withCovers(results);
 
       // The cursor has to move backwards or the feed hands back the page just read; the
       // site answering with its own starting point again would page forever.
       const next = feed?.before;
       if (next != null && (cursor === undefined || next < cursor)) {
         this.feedCursors.set(`${sectionId}:${page + 1}`, next);
-        return { results, isLastPage: results.length === 0 };
+        return { results: covered, isLastPage: results.length === 0 };
       }
-      return { results, isLastPage: true };
+      return { results: covered, isLastPage: true };
     }
 
     if (sectionId === SectionID.Random) {
@@ -410,8 +419,11 @@ class XCOMICSource
 
       const languages = await this.preferences.strings(PreferenceID.Languages);
       return {
-        results: (data.get_title_randomList ?? []).flatMap(
-          (node) => parseTitleHighlight(node, languages, { cleanTitle, showTeam, detailed }) ?? [],
+        results: withCovers(
+          (data.get_title_randomList ?? []).flatMap(
+            (node) =>
+              parseTitleHighlight(node, languages, { cleanTitle, showTeam, detailed }) ?? [],
+          ),
         ),
         // The site picks a fresh handful every time it is asked; there is no page two.
         isLastPage: true,
@@ -431,8 +443,10 @@ class XCOMICSource
       ]);
 
       const feed = data.get_comic_recentlyAdded;
-      const results = (feed?.items ?? []).map((node) =>
-        parseHighlight(node.data, { cleanTitle, showTeam, detailed }),
+      const results = withCovers(
+        (feed?.items ?? []).map((node) =>
+          parseHighlight(node.data, { cleanTitle, showTeam, detailed }),
+        ),
       );
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
@@ -586,10 +600,12 @@ class XCOMICSource
     const tile = { cleanTitle, showTeam, hero, detailed };
 
     return {
-      results: nodes.flatMap((node) =>
-        everyEdition
-          ? parseTitleHighlights(node, select.incTLangs, tile)
-          : (parseTitleHighlight(node, select.incTLangs, tile) ?? []),
+      results: withCovers(
+        nodes.flatMap((node) =>
+          everyEdition
+            ? parseTitleHighlights(node, select.incTLangs, tile)
+            : (parseTitleHighlight(node, select.incTLangs, tile) ?? []),
+        ),
       ),
       // Counted over the titles the site served rather than the editions they expanded to:
       // the page it answered is what says whether another one follows it.
@@ -629,13 +645,17 @@ class XCOMICSource
     const total = first?.paging?.total ?? entries.length;
     if (total > size && (first?.paging?.next ?? 0) !== 0) {
       const pages = Math.ceil(total / size);
-      const rest = await Promise.all(
-        Array.from({ length: pages - 1 }, (_, offset) =>
-          this.chapterPage(contentId, offset + 2, deduplicate, size),
-        ),
-      );
-      for (const page of rest) {
-        entries.push(...(page?.items ?? []).map((item) => item.data));
+      // Asked for all at once, the site answers 429 and the list is lost — a long series
+      // undeduplicated runs to fifteen pages. Three at a time is what its own readers do.
+      for (let start = 2; start <= pages; start += CHAPTER_REQUEST_BATCH) {
+        const batch = await Promise.all(
+          Array.from({ length: Math.min(CHAPTER_REQUEST_BATCH, pages - start + 1) }, (_, offset) =>
+            this.chapterPage(contentId, start + offset, deduplicate, size),
+          ),
+        );
+        for (const page of batch) {
+          entries.push(...(page?.items ?? []).map((item) => item.data));
+        }
       }
     }
 

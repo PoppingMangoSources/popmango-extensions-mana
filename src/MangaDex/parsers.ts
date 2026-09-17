@@ -18,6 +18,8 @@ import {
   firstFilled,
   relativeTime,
   statusPill,
+  contentTypeOf,
+  panelMode,
   titleCase,
   toBadge,
   typePill,
@@ -408,6 +410,13 @@ export function parseContent(
     info.push({ key: "Final Chapter", value: attributes.lastChapter });
   }
 
+  // The site files no format, but it does say what language a work was written in, and its
+  // "Long Strip" tag names the ones meant to be scrolled whatever that language.
+  const panel = panelMode({
+    type: contentTypeOf(attributes.originalLanguage),
+    tags: tags.map((tag) => tag.title),
+  });
+
   return {
     title: cleanTitle(decodeEntities(primary)) || manga.id,
     cover: coverUrl(manga, quality),
@@ -415,6 +424,7 @@ export function parseContent(
     additionalTitles: [...new Set(additional.map((name) => decodeEntities(name)))],
     tags,
     ...(status === undefined ? {} : { status }),
+    ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: parseRating(attributes.contentRating),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),

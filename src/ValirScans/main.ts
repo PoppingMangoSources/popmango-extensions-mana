@@ -91,7 +91,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Comics from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
