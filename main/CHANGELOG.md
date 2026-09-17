@@ -871,7 +871,21 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.17)
+## XCOMIC (current: v1.1.18)
+
+### Removed
+
+- The Most Views sorts, and the three home rows built on them. The site answers every one
+  of its view windows with the top-rated order now, so a reader picking Most Views (7 days)
+  got Rating Score under another name. Asking for one anyway falls back to Rating Score,
+  which is what the site would have done.
+
+### Changed
+
+- Most Follows moved up to sit under Most Reviews and above Latest Uploads, as the single
+  row it already was.
+
+## XCOMIC (v1.1.17)
 
 ### Changed
 
