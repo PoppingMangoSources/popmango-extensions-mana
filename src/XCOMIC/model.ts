@@ -118,10 +118,6 @@ export const SortID = {
   Follows: "field_follow",
   Reviews: "field_review",
   Comments: "field_comment",
-  ViewsTotal: "views_d000",
-  Views30Days: "views_d030",
-  Views7Days: "views_d007",
-  Views24Hours: "views_h024",
 } as const;
 
 export const SORT_OPTIONS: SortOption[] = [
@@ -134,16 +130,6 @@ export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Follows, title: "Most Follows" },
   { id: SortID.Reviews, title: "Most Reviews" },
   { id: SortID.Comments, title: "Most Comments" },
-  { id: SortID.ViewsTotal, title: "Most Views (Total)" },
-  { id: "views_d360", title: "Most Views (360 days)" },
-  { id: "views_d180", title: "Most Views (180 days)" },
-  { id: "views_d090", title: "Most Views (90 days)" },
-  { id: SortID.Views30Days, title: "Most Views (30 days)" },
-  { id: SortID.Views7Days, title: "Most Views (7 days)" },
-  { id: SortID.Views24Hours, title: "Most Views (24 hours)" },
-  { id: "views_h012", title: "Most Views (12 hours)" },
-  { id: "views_h006", title: "Most Views (6 hours)" },
-  { id: "views_h001", title: "Most Views (1 hour)" },
 ];
 
 export const TYPE_OPTIONS: Option[] = [
@@ -341,12 +327,9 @@ export const LANGUAGE_OPTIONS: Option[] = [
 export const SectionID = {
   TopRated: "top_rated",
   MostReviews: "most_reviews",
-  Views24Hours: "views_24h",
-  Views7Days: "views_7d",
-  LatestUploads: "latest_uploads",
-  ViewsTotal: "views_total",
-  MostChapters: "most_chapters",
   MostFollows: "most_follows",
+  LatestUploads: "latest_uploads",
+  MostChapters: "most_chapters",
   RecentlyAdded: "recently_added",
 } as const;
 
@@ -368,16 +351,10 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     sort: SortID.Reviews,
   },
   {
-    id: SectionID.Views24Hours,
-    title: "Most Views (24 hours)",
-    style: SectionStyle.DetailedDoubleRowPaged,
-    sort: SortID.Views24Hours,
-  },
-  {
-    id: SectionID.Views7Days,
-    title: "Most Views (7 days)",
+    id: SectionID.MostFollows,
+    title: "Most Follows",
     style: SectionStyle.SimpleSingleRow,
-    sort: SortID.Views7Days,
+    sort: SortID.Follows,
   },
   {
     id: SectionID.LatestUploads,
@@ -385,22 +362,10 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
-    id: SectionID.ViewsTotal,
-    title: "Most Views (Total)",
-    style: SectionStyle.SimpleSingleRow,
-    sort: SortID.ViewsTotal,
-  },
-  {
     id: SectionID.MostChapters,
     title: "Most Chapters",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.Chapters,
-  },
-  {
-    id: SectionID.MostFollows,
-    title: "Most Follows",
-    style: SectionStyle.SimpleSingleRow,
-    sort: SortID.Follows,
   },
   {
     id: SectionID.RecentlyAdded,
