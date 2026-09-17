@@ -5,7 +5,7 @@
     {
       "id": "flamecomics",
       "name": "FlameComics",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Manhwa, manhua and manga from flamecomics.xyz.",
       "website": "https://flamecomics.xyz",
       "rating": 0,
@@ -22,12 +22,12 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "6860fb7a6860fb7a6860fb7a6860fb7a6860fb7a6860fb7a6860fb7a6860fb7a"
+      "hash": "15d33a2015d33a2015d33a2015d33a2015d33a2015d33a2015d33a2015d33a20"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Manga, manhwa, manhua and comics from kagane.to.",
       "website": "https://kagane.to",
       "rating": 1,
@@ -44,12 +44,12 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "13f777ce13f777ce13f777ce13f777ce13f777ce13f777ce13f777ce13f777ce"
+      "hash": "2777196527771965277719652777196527771965277719652777196527771965"
     },
     {
       "id": "mangadex",
       "name": "MangaDex",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "description": "Scanlations in every language, from mangadex.org.",
       "website": "https://mangadex.org",
       "rating": 1,
@@ -66,12 +66,12 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "48b4052e48b4052e48b4052e48b4052e48b4052e48b4052e48b4052e48b4052e"
+      "hash": "6aee71bd6aee71bd6aee71bd6aee71bd6aee71bd6aee71bd6aee71bd6aee71bd"
     },
     {
       "id": "mangafire",
       "name": "MangaFire",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Manga, manhwa and manhua from mangafire.to.",
       "website": "https://mangafire.to",
       "rating": 1,
@@ -92,12 +92,12 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 6298637,
-      "hash": "4fc346684fc346684fc346684fc346684fc346684fc346684fc346684fc34668"
+      "hash": "1a4af17b1a4af17b1a4af17b1a4af17b1a4af17b1a4af17b1a4af17b1a4af17b"
     },
     {
       "id": "mangaupdates",
       "name": "MangaUpdates",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Track your reading against mangaupdates.com.",
       "website": "https://www.mangaupdates.com",
       "rating": 1,
@@ -114,12 +114,12 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "383b3447383b3447383b3447383b3447383b3447383b3447383b3447383b3447"
+      "hash": "06a2456806a2456806a2456806a2456806a2456806a2456806a2456806a24568"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -136,12 +136,12 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "0f4178b90f4178b90f4178b90f4178b90f4178b90f4178b90f4178b90f4178b9"
+      "hash": "3c97d6323c97d6323c97d6323c97d6323c97d6323c97d6323c97d6323c97d632"
     },
     {
       "id": "rinkocomics",
       "name": "RinkoComics",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Comics from rinkocomics.com.",
       "website": "https://rinkocomics.com",
       "rating": 0,
@@ -158,12 +158,12 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "3339381533393815333938153339381533393815333938153339381533393815"
+      "hash": "656d22ce656d22ce656d22ce656d22ce656d22ce656d22ce656d22ce656d22ce"
     },
     {
       "id": "rokaricomics",
       "name": "RokariComics",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Comics from rokaricomics.com.",
       "website": "https://rokaricomics.com",
       "rating": 0,
@@ -180,12 +180,12 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "21f0b0c221f0b0c221f0b0c221f0b0c221f0b0c221f0b0c221f0b0c221f0b0c2"
+      "hash": "605eee87605eee87605eee87605eee87605eee87605eee87605eee87605eee87"
     },
     {
       "id": "stonescape",
       "name": "StoneScape",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Manhwa, manhua and manga from stonescape.xyz.",
       "website": "https://stonescape.xyz",
       "rating": 1,
@@ -202,12 +202,12 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "3ac0dff23ac0dff23ac0dff23ac0dff23ac0dff23ac0dff23ac0dff23ac0dff2"
+      "hash": "78e199f978e199f978e199f978e199f978e199f978e199f978e199f978e199f9"
     },
     {
       "id": "valirscans",
       "name": "ValirScans",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Comics from valirscans.org.",
       "website": "https://valirscans.org",
       "rating": 1,
@@ -224,12 +224,12 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 6298925,
-      "hash": "57b487e557b487e557b487e557b487e557b487e557b487e557b487e557b487e5"
+      "hash": "228dc14b228dc14b228dc14b228dc14b228dc14b228dc14b228dc14b228dc14b"
     },
     {
       "id": "xcomic",
       "name": "XCOMIC",
-      "version": "1.1.19",
+      "version": "1.1.20",
       "description": "Manga, manhwa, manhua and comics from xcomic.me.",
       "website": "https://xcomic.me",
       "rating": 2,
@@ -246,7 +246,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "1175cadc1175cadc1175cadc1175cadc1175cadc1175cadc1175cadc1175cadc"
+      "hash": "7e542f7e7e542f7e7e542f7e7e542f7e7e542f7e7e542f7e7e542f7e7e542f7e"
     }
   ]
 }

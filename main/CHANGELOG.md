@@ -3,7 +3,17 @@
 Versions only ever bump the patch digit — `1.1.0` → `1.1.1` → `1.1.2`. Never `1.2.0`. Every
 source was renumbered to `1.1.0` in one go; before that they counted up from `1.0.0`.
 
-## MangaDex (current: v1.1.1)
+## MangaDex (current: v1.1.2)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## MangaDex (v1.1.1)
 
 ### Changed
 
@@ -33,7 +43,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.1.0)
+## RokariComics (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## RokariComics (v1.1.0)
 
 ### Changed
 
@@ -129,7 +149,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.1.0)
+## ValirScans (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## ValirScans (v1.1.0)
 
 ### Changed
 
@@ -244,7 +274,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.1.0)
+## RinkoComics (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## RinkoComics (v1.1.0)
 
 ### Changed
 
@@ -373,7 +413,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.1.0)
+## MangaFire (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## MangaFire (v1.1.0)
 
 ### Changed
 
@@ -507,7 +557,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.1.0)
+## StoneScape (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## StoneScape (v1.1.0)
 
 ### Changed
 
@@ -735,7 +795,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.1.0)
+## MangaUpdates (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## MangaUpdates (v1.1.0)
 
 ### Changed
 
@@ -871,7 +941,27 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.19)
+## XCOMIC (current: v1.1.20)
+
+### Added
+
+- The source says which way a title should be read, from the direction the site states, the
+  format its tags name, or what the title is.
+- Demographics and the site's own wording for its tags join the tag list, deduplicated
+  against the slugs that were already there.
+- A title the site has finished uploading but never marked as finished writing takes its
+  status from the upload instead of showing none.
+- Requests carry the reader's languages as `Accept-Language`, which the site reads.
+
+### Fixed
+
+- A chapter the site has withdrawn is no longer listed. It stays in the site's own list and
+  serves no pages, so tapping one opened an empty reader.
+- A long chapter list is read three pages at a time. Asked for all of them at once the site
+  answers 429 and the list is lost, which a series of a thousand chapters reliably did.
+- A row leaves out anything the site gave no cover for, rather than drawing a blank tile.
+
+## XCOMIC (v1.1.19)
 
 ### Added
 
@@ -1318,7 +1408,17 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.1.0)
+## FlameComics (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## FlameComics (v1.1.0)
 
 ### Changed
 
@@ -1428,7 +1528,17 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.1.0)
+## Kagane (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## Kagane (v1.1.0)
 
 ### Changed
 
@@ -1792,7 +1902,17 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.1.0)
+## Mangago (current: v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## Mangago (v1.1.0)
 
 ### Changed
 
