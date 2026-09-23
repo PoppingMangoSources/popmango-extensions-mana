@@ -66,6 +66,7 @@ import {
   DISCOVER_SECTIONS,
   FilterID,
   GENRE_MODE_OPTIONS,
+  HOT_PAGES,
   HOT_QUERY,
   HOT_SIZE,
   LANGUAGE_OPTIONS,
@@ -99,6 +100,7 @@ import {
   type RandomResponse,
   type ComicNodeResponse,
   type RecentlyAddedResponse,
+  type TitleNode,
   type TitleNodeData,
   type TitleNodeResponse,
 } from "./model.ts";
@@ -122,7 +124,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.23",
+  version: "1.1.24",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -433,19 +435,16 @@ class XCOMICSource
     }
 
     if (sectionId === SectionID.Hot) {
-      // The mark is the site's, not ours, and it rides on the edition: a page of browse is
-      // asked for and everything it has not marked is dropped. Ordering by what updated
-      // last is what makes the row read as now rather than as another ranking — the rows
-      // above it already rank by score, reviews and follows.
-      const [data, cleanTitle, showTeam] = await Promise.all([
-        this.api.query<BrowseResponse>(HOT_QUERY, {
-          select: this.browseSelect({
-            page: 1,
-            size: HOT_SIZE,
-            sort: SortID.Update,
-            ...(await this.preferenceDefaults(context)),
-          }),
-        }),
+      // The mark is the site's, not ours, and it rides on the edition: pages of browse are
+      // asked for and everything unmarked is dropped. They are read most-followed first
+      // because the mark is editorial — the page of what updated last is whatever small
+      // upload landed in the past minute, and none of those forty-eight carried it.
+      const [pages, cleanTitle, showTeam] = await Promise.all([
+        Promise.all(
+          Array.from({ length: HOT_PAGES }, (_, index) =>
+            this.hotPage(index + 1, context).catch(() => []),
+          ),
+        ),
         this.titleCleaner(),
         this.showTeam(),
       ]);
@@ -453,7 +452,8 @@ class XCOMICSource
       const languages = await this.preferences.strings(PreferenceID.Languages);
       return {
         results: withCovers(
-          (data.get_title_browse_items ?? [])
+          pages
+            .flat()
             // The mark is on the edition, so the unmarked ones are taken off the title
             // before a tile is chosen: the row should open what the site is pushing, not
             // another team's take on the same work.
@@ -467,8 +467,8 @@ class XCOMICSource
                 parseTitleHighlight(node, languages, { cleanTitle, showTeam, detailed }) ?? [],
             ),
         ),
-        // One page is the whole row: the page after it is mostly titles the site has not
-        // marked, which would draw a shorter row each time rather than a longer list.
+        // Those pages are the whole row: the ones after them are followed by fewer and
+        // fewer readers, which is where the mark stops being given out.
         isLastPage: true,
       };
     }
@@ -665,6 +665,20 @@ class XCOMICSource
     if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);
 
     return parseContent(comic, cleanTitle, showTeam, await this.trackers(comic.titleId));
+  }
+
+  /** One page of browse, ranked by readership, asked which of its editions are marked. */
+  private async hotPage(page: number, context?: SourceContext): Promise<TitleNode[]> {
+    const data = await this.api.query<BrowseResponse>(HOT_QUERY, {
+      select: this.browseSelect({
+        page,
+        size: HOT_SIZE,
+        sort: SortID.Follows,
+        ...(await this.preferenceDefaults(context)),
+      }),
+    });
+
+    return data.get_title_browse_items ?? [];
   }
 
   /**

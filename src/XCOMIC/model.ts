@@ -112,13 +112,15 @@ export const LATEST_UPLOADS_SIZE = 20;
 // The site's own home page draws six of these; a row in the app has space for more.
 export const RANDOM_SIZE = 24;
 /**
- * Titles scanned for the ones the site has marked hot.
+ * Titles scanned for the ones the site has marked hot, and how many pages of them.
  *
- * There is no endpoint for them: the mark rides on the comic, so the row is a page of
- * browse with the unmarked titles dropped. A page larger than the usual thirty-six is
- * asked for because only some of what comes back is kept.
+ * There is no endpoint for them: the mark rides on the comic, so the row is browse with
+ * the unmarked titles dropped. Pages larger than the usual thirty-six are asked for
+ * because only some of what comes back is kept, and there are two of them because one was
+ * not enough — a single page of forty-eight held none the site had marked.
  */
 export const HOT_SIZE = 48;
+export const HOT_PAGES = 2;
 
 export const FilterID = {
   Types: "types",
