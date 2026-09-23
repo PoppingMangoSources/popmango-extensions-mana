@@ -518,6 +518,10 @@ export function parseContent(
     info.push({ key: "Comments", value: String(comic.comments_total) });
   }
   if (comic.chaps_normal != null) info.push({ key: "Chapters", value: String(comic.chaps_normal) });
+  // The site draws these as ribbons over its own cards. A tile here already spends its one
+  // pill on the best number the site has, so the marks are stated where there is room.
+  const marks = [comic.isHot ? "Hot" : "", comic.isNew ? "New" : ""].filter(Boolean);
+  if (marks.length > 0) info.push({ key: "Marked", value: marks.join(" · ") });
   const latest = clean(comic.chapterNode_up_to?.data?.dname ?? "");
   if (latest) info.push({ key: "Up To", value: decodeEntities(latest) });
   const run = publicationRun(comic);

@@ -66,6 +66,8 @@ import {
   DISCOVER_SECTIONS,
   FilterID,
   GENRE_MODE_OPTIONS,
+  HOT_QUERY,
+  HOT_SIZE,
   LANGUAGE_OPTIONS,
   LATEST_UPLOADS_QUERY,
   LATEST_UPLOADS_SIZE,
@@ -120,7 +122,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.22",
+  version: "1.1.23",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -426,6 +428,47 @@ class XCOMICSource
           ),
         ),
         // The site picks a fresh handful every time it is asked; there is no page two.
+        isLastPage: true,
+      };
+    }
+
+    if (sectionId === SectionID.Hot) {
+      // The mark is the site's, not ours, and it rides on the edition: a page of browse is
+      // asked for and everything it has not marked is dropped. Ordering by what updated
+      // last is what makes the row read as now rather than as another ranking — the rows
+      // above it already rank by score, reviews and follows.
+      const [data, cleanTitle, showTeam] = await Promise.all([
+        this.api.query<BrowseResponse>(HOT_QUERY, {
+          select: this.browseSelect({
+            page: 1,
+            size: HOT_SIZE,
+            sort: SortID.Update,
+            ...(await this.preferenceDefaults(context)),
+          }),
+        }),
+        this.titleCleaner(),
+        this.showTeam(),
+      ]);
+
+      const languages = await this.preferences.strings(PreferenceID.Languages);
+      return {
+        results: withCovers(
+          (data.get_title_browse_items ?? [])
+            // The mark is on the edition, so the unmarked ones are taken off the title
+            // before a tile is chosen: the row should open what the site is pushing, not
+            // another team's take on the same work.
+            .map((node) => ({
+              ...node,
+              comicNodes: (node.comicNodes ?? []).filter((edition) => edition.data?.isHot),
+            }))
+            .filter((node) => node.comicNodes.length > 0)
+            .flatMap(
+              (node) =>
+                parseTitleHighlight(node, languages, { cleanTitle, showTeam, detailed }) ?? [],
+            ),
+        ),
+        // One page is the whole row: the page after it is mostly titles the site has not
+        // marked, which would draw a shorter row each time rather than a longer list.
         isLastPage: true,
       };
     }

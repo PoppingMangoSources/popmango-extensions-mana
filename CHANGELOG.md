@@ -941,7 +941,16 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.22)
+## XCOMIC (current: v1.1.23)
+
+### Added
+
+- A Hot Comics row, above Most Chapters: the titles the site has marked hot, taken from
+  what updated last so the row reads as now rather than as one more ranking. The site keeps
+  no list of them, so it is a page of browse with everything unmarked dropped.
+- A title states the marks the site gives it — hot, and newly taken on.
+
+## XCOMIC (v1.1.22)
 
 ### Added
 

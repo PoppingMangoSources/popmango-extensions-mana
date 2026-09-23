@@ -111,6 +111,14 @@ export const RECENTLY_ADDED_SIZE = 50;
 export const LATEST_UPLOADS_SIZE = 20;
 // The site's own home page draws six of these; a row in the app has space for more.
 export const RANDOM_SIZE = 24;
+/**
+ * Titles scanned for the ones the site has marked hot.
+ *
+ * There is no endpoint for them: the mark rides on the comic, so the row is a page of
+ * browse with the unmarked titles dropped. A page larger than the usual thirty-six is
+ * asked for because only some of what comes back is kept.
+ */
+export const HOT_SIZE = 48;
 
 export const FilterID = {
   Types: "types",
@@ -369,6 +377,7 @@ export const SectionID = {
   MostFollows: "most_follows",
   Random: "random",
   LatestUploads: "latest_uploads",
+  Hot: "hot",
   MostChapters: "most_chapters",
   RecentlyAdded: "recently_added",
 } as const;
@@ -407,6 +416,14 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     id: SectionID.LatestUploads,
     title: "Latest Uploads",
     style: SectionStyle.DetailedVerticalListGrouped,
+  },
+  {
+    id: SectionID.Hot,
+    title: "Hot Comics",
+    style: SectionStyle.SimpleSingleRow,
+    // What the site has marked is not a list it will page through, and a second page of
+    // browse would mostly be titles it has not marked.
+    viewMore: false,
   },
   {
     id: SectionID.MostChapters,
@@ -474,13 +491,7 @@ const TEAM_FIELD = `
       subName`;
 
 /**
- * Browse, which the site keys by title rather than by comic.
- *
- * `get_comic_browse_items` still validates but throws inside its own resolver — every
- * request to it comes back `INTERNAL_SERVER_ERROR` against a null `get_comic_browse_items`,
- * whatever the fields or the filters. The site's own browse page reads titles, and a title
- * carries the editions of it as `comicNodes`; the one matching the reader's language is the
- * entry a tile stands for, since a comic id is what the rest of the source is keyed by.
+ * A title as the endpoints keyed by work answer it, aliased to the shape the parsers read.
  *
  * The field names differ from every other endpoint's — this type spells them in snake
  * case — so they are aliased back to the shape the parsers already read.
@@ -490,15 +501,7 @@ const TEAM_FIELD = `
  * `subName` rides along with it: the label belongs to the edition, not to the work, so
  * asking for it on the title itself would answer nothing.
  */
-/**
- * A title as the endpoints keyed by work answer it, aliased to the shape the parsers read.
- *
- * `comicNodes` is the one field here the site's own page does not ask for. It answers all
- * the same, and it is the only thing that turns a title back into something openable.
- * `subName` rides along with it: the label belongs to the edition, not to the work, so
- * asking for it on the title itself would answer nothing.
- */
-const TITLE_FIELDS = `
+const titleFields = (editions = "") => `
     data {
       id
       name: title
@@ -518,18 +521,41 @@ const TITLE_FIELDS = `
       chaps_normal: total_chapters
       chapterPublishedAt: chap_last_public_at
     }
-    comicNodes { data { id name subName translatedLanguage chaps_normal } }`;
+    comicNodes { data { id name subName translatedLanguage chaps_normal${editions} } }`;
 
+/**
+ * Browse, which the site keys by title rather than by comic.
+ *
+ * `get_comic_browse_items` still validates but throws inside its own resolver — every
+ * request to it comes back `INTERNAL_SERVER_ERROR` against a null `get_comic_browse_items`,
+ * whatever the fields or the filters. The site's own browse page reads titles, and a title
+ * carries the editions of it as `comicNodes`; the one matching the reader's language is the
+ * entry a tile stands for, since a comic id is what the rest of the source is keyed by.
+ */
 export const BROWSE_QUERY = `
 query get_title_browse_items($select: Title_Browse_Select) {
-  get_title_browse_items(select: $select) {${TITLE_FIELDS}
+  get_title_browse_items(select: $select) {${titleFields()}
+  }
+}`;
+
+/**
+ * The same browse, asked which of the editions the site has marked.
+ *
+ * The marks sit on the comic rather than on the work, so they ride in beside the editions.
+ * This is a query of its own rather than two more fields on the one above: browse is what
+ * every other row and search is built on, and a field it turns out not to carry would take
+ * all of them down rather than this row alone.
+ */
+export const HOT_QUERY = `
+query get_title_browse_items($select: Title_Browse_Select) {
+  get_title_browse_items(select: $select) {${titleFields(" isHot: is_hot")}
   }
 }`;
 
 /** A handful of titles picked at random, which the site's own home page draws six of. */
 export const RANDOM_QUERY = `
 query get_title_randomList($select: Title_RandomList_Select) {
-  get_title_randomList(select: $select) {${TITLE_FIELDS}
+  get_title_randomList(select: $select) {${titleFields()}
   }
 }`;
 
@@ -573,6 +599,8 @@ query get_comicNode($id: ID!) {
     data {
       id name subName altNames
       titleId: title_id
+      isHot: is_hot
+      isNew: is_new
       originalLanguage translatedLanguage
       originalStatus uploadStatus readDirection
       originalPubFrom { y }
@@ -663,6 +691,9 @@ export type ComicData = {
   titleId?: string | null;
   /** The team behind this edition. A title published by several has one comic each. */
   subName?: string | null;
+  /** The site's own marks: what it is pushing, and what it has just taken on. */
+  isHot?: boolean | null;
+  isNew?: boolean | null;
   altNames?: string[] | null;
   urlPath?: string | null;
   urlCover?: string | null;
