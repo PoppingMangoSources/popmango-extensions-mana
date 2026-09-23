@@ -120,7 +120,6 @@ export const FilterID = {
   IncludeMode: "include_mode",
   ExcludeMode: "exclude_mode",
   OriginalStatus: "original_status",
-  UploadStatus: "upload_status",
   ChapterCount: "chapter_count",
   Year: "year",
   OriginalLanguages: "original_languages",
@@ -195,15 +194,21 @@ export const DEMOGRAPHIC_OPTIONS: Option[] = [
   { id: "female_oriented", title: "Female Oriented" },
 ];
 
-// A picker cannot be cleared once set, so every one of them opens with its own
-// "everything" row rather than relying on nothing being chosen.
+/**
+ * Where a work has got to, in the site's own current words.
+ *
+ * It renamed these: what it used to call `ongoing` it now calls `releasing`, and `pending`
+ * became `upcoming`. Sending the old words matches nothing. Several can be asked for at
+ * once, so this is a multi-picker and needs no "everything" row — choosing none is every
+ * status, which is what an empty list tells the site.
+ */
 export const STATUS_OPTIONS: Option[] = [
-  { id: "", title: "All" },
-  { id: "pending", title: "Pending" },
-  { id: "ongoing", title: "Ongoing" },
+  { id: "releasing", title: "Releasing" },
   { id: "completed", title: "Completed" },
   { id: "hiatus", title: "Hiatus" },
   { id: "cancelled", title: "Cancelled" },
+  { id: "upcoming", title: "Upcoming" },
+  { id: "unknown", title: "Unknown" },
 ];
 
 export const GENRE_MODE_OPTIONS: Option[] = [
@@ -567,17 +572,43 @@ query get_comicNode($id: ID!) {
   get_comicNode(id: $id) {
     data {
       id name subName altNames
+      titleId: title_id
       originalLanguage translatedLanguage
       originalStatus uploadStatus readDirection
+      originalPubFrom { y }
+      originalPubTill { y }
+      originalPubZone
       type demographics contentRating genres tags
       authorNodes { data { name } }
       artistNodes { data { name } }
       publisherNodes { data { name } }
       tagNodes { data { name } }
       summary { html }
+      extraInfo { text }
+      chapterNode_up_to { data { dname } }
       urlPath urlCover
       score_val follows comments_total chaps_normal
       views { field count }
+    }
+  }
+}`;
+
+/**
+ * The work behind an edition, which is where the site files its tracking ids.
+ *
+ * A comic is one team's take on a title; the ids belong to the title, so a detail page has
+ * to ask twice to carry them. Only the fields we read are asked for: this endpoint is a
+ * second round trip on a page that already has what it needs to draw.
+ */
+export const TITLE_NODE_QUERY = `
+query get_title_titleNode($id: ID!) {
+  get_title_titleNode(id: $id) {
+    data {
+      isMerged: is_merged
+      mergedTo: merged_to
+      trackingSites: tracking_sites {
+        anilist myanimelist mangaupdates kitsu animeplanet shikimori mangabaka
+      }
     }
   }
 }`;
@@ -628,6 +659,8 @@ export type NamedNode = { data?: { name?: string | null } | null };
 export type ComicData = {
   id: string;
   name: string;
+  /** The work this edition is one of, and the only id the tracking endpoint answers to. */
+  titleId?: string | null;
   /** The team behind this edition. A title published by several has one comic each. */
   subName?: string | null;
   altNames?: string[] | null;
@@ -653,7 +686,16 @@ export type ComicData = {
   publisherNodes?: NamedNode[] | null;
   /** The site's own wording for its tags, where `genres` and `tags` carry bare slugs. */
   tagNodes?: NamedNode[] | null;
+  /** When the work itself ran, which is not when this edition was translated. */
+  originalPubFrom?: { y?: number | null } | null;
+  originalPubTill?: { y?: number | null } | null;
+  /** Where it ran, in the site's own word for the region. */
+  originalPubZone?: string | null;
   summary?: { html?: string | null } | null;
+  /** Notes the site keeps beside the summary rather than inside it. */
+  extraInfo?: { text?: string | null } | null;
+  /** How far this edition has got, named rather than counted. */
+  chapterNode_up_to?: { data?: { dname?: string | null } | null } | null;
   // The API has been seen sending this as a string as well as a number.
   score_val?: number | string | null;
   follows?: number | null;
@@ -716,6 +758,26 @@ export type RecentlyAddedResponse = {
 
 export type ComicNodeResponse = { get_comicNode?: ComicNode | null };
 
+/** The ids the site holds for a work elsewhere, each either an id or a whole link. */
+export type TrackingSites = {
+  anilist?: string | null;
+  myanimelist?: string | null;
+  mangaupdates?: string | null;
+  kitsu?: string | null;
+  animeplanet?: string | null;
+  shikimori?: string | null;
+  mangabaka?: string | null;
+};
+
+export type TitleNodeData = {
+  /** Set once the site has folded this work into another; `mergedTo` is where it went. */
+  isMerged?: boolean | null;
+  mergedTo?: string | null;
+  trackingSites?: TrackingSites | null;
+};
+
+export type TitleNodeResponse = { get_title_titleNode?: { data?: TitleNodeData | null } | null };
+
 export type ChapterListPage = {
   paging?: { next?: number | null; total?: number | null } | null;
   items?: { data: ChapterData }[] | null;
@@ -749,10 +811,8 @@ export type BrowseSelect = {
   incContentRatings: string[];
   releaseYearMin: number | null;
   releaseYearMax: number | null;
-  origStatus: string | null;
+  origStatus: string[];
   chapCount: string;
-  /** Where the site has got to with an edition, sent only where a reader picked one. */
-  siteStatus?: string;
   /**
    * Asks the site to stand its own account-level filtering aside.
    *

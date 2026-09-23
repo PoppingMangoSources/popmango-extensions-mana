@@ -38,6 +38,7 @@ import {
   type ComicData,
   type NamedNode,
   type TitleNode,
+  type TrackingSites,
 } from "./model.ts";
 
 function absoluteUrl(target: string | null | undefined): string {
@@ -101,7 +102,10 @@ function statusLabel(status: string | null | undefined): string {
 
 function parseStatus(status: string | null | undefined): PublicationStatus | undefined {
   switch ((status ?? "").toLowerCase()) {
+    // The site renamed `ongoing` to `releasing`, but its older rows still carry the old
+    // word, so both have to map. `upcoming` and `unknown` have no counterpart here.
     case "ongoing":
+    case "releasing":
       return PublicationStatus.ONGOING;
     case "completed":
       return PublicationStatus.COMPLETED;
@@ -112,6 +116,51 @@ function parseStatus(status: string | null | undefined): PublicationStatus | und
     default:
       return undefined;
   }
+}
+
+/** The names Mana's trackers answer to, against the site's own spelling for each. */
+const TRACKER_KEYS: [keyof TrackingSites, string][] = [
+  ["anilist", "anilist"],
+  ["myanimelist", "mal"],
+  ["mangaupdates", "mangaupdates"],
+  ["kitsu", "kitsu"],
+  ["animeplanet", "animeplanet"],
+  ["shikimori", "shikimori"],
+  ["mangabaka", "mangabaka"],
+];
+
+/**
+ * The tracking ids a work carries, keyed the way the app's trackers look them up.
+ *
+ * A value arrives either as the bare id or as the whole link the site would draw, so the
+ * last meaningful segment of a link is taken rather than the link itself: a tracker is
+ * handed an id to match on, not a page to open.
+ */
+export function parseTrackers(sites: TrackingSites | null | undefined): Record<string, string> {
+  const trackers: Record<string, string> = {};
+  if (!sites) return trackers;
+
+  for (const [field, key] of TRACKER_KEYS) {
+    const value = clean(sites[field] ?? "");
+    if (!value) continue;
+    const id = /^https?:\/\//i.test(value)
+      ? (value.split(/[?#]/)[0] ?? "").replace(/\/+$/, "").split("/").pop()
+      : value;
+    if (id) trackers[key] = id;
+  }
+
+  return trackers;
+}
+
+/** What the site prints as the original run: the years, and the place they ran in. */
+function publicationRun(comic: ComicData): string {
+  const from = comic.originalPubFrom?.y;
+  const till = comic.originalPubTill?.y;
+  const years = from ? (till && till !== from ? `${from} – ${till}` : String(from)) : "";
+  const zone = titleCase(clean(comic.originalPubZone ?? ""));
+
+  if (years && zone) return `${years} (${zone})`;
+  return years || zone;
 }
 
 /**
@@ -425,6 +474,7 @@ export function parseContent(
   comic: ComicData,
   cleanTitle: TitleCleaner = asIs,
   showTeam = true,
+  trackers: Record<string, string> = {},
 ): Content {
   // `tagNodes` is the site's own wording for the same things the slug lists name, so the
   // two overlap and are matched case-blind rather than by id.
@@ -468,13 +518,26 @@ export function parseContent(
     info.push({ key: "Comments", value: String(comic.comments_total) });
   }
   if (comic.chaps_normal != null) info.push({ key: "Chapters", value: String(comic.chaps_normal) });
+  const latest = clean(comic.chapterNode_up_to?.data?.dname ?? "");
+  if (latest) info.push({ key: "Up To", value: decodeEntities(latest) });
+  const run = publicationRun(comic);
+  if (run) info.push({ key: "Published", value: run });
+
+  // The site keeps its own notes — a licensing warning, a where-to-read-on note — out of the
+  // summary, and a reader who never opens the site would otherwise never see them.
+  const summary = [
+    summaryFromHtml(comic.summary?.html ?? ""),
+    clean(decodeEntities(comic.extraInfo?.text ?? "")),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const staff = staffItems(comic);
 
   return {
     title: displayTitle(comic, cleanTitle, showTeam),
     cover: absoluteUrl(comic.urlCover),
-    summary: summaryFromHtml(comic.summary?.html ?? ""),
+    summary,
     additionalTitles: (comic.altNames ?? [])
       .map((name) => decodeEntities(clean(name)))
       .filter(Boolean),
@@ -485,6 +548,7 @@ export function parseContent(
     contentRating: parseRating(comic),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),
+    ...(Object.keys(trackers).length > 0 ? { trackerInfo: trackers } : {}),
     ...(staff.length === 0
       ? {}
       : {

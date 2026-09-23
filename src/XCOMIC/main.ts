@@ -82,6 +82,7 @@ import {
   STATUS_OPTIONS,
   SectionID,
   SortID,
+  TITLE_NODE_QUERY,
   TITLE_VERSION_REGEX,
   TYPE_OPTIONS,
   setBaseUrl,
@@ -96,6 +97,8 @@ import {
   type RandomResponse,
   type ComicNodeResponse,
   type RecentlyAddedResponse,
+  type TitleNodeData,
+  type TitleNodeResponse,
 } from "./model.ts";
 import {
   parseChapters,
@@ -104,6 +107,7 @@ import {
   parseHighlight,
   parseTitleHighlight,
   parseTitleHighlights,
+  parseTrackers,
   teamOf,
   publishedAt,
   parseLanguage,
@@ -116,7 +120,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.21",
+  version: "1.1.22",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -231,14 +235,9 @@ class XCOMICSource
           id: "status",
           title: "Status",
           children: [
-            SearchPicker({
+            SearchMultiPicker({
               id: FilterID.OriginalStatus,
               title: "Original Work Status",
-              options: STATUS_OPTIONS,
-            }),
-            SearchPicker({
-              id: FilterID.UploadStatus,
-              title: "Upload Status",
               options: STATUS_OPTIONS,
             }),
             SearchPickerSheet({
@@ -510,16 +509,13 @@ class XCOMICSource
         excGenres: [...new Set([...genres.excluded, ...defaults.excGenres])],
         incGenresMode: filters.option(FilterID.IncludeMode) || "and",
         excGenresMode: filters.option(FilterID.ExcludeMode) || "or",
-        origStatus: filters.option(FilterID.OriginalStatus) || null,
+        origStatus: filters.options(FilterID.OriginalStatus),
         chapCount: filters.option(FilterID.ChapterCount),
         releaseYearMin: yearMin,
         releaseYearMax: yearMax,
-        // Both of these are left out entirely rather than sent empty: they are the two
-        // fields the site's own clients never send, and browse throws inside its resolver
-        // rather than saying which field it choked on.
-        ...(filters.option(FilterID.UploadStatus)
-          ? { siteStatus: filters.option(FilterID.UploadStatus) }
-          : {}),
+        // Left out entirely rather than sent empty: the site's own clients never send this
+        // one, and browse throws inside its resolver rather than saying which field it
+        // choked on.
         ...((await this.preferences.flag(PreferenceID.IgnoreGenreBlocklist))
           ? { ignoreGlobalGenres: true }
           : {}),
@@ -580,7 +576,7 @@ class XCOMICSource
       incContentRatings: [],
       releaseYearMin: null,
       releaseYearMax: null,
-      origStatus: null,
+      origStatus: [],
       chapCount: "",
       ...rest,
     };
@@ -625,7 +621,37 @@ class XCOMICSource
     const comic = data.get_comicNode?.data;
     if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);
 
-    return parseContent(comic, cleanTitle, showTeam);
+    return parseContent(comic, cleanTitle, showTeam, await this.trackers(comic.titleId));
+  }
+
+  /**
+   * The tracking ids the site holds for the work behind this edition.
+   *
+   * They live on the title rather than on the comic, so they cost a request the profile
+   * otherwise does not need — which is why a failure here is swallowed: a page without
+   * tracker links is a smaller loss than no page at all.
+   */
+  private async trackers(titleId: string | null | undefined): Promise<Record<string, string>> {
+    if (!titleId) return {};
+
+    try {
+      const title = await this.titleNode(titleId);
+      // A work the site has folded into another keeps its own row but not its ids; they
+      // moved to whatever it was merged into.
+      const surviving =
+        title?.isMerged && title.mergedTo && title.mergedTo !== titleId
+          ? ((await this.titleNode(title.mergedTo)) ?? title)
+          : title;
+
+      return parseTrackers(surviving?.trackingSites);
+    } catch {
+      return {};
+    }
+  }
+
+  private async titleNode(titleId: string): Promise<TitleNodeData | undefined> {
+    const data = await this.api.query<TitleNodeResponse>(TITLE_NODE_QUERY, { id: titleId });
+    return data.get_title_titleNode?.data ?? undefined;
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {

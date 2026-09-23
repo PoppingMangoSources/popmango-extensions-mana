@@ -941,7 +941,25 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.21)
+## XCOMIC (current: v1.1.22)
+
+### Added
+
+- A title carries the ids the site holds for it elsewhere — AniList, MyAnimeList,
+  MangaUpdates, Kitsu, Anime-Planet, Shikimori and MangaBaka — so a tracker finds its own
+  entry without the reader searching for it. Where the site has folded a work into another,
+  the ids of the surviving one are used.
+- The profile states how far the edition has got, the years the original ran, and any note
+  the site keeps beside the summary rather than inside it.
+
+### Fixed
+
+- The status filter matched nothing. The site renamed what it filters on — `ongoing` became
+  `releasing`, `pending` became `upcoming` — so the old words picked out no titles at all.
+  Several statuses can now be asked for at once, which is what the site itself offers, and
+  the Upload Status filter it no longer answers is gone.
+
+## XCOMIC (v1.1.21)
 
 ### Fixed
 
