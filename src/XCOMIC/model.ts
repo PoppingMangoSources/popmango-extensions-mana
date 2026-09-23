@@ -111,16 +111,6 @@ export const RECENTLY_ADDED_SIZE = 50;
 export const LATEST_UPLOADS_SIZE = 20;
 // The site's own home page draws six of these; a row in the app has space for more.
 export const RANDOM_SIZE = 24;
-/**
- * Titles scanned for the ones the site has marked hot, and how many pages of them.
- *
- * There is no endpoint for them: the mark rides on the comic, so the row is browse with
- * the unmarked titles dropped. Pages larger than the usual thirty-six are asked for
- * because only some of what comes back is kept, and there are two of them because one was
- * not enough — a single page of forty-eight held none the site had marked.
- */
-export const HOT_SIZE = 48;
-export const HOT_PAGES = 2;
 
 export const FilterID = {
   Types: "types",
@@ -379,7 +369,6 @@ export const SectionID = {
   MostFollows: "most_follows",
   Random: "random",
   LatestUploads: "latest_uploads",
-  Hot: "hot",
   MostChapters: "most_chapters",
   RecentlyAdded: "recently_added",
 } as const;
@@ -418,14 +407,6 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     id: SectionID.LatestUploads,
     title: "Latest Uploads",
     style: SectionStyle.DetailedVerticalListGrouped,
-  },
-  {
-    id: SectionID.Hot,
-    title: "Hot Comics",
-    style: SectionStyle.SimpleSingleRow,
-    // What the site has marked is not a list it will page through, and a second page of
-    // browse would mostly be titles it has not marked.
-    viewMore: false,
   },
   {
     id: SectionID.MostChapters,
@@ -503,7 +484,7 @@ const TEAM_FIELD = `
  * `subName` rides along with it: the label belongs to the edition, not to the work, so
  * asking for it on the title itself would answer nothing.
  */
-const titleFields = (editions = "") => `
+const TITLE_FIELDS = `
     data {
       id
       name: title
@@ -523,7 +504,7 @@ const titleFields = (editions = "") => `
       chaps_normal: total_chapters
       chapterPublishedAt: chap_last_public_at
     }
-    comicNodes { data { id name subName translatedLanguage chaps_normal${editions} } }`;
+    comicNodes { data { id name subName translatedLanguage chaps_normal } }`;
 
 /**
  * Browse, which the site keys by title rather than by comic.
@@ -536,28 +517,14 @@ const titleFields = (editions = "") => `
  */
 export const BROWSE_QUERY = `
 query get_title_browse_items($select: Title_Browse_Select) {
-  get_title_browse_items(select: $select) {${titleFields()}
-  }
-}`;
-
-/**
- * The same browse, asked which of the editions the site has marked.
- *
- * The marks sit on the comic rather than on the work, so they ride in beside the editions.
- * This is a query of its own rather than two more fields on the one above: browse is what
- * every other row and search is built on, and a field it turns out not to carry would take
- * all of them down rather than this row alone.
- */
-export const HOT_QUERY = `
-query get_title_browse_items($select: Title_Browse_Select) {
-  get_title_browse_items(select: $select) {${titleFields(" isHot: is_hot")}
+  get_title_browse_items(select: $select) {${TITLE_FIELDS}
   }
 }`;
 
 /** A handful of titles picked at random, which the site's own home page draws six of. */
 export const RANDOM_QUERY = `
 query get_title_randomList($select: Title_RandomList_Select) {
-  get_title_randomList(select: $select) {${titleFields()}
+  get_title_randomList(select: $select) {${TITLE_FIELDS}
   }
 }`;
 
