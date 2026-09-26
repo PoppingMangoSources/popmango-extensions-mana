@@ -82,6 +82,7 @@ import {
   STATUS_OPTIONS,
   SectionID,
   SortID,
+  TITLE_COMICS_QUERY,
   TITLE_NODE_QUERY,
   TITLE_VERSION_REGEX,
   TYPE_OPTIONS,
@@ -108,6 +109,7 @@ import {
   parseTitleHighlight,
   parseTitleHighlights,
   parseTrackers,
+  rankEditions,
   teamOf,
   publishedAt,
   parseLanguage,
@@ -120,7 +122,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.25",
+  version: "1.1.26",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -721,11 +723,25 @@ class XCOMICSource
     return { pages: pages.map((url) => ({ url })) };
   }
 
+  /**
+   * A link off the site, which names either one edition or the work behind several.
+   *
+   * `/source/…` is the edition page — what the site used to call `/comic/…` — and its id is
+   * the one everything here is keyed by. `/title/…` names the work instead, which nothing can
+   * open on its own, so it is turned into whichever of its editions the reader reads.
+   */
   async handleURL(url: string): Promise<DeepLinkContext | null> {
-    const contentId = /\/(?:comic|title|series)\/([^/?#]+)/i.exec(url)?.[1];
-    if (!contentId) return null;
+    const link = /\/(source|comic|title|series)\/([^/?#]+)/i.exec(url);
+    const kind = link?.[1]?.toLowerCase();
+    const linkedId = link?.[2];
+    if (!kind || !linkedId) return null;
 
     try {
+      await this.applyMirror();
+      const contentId =
+        kind === "title" || kind === "series" ? await this.editionOf(linkedId) : linkedId;
+      if (!contentId) return null;
+
       const content = await this.getContent(contentId);
       return {
         content: {
@@ -739,6 +755,22 @@ class XCOMICSource
     } catch {
       return null;
     }
+  }
+
+  /** Which edition of a work to open: the reader's language, longest run breaking a tie. */
+  private async editionOf(titleId: string): Promise<string | undefined> {
+    const data = await this.api.query<TitleNodeResponse>(TITLE_COMICS_QUERY, { id: titleId });
+    const title = data.get_title_titleNode?.data;
+
+    const languages = await this.preferences.strings(PreferenceID.Languages);
+    const ranked = rankEditions(
+      (title?.comicNodes ?? []).map((edition) => edition.data),
+      languages,
+    );
+
+    // The bare ids say nothing about language, so they are only a last resort — the site
+    // lists them newest first, which is the best guess available without asking again.
+    return ranked[0]?.id ?? title?.comicIds?.find((id) => id.trim() !== "");
   }
 }
 

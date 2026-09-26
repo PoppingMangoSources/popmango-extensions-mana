@@ -46,8 +46,15 @@ function absoluteUrl(target: string | null | undefined): string {
   return value ? resolveUrl(value, baseUrl()) : "";
 }
 
+/**
+ * Where an edition lives on the site.
+ *
+ * The site's own path is used wherever it gave one. Built by hand it is `/source/`, which is
+ * what it renamed `/comic/` to — an edition is one source's take on a work, and the work
+ * itself sits at `/title/` instead.
+ */
 function seriesUrl(comic: ComicData): string {
-  return absoluteUrl(comic.urlPath || `/comic/${comic.id}`);
+  return absoluteUrl(comic.urlPath || `/source/${comic.id}`);
 }
 
 function names(nodes: NamedNode[] | null | undefined): string[] {
@@ -412,14 +419,11 @@ export function parseHighlight(comic: ComicData, options: HighlightOptions = {})
  * The order is the reader's languages first, longest run breaking a tie. A title with no
  * editions at all is nothing a reader can open, and comes back empty.
  */
-export function parseTitleHighlights(
-  node: TitleNode,
+export function rankEditions(
+  candidates: readonly (ComicData | null | undefined)[],
   languages: readonly string[],
-  options: HighlightOptions = {},
-): Highlight[] {
-  const editions = (node.comicNodes ?? [])
-    .map((edition) => edition.data)
-    .filter((edition) => Boolean(edition?.id));
+): ComicData[] {
+  const editions = candidates.filter((edition): edition is ComicData => Boolean(edition?.id));
   if (editions.length === 0) return [];
 
   const preferred =
@@ -427,33 +431,42 @@ export function parseTitleHighlights(
       ? editions
       : editions.filter((edition) => languages.includes(edition.translatedLanguage ?? ""));
 
-  return [...(preferred.length > 0 ? preferred : editions)]
-    .sort((left, right) => {
-      const order =
-        languages.indexOf(left.translatedLanguage ?? "") -
-        languages.indexOf(right.translatedLanguage ?? "");
-      return order || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0);
-    })
-    .map((edition) =>
-      parseHighlight(
-        {
-          ...node.data,
-          id: edition.id,
-          name: edition.name || node.data.name,
-          // The publisher an edition came from belongs to the edition, so it has to be
-          // carried over rather than left behind on the work the tile was built from.
-          subName: edition.subName ?? null,
-          translatedLanguage: edition.translatedLanguage ?? null,
-          // The counts stay the work's, as the site prints them, except the run: a reader
-          // is about to open this edition, not every translation of it at once.
-          chaps_normal: edition.chaps_normal ?? node.data.chaps_normal ?? null,
-          // The title's `urlPath` points at the work, and a reader tapping through to the
-          // site should land on the edition the tile named.
-          urlPath: null,
-        },
-        { ...options, countChapters: true },
-      ),
-    );
+  return [...(preferred.length > 0 ? preferred : editions)].sort((left, right) => {
+    const order =
+      languages.indexOf(left.translatedLanguage ?? "") -
+      languages.indexOf(right.translatedLanguage ?? "");
+    return order || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0);
+  });
+}
+
+export function parseTitleHighlights(
+  node: TitleNode,
+  languages: readonly string[],
+  options: HighlightOptions = {},
+): Highlight[] {
+  return rankEditions(
+    (node.comicNodes ?? []).map((edition) => edition.data),
+    languages,
+  ).map((edition) =>
+    parseHighlight(
+      {
+        ...node.data,
+        id: edition.id,
+        name: edition.name || node.data.name,
+        // The publisher an edition came from belongs to the edition, so it has to be
+        // carried over rather than left behind on the work the tile was built from.
+        subName: edition.subName ?? null,
+        translatedLanguage: edition.translatedLanguage ?? null,
+        // The counts stay the work's, as the site prints them, except the run: a reader
+        // is about to open this edition, not every translation of it at once.
+        chaps_normal: edition.chaps_normal ?? node.data.chaps_normal ?? null,
+        // The work's own path is not the edition's, and a reader tapping through to the
+        // site should land on the one the tile named.
+        urlPath: edition.urlPath ?? null,
+      },
+      { ...options, countChapters: true },
+    ),
+  );
 }
 
 /**
@@ -642,7 +655,7 @@ export function parseChapters(
         date:
           parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ?? new Date(0),
         language: language || DefinedLanguages.ENGLISH,
-        ...(entry.urlPath ? { webUrl: absoluteUrl(entry.urlPath) } : {}),
+        webUrl: absoluteUrl(entry.urlPath || `/chapter/${entry.id}`),
         ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
       };
     });

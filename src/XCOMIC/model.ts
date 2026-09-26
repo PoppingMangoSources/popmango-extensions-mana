@@ -504,7 +504,7 @@ const TITLE_FIELDS = `
       chaps_normal: total_chapters
       chapterPublishedAt: chap_last_public_at
     }
-    comicNodes { data { id name subName translatedLanguage chaps_normal } }`;
+    comicNodes { data { id name subName translatedLanguage chaps_normal urlPath } }`;
 
 /**
  * Browse, which the site keys by title rather than by comic.
@@ -606,6 +606,26 @@ query get_title_titleNode($id: ID!) {
       trackingSites: tracking_sites {
         anilist myanimelist mangaupdates kitsu animeplanet shikimori mangabaka
       }
+    }
+  }
+}`;
+
+/**
+ * The editions of a work, for a link that names the work rather than one of them.
+ *
+ * The site publishes both: `/title/…` is the work and `/source/…` one edition of it. Only a
+ * comic id is openable, so a work's link has to be turned into one of its editions first.
+ *
+ * `comic_ids` is asked for beside them because it is the field the site's own clients read;
+ * the editions carry the language the choice is made on, and the bare ids stand in if this
+ * type turns out not to answer for them.
+ */
+export const TITLE_COMICS_QUERY = `
+query get_title_titleNode($id: ID!) {
+  get_title_titleNode(id: $id) {
+    data {
+      comicIds: comic_ids
+      comicNodes { data { id translatedLanguage chaps_normal } }
     }
   }
 }`;
@@ -774,6 +794,9 @@ export type TitleNodeData = {
   isMerged?: boolean | null;
   mergedTo?: string | null;
   trackingSites?: TrackingSites | null;
+  /** Every edition of the work, as bare ids and — where the type answers — as comics. */
+  comicIds?: string[] | null;
+  comicNodes?: ComicNode[] | null;
 };
 
 export type TitleNodeResponse = { get_title_titleNode?: { data?: TitleNodeData | null } | null };
