@@ -941,7 +941,18 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.25)
+## XCOMIC (current: v1.1.26)
+
+### Fixed
+
+- Links out to the site pointed at a path it no longer serves. An edition sits at `/source/`,
+  which is what the site renamed `/comic/` to, and a row now carries the path the site itself
+  gave it rather than one built from the id.
+- A link naming the work rather than one edition of it — `/title/…`, which is what the site's
+  own share button gives — opened nothing. It now resolves to whichever edition the reader
+  reads, and a link to the old `/comic/…` still opens.
+
+## XCOMIC (v1.1.25)
 
 ### Added
 
