@@ -31,13 +31,21 @@ export function decodeHex(hex: string): Uint8Array {
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /**
- * Decodes base64 to bytes.
+ * Decodes base64 to bytes, in either alphabet.
  *
  * `atob` is polyfilled in the runtime but yields a binary string; decoding
  * directly avoids the extra copy, and keeps this working if it ever is not.
+ *
+ * base64url's `-` and `_` are translated rather than dropped: a signing scheme hands its
+ * keys over in that alphabet, and discarding those two characters decoded to the wrong
+ * bytes and the wrong length — quietly, since what came back was still base64.
  */
 export function base64ToBytes(value: string): Uint8Array {
-  const clean = value.replace(/[^A-Za-z0-9+/=]/g, "").replace(/=+$/, "");
+  const clean = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .replace(/[^A-Za-z0-9+/=]/g, "")
+    .replace(/=+$/, "");
   const output = new Uint8Array(Math.floor((clean.length * 3) / 4));
 
   let outIndex = 0;
@@ -165,6 +173,28 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
     if (third === undefined) break;
 
     result += BASE64URL_ALPHABET[third & 0x3f];
+  }
+
+  return result;
+}
+
+/**
+ * Encodes bytes as padded base64 — what a page handed to the app as `raw` has to be,
+ * where `bytesToBase64Url` answers the shape a signature travels in.
+ */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let result = "";
+
+  for (let i = 0; i < bytes.length; i += 3) {
+    const first = bytes[i]!;
+    const second = bytes[i + 1];
+    const third = bytes[i + 2];
+
+    result += BASE64_ALPHABET[first >> 2];
+    result += BASE64_ALPHABET[((first & 0x03) << 4) | ((second ?? 0) >> 4)];
+    result +=
+      second === undefined ? "=" : BASE64_ALPHABET[((second & 0x0f) << 2) | ((third ?? 0) >> 6)];
+    result += third === undefined ? "=" : BASE64_ALPHABET[third & 0x3f];
   }
 
   return result;

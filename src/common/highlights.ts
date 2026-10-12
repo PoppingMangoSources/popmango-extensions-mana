@@ -95,6 +95,20 @@ export function statusPill(state: string | undefined | null): string {
 }
 
 /**
+ * A count, short enough to sit in a pill beside everything else.
+ *
+ * A count of none is nothing a site has said about a title, so it reads as absent rather
+ * than as a zero — otherwise a tile nobody has followed yet takes a pill saying so, and the
+ * rating or the type that should have had it never gets a look in.
+ */
+export function compactCount(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return "";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
+}
+
+/**
  * The first of these the site actually filled in, or `""` when it filled in none.
  *
  * A pill wants the best thing a site says about a title, and not every title has the best

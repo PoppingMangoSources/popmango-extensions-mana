@@ -83,3 +83,42 @@ export function aesCbcDecrypt(
 
   return output;
 }
+
+/**
+ * AES-CTR decryption.
+ *
+ * CTR is its own inverse, so this both encrypts and decrypts, and the ciphertext needs no
+ * block alignment. `counter` is the whole first counter block: a site that keeps a nonce in
+ * its leading bytes leaves the rest zero, and `crypto-js` steps the low 32 bits from there,
+ * which is the convention those sites are written against.
+ */
+export function aesCtrDecrypt(
+  ciphertext: Uint8Array,
+  key: Uint8Array,
+  counter: Uint8Array,
+): Uint8Array {
+  if (counter.length !== 16) {
+    throw new Error(`Invalid counter length ${counter.length} (expected 16)`);
+  }
+  if (key.length !== 16 && key.length !== 24 && key.length !== 32) {
+    throw new Error(`Invalid key length ${key.length} (expected 16, 24 or 32)`);
+  }
+
+  return toBytes(
+    CryptoJS.AES.decrypt(
+      CryptoJS.lib.CipherParams.create({ ciphertext: toWordArray(ciphertext) }),
+      toWordArray(key),
+      { iv: toWordArray(counter), mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.NoPadding },
+    ),
+  ).subarray(0, ciphertext.length);
+}
+
+/** SHA-256 of raw bytes. */
+export function sha256(data: Uint8Array): Uint8Array {
+  return toBytes(CryptoJS.SHA256(toWordArray(data)));
+}
+
+/** HMAC-SHA-256, as a request-signing scheme asks for it. */
+export function hmacSha256(key: Uint8Array, message: Uint8Array): Uint8Array {
+  return toBytes(CryptoJS.HmacSHA256(toWordArray(message), toWordArray(key)));
+}

@@ -18,6 +18,7 @@ import {
 
 import {
   clean,
+  compactCount,
   decodeEntities,
   panelMode,
   relativeTime,
@@ -212,20 +213,6 @@ function formatGenre(genre: string | null | undefined): string {
     .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
     .join(" ")
     .trim();
-}
-
-/**
- * Six figures of follows would push everything else off the row.
- *
- * A count of none is nothing the site has said about a title, so it reads as absent rather
- * than as a zero — otherwise a tile nobody has followed yet takes a pill saying so, and the
- * rating or the type that should have had it never gets a look in.
- */
-function compactCount(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return "";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return String(value);
 }
 
 /** Every view the site has counted, which is the bucket its own "Total" sort reads. */
