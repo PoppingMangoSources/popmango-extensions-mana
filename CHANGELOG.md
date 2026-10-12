@@ -36,6 +36,10 @@ were already here were renumbered to `1.1.0` in one go; before that they counted
   is shown once, as the site shows it.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
+- A build of the app that does not honour `responseEncoding` answers an image as text
+  rather than bytes. That is now named as the cause, rather than decoded into a page of
+  noise: the bytes above 0x7f are already replaced by the time the source sees them, so
+  there is nothing to recover.
 - Decrypting a page is three times faster than it was when the source was written. The
   reader cannot open a chapter until every encrypted page in it has been deciphered, and a
   two-megabyte page spent most of that time turning bytes back into base64 one character at

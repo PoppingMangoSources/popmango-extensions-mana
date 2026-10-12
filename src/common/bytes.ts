@@ -58,8 +58,14 @@ const BASE64_VALUES = (() => {
  * Read through a table by codepoint rather than by searching the alphabet for each
  * character, because a decrypted page is megabytes and the search was sixty-four
  * comparisons per character of it.
+ *
+ * `strict` is for a body that is base64 because the request asked for it to be — an image
+ * fetched with `responseEncoding: "base64"`. Skipping what it cannot read is right for a
+ * blob scraped out of a page, and wrong there: a host that does not honour the field
+ * answers UTF-8 text instead, every byte above 0x7f already replaced, and quietly dropping
+ * those characters turns an unreadable page into a plausible-looking one.
  */
-export function base64ToBytes(value: string): Uint8Array {
+export function base64ToBytes(value: string, strict = false): Uint8Array {
   const output = new Uint8Array(Math.floor((value.length * 3) / 4) + 2);
 
   let outIndex = 0;
@@ -69,7 +75,24 @@ export function base64ToBytes(value: string): Uint8Array {
   for (let i = 0; i < value.length; i++) {
     const code = value.charCodeAt(i);
     const index = code < 128 ? BASE64_VALUES[code]! : -1;
-    if (index < 0) continue;
+    if (index < 0) {
+      // `=` and the whitespace a server wraps a payload in are not the body being wrong.
+      if (
+        strict &&
+        code !== 0x3d &&
+        code !== 0x0a &&
+        code !== 0x0d &&
+        code !== 0x20 &&
+        code !== 0x09
+      ) {
+        throw new Error(
+          "The response came back as text rather than base64, which means this build of " +
+            "Mana does not honour `responseEncoding`. The bytes cannot be recovered; the " +
+            "app needs to be built against @mana-app/types 0.0.27 or later.",
+        );
+      }
+      continue;
+    }
 
     buffer = (buffer << 6) | index;
     bits += 6;

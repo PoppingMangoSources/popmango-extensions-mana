@@ -85,9 +85,14 @@ export function pageCipher(
   return { key, counter };
 }
 
-/** Decrypts one page's bytes into what the app can draw. */
+/**
+ * Decrypts one page's bytes into what the app can draw.
+ *
+ * The body is read strictly: it is base64 only because the request asked for it to be, so
+ * anything else means the host answered text and the bytes are already gone.
+ */
 export function decryptPage(body: string, cipher: PageCipher): string {
-  const bytes = base64ToBytes(body);
+  const bytes = base64ToBytes(body, true);
   if (bytes.length === 0) throw new Error("Toonkotsu served an empty page image");
   return bytesToBase64(aesCtrDecrypt(bytes, cipher.key, cipher.counter));
 }
