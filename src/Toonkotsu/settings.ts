@@ -12,18 +12,6 @@ export function sectionPreferenceKey(sectionId: string): string {
 export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): PreferenceSection[] {
   return [
     {
-      header: "Reader",
-      footer:
-        "Experimental: opens chapters before every page downloads. Turn off if pages stay blank, then reopen the chapter.",
-      fields: [
-        {
-          type: "toggle",
-          key: PreferenceID.LoadPagesAsNeeded,
-          title: "Load Pages as Needed",
-        },
-      ],
-    },
-    {
       header: "Content",
       footer:
         "Applies to the home page, browsing and search. Pornographic titles are only asked " +
