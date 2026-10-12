@@ -5,7 +5,20 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.2)
+## Toonkotsu (current: v1.0.3)
+
+### Added
+
+- An experimental Load Pages as Needed reader option, enabled by default. Chapters
+  return page URLs immediately; encrypted images are decoded through the image request's
+  response callback instead of preparing every image before the chapter opens.
+- Decryption metadata travels with each page in a URL fragment that is removed before
+  requesting the image. Cached page links and concurrent requests keep their own keys.
+- Turning Load Pages as Needed off restores the eight-slot reader from v1.0.2 for app
+  builds whose native image loader does not run response callbacks. Native app support
+  for the experimental path still needs device testing.
+
+## Toonkotsu (v1.0.2)
 
 ### Changed
 
