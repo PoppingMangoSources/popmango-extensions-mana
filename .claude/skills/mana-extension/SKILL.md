@@ -214,8 +214,9 @@ The failures this repo has actually shipped, each silent:
       from an ordinary error
 - [ ] Identical requests in flight share one promise, so a refresh does not ask twice
 - [ ] No cap on a section that already matches the default page size
-- [ ] A new source starts at `1.0.0`; an existing one bumps by one **patch** digit,
-      whatever changed — the minor digit moves only when it is asked for by name
+- [ ] A new source starts at `1.0.0`; **every** push that changes one bumps its **patch**
+      digit, whatever changed — never batch pushes under a number, and move the minor digit
+      only when it is asked for by name
 
 ## Performance
 

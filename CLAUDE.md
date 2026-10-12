@@ -73,13 +73,19 @@ than assuming a green local build means anything about the live site.
 
 **A new source starts at `1.0.0`** and counts up from there.
 
-After that a release is the next **patch** digit: `1.0.0` → `1.0.1` → `1.0.2`, whatever it
-contains — a fix, a new section, a new setting, a rewritten home page. Mixed bump sizes
-make the history confusing, and the app treats them all alike, so the size of a change is
-never the reason to move a bigger digit. **Never `2.0.0`.**
+**Every push that changes a source bumps its patch digit**: `1.0.0` → `1.0.1` → `1.0.2`. Not
+every milestone, not every time the work feels finished — every push. Pushing `main`
+publishes, so a build nobody can name is a build nobody can report a bug against, and two
+different ones answering to the same number is the worst of both. A new source is no
+exception: it is released the moment it is pushed, and the next fix to it is `1.0.1`.
 
-The minor digit moves only when it is asked for by name. It is not a judgement call: no
-release is big enough to earn one on its own.
+The digit is the same size whatever the push contains — a selector fix, a new section, a new
+setting, a rewritten home page. Mixed bump sizes make the history confusing, and the app
+treats them all alike, so the size of a change is never the reason to move a bigger digit.
+**Never `2.0.0`.**
+
+The minor digit — `1.0.4` → `1.1.0` — moves only when it is asked for by name. It is not a
+judgement call: no change is big enough to earn one on its own.
 
 The sources already here were set to `1.1.0` in one go when they stopped being a moving
 target — the patch counts had drifted from `1.0.5` to `1.0.38` while each was still finding

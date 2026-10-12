@@ -41,13 +41,19 @@ class really declares it and that `Target` extends the class you edited.
 
 **A new source starts at `1.0.0`** and counts up from there.
 
-**After that, only ever bump the patch digit: `1.0.0` → `1.0.1` → `1.0.2`.** Never `2.0.0`.
-Every release is the next patch, whatever it contains — a selector fix, a new section, a
+**Every push that changes a source bumps its patch digit: `1.0.0` → `1.0.1` → `1.0.2`.**
+Never `2.0.0`. Pushing `main` publishes, so each push is a release whether or not it feels
+like one — batching several under one number leaves two different builds answering to it,
+and a reader reporting a bug against the earlier one. That includes a source's own first
+days: once `1.0.0` is pushed, the next fix to it is `1.0.1`, not more of `1.0.0`.
+
+The digit is the same size whatever the push contains — a selector fix, a new section, a
 new preference, a reworked home page. Mixed bump sizes make the history confusing and messy
 to read, and nothing in the app treats a minor bump differently, so how big a change feels
 is never a reason to move a bigger digit.
 
-The minor digit moves only when it is asked for by name. Never decide one alone.
+The minor digit — `1.0.4` → `1.1.0` — moves only when it is asked for by name. Never decide
+one alone.
 
 The sources already in the repository were set to `1.1.0` in one go once they stopped being
 a moving target — the counts had spread from `1.0.5` to `1.0.38` while each was still
