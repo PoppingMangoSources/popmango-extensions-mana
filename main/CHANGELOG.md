@@ -5,7 +5,18 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.3)
+## Toonkotsu (current: v1.0.4)
+
+### Fixed
+
+- Restored the eight-slot reader that decrypts images before returning them to the app.
+  Device testing of v1.0.3 showed successful image downloads followed by native image
+  decoder failures; the experimental response callback did not deliver usable images.
+- Removed the experimental Load Pages as Needed option and its page-link metadata. No
+  setting needs changing to use the restored reader. The v1.0.2 scheduling, request sharing
+  and page-validation improvements remain.
+
+## Toonkotsu (v1.0.3)
 
 ### Added
 
