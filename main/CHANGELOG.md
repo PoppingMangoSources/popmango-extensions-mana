@@ -36,6 +36,10 @@ were already here were renumbered to `1.1.0` in one go; before that they counted
   is shown once, as the site shows it.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
+- Decrypting a page is three times faster than it was when the source was written. The
+  reader cannot open a chapter until every encrypted page in it has been deciphered, and a
+  two-megabyte page spent most of that time turning bytes back into base64 one character at
+  a time rather than on the cipher.
 
 ## MangaDex (current: v1.1.2)
 
