@@ -5,7 +5,28 @@ contains, and the minor digit moves only when it is asked for by name. The sourc
 were already here were renumbered to `1.1.0` in one go; before that they counted up from
 `1.0.0`.
 
-## Toonkotsu (current: v1.0.0)
+## Toonkotsu (current: v1.0.1)
+
+### Fixed
+
+- A chapter took far too long to open. The reader cannot draw a page until every encrypted
+  page in the chapter has been deciphered — the app gives a source no way to do that one
+  page at a time — so all of that work lands before anything appears, and these chapters
+  run from fourteen to sixty-seven pages of full-length strips.
+  - Page images were queueing behind the API's five-a-second limit. They come off a static
+    CDN rather than the API and now have a client of their own, with how many are in flight
+    bounded directly instead: eight at a time.
+  - Deciphering is four times faster. Turning the bytes back into base64 was appending to a
+    string four times per three bytes, reading them searched the alphabet once per
+    character, and the cipher itself was paying `crypto-js` to convert a page into four
+    hundred thousand boxed numbers and back. A megabyte-and-a-half page now takes 126ms
+    through the whole path rather than 570ms.
+- A build of the app that does not honour `responseEncoding` answers an image as text
+  rather than bytes. That is now named as the cause, rather than decoded into a page of
+  noise: the bytes above 0x7f are already replaced by the time the source sees them, so
+  there is nothing to recover.
+
+## Toonkotsu (v1.0.0)
 
 ### Added
 
@@ -36,23 +57,6 @@ were already here were renumbered to `1.1.0` in one go; before that they counted
   is shown once, as the site shows it.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
-- Page images no longer queue behind the API's five-a-second limit. A chapter here runs to
-  between fourteen and sixty-seven pages, and every one of them has to be deciphered before
-  the reader can open it, so a limit meant for the API was spending seconds asleep on a CDN
-  that did not need protecting. Pages have a client of their own now, with how many are in
-  flight bounded directly instead — eight at a time.
-- Deciphering a page is faster again: the cipher is written out rather than handed to
-  `crypto-js`, which speaks in arrays of numbers and spent longer converting a page into
-  them and back than it did encrypting. A page and a half of megabyte now takes 126ms
-  through the whole path, against 570ms when the source was written.
-- A build of the app that does not honour `responseEncoding` answers an image as text
-  rather than bytes. That is now named as the cause, rather than decoded into a page of
-  noise: the bytes above 0x7f are already replaced by the time the source sees them, so
-  there is nothing to recover.
-- Decrypting a page is three times faster than it was when the source was written. The
-  reader cannot open a chapter until every encrypted page in it has been deciphered, and a
-  two-megabyte page spent most of that time turning bytes back into base64 one character at
-  a time rather than on the cipher.
 
 ## MangaDex (current: v1.1.2)
 
