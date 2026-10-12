@@ -52,7 +52,7 @@ import {
   withCovers,
   type PreferenceValue,
 } from "../common/index.ts";
-import { ToonkotsuApi, catalogueUrl } from "./client.ts";
+import { ToonkotsuApi, catalogueUrl, pageImageRequest } from "./client.ts";
 import {
   BASE_URL,
   CONTENT_RATING_OPTIONS,
@@ -99,6 +99,7 @@ import {
 import {
   decryptPage,
   deriveSession,
+  encryptedPageUrl,
   pageCipher,
   parseReaderKey,
   signPath,
@@ -109,7 +110,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.2",
+  version: "1.0.3",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -592,17 +593,20 @@ class ToonkotsuSource
 
   private async loadChapter(chapterId: string): Promise<ChapterData> {
     const path = `/api/manga/chapter/${chapterId}`;
+    const mode = this.preferences.flag(PreferenceID.LoadPagesAsNeeded);
 
     // Two attempts: the first may be carrying a session the site has just expired, and a
     // fresh one is all that usually takes. A second refusal is the secret itself.
     for (let attempt = 0; attempt < 2; attempt++) {
-      const session = await this.readerSession();
+      const [session, loadAsNeeded] = await Promise.all([this.readerSession(), mode]);
       const { status, body } = await this.api.get(`${BASE_URL}${path}`, {
         "x-sig": signPath(session, path),
       });
 
       if (status >= 200 && status < 300) {
-        return { pages: await this.chapterPages(body as ChapterPagesResponse, session) };
+        return {
+          pages: await this.chapterPages(body as ChapterPagesResponse, session, loadAsNeeded),
+        };
       }
 
       const limit = status === 429 ? (body as ReaderLimit | undefined) : undefined;
@@ -619,17 +623,15 @@ class ToonkotsuSource
   }
 
   /**
-   * The pages of a chapter, decrypted where the site encrypted them.
+   * Page metadata is kept in each URL so cached pages do not depend on instance state.
    *
-   * An unencrypted page is handed over as a URL for the app to fetch itself. An encrypted
-   * one has to come through here — the bytes are AES-CTR ciphertext, and nothing downstream
-   * has the key — so it is fetched, decrypted and passed on as the image itself. Workers
-   * refill each free slot instead of waiting for the slowest image in a batch. The app
-   * still needs the complete result before opening the chapter.
+   * The experimental path relies on the native image loader executing transformResponse.
+   * The existing worker path remains available for hosts that ignore that callback.
    */
   private async chapterPages(
     body: ChapterPagesResponse,
     session: ReaderSession,
+    loadAsNeeded: boolean,
   ): Promise<ChapterPage[]> {
     const wrap = body?.wrap;
     if (wrap != null && wrap !== "" && wrap !== "v1") {
@@ -651,6 +653,12 @@ class ToonkotsuSource
         : `${BASE_URL}${src.startsWith("/") ? "" : "/"}${src}`;
       return { url, cipher: pageCipher(page, wrap, session) };
     });
+
+    if (loadAsNeeded) {
+      return prepared.map(({ url, cipher }) => ({
+        url: cipher ? encryptedPageUrl(url, cipher) : url,
+      }));
+    }
 
     const pages: ChapterPage[] = [];
     let cursor = 0;
@@ -677,13 +685,7 @@ class ToonkotsuSource
   }
 
   async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return {
-      url: imageURL,
-      headers: {
-        referer: `${BASE_URL}/`,
-        accept: "image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8",
-      },
-    };
+    return pageImageRequest(imageURL);
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {

@@ -60,6 +60,37 @@ function unwrapPageKey(session: ReaderSession, page: ReaderPage): Uint8Array {
 /** What a page needs before it can be drawn: nothing, or a key and the counter block. */
 export type PageCipher = { key: Uint8Array; counter: Uint8Array };
 
+// A fragment survives page caching without sending the decryption key to the CDN.
+export function encryptedPageUrl(url: string, cipher: PageCipher): string {
+  return `${url.split("#", 1)[0]}#tk=${bytesToBase64Url(cipher.key)}.${bytesToBase64Url(cipher.counter.subarray(0, 8))}`;
+}
+
+export function imageCipher(imageURL: string): { url: string; cipher?: PageCipher } {
+  const marker = imageURL.indexOf("#tk=");
+  if (marker < 0) return { url: imageURL };
+
+  const parts = imageURL.slice(marker + 4).split(".");
+  const [encodedKey = "", encodedNonce = ""] = parts;
+  if (parts.length !== 2 || !/^[A-Za-z0-9_-]+$/.test(encodedKey + encodedNonce)) {
+    throw new Error("Toonkotsu's page link has invalid encryption metadata. Reopen the chapter.");
+  }
+
+  const key = base64ToBytes(encodedKey, true);
+  const nonce = base64ToBytes(encodedNonce, true);
+  if (
+    ![16, 24, 32].includes(key.length) ||
+    nonce.length !== 8 ||
+    bytesToBase64Url(key) !== encodedKey ||
+    bytesToBase64Url(nonce) !== encodedNonce
+  ) {
+    throw new Error("Toonkotsu's page link has invalid encryption metadata. Reopen the chapter.");
+  }
+
+  const counter = new Uint8Array(16);
+  counter.set(nonce);
+  return { url: imageURL.slice(0, marker), cipher: { key, counter } };
+}
+
 export function pageCipher(
   page: ReaderPage,
   wrap: string | null | undefined,

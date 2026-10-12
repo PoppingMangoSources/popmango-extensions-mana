@@ -4,6 +4,35 @@ import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from 
 
 import { challengedUrl } from "../common/index.ts";
 import { BASE_URL, type CatalogueParams } from "./model.ts";
+import { decryptPage, imageCipher } from "./reader.ts";
+
+export function pageImageRequest(imageURL: string): NetworkRequest {
+  const { url, cipher } = imageCipher(imageURL);
+  return {
+    url,
+    headers: {
+      referer: `${BASE_URL}/`,
+      accept: "image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8",
+    },
+    ...(cipher
+      ? {
+          responseEncoding: "base64" as const,
+          // Capture this page's cipher; image requests can finish in any order.
+          transformResponse: async (response: NetworkResponse): Promise<NetworkResponse> => {
+            if (isCloudflareChallenge(response)) {
+              throw new CloudflareError(challengedUrl(response, BASE_URL));
+            }
+            if (response.status < 200 || response.status >= 300) {
+              throw new Error(
+                `Toonkotsu would not serve a page image (HTTP ${response.status}): ${url}`,
+              );
+            }
+            return { ...response, data: decryptPage(response.data, cipher) };
+          },
+        }
+      : {}),
+  };
+}
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
   const headers = response.headers ?? {};

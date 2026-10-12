@@ -33,9 +33,9 @@ export function latestYear(): number {
 }
 
 /**
- * How many page images are fetched and decrypted at once.
+ * How many images the compatibility reader fetches and decrypts at once.
  *
- * Every page of a chapter has to be deciphered before the reader can open it, and chapters
+ * In that mode every page has to be deciphered before the reader can open it, and chapters
  * here run past sixty pages — so this is what decides how long that takes. It is the only
  * limit on them: they come off a static CDN rather than the API, and this is roughly what a
  * browser opens in parallel for the same page.
@@ -62,6 +62,7 @@ export const FilterID = {
 } as const;
 
 export const PreferenceID = {
+  LoadPagesAsNeeded: "load-pages-as-needed",
   ContentRatings: "content-ratings",
   Types: "types",
   HiddenTags: "hidden-tags",
@@ -230,6 +231,7 @@ export const STATUS_NAMES: Record<string, string> = {
 export const FACETS_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
+  [PreferenceID.LoadPagesAsNeeded]: true,
   [PreferenceID.ContentRatings]: DEFAULT_CONTENT_RATINGS,
   [PreferenceID.Types]: TYPE_OPTIONS.map((option) => option.id),
   [PreferenceID.HiddenTags]: [] as string[],
