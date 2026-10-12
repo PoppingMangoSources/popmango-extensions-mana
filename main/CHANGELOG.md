@@ -36,6 +36,12 @@ were already here were renumbered to `1.1.0` in one go; before that they counted
   is shown once, as the site shows it.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
+- Opening a chapter was slow for the reason that mattered most: page images were being
+  fetched through the same five-a-second limit as the API. A chapter here runs to sixty-odd
+  pages, so that was twelve seconds of deliberate sleeping before anything could be drawn.
+  Pages come off a static CDN rather than the API and now have a client of their own, with
+  how many are in flight bounded directly instead — eight at a time rather than five a
+  second.
 - A build of the app that does not honour `responseEncoding` answers an image as text
   rather than bytes. That is now named as the cause, rather than decoded into a page of
   noise: the bytes above 0x7f are already replaced by the time the source sees them, so

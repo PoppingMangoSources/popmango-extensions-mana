@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "2ed0dfdd2ed0dfdd2ed0dfdd2ed0dfdd2ed0dfdd2ed0dfdd2ed0dfdd2ed0dfdd"
+      "hash": "0426b16e0426b16e0426b16e0426b16e0426b16e0426b16e0426b16e0426b16e"
     },
     {
       "id": "kagane",
@@ -44,7 +44,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "4074bf204074bf204074bf204074bf204074bf204074bf204074bf204074bf20"
+      "hash": "15ca90f315ca90f315ca90f315ca90f315ca90f315ca90f315ca90f315ca90f3"
     },
     {
       "id": "mangadex",
@@ -66,7 +66,7 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "7c13e8a67c13e8a67c13e8a67c13e8a67c13e8a67c13e8a67c13e8a67c13e8a6"
+      "hash": "5941e8cc5941e8cc5941e8cc5941e8cc5941e8cc5941e8cc5941e8cc5941e8cc"
     },
     {
       "id": "mangafire",
@@ -92,7 +92,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 6298637,
-      "hash": "3348977033489770334897703348977033489770334897703348977033489770"
+      "hash": "089e6908089e6908089e6908089e6908089e6908089e6908089e6908089e6908"
     },
     {
       "id": "mangaupdates",
@@ -114,7 +114,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "125b606a125b606a125b606a125b606a125b606a125b606a125b606a125b606a"
+      "hash": "184ece39184ece39184ece39184ece39184ece39184ece39184ece39184ece39"
     },
     {
       "id": "mangago",
@@ -136,7 +136,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "55957bc555957bc555957bc555957bc555957bc555957bc555957bc555957bc5"
+      "hash": "2aeb4cc42aeb4cc42aeb4cc42aeb4cc42aeb4cc42aeb4cc42aeb4cc42aeb4cc4"
     },
     {
       "id": "rinkocomics",
@@ -158,7 +158,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "4c6f7cb84c6f7cb84c6f7cb84c6f7cb84c6f7cb84c6f7cb84c6f7cb84c6f7cb8"
+      "hash": "7719ab447719ab447719ab447719ab447719ab447719ab447719ab447719ab44"
     },
     {
       "id": "rokaricomics",
@@ -180,7 +180,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "795c9483795c9483795c9483795c9483795c9483795c9483795c9483795c9483"
+      "hash": "4eb265d64eb265d64eb265d64eb265d64eb265d64eb265d64eb265d64eb265d6"
     },
     {
       "id": "stonescape",
@@ -202,7 +202,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "6e20c2f56e20c2f56e20c2f56e20c2f56e20c2f56e20c2f56e20c2f56e20c2f5"
+      "hash": "67350e7e67350e7e67350e7e67350e7e67350e7e67350e7e67350e7e67350e7e"
     },
     {
       "id": "toonkotsu",
@@ -224,7 +224,7 @@
       "path": "Toonkotsu",
       "environment": "source",
       "intents": 6298637,
-      "hash": "5dafefc55dafefc55dafefc55dafefc55dafefc55dafefc55dafefc55dafefc5"
+      "hash": "77a5e19477a5e19477a5e19477a5e19477a5e19477a5e19477a5e19477a5e194"
     },
     {
       "id": "valirscans",
@@ -246,7 +246,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 6298925,
-      "hash": "3b8b66c33b8b66c33b8b66c33b8b66c33b8b66c33b8b66c33b8b66c33b8b66c3"
+      "hash": "10e1383910e1383910e1383910e1383910e1383910e1383910e1383910e13839"
     },
     {
       "id": "xcomic",
@@ -268,7 +268,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5d3c45765d3c45765d3c45765d3c45765d3c45765d3c45765d3c45765d3c4576"
+      "hash": "78193a3d78193a3d78193a3d78193a3d78193a3d78193a3d78193a3d78193a3d"
     }
   ]
 }
