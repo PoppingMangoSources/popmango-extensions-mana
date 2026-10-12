@@ -1,6 +1,6 @@
 # The `@mana-app/types` surface and the runtime that consumes it
 
-Verified against `@mana-app/types@0.0.26` and `@mana-app/dev@0.1.14` by reading the
+Verified against `@mana-app/types@0.0.27` and `@mana-app/dev@0.1.14` by reading the
 type declarations and the runtime embedded in `mana-dev`.
 
 ## How the app decides what your source can do
@@ -62,13 +62,19 @@ The source runs in a bare V8 / JavaScriptCore context, not Node and not a browse
   bundler-injected shim.
 - **`console` may not exist.** Do not rely on logging. A thrown `Error` message is the only
   diagnostic channel guaranteed to reach the user, so put real detail in it.
-- **`NetworkResponse.data` is always a `string`.** There is no binary response mode, so a
-  page served as windows-1252, Shift-JIS or any other non-UTF-8 encoding does not arrive
-  as mojibake — the request fails at the bridge, with a message naming serialisation or
-  Unicode. `getText(client, url)` in `src/common/network.ts` recovers those by re-reading
-  the page through the WebView, which decodes with the charset the page declares. What
-  comes back is the serialised DOM, so a byte the decoder could not map arrives as U+FFFD;
-  a parser that slices titles should cut at that character rather than pass it on.
+- **`NetworkResponse.data` is always a `string`.** It is UTF-8 text unless the request asks
+  otherwise, so a page served as windows-1252, Shift-JIS or any other non-UTF-8 encoding does
+  not arrive as mojibake — the request fails at the bridge, with a message naming
+  serialisation or Unicode. `getText(client, url)` in `src/common/network.ts` recovers those
+  by re-reading the page through the WebView, which decodes with the charset the page
+  declares. What comes back is the serialised DOM, so a byte the decoder could not map
+  arrives as U+FFFD; a parser that slices titles should cut at that character rather than
+  pass it on.
+- **`responseEncoding?: "text" | "base64"` on a request is the one way to get bytes.** It
+  defaults to `"text"`; `"base64"` hands back the body base64-encoded instead of
+  UTF-8-decoded, which is what makes an image, an archive or an encrypted blob survive the
+  bridge intact. A host built before 0.0.27 ignores the field and answers text, so a source
+  that depends on the bytes has to notice that rather than trust them.
 - **`onEnvironmentLoaded` is not awaited.** The runtime calls
   `target.onEnvironmentLoaded?.().catch(...)` and moves on, so anything it assigns can still
   be undefined when the first real method runs. Build the client lazily instead.
@@ -420,8 +426,10 @@ two callers cannot both observe the same tail. A single shared gate promise is n
 `ChapterData` is `{ pages?: ChapterPage[] }` where each page has `url` or a base64 `raw`.
 
 `Highlight` needs `id`, `title`, `cover`, and optionally `subtitle`, `badge`, `info`,
-`link`. A `link` carrying a `SearchRequest` makes the tile open a filtered list instead of
-a title — that is how a genre or character tile can open a pre-filtered list.
+`link`, `noninteractive`. A `link` carrying a `SearchRequest` makes the tile open a filtered
+list instead of a title — that is how a genre or character tile can open a pre-filtered
+list. `noninteractive` draws a tile that cannot be tapped, for a row that is showing rather
+than offering.
 
 **`badge` is a frosted pill drawn over the cover**, on every shape of tile — plain strips
 and heroes alike — and `PageSectionLabel` takes one too:
