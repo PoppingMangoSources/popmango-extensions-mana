@@ -3,6 +3,34 @@
 Versions only ever bump the patch digit — `1.1.0` → `1.1.1` → `1.1.2`. Never `1.2.0`. Every
 source was renumbered to `1.1.0` in one go; before that they counted up from `1.0.0`.
 
+## Toonkotsu (current: v1.1.0)
+
+### Added
+
+- A source for toonkotsu.com, reading its own API rather than its pages.
+- The home page is the site's own eight rows under its own names: Most Read, Trending, Top
+  Rated, Hidden Gems, Latest Updates, Recently Added, This Season and Completed. Most Read
+  leads as a hero carrying the site's rank; Trending and Hidden Gems draw their rows, where
+  the reads and the rating they are chosen on are worth printing. Each row can be turned
+  off, and one that is off costs no request.
+- The site's whole filter set: its tags under its own five headings, each includable or
+  excludable with a match mode for either side, plus demographic, publication status,
+  original language, content rating, author, a year range and a chapter-count range.
+  Fifteen sorts, with Best Match offered only once there is a word to rank against.
+- Content ratings, types and hidden tags are settings, and they narrow what the site is
+  asked for rather than what is thrown away afterwards — a reader who wants no pornographic
+  titles never requests one.
+- A pasted title link is looked up directly instead of being searched for, and a link
+  opened from elsewhere resolves to the title it names.
+- The profile carries the site's own grouping of a title's tags — genres, themes, cast,
+  setting and format — alongside the flat list the app filters on, and the wide hero image
+  the site draws behind a title rides along as a second cover.
+- Every upload is its own chapter, so a second team's take on a chapter already listed is
+  offered as a version of it rather than hidden.
+- Chapters are read through the site's own signed reader, and a page the site encrypted is
+  decrypted here: the key is unwrapped per page and the image deciphered before the app
+  ever sees it. A page the site left alone is handed over as a link, which costs nothing.
+
 ## MangaDex (current: v1.1.2)
 
 ### Added
