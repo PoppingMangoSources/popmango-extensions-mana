@@ -31,30 +31,46 @@ export function decodeHex(hex: string): Uint8Array {
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /**
+ * Where each base64 character stands in the alphabet, by its codepoint.
+ *
+ * Both alphabets are folded in, so base64url needs no rewriting pass, and `-1` marks every
+ * character that is not part of either — whitespace and line breaks included, which real
+ * sites do wrap their payloads in.
+ */
+const BASE64_VALUES = (() => {
+  const table = new Int8Array(128).fill(-1);
+  for (let i = 0; i < BASE64_ALPHABET.length; i++) table[BASE64_ALPHABET.charCodeAt(i)] = i;
+  table["-".charCodeAt(0)] = 62;
+  table["_".charCodeAt(0)] = 63;
+  return table;
+})();
+
+/**
  * Decodes base64 to bytes, in either alphabet.
  *
  * `atob` is polyfilled in the runtime but yields a binary string; decoding
  * directly avoids the extra copy, and keeps this working if it ever is not.
  *
- * base64url's `-` and `_` are translated rather than dropped: a signing scheme hands its
- * keys over in that alphabet, and discarding those two characters decoded to the wrong
- * bytes and the wrong length — quietly, since what came back was still base64.
+ * base64url's `-` and `_` decode as themselves rather than being dropped: a signing scheme
+ * hands its keys over in that alphabet, and discarding those two characters decoded to the
+ * wrong bytes and the wrong length — quietly, since what came back was still base64.
+ *
+ * Read through a table by codepoint rather than by searching the alphabet for each
+ * character, because a decrypted page is megabytes and the search was sixty-four
+ * comparisons per character of it.
  */
 export function base64ToBytes(value: string): Uint8Array {
-  const clean = value
-    .replace(/-/g, "+")
-    .replace(/_/g, "/")
-    .replace(/[^A-Za-z0-9+/=]/g, "")
-    .replace(/=+$/, "");
-  const output = new Uint8Array(Math.floor((clean.length * 3) / 4));
+  const output = new Uint8Array(Math.floor((value.length * 3) / 4) + 2);
 
   let outIndex = 0;
   let buffer = 0;
   let bits = 0;
 
-  for (const character of clean) {
-    const index = BASE64_ALPHABET.indexOf(character);
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    const index = code < 128 ? BASE64_VALUES[code]! : -1;
     if (index < 0) continue;
+
     buffer = (buffer << 6) | index;
     bits += 6;
     if (bits >= 8) {
@@ -178,24 +194,49 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
   return result;
 }
 
+/** Codepoints rather than characters: `String.fromCharCode` takes them a chunk at a time. */
+const BASE64_CODES = Uint8Array.from(BASE64_ALPHABET, (character) => character.charCodeAt(0));
+
+/**
+ * How many characters are built before they are turned into a string.
+ *
+ * `String.fromCharCode` is applied to a slice, so the chunk has to stay well inside the
+ * argument limit a runtime will accept — eight thousand is far below every engine's.
+ */
+const BASE64_CHUNK = 8192;
+
 /**
  * Encodes bytes as padded base64 — what a page handed to the app as `raw` has to be,
  * where `bytesToBase64Url` answers the shape a signature travels in.
+ *
+ * Built a chunk at a time rather than a character at a time: a decrypted page is megabytes,
+ * and appending to one string four times per three bytes spent half a second on a two
+ * megabyte image, which is most of what a reader waits for.
  */
 export function bytesToBase64(bytes: Uint8Array): string {
-  let result = "";
+  const parts: string[] = [];
+  const chunk = new Uint8Array(BASE64_CHUNK);
+  let at = 0;
+
+  const flush = (): void => {
+    parts.push(String.fromCharCode(...chunk.subarray(0, at)));
+    at = 0;
+  };
 
   for (let i = 0; i < bytes.length; i += 3) {
     const first = bytes[i]!;
     const second = bytes[i + 1];
     const third = bytes[i + 2];
 
-    result += BASE64_ALPHABET[first >> 2];
-    result += BASE64_ALPHABET[((first & 0x03) << 4) | ((second ?? 0) >> 4)];
-    result +=
-      second === undefined ? "=" : BASE64_ALPHABET[((second & 0x0f) << 2) | ((third ?? 0) >> 6)];
-    result += third === undefined ? "=" : BASE64_ALPHABET[third & 0x3f];
-  }
+    chunk[at++] = BASE64_CODES[first >> 2]!;
+    chunk[at++] = BASE64_CODES[((first & 0x03) << 4) | ((second ?? 0) >> 4)]!;
+    chunk[at++] =
+      second === undefined ? 0x3d : BASE64_CODES[((second & 0x0f) << 2) | ((third ?? 0) >> 6)]!;
+    chunk[at++] = third === undefined ? 0x3d : BASE64_CODES[third & 0x3f]!;
 
-  return result;
+    if (at >= BASE64_CHUNK) flush();
+  }
+  if (at > 0) flush();
+
+  return parts.join("");
 }
