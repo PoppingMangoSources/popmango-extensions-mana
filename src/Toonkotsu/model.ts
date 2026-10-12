@@ -40,7 +40,7 @@ export function latestYear(): number {
  * limit on them: they come off a static CDN rather than the API, and this is roughly what a
  * browser opens in parallel for the same page.
  */
-export const PAGE_REQUEST_BATCH = 8;
+export const PAGE_DOWNLOAD_CONCURRENCY = 8;
 
 export const FilterID = {
   Genres: "genres",

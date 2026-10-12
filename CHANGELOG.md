@@ -5,7 +5,19 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.1)
+## Toonkotsu (current: v1.0.2)
+
+### Changed
+
+- Encrypted page downloads now keep up to eight slots busy, starting the next page as
+  soon as one finishes instead of waiting for the slowest page in each batch. Page order
+  is preserved; the app still needs all encrypted pages prepared before opening a chapter.
+- Simultaneous opens of the same chapter share one load. Completed image data is not
+  cached, and a failed load drains its active requests before allowing a retry.
+- The full page list is checked before downloading images, so malformed page metadata
+  does not trigger a partial chapter download.
+
+## Toonkotsu (v1.0.1)
 
 ### Fixed
 

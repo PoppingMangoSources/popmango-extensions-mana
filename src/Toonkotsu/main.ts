@@ -13,6 +13,7 @@ import {
   SearchTextField,
   type Chapter,
   type ChapterData,
+  type ChapterPage,
   type ChapterSource,
   type Content,
   type DeepLinkContext,
@@ -62,7 +63,7 @@ import {
   FilterID,
   MATCH_MODE_OPTIONS,
   ORIGINAL_LANGUAGE_OPTIONS,
-  PAGE_REQUEST_BATCH,
+  PAGE_DOWNLOAD_CONCURRENCY,
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
   PreferenceID,
@@ -108,7 +109,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.1",
+  version: "1.0.2",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -149,6 +150,7 @@ class ToonkotsuSource
   // Recently-read cursors for the uploads feed, which repeats a title across pages.
   private readonly seenByPage = new Map<number, string[]>();
   private session: Promise<ReaderSession> | undefined;
+  private readonly chapterLoads = new Map<string, Promise<ChapterData>>();
   private build = READER_BUILD;
 
   async getSortOptions(): Promise<SortOption[]> {
@@ -575,7 +577,20 @@ class ToonkotsuSource
     return deriveSession(response);
   }
 
-  async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
+  getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
+    const running = this.chapterLoads.get(chapterId);
+    if (running) return running;
+
+    // A repeated open shares only work in flight, never a chapter's full image data
+    // after it finishes. Keeping that data cached would retain megabytes per chapter.
+    const request = this.loadChapter(chapterId).finally(() => {
+      if (this.chapterLoads.get(chapterId) === request) this.chapterLoads.delete(chapterId);
+    });
+    this.chapterLoads.set(chapterId, request);
+    return request;
+  }
+
+  private async loadChapter(chapterId: string): Promise<ChapterData> {
     const path = `/api/manga/chapter/${chapterId}`;
 
     // Two attempts: the first may be carrying a session the site has just expired, and a
@@ -608,40 +623,55 @@ class ToonkotsuSource
    *
    * An unencrypted page is handed over as a URL for the app to fetch itself. An encrypted
    * one has to come through here — the bytes are AES-CTR ciphertext, and nothing downstream
-   * has the key — so it is fetched, decrypted and passed on as the image itself. They go a
-   * few at a time: a long chapter fetched all at once is both a burst the site answers with
-   * a 429 and every page of it held in memory.
+   * has the key — so it is fetched, decrypted and passed on as the image itself. Workers
+   * refill each free slot instead of waiting for the slowest image in a batch. The app
+   * still needs the complete result before opening the chapter.
    */
   private async chapterPages(
     body: ChapterPagesResponse,
     session: ReaderSession,
-  ): Promise<ChapterData["pages"]> {
+  ): Promise<ChapterPage[]> {
     const wrap = body?.wrap;
     if (wrap != null && wrap !== "" && wrap !== "v1") {
       throw new Error("Toonkotsu's reader encryption has changed. The source needs an update.");
     }
 
     const listed = body?.chapter?.pages ?? [];
-    if (listed.length === 0) throw new Error("Toonkotsu listed no pages for this chapter");
-
-    const pages: ChapterData["pages"] = [];
-    for (let start = 0; start < listed.length; start += PAGE_REQUEST_BATCH) {
-      const batch = await Promise.all(
-        listed.slice(start, start + PAGE_REQUEST_BATCH).map(async (page, offset) => {
-          const src = clean(page?.src ?? "");
-          if (!src) throw new Error(`Toonkotsu page ${start + offset + 1} has no image`);
-
-          const url = /^https?:\/\//i.test(src)
-            ? src
-            : `${BASE_URL}${src.startsWith("/") ? "" : "/"}${src}`;
-
-          const cipher = pageCipher(page, wrap, session);
-          if (!cipher) return { url };
-          return { raw: decryptPage(await this.api.image(url), cipher) };
-        }),
-      );
-      pages.push(...batch);
+    if (!Array.isArray(listed) || listed.length === 0) {
+      throw new Error("Toonkotsu listed no pages for this chapter");
     }
+
+    // Validate the whole list before spending bandwidth on any images.
+    const prepared = listed.map((page, index) => {
+      const src = typeof page?.src === "string" ? clean(page.src) : "";
+      if (!src) throw new Error(`Toonkotsu page ${index + 1} has no image`);
+
+      const url = /^https?:\/\//i.test(src)
+        ? src
+        : `${BASE_URL}${src.startsWith("/") ? "" : "/"}${src}`;
+      return { url, cipher: pageCipher(page, wrap, session) };
+    });
+
+    const pages: ChapterPage[] = [];
+    let cursor = 0;
+    let failure: { error: unknown } | undefined;
+    const worker = async (): Promise<void> => {
+      while (cursor < prepared.length && !failure) {
+        const index = cursor++;
+        const { url, cipher } = prepared[index]!;
+        try {
+          pages[index] = cipher ? { raw: decryptPage(await this.api.image(url), cipher) } : { url };
+        } catch (error) {
+          failure ??= { error };
+        }
+      }
+    };
+
+    // Drain requests already started on failure, so a retry cannot overlap this load.
+    await Promise.all(
+      Array.from({ length: Math.min(PAGE_DOWNLOAD_CONCURRENCY, prepared.length) }, worker),
+    );
+    if (failure) throw failure.error;
 
     return pages;
   }
