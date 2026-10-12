@@ -9,6 +9,7 @@ import {
   SearchMultiPicker,
   SearchMultiPickerSheet,
   SearchPicker,
+  SearchStepper,
   SearchTextField,
   type Chapter,
   type ChapterData,
@@ -56,6 +57,7 @@ import {
   CONTENT_RATING_OPTIONS,
   DEMOGRAPHIC_OPTIONS,
   DISCOVER_SECTIONS,
+  EARLIEST_YEAR,
   FACETS_LIFETIME_MS,
   FilterID,
   MATCH_MODE_OPTIONS,
@@ -72,6 +74,7 @@ import {
   TAG_GROUPS,
   TYPE_OPTIONS,
   chapterUrl,
+  latestYear,
   type CatalogueParams,
   type ChapterPagesResponse,
   type FacetsResponse,
@@ -105,10 +108,10 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.0",
+  version: "1.0.0",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
-  rating: CatalogRating.EXPLICIT,
+  rating: CatalogRating.MIXED,
   supportedLanguages: [DefinedLanguages.ENGLISH],
   thumbnail: "Toonkotsu.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
@@ -197,43 +200,80 @@ class ToonkotsuSource
             }),
           ],
         }),
-        SearchMultiPicker({
-          id: FilterID.ContentRatings,
-          title: "Content Rating",
-          options: CONTENT_RATING_OPTIONS,
+        SearchGroup({
+          id: "series",
+          title: "Series",
+          children: [
+            SearchMultiPicker({
+              id: FilterID.ContentRatings,
+              title: "Content Rating",
+              options: CONTENT_RATING_OPTIONS,
+            }),
+            SearchMultiPicker({
+              id: FilterID.Demographics,
+              title: "Demographic",
+              options: DEMOGRAPHIC_OPTIONS,
+            }),
+            SearchMultiPicker({
+              id: FilterID.Statuses,
+              title: "Publication Status",
+              options: STATUS_OPTIONS.map(({ id, title }) => ({ id, title })),
+            }),
+            SearchMultiPickerSheet({
+              id: FilterID.Languages,
+              title: "Original Language",
+              options: ORIGINAL_LANGUAGE_OPTIONS,
+            }),
+          ],
         }),
-        SearchMultiPicker({
-          id: FilterID.Demographics,
-          title: "Demographic",
-          options: DEMOGRAPHIC_OPTIONS,
-        }),
-        SearchMultiPicker({
-          id: FilterID.Statuses,
-          title: "Publication Status",
-          options: STATUS_OPTIONS.map(({ id, title }) => ({ id, title })),
-        }),
-        SearchMultiPickerSheet({
-          id: FilterID.Languages,
-          title: "Original Language",
-          options: ORIGINAL_LANGUAGE_OPTIONS,
+        // Numbers are stepped rather than typed: there is nothing to mistype, nothing to
+        // validate, and a reader who never touches one leaves it at its bound, which is
+        // read as "not asked for" rather than sent as a filter nobody set.
+        SearchGroup({
+          id: "publication",
+          title: "Publication Year",
+          children: [
+            SearchStepper({
+              id: FilterID.YearFrom,
+              title: "From",
+              lowerBound: EARLIEST_YEAR,
+              upperBound: latestYear(),
+              step: 1,
+            }),
+            SearchStepper({
+              id: FilterID.YearTo,
+              title: "To",
+              lowerBound: EARLIEST_YEAR,
+              upperBound: latestYear(),
+              step: 1,
+            }),
+          ],
         }),
         SearchGroup({
-          id: "details",
-          title: "Details",
+          id: "chapter_count",
+          title: "Chapter Count",
+          children: [
+            SearchStepper({
+              id: FilterID.ChaptersMin,
+              title: "Minimum",
+              lowerBound: 0,
+              upperBound: 2000,
+              step: 10,
+            }),
+            SearchStepper({
+              id: FilterID.ChaptersMax,
+              title: "Maximum",
+              lowerBound: 0,
+              upperBound: 2000,
+              step: 10,
+            }),
+          ],
+        }),
+        SearchGroup({
+          id: "credits",
+          title: "Credits",
           children: [
             SearchTextField({ id: FilterID.Author, title: "Author", placeholder: "e.g. ONE" }),
-            SearchTextField({ id: FilterID.YearFrom, title: "Year From", placeholder: "2015" }),
-            SearchTextField({ id: FilterID.YearTo, title: "Year To", placeholder: "2024" }),
-            SearchTextField({
-              id: FilterID.ChaptersMin,
-              title: "Minimum Chapters",
-              placeholder: "10",
-            }),
-            SearchTextField({
-              id: FilterID.ChaptersMax,
-              title: "Maximum Chapters",
-              placeholder: "500",
-            }),
           ],
         }),
       ],
@@ -454,14 +494,10 @@ class ToonkotsuSource
         : {}),
       ...(statuses.length > 0 ? { status: statuses.join(",") } : {}),
       ...(filters.text(FilterID.Author) ? { author: filters.text(FilterID.Author) } : {}),
-      ...(filters.text(FilterID.YearFrom) ? { yearFrom: filters.text(FilterID.YearFrom) } : {}),
-      ...(filters.text(FilterID.YearTo) ? { yearTo: filters.text(FilterID.YearTo) } : {}),
-      ...(filters.text(FilterID.ChaptersMin)
-        ? { chaptersMin: filters.text(FilterID.ChaptersMin) }
-        : {}),
-      ...(filters.text(FilterID.ChaptersMax)
-        ? { chaptersMax: filters.text(FilterID.ChaptersMax) }
-        : {}),
+      ...stepped(filters, FilterID.YearFrom, "yearFrom", EARLIEST_YEAR),
+      ...stepped(filters, FilterID.YearTo, "yearTo", EARLIEST_YEAR),
+      ...stepped(filters, FilterID.ChaptersMin, "chaptersMin", 0),
+      ...stepped(filters, FilterID.ChaptersMax, "chaptersMax", 0),
       sort,
       order,
       page,
@@ -640,6 +676,12 @@ class ToonkotsuSource
       return null;
     }
   }
+}
+
+/** A stepper left at its bound is one the reader never set, so it asks for nothing. */
+function stepped(filters: FilterReader, id: string, param: string, unset: number): CatalogueParams {
+  const value = filters.number(id);
+  return Number.isFinite(value) && value !== unset ? { [param]: Math.floor(value) } : {};
 }
 
 /**

@@ -1,9 +1,11 @@
 # Changelog
 
-Versions only ever bump the patch digit — `1.1.0` → `1.1.1` → `1.1.2`. Never `1.2.0`. Every
-source was renumbered to `1.1.0` in one go; before that they counted up from `1.0.0`.
+A new source starts at `1.0.0`. After that a release is the next patch digit, whatever it
+contains, and the minor digit moves only when it is asked for by name. The sources that
+were already here were renumbered to `1.1.0` in one go; before that they counted up from
+`1.0.0`.
 
-## Toonkotsu (current: v1.1.0)
+## Toonkotsu (current: v1.0.0)
 
 ### Added
 
@@ -30,6 +32,10 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - Chapters are read through the site's own signed reader, and a page the site encrypted is
   decrypted here: the key is unwrapped per page and the image deciphered before the app
   ever sees it. A page the site left alone is handed over as a link, which costs nothing.
+- An upload the site lists both as a chapter's own release and again among its alternates
+  is shown once, as the site shows it.
+- Numbers in the filter form are stepped rather than typed — publication years and chapter
+  counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
 ## MangaDex (current: v1.1.2)
 
@@ -969,7 +975,17 @@ source was renumbered to `1.1.0` in one go; before that they counted up from `1.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.1.26)
+## XCOMIC (current: v1.2.0)
+
+### Fixed
+
+- The Genres filter could open empty. The list is read off the site's own search page, and
+  a page that cannot be read — or whose markup has moved — left nothing to pick, because
+  there was no bundled list behind it. The site's own genres and formats now ship with the
+  source and stand in when the page does not parse; the live list is still preferred where
+  it can be had.
+
+## XCOMIC (v1.1.26)
 
 ### Fixed
 

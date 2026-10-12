@@ -379,9 +379,17 @@ export function parseContent(
  * another. `index` numbers the run from its oldest, which is not the order they arrive in.
  */
 export function parseChapters({ chapters }: SeriesResponse): Chapter[] {
-  const releases = (chapters ?? []).flatMap((entry) =>
-    [entry, ...(entry.alts ?? [])].map((release) => ({ entry, release })),
-  );
+  // A chapter's own release sometimes appears in its `alts` as well, and the site draws
+  // that upload once — so the id decides, not the position it was listed in.
+  const seen = new Set<string>();
+  const releases = (chapters ?? [])
+    .flatMap((entry) => [entry, ...(entry.alts ?? [])].map((release) => ({ entry, release })))
+    .filter(({ release }) => {
+      const id = String(release.id);
+      if (!release.id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
 
   return releases.map(({ entry, release }, position) => {
     const { title, group } = parseLabel(release, entry.n);

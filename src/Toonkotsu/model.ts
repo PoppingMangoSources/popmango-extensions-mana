@@ -20,6 +20,18 @@ export const PAGE_SIZE = 42;
 export const READER_SECRET = "NO57DoQRq7oxY3MCO5_SNw4_3vFRsUq7";
 export const READER_BUILD = "1738e5282ffc19e6";
 
+/**
+ * The range the publication-year steppers run over.
+ *
+ * Nothing on the site predates the earliest, and a year at either bound is read as "not
+ * asked for" — a stepper has no empty state, so its bound has to be one.
+ */
+export const EARLIEST_YEAR = 1900;
+
+export function latestYear(): number {
+  return new Date().getFullYear() + 1;
+}
+
 /** Pages are fetched and decrypted here, so only a few are in flight at once. */
 export const PAGE_REQUEST_BATCH = 4;
 

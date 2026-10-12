@@ -66,6 +66,7 @@ import {
   DISCOVER_SECTIONS,
   FilterID,
   GENRE_MODE_OPTIONS,
+  GENRE_OPTIONS,
   LANGUAGE_OPTIONS,
   LATEST_UPLOADS_QUERY,
   LATEST_UPLOADS_SIZE,
@@ -122,7 +123,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.1.26",
+  version: "1.2.0",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -139,7 +140,7 @@ const config: SourceConfig = {
 
 /** What the filter form falls back to when the search page cannot be read. */
 const BUNDLED_TAXONOMY: FilterTaxonomy = {
-  genres: [],
+  genres: GENRE_OPTIONS,
   types: TYPE_OPTIONS,
   demographics: DEMOGRAPHIC_OPTIONS,
   contentRatings: CONTENT_RATING_OPTIONS,
@@ -185,8 +186,8 @@ class XCOMICSource
     await this.applyMirror();
     const parsed = parseFilterTaxonomy(await this.api.page(searchPageUrl()));
 
-    // Genres are the one list with no bundled stand-in, so a page that parsed to none of
-    // them did not really parse. Failing here keeps it out of the cache for a day.
+    // A page that listed none of them did not really parse, and is not worth remembering
+    // for a day — but the form still opens with the bundled list rather than empty.
     if (parsed.genres.length === 0) throw new Error("the search page listed no genres");
 
     return {
