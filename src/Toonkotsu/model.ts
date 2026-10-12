@@ -32,8 +32,15 @@ export function latestYear(): number {
   return new Date().getFullYear() + 1;
 }
 
-/** Pages are fetched and decrypted here, so only a few are in flight at once. */
-export const PAGE_REQUEST_BATCH = 4;
+/**
+ * How many page images are fetched and decrypted at once.
+ *
+ * Every page of a chapter has to be deciphered before the reader can open it, and chapters
+ * here run past sixty pages — so this is what decides how long that takes. It is the only
+ * limit on them: they come off a static CDN rather than the API, and this is roughly what a
+ * browser opens in parallel for the same page.
+ */
+export const PAGE_REQUEST_BATCH = 8;
 
 export const FilterID = {
   Genres: "genres",

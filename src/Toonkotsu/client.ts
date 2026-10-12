@@ -28,6 +28,7 @@ export type ApiResult = { status: number; body: unknown };
 
 export class ToonkotsuApi {
   private client: NetworkClient | undefined;
+  private pageClient: NetworkClient | undefined;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
@@ -93,6 +94,25 @@ export class ToonkotsuApi {
   }
 
   /**
+   * The client page images are fetched on, which is deliberately not the one above.
+   *
+   * The API's limit is there to be polite to the API. Pages come off a static CDN and there
+   * are dozens of them in a chapter — one ran to sixty-three — so putting them behind the
+   * same five-a-second counter spent twelve seconds asleep before a reader saw anything.
+   * How many are in flight is bounded by the caller instead, which is what a browser does.
+   */
+  private get pageHttp(): NetworkClient {
+    this.pageClient ??= new NetworkClientBuilder()
+      .setStatusValidator((status) => (status >= 200 && status < 400) || status === 429)
+      .addRequestInterceptor(async (request: NetworkRequest) => ({
+        ...request,
+        headers: { referer: `${BASE_URL}/`, ...request.headers },
+      }))
+      .build();
+    return this.pageClient;
+  }
+
+  /**
    * One page image, base64-encoded rather than decoded as text.
    *
    * An encrypted page is ciphertext, and text decoding would mangle every byte that is not
@@ -100,7 +120,7 @@ export class ToonkotsuApi {
    * know the field answers text, which the cipher then refuses rather than drawing noise.
    */
   async image(url: string): Promise<string> {
-    const response = await this.http.get(url, {
+    const response = await this.pageHttp.get(url, {
       headers: { accept: "image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8" },
       responseEncoding: "base64",
     });
