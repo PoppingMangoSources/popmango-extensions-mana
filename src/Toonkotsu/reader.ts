@@ -2,7 +2,133 @@
 
 import { aesCtrDecrypt, hmacSha256, sha256 } from "../common/aes.ts";
 import { base64ToBytes, bytesToBase64, bytesToBase64Url, utf8ToBytes } from "../common/index.ts";
-import { READER_SECRET, type ReaderKeyResponse, type ReaderPage } from "./model.ts";
+import {
+  READER_SECRET,
+  type BrowserReaderPage,
+  type BrowserReaderResult,
+  type ReaderKeyResponse,
+  type ReaderPage,
+} from "./model.ts";
+
+type BrowserReaderScope = {
+  atob(value: string): string;
+  fetch: (
+    url: string,
+    options: { credentials: "include"; referrer: string; signal: unknown },
+  ) => Promise<{
+    status: number;
+    headers: { get(name: string): string | null };
+    arrayBuffer(): Promise<ArrayBuffer>;
+  }>;
+  crypto?: {
+    subtle: {
+      importKey(
+        format: "raw",
+        key: Uint8Array,
+        algorithm: { name: "AES-CTR" },
+        extractable: boolean,
+        usages: string[],
+      ): Promise<unknown>;
+      decrypt(
+        algorithm: { name: "AES-CTR"; counter: Uint8Array; length: number },
+        key: unknown,
+        bytes: ArrayBuffer,
+      ): Promise<ArrayBuffer>;
+    };
+  };
+  Blob: new (parts: ArrayBuffer[]) => unknown;
+  FileReader: new () => {
+    result: string | ArrayBuffer | null;
+    onload: (() => void) | null;
+    onerror: (() => void) | null;
+    readAsDataURL(blob: unknown): void;
+  };
+  AbortController: new () => { signal: unknown; abort(): void };
+  setTimeout(fn: () => void, ms: number): number;
+  clearTimeout(id: number): void;
+};
+
+// Serialized into the WebView: every runtime value must come from the arguments or page.
+export async function readPagesInBrowser(
+  listed: BrowserReaderPage[],
+  concurrency: number,
+  origin: string,
+): Promise<BrowserReaderResult> {
+  const scope = globalThis as unknown as BrowserReaderScope;
+  const subtle = scope.crypto?.subtle;
+  if (!subtle || !scope.FileReader || !scope.Blob || !scope.AbortController) {
+    return { unsupported: true };
+  }
+
+  const decode = (value: string): Uint8Array => {
+    const binary = scope.atob(value);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  };
+  // FileReader encodes the bytes natively instead of looping over megabytes in JavaScript.
+  const encode = (bytes: ArrayBuffer): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new scope.FileReader();
+      reader.onload = () => {
+        const value = typeof reader.result === "string" ? reader.result : "";
+        const comma = value.indexOf(",");
+        if (comma < 0) reject(new Error("The browser could not encode this page"));
+        else resolve(value.slice(comma + 1));
+      };
+      reader.onerror = () => reject(new Error("The browser could not encode this page"));
+      reader.readAsDataURL(new scope.Blob([bytes]));
+    });
+
+  const pages: NonNullable<BrowserReaderResult["pages"]> = [];
+  let cursor = 0;
+  let failure: BrowserReaderResult | undefined;
+  const worker = async (): Promise<void> => {
+    while (cursor < listed.length && !failure) {
+      const index = cursor++;
+      const page = listed[index]!;
+      if (!page.key || !page.counter) {
+        pages[index] = { url: page.url };
+        continue;
+      }
+
+      const controller = new scope.AbortController();
+      const timeout = scope.setTimeout(() => controller.abort(), 15_000);
+      try {
+        const response = await scope.fetch(page.url, {
+          credentials: "include",
+          referrer: `${origin}/`,
+          signal: controller.signal,
+        });
+        if (response.headers.get("cf-mitigated") === "challenge") {
+          failure = { challenge: true };
+          continue;
+        }
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const bytes = await response.arrayBuffer();
+        if (!bytes.byteLength) throw new Error("empty image response");
+        const key = await subtle.importKey("raw", decode(page.key), { name: "AES-CTR" }, false, [
+          "decrypt",
+        ]);
+        const image = await subtle.decrypt(
+          { name: "AES-CTR", counter: decode(page.counter), length: 64 },
+          key,
+          bytes,
+        );
+        pages[index] = { raw: await encode(image) };
+      } catch (error) {
+        failure ??= {
+          error: `Toonkotsu page ${index + 1}: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      } finally {
+        scope.clearTimeout(timeout);
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, listed.length) }, worker));
+  return failure ?? { pages };
+}
 
 /**
  * The reader's session: the key every chapter request is signed with, and the clock it is

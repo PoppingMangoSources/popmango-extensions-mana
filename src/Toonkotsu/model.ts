@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
+import { SectionStyle, type ChapterPage, type Option, type SortOption } from "@mana-app/types";
 
 import type { PageSectionSpec } from "../common/index.ts";
 
@@ -41,6 +41,15 @@ export function latestYear(): number {
  * browser opens in parallel for the same page.
  */
 export const PAGE_DOWNLOAD_CONCURRENCY = 8;
+export const BROWSER_READER_TIMEOUT_SECONDS = 30;
+
+export type BrowserReaderPage = { url: string; key?: string; counter?: string };
+export type BrowserReaderResult = {
+  pages?: ChapterPage[];
+  unsupported?: boolean;
+  error?: string;
+  challenge?: boolean;
+};
 
 export const FilterID = {
   Genres: "genres",
@@ -62,6 +71,7 @@ export const FilterID = {
 } as const;
 
 export const PreferenceID = {
+  AcceleratedReader: "accelerated-reader",
   ContentRatings: "content-ratings",
   Types: "types",
   HiddenTags: "hidden-tags",
@@ -230,6 +240,7 @@ export const STATUS_NAMES: Record<string, string> = {
 export const FACETS_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
+  [PreferenceID.AcceleratedReader]: true,
   [PreferenceID.ContentRatings]: DEFAULT_CONTENT_RATINGS,
   [PreferenceID.Types]: TYPE_OPTIONS.map((option) => option.id),
   [PreferenceID.HiddenTags]: [] as string[],

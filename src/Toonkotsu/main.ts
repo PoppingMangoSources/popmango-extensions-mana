@@ -42,6 +42,7 @@ import {
   TimedCache,
   buildPreferenceMenu,
   buildSearchForm,
+  bytesToBase64,
   clean,
   isDetailedStyle,
   isMigration,
@@ -109,7 +110,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.4",
+  version: "1.0.5",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -651,6 +652,21 @@ class ToonkotsuSource
         : `${BASE_URL}${src.startsWith("/") ? "" : "/"}${src}`;
       return { url, cipher: pageCipher(page, wrap, session) };
     });
+
+    if (
+      prepared.some(({ cipher }) => cipher) &&
+      (await this.preferences.flag(PreferenceID.AcceleratedReader))
+    ) {
+      const accelerated = await this.api.browserPages(
+        prepared.map(({ url, cipher }) => ({
+          url,
+          ...(cipher
+            ? { key: bytesToBase64(cipher.key), counter: bytesToBase64(cipher.counter) }
+            : {}),
+        })),
+      );
+      if (accelerated) return accelerated;
+    }
 
     const pages: ChapterPage[] = [];
     let cursor = 0;

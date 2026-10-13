@@ -1,9 +1,22 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import {
+  NetworkClientBuilder,
+  type ChapterPage,
+  type NetworkRequest,
+  type NetworkResponse,
+  type WebViewPageInstance,
+} from "@mana-app/types";
 
 import { challengedUrl } from "../common/index.ts";
-import { BASE_URL, type CatalogueParams } from "./model.ts";
+import {
+  BASE_URL,
+  BROWSER_READER_TIMEOUT_SECONDS,
+  PAGE_DOWNLOAD_CONCURRENCY,
+  type BrowserReaderPage,
+  type CatalogueParams,
+} from "./model.ts";
+import { readPagesInBrowser } from "./reader.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
   const headers = response.headers ?? {};
@@ -29,6 +42,7 @@ export type ApiResult = { status: number; body: unknown };
 export class ToonkotsuApi {
   private client: NetworkClient | undefined;
   private pageClient: NetworkClient | undefined;
+  private browserBusy = false;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
@@ -103,6 +117,7 @@ export class ToonkotsuApi {
    */
   private get pageHttp(): NetworkClient {
     this.pageClient ??= new NetworkClientBuilder()
+      .setRateLimit(0, 1)
       .setStatusValidator((status) => (status >= 200 && status < 400) || status === 429)
       .addRequestInterceptor(async (request: NetworkRequest) => ({
         ...request,
@@ -128,6 +143,62 @@ export class ToonkotsuApi {
       throw new Error(`Toonkotsu would not serve a page image (HTTP ${response.status}): ${url}`);
     }
     return response.data ?? "";
+  }
+
+  async browserPages(listed: BrowserReaderPage[]): Promise<ChapterPage[] | undefined> {
+    const host = globalThis as {
+      WebViewPage?: typeof WebViewPage;
+      setTimeout?: (fn: () => void, ms: number) => unknown;
+      clearTimeout?: (id: unknown) => void;
+    };
+    if (!host.WebViewPage || !host.setTimeout || !host.clearTimeout || this.browserBusy) {
+      return undefined;
+    }
+    this.browserBusy = true;
+
+    let page: WebViewPageInstance | undefined;
+    let timeout: unknown;
+    try {
+      const expired = new Promise<never>((_, reject) => {
+        timeout = host.setTimeout!(() => {
+          reject(
+            new Error(
+              "Toonkotsu's accelerated reader timed out. Retry or turn off Accelerated Reader in source settings.",
+            ),
+          );
+        }, BROWSER_READER_TIMEOUT_SECONDS * 1000);
+      });
+      const work = (async () => {
+        page = await host.WebViewPage!.create({ timeout: BROWSER_READER_TIMEOUT_SECONDS });
+        // The origin is all the image requests need; no site bundle or reader startup.
+        await page.goto(`${BASE_URL}/robots.txt`, { waitUntil: "load", timeout: 10 });
+        return page.evaluate(readPagesInBrowser, listed, PAGE_DOWNLOAD_CONCURRENCY, BASE_URL);
+      })();
+      const result = await Promise.race([work, expired]);
+      if (!result) throw new Error("Toonkotsu's accelerated reader returned no page data");
+      if (result.unsupported) return undefined;
+      if (result.challenge) throw new CloudflareError(BASE_URL);
+      if (result.error) throw new Error(result.error);
+      if (
+        !Array.isArray(result.pages) ||
+        result.pages.length !== listed.length ||
+        result.pages.some(
+          (entry) =>
+            !entry ||
+            !(
+              (typeof entry.raw === "string" && entry.raw.length > 0) ||
+              (typeof entry.url === "string" && entry.url.length > 0)
+            ),
+        )
+      ) {
+        throw new Error("Toonkotsu's accelerated reader returned incomplete page data");
+      }
+      return result.pages;
+    } finally {
+      host.clearTimeout(timeout);
+      await page?.close().catch(() => undefined);
+      this.browserBusy = false;
+    }
   }
 
   private share<T>(key: string, run: () => Promise<T>): Promise<T> {

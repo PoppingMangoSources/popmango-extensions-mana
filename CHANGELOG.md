@@ -5,7 +5,22 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.4)
+## Toonkotsu (current: v1.0.5)
+
+### Changed
+
+- Added an Accelerated Reader, enabled by default, that fetches encrypted images and
+  decrypts them with the browser engine's native AES. Native blob encoding replaces the
+  large JavaScript base64 loops, and the chapter crosses the image bridge in one result.
+- The browser loads only a small document on the site's origin; it runs no site reader,
+  application bundles or ads. Page downloads remain limited to eight at a time.
+- Browser image requests have a fifteen-second timeout and the accelerated reader has
+  a thirty-second overall deadline, so a failed request does not leave it waiting forever.
+- The ordinary reader remains available when acceleration is disabled or the host lacks
+  the required browser APIs. The ordinary image client now explicitly disables its own
+  request-rate limit; download concurrency remains bounded by the reader.
+
+## Toonkotsu (v1.0.4)
 
 ### Fixed
 
