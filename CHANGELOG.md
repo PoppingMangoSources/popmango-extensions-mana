@@ -5,7 +5,27 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.5)
+## Toonkotsu (current: v1.0.6)
+
+### Changed
+
+- Replaced the reader with the site-module WebView approach: load the chapter page,
+  import the site's chapter loader, obtain its decoded page keys and decrypt images
+  with native AES using four workers.
+- Cache the working chapter-loader URL for subsequent reads and rediscover it when the
+  cached module stops working. The source no longer embeds the reader's signing secret.
+- Removed the alternate native API reader and Accelerated Reader setting. All chapters
+  now use the same WebView reader, with its existing 180-second host timeout.
+- Reuse the most recent series response for thirty seconds across details and chapters,
+  including concurrent requests. Failed responses are discarded so the next call retries.
+
+### Added
+
+- Tracker IDs for AniList, MyAnimeList and MangaUpdates from the site's external IDs.
+- A Recommendations row showing up to ten titles from the existing series response,
+  without additional network requests.
+
+## Toonkotsu (v1.0.5)
 
 ### Changed
 

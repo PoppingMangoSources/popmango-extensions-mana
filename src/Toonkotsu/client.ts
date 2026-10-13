@@ -1,22 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import {
-  NetworkClientBuilder,
-  type ChapterPage,
-  type NetworkRequest,
-  type NetworkResponse,
-  type WebViewPageInstance,
-} from "@mana-app/types";
+import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
 
 import { challengedUrl } from "../common/index.ts";
-import {
-  BASE_URL,
-  BROWSER_READER_TIMEOUT_SECONDS,
-  PAGE_DOWNLOAD_CONCURRENCY,
-  type BrowserReaderPage,
-  type CatalogueParams,
-} from "./model.ts";
-import { readPagesInBrowser } from "./reader.ts";
+import { BASE_URL, type CatalogueParams } from "./model.ts";
 
 function isCloudflareChallenge(response: NetworkResponse): boolean {
   const headers = response.headers ?? {};
@@ -41,17 +28,12 @@ export type ApiResult = { status: number; body: unknown };
 
 export class ToonkotsuApi {
   private client: NetworkClient | undefined;
-  private pageClient: NetworkClient | undefined;
-  private browserBusy = false;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
   private get http(): NetworkClient {
     this.client ??= new NetworkClientBuilder()
       .setRateLimit(5, 1)
-      // The reader answers a read it is throttling with 429 and a body saying how to
-      // recover, and a stale signature with 401 or 403. All three have to reach the source
-      // or the recovery below never runs.
       .setStatusValidator(
         (status) => (status >= 200 && status < 400) || [401, 403, 429, 503].includes(status),
       )
@@ -105,100 +87,6 @@ export class ToonkotsuApi {
       }
       return parse(response, url) as T;
     });
-  }
-
-  /**
-   * The client page images are fetched on, which is deliberately not the one above.
-   *
-   * The API's limit is there to be polite to the API. Pages come off a static CDN and there
-   * are dozens of them in a chapter — one ran to sixty-three — so putting them behind the
-   * same five-a-second counter spent twelve seconds asleep before a reader saw anything.
-   * How many are in flight is bounded by the caller instead, which is what a browser does.
-   */
-  private get pageHttp(): NetworkClient {
-    this.pageClient ??= new NetworkClientBuilder()
-      .setRateLimit(0, 1)
-      .setStatusValidator((status) => (status >= 200 && status < 400) || status === 429)
-      .addRequestInterceptor(async (request: NetworkRequest) => ({
-        ...request,
-        headers: { referer: `${BASE_URL}/`, ...request.headers },
-      }))
-      .build();
-    return this.pageClient;
-  }
-
-  /**
-   * One page image, base64-encoded rather than decoded as text.
-   *
-   * An encrypted page is ciphertext, and text decoding would mangle every byte that is not
-   * valid UTF-8. `responseEncoding` is what hands the bytes over intact; a host too old to
-   * know the field answers text, which the cipher then refuses rather than drawing noise.
-   */
-  async image(url: string): Promise<string> {
-    const response = await this.pageHttp.get(url, {
-      headers: { accept: "image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8" },
-      responseEncoding: "base64",
-    });
-    if (response.status < 200 || response.status >= 300) {
-      throw new Error(`Toonkotsu would not serve a page image (HTTP ${response.status}): ${url}`);
-    }
-    return response.data ?? "";
-  }
-
-  async browserPages(listed: BrowserReaderPage[]): Promise<ChapterPage[] | undefined> {
-    const host = globalThis as {
-      WebViewPage?: typeof WebViewPage;
-      setTimeout?: (fn: () => void, ms: number) => unknown;
-      clearTimeout?: (id: unknown) => void;
-    };
-    if (!host.WebViewPage || !host.setTimeout || !host.clearTimeout || this.browserBusy) {
-      return undefined;
-    }
-    this.browserBusy = true;
-
-    let page: WebViewPageInstance | undefined;
-    let timeout: unknown;
-    try {
-      const expired = new Promise<never>((_, reject) => {
-        timeout = host.setTimeout!(() => {
-          reject(
-            new Error(
-              "Toonkotsu's accelerated reader timed out. Retry or turn off Accelerated Reader in source settings.",
-            ),
-          );
-        }, BROWSER_READER_TIMEOUT_SECONDS * 1000);
-      });
-      const work = (async () => {
-        page = await host.WebViewPage!.create({ timeout: BROWSER_READER_TIMEOUT_SECONDS });
-        // The origin is all the image requests need; no site bundle or reader startup.
-        await page.goto(`${BASE_URL}/robots.txt`, { waitUntil: "load", timeout: 10 });
-        return page.evaluate(readPagesInBrowser, listed, PAGE_DOWNLOAD_CONCURRENCY, BASE_URL);
-      })();
-      const result = await Promise.race([work, expired]);
-      if (!result) throw new Error("Toonkotsu's accelerated reader returned no page data");
-      if (result.unsupported) return undefined;
-      if (result.challenge) throw new CloudflareError(BASE_URL);
-      if (result.error) throw new Error(result.error);
-      if (
-        !Array.isArray(result.pages) ||
-        result.pages.length !== listed.length ||
-        result.pages.some(
-          (entry) =>
-            !entry ||
-            !(
-              (typeof entry.raw === "string" && entry.raw.length > 0) ||
-              (typeof entry.url === "string" && entry.url.length > 0)
-            ),
-        )
-      ) {
-        throw new Error("Toonkotsu's accelerated reader returned incomplete page data");
-      }
-      return result.pages;
-    } finally {
-      host.clearTimeout(timeout);
-      await page?.close().catch(() => undefined);
-      this.browserBusy = false;
-    }
   }
 
   private share<T>(key: string, run: () => Promise<T>): Promise<T> {

@@ -2,9 +2,11 @@
 
 import {
   additionalInfo,
+  AdditionalInfoType,
   ContentRating,
   PublicationStatus,
   type Chapter,
+  type AdditionalInfoSection,
   type Content,
   type Highlight,
   type Option,
@@ -279,7 +281,7 @@ function parseStatus(status: string | null | undefined): PublicationStatus | und
 }
 
 export function parseContent(
-  { series }: SeriesResponse,
+  { series, recs }: SeriesResponse,
   contentId: string,
   facets: FacetsResponse,
 ): Content {
@@ -342,6 +344,33 @@ export function parseContent(
   // Most titles have no banner of their own but carry the wide hero the site draws in its
   // place. There is nowhere to put a banner, so it rides along as a second cover.
   const banner = series.banner || series.hero;
+  const sections: AdditionalInfoSection[] = grouped.map((group) =>
+    additionalInfo.tags.section({
+      id: group.id,
+      title: group.title,
+      items: group.names.map((name) => additionalInfo.tags.item({ id: name, title: name })),
+    }),
+  );
+  const related = parseHighlights(recs ?? []).slice(0, 10);
+  if (related.length > 0) {
+    sections.push(
+      additionalInfo.highlights.section({
+        id: "recommendations",
+        title: "Recommendations",
+        hasMore: false,
+        items: related.map((entry) =>
+          additionalInfo.highlights.item({
+            type: AdditionalInfoType.Highlights,
+            id: entry.id,
+            title: entry.title,
+            cover: entry.cover,
+            contentRating: entry.contentRating,
+            webUrl: entry.webUrl,
+          }),
+        ),
+      }),
+    );
+  }
 
   return {
     title,
@@ -356,19 +385,18 @@ export function parseContent(
     contentRating: contentRatingOf(series),
     ...(creators.length > 0 ? { creators } : {}),
     ...(info.length > 0 ? { info } : {}),
-    ...(grouped.length > 0
-      ? {
-          additionalInfo: grouped.map((group) =>
-            additionalInfo.tags.section({
-              id: group.id,
-              title: group.title,
-              items: group.names.map((name) => additionalInfo.tags.item({ id: name, title: name })),
-            }),
-          ),
-        }
-      : {}),
+    trackerInfo: trackers(series.externalIds ?? {}),
+    ...(sections.length > 0 ? { additionalInfo: sections } : {}),
     webUrl: seriesUrl(contentId, series.slug),
   };
+}
+
+function trackers(ids: Record<string, string | null>): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (ids["anilist"]) result["anilist"] = ids["anilist"];
+  if (ids["myanimelist"]) result["mal"] = ids["myanimelist"];
+  if (ids["mangaupdates"]) result["mangaupdates"] = ids["mangaupdates"];
+  return result;
 }
 
 /**

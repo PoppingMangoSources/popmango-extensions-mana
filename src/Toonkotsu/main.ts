@@ -42,16 +42,14 @@ import {
   TimedCache,
   buildPreferenceMenu,
   buildSearchForm,
-  bytesToBase64,
-  clean,
   isDetailedStyle,
   isMigration,
   pageOf,
   resolveSortId,
   sectionById,
+  resolveUrl as absolute,
   toPageSections,
   withCovers,
-  type PreferenceValue,
 } from "../common/index.ts";
 import { ToonkotsuApi, catalogueUrl } from "./client.ts";
 import {
@@ -64,24 +62,21 @@ import {
   FilterID,
   MATCH_MODE_OPTIONS,
   ORIGINAL_LANGUAGE_OPTIONS,
-  PAGE_DOWNLOAD_CONCURRENCY,
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
   PreferenceID,
-  READER_BUILD,
+  READER_TIMEOUT,
   SORT_OPTIONS,
   STATUS_OPTIONS,
   SectionID,
   SortID,
   TAG_GROUPS,
   TYPE_OPTIONS,
-  chapterUrl,
   latestYear,
   type CatalogueParams,
-  type ChapterPagesResponse,
   type FacetsResponse,
   type LatestResponse,
-  type ReaderLimit,
+  type ReaderResult,
   type Series,
   type SeriesListResponse,
   type SeriesResponse,
@@ -97,20 +92,13 @@ import {
   ratingIdOf,
   type TagGroup,
 } from "./parsers.ts";
-import {
-  decryptPage,
-  deriveSession,
-  pageCipher,
-  parseReaderKey,
-  signPath,
-  type ReaderSession,
-} from "./reader.ts";
+import { readChapterInPage } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -137,10 +125,8 @@ class ToonkotsuSource
   readonly config = config;
 
   private readonly api = new ToonkotsuApi();
-  private readonly preferences = new PreferenceStore(
-    info.id,
-    PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
-  );
+  private readonly preferences = new PreferenceStore(info.id, PREFERENCE_DEFAULTS);
+  private series: { id: string; expires: number; response: Promise<SeriesResponse> } | undefined;
 
   // Every filter form and every home row needs the tag list, and the site changes it
   // rarely, so it is kept on disk rather than fetched per screen.
@@ -150,9 +136,6 @@ class ToonkotsuSource
   );
   // Recently-read cursors for the uploads feed, which repeats a title across pages.
   private readonly seenByPage = new Map<number, string[]>();
-  private session: Promise<ReaderSession> | undefined;
-  private readonly chapterLoads = new Map<string, Promise<ChapterData>>();
-  private build = READER_BUILD;
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -537,7 +520,7 @@ class ToonkotsuSource
   }
 
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
-    const series = await this.series(contentId);
+    const series = await this.loadSeries(contentId);
 
     // A migration reads the title's name and nothing else, so the tag list it would be
     // grouped under is not worth a second request per title.
@@ -546,160 +529,70 @@ class ToonkotsuSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    return parseChapters(await this.series(contentId));
+    return parseChapters(await this.loadSeries(contentId));
   }
 
-  private series(contentId: string): Promise<SeriesResponse> {
-    return this.api.json<SeriesResponse>(catalogueUrl(`cdn/v1/series/${contentId}`));
-  }
-
-  /**
-   * The reader session, which every chapter read is signed with.
-   *
-   * One session covers the whole reading run, so it is held until a read is refused for its
-   * signature; a failure clears it so the next read asks for a new one rather than retrying
-   * with a key the site has stopped accepting.
-   */
-  private readerSession(): Promise<ReaderSession> {
-    return (this.session ??= this.openSession().catch((error: unknown) => {
-      this.session = undefined;
-      throw error;
-    }));
-  }
-
-  private async openSession(): Promise<ReaderSession> {
-    const { status, body } = await this.api.get(`${BASE_URL}/api/manga/key`);
-    if (status < 200 || status >= 300) {
-      throw readerError(status, body as ReaderLimit | undefined, "");
-    }
-
-    const response = parseReaderKey(body);
-    this.build = response.build;
-    return deriveSession(response);
-  }
-
-  getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
-    const running = this.chapterLoads.get(chapterId);
-    if (running) return running;
-
-    // A repeated open shares only work in flight, never a chapter's full image data
-    // after it finishes. Keeping that data cached would retain megabytes per chapter.
-    const request = this.loadChapter(chapterId).finally(() => {
-      if (this.chapterLoads.get(chapterId) === request) this.chapterLoads.delete(chapterId);
+  private loadSeries(contentId: string): Promise<SeriesResponse> {
+    const cached = this.series;
+    if (cached && cached.id === contentId && cached.expires > Date.now()) return cached.response;
+    const response = this.api.json<SeriesResponse>(
+      catalogueUrl(`cdn/v1/series/${encodeURIComponent(contentId)}`),
+    );
+    this.series = { id: contentId, expires: Date.now() + 30_000, response };
+    response.catch(() => {
+      if (this.series?.response === response) this.series = undefined;
     });
-    this.chapterLoads.set(chapterId, request);
-    return request;
+    return response;
   }
 
-  private async loadChapter(chapterId: string): Promise<ChapterData> {
-    const path = `/api/manga/chapter/${chapterId}`;
+  async getChapterData(contentId: string, chapterId: string): Promise<ChapterData> {
+    const id = Number.parseInt(chapterId, 10);
+    if (!Number.isFinite(id)) throw new Error(`"${chapterId}" is not a Toonkotsu chapter id`);
 
-    // Two attempts: the first may be carrying a session the site has just expired, and a
-    // fresh one is all that usually takes. A second refusal is the secret itself.
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const session = await this.readerSession();
-      const { status, body } = await this.api.get(`${BASE_URL}${path}`, {
-        "x-sig": signPath(session, path),
-      });
+    const url = `${contentUrl(contentId)}/${id}`;
+    const result = await this.readChapter(url, id);
 
-      if (status >= 200 && status < 300) {
-        return { pages: await this.chapterPages(body as ChapterPagesResponse, session) };
-      }
-
-      const limit = status === 429 ? (body as ReaderLimit | undefined) : undefined;
-      const rejectedSignature = status === 401 || status === 403 || limit?.resign === true;
-      if (attempt === 0 && rejectedSignature) {
-        this.session = undefined;
-        continue;
-      }
-
-      throw readerError(status, limit, chapterId, session.build !== this.build);
+    if (result.gate === "wait") {
+      const minutes = Math.max(1, Math.ceil((result.retryAfter ?? 600) / 60));
+      throw new Error(`Toonkotsu is rate limiting this device. Try again in ${minutes} min.`);
     }
-
-    throw new Error(`Toonkotsu would not serve chapter ${chapterId}`);
-  }
-
-  /**
-   * The pages of a chapter, decrypted where the site encrypted them.
-   *
-   * An unencrypted page is handed over as a URL for the app to fetch itself. An encrypted
-   * one has to come through here — the bytes are AES-CTR ciphertext, and nothing downstream
-   * has the key — so it is fetched, decrypted and passed on as the image itself. Workers
-   * refill each free slot instead of waiting for the slowest image in a batch. The app
-   * still needs the complete result before opening the chapter.
-   */
-  private async chapterPages(
-    body: ChapterPagesResponse,
-    session: ReaderSession,
-  ): Promise<ChapterPage[]> {
-    const wrap = body?.wrap;
-    if (wrap != null && wrap !== "" && wrap !== "v1") {
-      throw new Error("Toonkotsu's reader encryption has changed. The source needs an update.");
-    }
-
-    const listed = body?.chapter?.pages ?? [];
-    if (!Array.isArray(listed) || listed.length === 0) {
-      throw new Error("Toonkotsu listed no pages for this chapter");
-    }
-
-    // Validate the whole list before spending bandwidth on any images.
-    const prepared = listed.map((page, index) => {
-      const src = typeof page?.src === "string" ? clean(page.src) : "";
-      if (!src) throw new Error(`Toonkotsu page ${index + 1} has no image`);
-
-      const url = /^https?:\/\//i.test(src)
-        ? src
-        : `${BASE_URL}${src.startsWith("/") ? "" : "/"}${src}`;
-      return { url, cipher: pageCipher(page, wrap, session) };
-    });
-
-    if (
-      prepared.some(({ cipher }) => cipher) &&
-      (await this.preferences.flag(PreferenceID.AcceleratedReader))
-    ) {
-      const accelerated = await this.api.browserPages(
-        prepared.map(({ url, cipher }) => ({
-          url,
-          ...(cipher
-            ? { key: bytesToBase64(cipher.key), counter: bytesToBase64(cipher.counter) }
-            : {}),
-        })),
-      );
-      if (accelerated) return accelerated;
-    }
+    if (result.gate) throw new CloudflareError(url);
+    if (result.error) throw new Error(`Toonkotsu reader failed for chapter ${id}: ${result.error}`);
 
     const pages: ChapterPage[] = [];
-    let cursor = 0;
-    let failure: { error: unknown } | undefined;
-    const worker = async (): Promise<void> => {
-      while (cursor < prepared.length && !failure) {
-        const index = cursor++;
-        const { url, cipher } = prepared[index]!;
-        try {
-          pages[index] = cipher ? { raw: decryptPage(await this.api.image(url), cipher) } : { url };
-        } catch (error) {
-          failure ??= { error };
-        }
+    for (const page of result.pages ?? []) {
+      if (page.raw) pages.push({ raw: page.raw });
+      else if (page.url) pages.push({ url: absolute(page.url, BASE_URL) });
+    }
+
+    if (pages.length === 0) {
+      throw new Error(`No pages found for chapter ${id} of "${contentId}"`);
+    }
+
+    return { pages };
+  }
+
+  private async readChapter(url: string, id: number): Promise<ReaderResult> {
+    if (typeof WebViewPage === "undefined") {
+      throw new Error("This version of Mana cannot open Toonkotsu chapters (no WebView support).");
+    }
+
+    const page = await WebViewPage.create({ timeout: READER_TIMEOUT });
+    try {
+      await page.goto(url, { waitUntil: "load" });
+      const hint = await this.preferences.get(PreferenceID.ReaderLoader);
+      const result = await page.evaluate(readChapterInPage, id, hint);
+      if (result.loader && result.loader !== hint) {
+        await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
       }
-    };
-
-    // Drain requests already started on failure, so a retry cannot overlap this load.
-    await Promise.all(
-      Array.from({ length: Math.min(PAGE_DOWNLOAD_CONCURRENCY, prepared.length) }, worker),
-    );
-    if (failure) throw failure.error;
-
-    return pages;
+      return result;
+    } finally {
+      await page.close();
+    }
   }
 
   async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return {
-      url: imageURL,
-      headers: {
-        referer: `${BASE_URL}/`,
-        accept: "image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8",
-      },
-    };
+    return { url: imageURL, method: "GET", headers: { referer: `${BASE_URL}/` } };
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
@@ -744,33 +637,9 @@ function hasNextPage(data: SeriesListResponse, page: number): boolean {
   return items.length >= PAGE_SIZE;
 }
 
-/**
- * What a refused read means.
- *
- * Guests are asked to confirm they are human before reading on, and that check runs in the
- * site's own reader — so the chapter page is what the app opens, and the session it unlocks
- * covers the rest of the read. A limit the site says is temporary is just a wait.
- */
-function readerError(
-  status: number,
-  limit: ReaderLimit | undefined,
-  chapterId: string,
-  readerChanged = false,
-): Error {
-  if (limit?.code === "manga-limit" && (limit.transient || limit.reason === "wait")) {
-    const seconds = limit.retryAfterSec || (limit.reason === "wait" ? 600 : 10);
-    return new Error(`Toonkotsu is limiting reads right now. Try again in ${seconds} seconds.`);
-  }
-  if (limit?.code === "manga-limit") {
-    return new CloudflareError(chapterId ? chapterUrl(chapterId) : `${BASE_URL}/`);
-  }
-
-  const reason = readerChanged
-    ? " The site's reader has been updated, so this source needs one too."
-    : "";
-  return new Error(
-    `Toonkotsu would not serve this chapter (HTTP ${status}${limit?.error ? `: ${limit.error}` : ""}).${reason}`,
-  );
+function contentUrl(contentId: string, slug?: string): string {
+  const path = slug ? `${contentId}-${slug}` : contentId;
+  return `${BASE_URL}/title/${encodeURIComponent(path)}`;
 }
 
 export class Target extends ToonkotsuSource {}

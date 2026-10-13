@@ -12,14 +12,6 @@ export function sectionPreferenceKey(sectionId: string): string {
 export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): PreferenceSection[] {
   return [
     {
-      header: "Reader",
-      footer:
-        "Uses the browser engine to prepare encrypted pages. Turn off if chapters fail to open.",
-      fields: [
-        { type: "toggle", key: PreferenceID.AcceleratedReader, title: "Accelerated Reader" },
-      ],
-    },
-    {
       header: "Content",
       footer:
         "Applies to the home page, browsing and search. Pornographic titles are only asked " +

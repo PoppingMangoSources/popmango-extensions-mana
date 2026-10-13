@@ -280,7 +280,8 @@ function checkSource(source, catalog, changelog, base) {
   for (const [pattern, description] of [
     [/\bnew URL\s*\(/, "`new URL` — the runtime has none; use UrlBuilder or resolveUrl"],
     [/\bnew URLSearchParams\s*\(/, "`URLSearchParams` — use withQuery"],
-    [/\bcrypto\.subtle\b/, "`crypto.subtle` — use src/common/aes.ts"],
+    // Explicit browser-scope properties are used inside serialized WebView functions.
+    [/(?<![.\w])crypto\.subtle\b/, "`crypto.subtle` — use src/common/aes.ts"],
     [/\bnew TextDecoder\s*\(/, "`TextDecoder` — the runtime has none"],
     [/[^.\w]fetch\s*\(/, "`fetch` — use the NetworkClient"],
   ]) {

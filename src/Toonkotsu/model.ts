@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { SectionStyle, type ChapterPage, type Option, type SortOption } from "@mana-app/types";
+import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
 
 import type { PageSectionSpec } from "../common/index.ts";
 
@@ -9,16 +9,7 @@ export const BASE_URL = "https://toonkotsu.com";
 /** What the site's own browse asks for, so a page here is a page there. */
 export const PAGE_SIZE = 42;
 
-/**
- * The reader's signing secret, and the build it shipped with.
- *
- * Chapter requests are signed with a key the site serves masked by a digest of this, so the
- * secret is part of the source rather than something the site hands over. The key endpoint
- * reports the live build: when the site rotates the secret the build moves with it, which is
- * what lets a failure say "this source needs an update" instead of guessing.
- */
-export const READER_SECRET = "NO57DoQRq7oxY3MCO5_SNw4_3vFRsUq7";
-export const READER_BUILD = "1738e5282ffc19e6";
+export const READER_TIMEOUT = 180;
 
 /**
  * The range the publication-year steppers run over.
@@ -31,25 +22,6 @@ export const EARLIEST_YEAR = 1900;
 export function latestYear(): number {
   return new Date().getFullYear() + 1;
 }
-
-/**
- * How many page images are fetched and decrypted at once.
- *
- * Every page of a chapter has to be deciphered before the reader can open it, and chapters
- * here run past sixty pages — so this is what decides how long that takes. It is the only
- * limit on them: they come off a static CDN rather than the API, and this is roughly what a
- * browser opens in parallel for the same page.
- */
-export const PAGE_DOWNLOAD_CONCURRENCY = 8;
-export const BROWSER_READER_TIMEOUT_SECONDS = 30;
-
-export type BrowserReaderPage = { url: string; key?: string; counter?: string };
-export type BrowserReaderResult = {
-  pages?: ChapterPage[];
-  unsupported?: boolean;
-  error?: string;
-  challenge?: boolean;
-};
 
 export const FilterID = {
   Genres: "genres",
@@ -71,7 +43,7 @@ export const FilterID = {
 } as const;
 
 export const PreferenceID = {
-  AcceleratedReader: "accelerated-reader",
+  ReaderLoader: "reader-loader",
   ContentRatings: "content-ratings",
   Types: "types",
   HiddenTags: "hidden-tags",
@@ -239,8 +211,10 @@ export const STATUS_NAMES: Record<string, string> = {
 /** The facet list changes rarely, and every filter form and home row reads it. */
 export const FACETS_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
-export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
-  [PreferenceID.AcceleratedReader]: true,
+export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> & {
+  [PreferenceID.ReaderLoader]: string;
+} = {
+  [PreferenceID.ReaderLoader]: "",
   [PreferenceID.ContentRatings]: DEFAULT_CONTENT_RATINGS,
   [PreferenceID.Types]: TYPE_OPTIONS.map((option) => option.id),
   [PreferenceID.HiddenTags]: [] as string[],
@@ -282,6 +256,7 @@ export type Series = {
   latest?: LatestChapterRef | null;
   chapters?: number | null;
   authors?: string[] | null;
+  externalIds?: Record<string, string | null> | null;
   adult?: boolean | null;
   /** Chapter opens, which only the reading rankings count. */
   count?: number | null;
@@ -318,29 +293,68 @@ export type LatestResponse = {
   hasNextPage?: boolean;
 };
 
-export type SeriesResponse = { series: Series; chapters?: ChapterEntry[] | null };
+export type SeriesResponse = {
+  series: Series;
+  chapters?: ChapterEntry[] | null;
+  recs?: Series[] | null;
+};
 
 export type Facet = { name: string; category?: string | null; isAdult?: boolean | null };
 
 export type FacetsResponse = { genres?: Facet[] | null };
 
-export type ReaderKeyResponse = { key: string; build: string; now: number };
-
-export type ReaderPage = { src: string; k?: string | null; n?: string | null };
-
-export type ChapterPagesResponse = {
-  wrap?: string | null;
-  chapter?: { pages?: ReaderPage[] | null } | null;
+export type ReaderPage = {
+  url?: string;
+  raw?: string;
 };
 
-/** What the reader answers a refused read with, which says whether to try again at all. */
-export type ReaderLimit = {
-  code?: string;
+export type ReaderResult = {
+  pages?: ReaderPage[];
+  gate?: string;
+  retryAfter?: number;
   error?: string;
-  reason?: string;
-  resign?: boolean;
-  transient?: boolean;
-  retryAfterSec?: number;
+  loader?: string;
+};
+
+export type BrowserResponse = {
+  ok: boolean;
+  status: number;
+  text(): Promise<string>;
+  arrayBuffer(): Promise<ArrayBuffer>;
+};
+
+export type BrowserScope = {
+  document: { querySelectorAll(selector: string): ArrayLike<{ href?: string }> };
+  performance: { getEntriesByType(type: string): { name: string }[] };
+  location: { href: string };
+  fetch: (url: string, init?: { credentials: string }) => Promise<BrowserResponse>;
+  crypto: {
+    subtle: {
+      importKey(
+        format: string,
+        key: Uint8Array,
+        algorithm: { name: string },
+        extractable: boolean,
+        usages: string[],
+      ): Promise<unknown>;
+      decrypt(
+        algorithm: { name: string; counter: Uint8Array; length: number },
+        key: unknown,
+        data: ArrayBuffer,
+      ): Promise<ArrayBuffer>;
+    };
+  };
+  atob(value: string): string;
+  btoa(value: string): string;
+  URL: new (url: string, base: string) => { href: string };
+};
+
+export type SitePage = { src?: string; k?: string; n?: string };
+export type SiteModule = { chapter(id: number): Promise<unknown> };
+export type SiteFailure = {
+  status?: number;
+  message?: string;
+  data?: { code?: string; reason?: string; retryAfterSec?: number; error?: string };
 };
 
 export function seriesUrl(contentId: string, slug?: string | null): string {
