@@ -5,7 +5,26 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.14)
+## Toonkotsu (current: v1.0.15)
+
+### Fixed
+
+- Every row of a team's uploads showed the same download, so a 118 MB chapter was labelled
+  239 MB. The app draws one name per provider id and every one of a team's uploads was
+  handed over under the same id, so they all took whichever name it read first. Each upload
+  is now its own, and the sizes read as the site quotes them.
+- The same upload was listed twice where the site lists it twice — same chapter, same team,
+  same wording, same download, nothing to choose between. One of those is now dropped. Two
+  uploads that differ by their download are both kept, because that is a choice.
+
+### Changed
+
+- Every team's name carries the download beside it, not only where the team has uploaded
+  the chapter more than once.
+- Sizes are written as the site writes them: megabytes however large, so a whole volume
+  reads `1274 MB`, and a decimal only while one means something.
+
+## Toonkotsu (v1.0.14)
 
 ### Changed
 
