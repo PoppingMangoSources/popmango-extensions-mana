@@ -53,45 +53,66 @@ export const PreferenceID = {
   SectionPrefix: "section",
 } as const;
 
-/** The site's browse orders as `<sort>-<order>`; relevance has no direction. */
+/** The site's own sort names, as its search menu keys them. */
 export const SortID = {
+  CreatedAt: "createdAt",
+  UpdatedAt: "updatedAt",
+  LastUploadedChapterAt: "lastUploadedChapterAt",
   Relevance: "relevance",
-  LatestDesc: "latest-desc",
-  LatestAsc: "latest-asc",
-  NewDesc: "new-desc",
-  NewAsc: "new-asc",
-  ScoreDesc: "score-desc",
-  ScoreAsc: "score-asc",
-  PopularDesc: "popular-desc",
-  PopularAsc: "popular-asc",
-  ChaptersDesc: "chapters-desc",
-  ChaptersAsc: "chapters-asc",
-  YearDesc: "year-desc",
-  YearAsc: "year-asc",
-  TitleAsc: "title-asc",
-  TitleDesc: "title-desc",
+  Title: "title",
+  Year: "year",
+  Rating: "rating",
+  Views: "views",
+  Follows: "follows",
+  Chapters: "chapters",
 } as const;
 
 /**
- * Best Match ranks against a typed word, so it is not the default: a reader who opened
- * search without typing gets the site's own newest-first order instead.
+ * What the catalogue is asked for under each name — the site's own table, so its menu and
+ * this one pick the same list.
+ *
+ * The site offers ten names for eight orders: Updated and Uploaded Date are one order, and
+ * View and Follow Count are another. Picking the other name of a pair gives the same list
+ * there too, so neither is a mistake to correct here.
+ */
+export const SORT_VALUES: Record<string, string> = {
+  [SortID.CreatedAt]: "new",
+  [SortID.UpdatedAt]: "latest",
+  [SortID.LastUploadedChapterAt]: "latest",
+  [SortID.Relevance]: "relevance",
+  [SortID.Title]: "title",
+  [SortID.Year]: "year",
+  [SortID.Rating]: "score",
+  [SortID.Views]: "popular",
+  [SortID.Follows]: "popular",
+  [SortID.Chapters]: "chapters",
+};
+
+/**
+ * The site's menu, in its order and under its names, each with the direction its own Order
+ * menu sets — newest, biggest and best first, and a title from A.
+ *
+ * `defaultAscending` is ascending when left out, so every descending sort has to say so.
+ * Best Match ranks against a typed word and has no direction, so it is not the default: a
+ * reader who opens search without typing gets the site's own Uploaded Date instead.
  */
 export const SORT_OPTIONS: SortOption[] = [
+  { id: SortID.CreatedAt, title: "Created Date", isOrderable: true, defaultAscending: false },
+  { id: SortID.UpdatedAt, title: "Updated Date", isOrderable: true, defaultAscending: false },
+  {
+    id: SortID.LastUploadedChapterAt,
+    title: "Uploaded Date",
+    isOrderable: true,
+    defaultAscending: false,
+    isDefault: true,
+  },
   { id: SortID.Relevance, title: "Best Match" },
-  { id: SortID.LatestDesc, title: "Latest Upload", isDefault: true },
-  { id: SortID.LatestAsc, title: "Oldest Upload" },
-  { id: SortID.NewDesc, title: "Recently Added" },
-  { id: SortID.NewAsc, title: "Oldest Added" },
-  { id: SortID.ScoreDesc, title: "Highest Rated" },
-  { id: SortID.ScoreAsc, title: "Lowest Rated" },
-  { id: SortID.PopularDesc, title: "Most Popular" },
-  { id: SortID.PopularAsc, title: "Least Popular" },
-  { id: SortID.ChaptersDesc, title: "Most Chapters" },
-  { id: SortID.ChaptersAsc, title: "Fewest Chapters" },
-  { id: SortID.YearDesc, title: "Newest Year" },
-  { id: SortID.YearAsc, title: "Oldest Year" },
-  { id: SortID.TitleAsc, title: "Title A-Z" },
-  { id: SortID.TitleDesc, title: "Title Z-A" },
+  { id: SortID.Title, title: "Title", isOrderable: true, defaultAscending: true },
+  { id: SortID.Year, title: "Year", isOrderable: true, defaultAscending: false },
+  { id: SortID.Rating, title: "Rating", isOrderable: true, defaultAscending: false },
+  { id: SortID.Views, title: "View Count", isOrderable: true, defaultAscending: false },
+  { id: SortID.Follows, title: "Follow Count", isOrderable: true, defaultAscending: false },
+  { id: SortID.Chapters, title: "Chapter Count", isOrderable: true, defaultAscending: false },
 ];
 
 export const SectionID = {

@@ -32,6 +32,7 @@ import {
   type SearchProvider,
   type SearchRequest,
   type SortOption,
+  type SortSelection,
   type SourceConfig,
   type SourceContext,
   type SourceInfo,
@@ -69,6 +70,7 @@ import {
   PreferenceID,
   READER_TIMEOUT,
   SORT_OPTIONS,
+  SORT_VALUES,
   STATUS_OPTIONS,
   SectionID,
   SortID,
@@ -99,7 +101,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.19",
+  version: "1.0.20",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -459,10 +461,10 @@ class ToonkotsuSource
     const excluded = tags.flatMap(({ excluded }) => excluded);
 
     // Best Match ranks against the typed word, so asking for it without one would order by
-    // nothing; the site's own newest-first stands in.
-    const asked = resolveSortId(SORT_OPTIONS, request, SortID.LatestDesc);
-    const sortId = asked === SortID.Relevance && !word ? SortID.LatestDesc : asked;
-    const [sort = "latest", order = "desc"] = sortId.split("-");
+    // nothing; the site's own Uploaded Date stands in.
+    const asked = resolveSortId(SORT_OPTIONS, request, SortID.LastUploadedChapterAt);
+    const sortId = asked === SortID.Relevance && !word ? SortID.LastUploadedChapterAt : asked;
+    const { sort, order } = sortOrder(sortId, request.sort);
 
     const params = await this.catalogueParams(request.context);
     const statuses = filters
@@ -642,6 +644,24 @@ class ToonkotsuSource
       return null;
     }
   }
+}
+
+/**
+ * The catalogue's own name for a sort, and the direction to ask it in.
+ *
+ * The direction the reader chose only counts for the sort they chose it on: when an empty
+ * Best Match stands in for Uploaded Date, Best Match had no direction to carry over, and
+ * Uploaded Date opens the way the site opens it.
+ */
+function sortOrder(
+  sortId: string,
+  selection: SortSelection | undefined,
+): { sort: string; order: "asc" | "desc" } {
+  const option = SORT_OPTIONS.find((candidate) => candidate.id === sortId);
+  const chosen = selection?.id === sortId ? selection.ascending : undefined;
+  const ascending =
+    option?.isOrderable === true && (chosen ?? option.defaultAscending ?? true) === true;
+  return { sort: SORT_VALUES[sortId] ?? "latest", order: ascending ? "asc" : "desc" };
 }
 
 /** A stepper left at its bound is one the reader never set, so it asks for nothing. */
