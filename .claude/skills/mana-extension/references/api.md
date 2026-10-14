@@ -463,10 +463,11 @@ const taken = firstFilled(
 const badge = toBadge(taken);
 ```
 
-**The pill words the last two itself.** `typePill` puts the filled book `📖` in front of a
-type and `statusPill` the filled `🔗` in front of a status. The outline marks a `Pair` uses —
-`♤` and `◌` — read against a key in a column; over artwork at pill size they all but
-disappear. Use those two helpers rather than composing the marks by hand.
+**The pill words the last two itself.** `typePill` gives a type as the bare word, since a
+type is a noun the reader knows on sight and a mark in front of it only crowds the artwork;
+`statusPill` puts the filled `🔗` in front of a status, which needs one. The outline marks a
+`Pair` uses — `♤` and `◌` — read against a key in a column; over artwork at pill size they
+all but disappear. Use those two helpers rather than composing the marks by hand.
 
 Both run their word through `titleCase`, and so should every type or status a source puts in
 a row: sites write these as `ONGOING`, `manhwa`, `ON_HIATUS` and `Hiatus`, and one site's

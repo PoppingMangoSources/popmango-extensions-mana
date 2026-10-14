@@ -33,8 +33,6 @@ export const Mark = {
   Type: "♤",
   Status: "◌",
   Locked: "🔒",
-  /** The pill's own book, which reads where the outline spade does not. See `typePill`. */
-  TypePill: "📖",
   /** The pill's own status mark, which the outline ring is too faint to be at that size. */
   StatusPill: "🔗",
 } as const;
@@ -74,13 +72,12 @@ export function titleCase(value: string | undefined | null): string {
 /**
  * How a pill words what a title is, which is not how an info row words it.
  *
- * A `Pair` sits in a column with a key beside it, where a light outline mark is enough to
- * tell the rows apart. The pill has none of that — it is a few characters over artwork — so
- * it takes the filled book instead, which still reads at that size.
+ * A `Pair` sits in a column with a key beside it, and takes the outline spade to tell the
+ * rows apart. The pill wants the word on its own: a type is already a noun the reader knows
+ * on sight, so a mark in front of it only crowds the artwork it sits over.
  */
 export function typePill(kind: string | undefined | null): string {
-  const value = titleCase(kind);
-  return value ? `${Mark.TypePill} ${value}` : "";
+  return titleCase(kind);
 }
 
 /**
