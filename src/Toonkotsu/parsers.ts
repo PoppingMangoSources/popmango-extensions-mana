@@ -421,18 +421,28 @@ function rankOf(entry: ChapterEntry): [number, number] {
  * whole volume. The volume leads where the site states one, because the teams publishing
  * by volume restart their numbering inside each: three rows reading "Ch. 1" one after
  * another is that list read without it.
+ *
+ * The download closes the row, because a team often has the same chapter up twice at two
+ * sizes and that is the whole of the difference between them. It belongs here rather than
+ * on the team's name: the app draws one name per provider id, so a size carried there
+ * would make one team read as several, and every row of theirs would take whichever name
+ * the app happened to read first.
  */
 function chapterTitle(
   entry: ChapterEntry,
   release: ChapterRelease,
   title: string | undefined,
   [volume, number]: readonly [number, number],
+  size: string,
 ): string {
+  const quoted = size ? ` (${size})` : "";
+
   // A whole volume has no number to build a row around, and the site names it by the
   // volume alone.
   if (number === UNFILED) {
-    if (volume !== UNFILED) return `Vol. ${chapterNumberLabel(volume)}`;
-    return clean(decodeEntities(release.label ?? entry.label ?? "")) || "Chapter";
+    if (volume !== UNFILED) return `Vol. ${chapterNumberLabel(volume)}${quoted}`;
+    const label = clean(decodeEntities(release.label ?? entry.label ?? ""));
+    return `${label || "Chapter"}${quoted}`;
   }
 
   const prefix = [
@@ -442,7 +452,7 @@ function chapterTitle(
     .filter(Boolean)
     .join(" ");
 
-  return title ? `${prefix} - ${title}` : prefix;
+  return `${title ? `${prefix} - ${title}` : prefix}${quoted}`;
 }
 
 /**
@@ -457,9 +467,8 @@ function sameUpload(
   [volume, number]: readonly [number, number],
   group: string,
   label: string,
-  size: string,
 ): string {
-  return `${volume}|${number}|${group.toLowerCase()}|${label.toLowerCase()}|${size}`;
+  return `${volume}|${number}|${group.toLowerCase()}|${label.toLowerCase()}`;
 }
 
 /**
@@ -475,19 +484,14 @@ function sizeLabel(mb: number | null | undefined): string {
 }
 
 /**
- * The team, with the download it is offering beside it.
+ * The team, and nothing else.
  *
- * **The app draws one name per provider id**, so a team's uploads have to carry different
- * ids or every row takes whichever name the app saw first for that team — which is how a
- * 118 MB chapter comes to be labelled 238.6 MB. The id is the name for that reason.
+ * The app draws one name per provider id, so anything varying between a team's own uploads
+ * — their downloads above all — would either make one team read as several or be read off
+ * whichever of their rows the app saw first. The row itself carries that instead.
  */
-function providerOf(
-  group: string | undefined,
-  size: string,
-): { id: string; name: string } | undefined {
-  if (!group) return undefined;
-  const name = size ? `${group} (${size})` : group;
-  return { id: name, name };
+function providerOf(group: string | undefined): { id: string; name: string } | undefined {
+  return group ? { id: group, name: group } : undefined;
 }
 
 export type ChapterOptions = {
@@ -533,14 +537,16 @@ export function parseChapters(
 
       const { title, group } = parseLabel(release, entry.n);
       const at = release.at ?? entry.at;
-      const label = chapterTitle(entry, release, title, rank);
       const size = sizeLabel(release.mb);
+      const label = chapterTitle(entry, release, title, rank, size);
 
-      const upload = sameUpload(rank, group ?? "", label, size);
+      // The label already carries the download, so two uploads that differ by one differ
+      // here too, and only a row with nothing at all to tell it from another is dropped.
+      const upload = sameUpload(rank, group ?? "", label);
       if (uploads.has(upload)) continue;
       uploads.add(upload);
 
-      const provider = providerOf(group, size);
+      const provider = providerOf(group);
       kept.push({
         rank,
         chapter: {
