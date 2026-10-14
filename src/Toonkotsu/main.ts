@@ -61,7 +61,7 @@ import {
   FACETS_LIFETIME_MS,
   FilterID,
   MATCH_MODE_OPTIONS,
-  ORIGINAL_LANGUAGE_OPTIONS,
+  COUNTRY_OPTIONS,
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
   PreferenceID,
@@ -98,7 +98,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.8",
+  version: "1.0.9",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -158,77 +158,23 @@ class ToonkotsuSource
     const groups = await this.tagGroups();
 
     return buildSearchForm({
-      header: "Filters",
+      header: "Advanced Search",
       footer: "Anything left empty falls back to the defaults in Settings.",
       fields: [
-        // The tag lists are the site's own and run to hundreds, so each opens as a sheet
-        // rather than wrapping across the form.
-        ...groups.map((group) =>
-          SearchExcludableMultiPickerSheet({
-            id: group.id,
-            title: group.title,
-            options: group.options,
-          }),
-        ),
-        SearchGroup({
-          id: "tag_matching",
-          title: "Tag Matching",
-          children: [
-            SearchPicker({
-              id: FilterID.IncludeMode,
-              title: "Included Tags Must Match",
-              options: MATCH_MODE_OPTIONS,
-            }),
-            SearchPicker({
-              id: FilterID.ExcludeMode,
-              title: "Excluded Tags Must Match",
-              options: MATCH_MODE_OPTIONS,
-            }),
-          ],
-        }),
-        SearchGroup({
-          id: "series",
-          title: "Series",
-          children: [
-            SearchMultiPicker({
-              id: FilterID.ContentRatings,
-              title: "Content Rating",
-              options: CONTENT_RATING_OPTIONS,
-            }),
-            SearchMultiPicker({
-              id: FilterID.Demographics,
-              title: "Demographic",
-              options: DEMOGRAPHIC_OPTIONS,
-            }),
-            SearchMultiPicker({
-              id: FilterID.Statuses,
-              title: "Publication Status",
-              options: STATUS_OPTIONS.map(({ id, title }) => ({ id, title })),
-            }),
-            SearchMultiPickerSheet({
-              id: FilterID.Languages,
-              title: "Original Language",
-              options: ORIGINAL_LANGUAGE_OPTIONS,
-            }),
-          ],
-        }),
-        // Numbers are stepped rather than typed: there is nothing to mistype, nothing to
-        // validate, and a reader who never touches one leaves it at its bound, which is
-        // read as "not asked for" rather than sent as a filter nobody set.
         SearchGroup({
           id: "publication",
-          title: "Publication Year",
+          title: "Year",
           children: [
             SearchStepper({
               id: FilterID.YearFrom,
-              title: "From",
+              title: "Year From",
               lowerBound: EARLIEST_YEAR,
               upperBound: latestYear(),
               step: 1,
             }),
             SearchStepper({
               id: FilterID.YearTo,
-              title: "To",
+              title: "Year To",
               lowerBound: EARLIEST_YEAR,
               upperBound: latestYear(),
               step: 1,
@@ -237,31 +183,73 @@ class ToonkotsuSource
         }),
         SearchGroup({
           id: "chapter_count",
-          title: "Chapter Count",
+          title: "Chapters",
           children: [
             SearchStepper({
               id: FilterID.ChaptersMin,
-              title: "Minimum",
+              title: "Chapters From",
               lowerBound: 0,
               upperBound: 2000,
               step: 10,
             }),
             SearchStepper({
               id: FilterID.ChaptersMax,
-              title: "Maximum",
+              title: "Chapters To",
               lowerBound: 0,
               upperBound: 2000,
               step: 10,
             }),
           ],
         }),
+        SearchMultiPicker({
+          id: FilterID.Statuses,
+          title: "Status",
+          options: STATUS_OPTIONS.map(({ id, title }) => ({ id, title })),
+        }),
+        SearchMultiPicker({
+          id: FilterID.ContentRatings,
+          title: "Content Rating",
+          options: CONTENT_RATING_OPTIONS,
+        }),
+        SearchMultiPicker({
+          id: FilterID.Demographics,
+          title: "Demographic",
+          options: DEMOGRAPHIC_OPTIONS,
+        }),
+        SearchMultiPickerSheet({
+          id: FilterID.Languages,
+          title: "Country",
+          options: COUNTRY_OPTIONS,
+        }),
         SearchGroup({
-          id: "credits",
-          title: "Credits",
+          id: "tags",
+          title: "Tags",
+          // The site's tag lists run to hundreds, so each category opens as a sheet.
+          children: groups.map((group) =>
+            SearchExcludableMultiPickerSheet({
+              id: group.id,
+              title: group.title,
+              options: group.options,
+            }),
+          ),
+        }),
+        SearchGroup({
+          id: "tag_matching",
+          title: "Tag Modes",
           children: [
-            SearchTextField({ id: FilterID.Author, title: "Author", placeholder: "e.g. ONE" }),
+            SearchPicker({
+              id: FilterID.IncludeMode,
+              title: "Tag Inclusion Mode",
+              options: MATCH_MODE_OPTIONS,
+            }),
+            SearchPicker({
+              id: FilterID.ExcludeMode,
+              title: "Tag Exclusion Mode",
+              options: [...MATCH_MODE_OPTIONS].reverse(),
+            }),
           ],
         }),
+        SearchTextField({ id: FilterID.Author, title: "Author", placeholder: "e.g. ONE" }),
       ],
     });
   }
@@ -444,7 +432,10 @@ class ToonkotsuSource
     const ratings =
       chosenRatings.length > 0 ? chosenRatings : await this.contentRatings(request.context);
 
-    const tags = TAG_GROUPS.map((group) => filters.excludable(group.id));
+    // Saved searches from the earlier category split still carry cast and setting IDs.
+    const tags = [...TAG_GROUPS.map((group) => group.id), FilterID.Cast, FilterID.Setting].map(
+      (id) => filters.excludable(id),
+    );
     const included = tags.flatMap(({ included }) => included);
     const excluded = tags.flatMap(({ excluded }) => excluded);
 

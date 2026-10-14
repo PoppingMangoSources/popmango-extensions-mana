@@ -31,6 +31,9 @@ import {
 import {
   BASE_URL,
   DEMOGRAPHIC_TAGS,
+  CONTENT_TAGS,
+  THEME_TAGS,
+  FilterID,
   PORNOGRAPHIC_TAGS,
   STATUS_NAMES,
   TAG_GROUPS,
@@ -226,9 +229,11 @@ function parseLabel(
   };
 }
 
-function tagGroupId(category: string | null | undefined): string {
-  if (!category) return TAG_GROUPS[0]!.id;
-  return TAG_GROUPS.find(({ prefix }) => prefix && category.startsWith(prefix))?.id ?? "themes";
+function tagGroupId(name: string, category: string | null | undefined): string {
+  if (category) return FilterID.Themes;
+  if (CONTENT_TAGS.has(name)) return FilterID.Content;
+  if (name === "Doujinshi") return FilterID.Format;
+  return THEME_TAGS.has(name) ? FilterID.Themes : FilterID.Genres;
 }
 
 export type TagGroup = { id: string; title: string; options: Option[] };
@@ -236,24 +241,18 @@ export type TagGroup = { id: string; title: string; options: Option[] };
 /**
  * The filter lists, grouped the way the site groups them.
  *
- * Hentai, Adult and Smut are offered once erotica is allowed; a tag the catalogue itself
- * flags adult is only offered alongside pornographic titles, as the site does.
+ * The site offers adult tags only when pornographic titles are selected.
  */
 export function parseTagGroups(facets: FacetsResponse, ratings: readonly string[]): TagGroup[] {
   const grouped = new Map<string, Option[]>();
 
   for (const facet of facets.genres ?? []) {
     if (UNLISTED_TAGS.has(facet.name) || facet.category === "Demographic") continue;
-    if (facet.isAdult && !ratings.includes("pornographic")) continue;
-    if (
-      PORNOGRAPHIC_TAGS.has(facet.name) &&
-      !ratings.includes("erotica") &&
-      !ratings.includes("pornographic")
-    ) {
+    if ((facet.isAdult || PORNOGRAPHIC_TAGS.has(facet.name)) && !ratings.includes("pornographic")) {
       continue;
     }
 
-    const id = tagGroupId(facet.category);
+    const id = tagGroupId(facet.name, facet.category);
     grouped.set(id, [...(grouped.get(id) ?? []), { id: facet.name, title: facet.name }]);
   }
 
@@ -325,7 +324,7 @@ export function parseContent(
       ? []
       : [
           ...TAG_GROUPS.flatMap(({ id, title }) => {
-            const names = tagNames.filter((tag) => tagGroupId(categories.get(tag)) === id);
+            const names = tagNames.filter((tag) => tagGroupId(tag, categories.get(tag)) === id);
             return names.length > 0 ? [{ id, title, names }] : [];
           }),
           ...(demographic

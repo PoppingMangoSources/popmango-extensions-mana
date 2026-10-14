@@ -24,6 +24,7 @@ export function latestYear(): number {
 }
 
 export const FilterID = {
+  Content: "content",
   Genres: "genres",
   Themes: "themes",
   Cast: "cast",
@@ -142,16 +143,11 @@ export const TYPE_OPTIONS: (Option & { languages: string[] })[] = [
   { id: "other", title: "Other", languages: ["xx"] },
 ];
 
-export const ORIGINAL_LANGUAGE_OPTIONS: Option[] = [
-  { id: "en", title: "English" },
-  { id: "ja", title: "Japanese" },
-  { id: "ja-ro", title: "Japanese (Romanized)" },
-  { id: "ko", title: "Korean" },
-  { id: "ko-ro", title: "Korean (Romanized)" },
-  { id: "zh", title: "Chinese (Simplified)" },
-  { id: "zh-hk", title: "Chinese (Traditional)" },
-  { id: "zh-ro", title: "Chinese (Romanized)" },
-  { id: "xx", title: "Other" },
+export const COUNTRY_OPTIONS: Option[] = [
+  { id: "ja", title: "Japan" },
+  { id: "ko", title: "Korea" },
+  { id: "zh", title: "China" },
+  { id: "en", title: "Western" },
 ];
 
 export const DEMOGRAPHIC_OPTIONS: Option[] = [
@@ -171,8 +167,8 @@ export const STATUS_OPTIONS: (Option & { value: string })[] = [
 ];
 
 export const MATCH_MODE_OPTIONS: Option[] = [
-  { id: "all", title: "All" },
-  { id: "any", title: "Any" },
+  { id: "all", title: "AND" },
+  { id: "any", title: "OR" },
 ];
 
 /**
@@ -187,20 +183,30 @@ export const UNLISTED_TAGS = new Set([
   "Lolicon",
   "Shotacon",
   "Other",
-  "Doujinshi",
 ]);
 
 export const PORNOGRAPHIC_TAGS = new Set(["Hentai", "Adult", "Smut"]);
 
 export const DEMOGRAPHIC_TAGS = new Set(["Shounen", "Shoujo", "Seinen", "Josei"]);
 
-/** The catalogue files each tag under a category; the main genres carry none. */
-export const TAG_GROUPS: { id: string; title: string; prefix?: string }[] = [
-  { id: FilterID.Genres, title: "Genres" },
-  { id: FilterID.Themes, title: "Themes", prefix: "Theme" },
-  { id: FilterID.Cast, title: "Cast", prefix: "Cast" },
-  { id: FilterID.Setting, title: "Setting", prefix: "Setting" },
-  { id: FilterID.Format, title: "Format", prefix: "Technical" },
+export const CONTENT_TAGS = new Set(["Ecchi", "Mature", "Smut", "Adult", "Hentai"]);
+export const THEME_TAGS = new Set([
+  "School Life",
+  "Martial Arts",
+  "Harem",
+  "Isekai",
+  "Gender Bender",
+  "Mecha",
+  "Supernatural",
+  "Historical",
+]);
+
+/** The site's picker merges catalogue categories into Theme. */
+export const TAG_GROUPS: { id: string; title: string }[] = [
+  { id: FilterID.Content, title: "Content" },
+  { id: FilterID.Format, title: "Format" },
+  { id: FilterID.Genres, title: "Genre" },
+  { id: FilterID.Themes, title: "Theme" },
 ];
 
 export const STATUS_NAMES: Record<string, string> = {
