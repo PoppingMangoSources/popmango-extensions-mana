@@ -90,8 +90,8 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.2",
-  description: "Manga, manhwa, manhua and comics from kagane.to.",
+  version: "1.1.3",
+  description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
   supportedLanguages: [DefinedLanguages.ENGLISH],
@@ -102,7 +102,7 @@ const info: SourceInfo = {
 const config: SourceConfig = {
   disableUpdateChecks: false,
   cloudflareResolutionURL: BASE_URL,
-  owningLinks: ["kagane.to"],
+  owningLinks: ["kagane.org"],
 };
 
 const DETAIL_CACHE_MS = 60_000;

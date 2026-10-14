@@ -2,7 +2,7 @@
 
 import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
 
-export const BASE_URL = "https://kagane.to";
+export const BASE_URL = "https://kagane.org";
 export const API_URL = `${BASE_URL}/api/v2`;
 
 export const DEFAULT_CACHE_URL = BASE_URL;
