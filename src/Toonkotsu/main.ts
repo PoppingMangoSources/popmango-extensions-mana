@@ -99,7 +99,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.18",
+  version: "1.0.19",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -594,16 +594,14 @@ class ToonkotsuSource
 
     const hint = await this.preferences.get(PreferenceID.ReaderLoader);
 
-    // The loader is a module on the site's own origin, so any document there can import it
-    // — and `/robots.txt` is one that brings no application bundle, no ads, and none of the
-    // site's own reader fetching these same images alongside us. Only finding the loader in
-    // the first place needs the chapter's own page, which is the document worth waiting on.
-    if (hint) {
-      const borrowed = await this.readIn(`${BASE_URL}/robots.txt`, id, hint);
-      if (!borrowed.missingLoader) return borrowed;
-    }
+    // Both ways in — the API asked directly, and the site's own loader — are reached from any
+    // document on the site's origin, and `/robots.txt` is one that brings no application
+    // bundle, no ads, and none of the site's own reader fetching these same images alongside
+    // us. Only finding the loader needs the chapter's own page, which is worth waiting on just
+    // when the API has refused and the loader is not where it was last seen.
+    let result = await this.readIn(`${BASE_URL}/robots.txt`, id, hint);
+    if (result.missingLoader) result = await this.readIn(url, id, hint);
 
-    const result = await this.readIn(url, id, hint);
     if (result.loader && result.loader !== hint) {
       await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
     }

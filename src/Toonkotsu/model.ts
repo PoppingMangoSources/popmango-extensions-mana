@@ -339,7 +339,10 @@ export type BrowserScope = {
   document: { querySelectorAll(selector: string): ArrayLike<{ href?: string }> };
   performance: { getEntriesByType(type: string): { name: string }[] };
   location: { href: string };
-  fetch: (url: string, init?: { credentials: string }) => Promise<BrowserResponse>;
+  fetch: (
+    url: string,
+    init?: { credentials?: string; headers?: Record<string, string> },
+  ) => Promise<BrowserResponse>;
   crypto: {
     subtle: {
       importKey(
@@ -366,7 +369,14 @@ export type SiteModule = { chapter(id: number): Promise<unknown> };
 export type SiteFailure = {
   status?: number;
   message?: string;
-  data?: { code?: string; reason?: string; retryAfterSec?: number; error?: string };
+  data?: {
+    code?: string;
+    reason?: string;
+    retryAfterSec?: number;
+    error?: string;
+    /** The site wants the request signed, which only its own loader can do. */
+    resign?: boolean;
+  };
 };
 
 export function seriesUrl(contentId: string, slug?: string | null): string {

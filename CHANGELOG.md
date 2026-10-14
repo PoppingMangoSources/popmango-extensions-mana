@@ -5,7 +5,18 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.18)
+## Toonkotsu (current: v1.0.19)
+
+### Changed
+
+- A chapter is read by asking the site's API for it directly. The site serves a chapter's
+  page keys to an unsigned request, unmasked, so the site's own loader no longer has to be
+  found and run first, and a fresh install no longer opens a chapter's whole page the first
+  time either. The loader stays as the fallback for whenever the site asks for a signed
+  request or masks its keys again; a human check or a wait is reported straight away
+  rather than asked again through it.
+
+## Toonkotsu (v1.0.18)
 
 ### Fixed
 
