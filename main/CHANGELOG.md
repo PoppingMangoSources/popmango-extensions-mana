@@ -5,7 +5,31 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.11)
+## Toonkotsu (current: v1.0.12)
+
+### Fixed
+
+- The chapter list was in no order at all. It kept the order the API answered in, which is
+  not the order the site lists, and sorting on the chapter number alone would not have
+  fixed it either: the teams that publish by volume restart their numbering inside each
+  one, so volume three's first chapter files between volume one's second and first. The
+  run now goes by volume, then by number within it, which reproduces the site's own list
+  row for row.
+- A whole-volume upload was titled "Chapter" and numbered zero, which filed eleven of them
+  ahead of chapter one. Each now carries the site's own wording — "Volume 11" — and sits at
+  the head of the volume it collects, as the site has it.
+- A chapter's label states its volume where the site states one, because three chapters
+  called "Chapter 1" in a row is that list read without it.
+- A team's own mirror of an upload was listed twice. Where one team has uploaded the same
+  chapter more than once the widest page, then the largest download, is the one kept; two
+  different teams' takes are still offered as versions of each other.
+
+### Added
+
+- A Deduplicate Chapters setting, off by default. On, the list is only the upload the site
+  shows first for each chapter rather than one from every team.
+
+## Toonkotsu (v1.0.11)
 
 ### Fixed
 
