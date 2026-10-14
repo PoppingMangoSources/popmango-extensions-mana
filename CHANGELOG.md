@@ -5,6 +5,12 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
+## Toonkotsu (current: v1.0.8)
+
+### Changed
+
+- Moved Hidden Gems directly above Top Rated on the home page.
+
 ## Kagane (current: v1.1.3)
 
 ### Changed
@@ -12,7 +18,7 @@ counted up from `1.0.0`.
 - Moved the source to kagane.org, including API requests, image request headers,
   reader links and Cloudflare resolution.
 
-## Toonkotsu (current: v1.0.7)
+## Toonkotsu (v1.0.7)
 
 ### Changed
 

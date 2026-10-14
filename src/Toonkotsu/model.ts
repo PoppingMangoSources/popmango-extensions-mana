@@ -112,8 +112,8 @@ export const SectionID = {
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   { id: SectionID.MostRead, title: "Most Read", style: SectionStyle.SimpleHeroPaged },
   { id: SectionID.Trending, title: "Trending", style: SectionStyle.DetailedDoubleRowPaged },
-  { id: SectionID.TopRated, title: "Top Rated", style: SectionStyle.SimpleSingleRow },
   { id: SectionID.HiddenGems, title: "Hidden Gems", style: SectionStyle.DetailedDoubleRowPaged },
+  { id: SectionID.TopRated, title: "Top Rated", style: SectionStyle.SimpleSingleRow },
   {
     id: SectionID.Latest,
     title: "Latest Updates",
