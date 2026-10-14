@@ -48,6 +48,7 @@ export const PreferenceID = {
   ContentRatings: "content-ratings",
   Types: "types",
   HiddenTags: "hidden-tags",
+  DeduplicateChapters: "deduplicate-chapters",
   SectionPrefix: "section",
 } as const;
 
@@ -222,6 +223,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.ContentRatings]: DEFAULT_CONTENT_RATINGS,
   [PreferenceID.Types]: TYPE_OPTIONS.map((option) => option.id),
   [PreferenceID.HiddenTags]: [] as string[],
+  [PreferenceID.DeduplicateChapters]: false,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),
@@ -274,6 +276,10 @@ export type ChapterRelease = {
   at?: number | null;
   src?: string | null;
   group?: ChapterGroup | null;
+  /** Page width in pixels, which ranks one team's uploads of the same chapter. */
+  w?: number | null;
+  /** Download size in megabytes, which breaks a tie between two uploads of one width. */
+  mb?: number | null;
 };
 
 export type ChapterEntry = ChapterRelease & {

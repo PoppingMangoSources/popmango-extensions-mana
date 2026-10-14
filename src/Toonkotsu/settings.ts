@@ -41,6 +41,19 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
       ],
     },
     {
+      header: "Chapters",
+      footer:
+        "Off, every team's upload of a chapter is listed, as a version of the same chapter. " +
+        "On, the list is only the upload the site shows first for each one.",
+      fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.DeduplicateChapters,
+          title: "Deduplicate Chapters",
+        },
+      ],
+    },
+    {
       header: "Home Sections",
       footer: "Turn off the rows you don't read to make the home page load faster.",
       fields: DISCOVER_SECTIONS.map((section) => ({

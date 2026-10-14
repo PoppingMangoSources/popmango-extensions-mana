@@ -390,49 +390,169 @@ function trackers(ids: Record<string, string | null>): Record<string, string> {
 }
 
 /**
- * Every upload, newest first.
+ * A volume or a number the site did not state, which ranks above every one it did.
+ *
+ * Both absences are deliberate rather than missing data. A chapter not yet filed into a
+ * volume is the newest thing the title has, and a release carrying no chapter number is a
+ * whole volume — all of them at once — which the site's own list puts at the head of the
+ * volume it collects. Ranking an absence highest is what puts both where the site has them.
+ */
+const UNFILED = Number.POSITIVE_INFINITY;
+
+/** Descending, and `Infinity - Infinity` is `NaN`, which would scramble the sort. */
+function byDescending(left: number, right: number): number {
+  return left === right ? 0 : right - left;
+}
+
+/** Where a release sits in the run: its volume, then its number within that volume. */
+function rankOf(entry: ChapterEntry): [number, number] {
+  const volume = Number(entry.vol);
+  return [
+    Number.isFinite(volume) && volume > 0 ? volume : UNFILED,
+    typeof entry.n === "number" ? entry.n : UNFILED,
+  ];
+}
+
+/**
+ * The whole label, because the app prints it verbatim and never joins the volume or the
+ * number onto it.
+ *
+ * The volume leads where the site states one, because the teams that publish by volume
+ * restart their numbering inside each — three different chapters called "Chapter 1" in a
+ * row is the site's own list read without it.
+ */
+function chapterTitle(
+  entry: ChapterEntry,
+  release: ChapterRelease,
+  title: string | undefined,
+  [volume, number]: readonly [number, number],
+): string {
+  // A whole volume has no number to build a label around, so the site's own wording for it
+  // — "Volume 11" — is better than anything composed here.
+  if (number === UNFILED) {
+    const label = clean(decodeEntities(release.label ?? entry.label ?? ""));
+    return label || (volume === UNFILED ? "Chapter" : `Volume ${chapterNumberLabel(volume)}`);
+  }
+
+  const prefix = [
+    volume === UNFILED ? "" : `Vol. ${chapterNumberLabel(volume)}`,
+    `Chapter ${chapterNumberLabel(number)}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return title ? `${prefix}: ${title}` : prefix;
+}
+
+/**
+ * What makes two releases the same upload rather than two readings of one chapter.
+ *
+ * A team's own mirrors of a chapter are the same thing twice and collapse; two teams'
+ * takes on it are versions the app offers side by side, so the team is part of the slot.
+ * An unnumbered release is told apart by its label instead, because a volume upload and an
+ * omake filed under the same volume are both "no number" and are not the same chapter.
+ */
+function slotOf(
+  chapter: Omit<Chapter, "index" | "number">,
+  [volume, number]: readonly [number, number],
+): string {
+  const group = chapter.provider?.id.toLowerCase() ?? "";
+  const label = number === UNFILED ? (chapter.title ?? "").toLowerCase() : "";
+  return `${volume}|${number}|${group}|${label}`;
+}
+
+export type ChapterOptions = {
+  /** Keep only the upload the site shows first for each chapter, as its own list does. */
+  mainOnly?: boolean;
+};
+
+/**
+ * The run in the site's own order: by volume, then by number inside it, newest first.
+ *
+ * Sorting on the number alone is what the site does not do, and the teams publishing by
+ * volume are why — their numbering restarts at one in every volume, so a flat sort files
+ * volume three's opening chapter between volume one's second and first.
  *
  * A chapter lists its own release and then any other team's take on the same number in
  * `alts`; each becomes a chapter of its own so the app can offer them as versions of one
- * another. `index` numbers the run from its oldest, which is not the order they arrive in.
+ * another. `index` numbers the run from its oldest, counted over the order below.
  */
-export function parseChapters({ chapters }: SeriesResponse): Chapter[] {
+export function parseChapters(
+  { chapters }: SeriesResponse,
+  options: ChapterOptions = {},
+): Chapter[] {
   // A chapter's own release sometimes appears in its `alts` as well, and the site draws
   // that upload once — so the id decides, not the position it was listed in.
-  const seen = new Set<string>();
-  const releases = (chapters ?? [])
-    .flatMap((entry) => [entry, ...(entry.alts ?? [])].map((release) => ({ entry, release })))
-    .filter(({ release }) => {
-      const id = String(release.id);
-      if (!release.id || seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
+  const seen = new Set<number>();
+  const slots = new Map<string, number>();
+  const kept: {
+    rank: [number, number];
+    width: number;
+    size: number;
+    chapter: Omit<Chapter, "index" | "number">;
+  }[] = [];
 
-  return releases.map(({ entry, release }, position) => {
-    const { title, group } = parseLabel(release, entry.n);
-    const number = typeof entry.n === "number" ? entry.n : 0;
-    const at = release.at ?? entry.at;
-    const volume = Number(entry.vol);
+  for (const entry of chapters ?? []) {
+    const rank = rankOf(entry);
+    const releases = options.mainOnly === true ? [entry] : [entry, ...(entry.alts ?? [])];
 
-    const label = [
-      typeof entry.n === "number" ? `Chapter ${chapterNumberLabel(entry.n)}` : "",
-      title ?? "",
-    ]
-      .filter(Boolean)
-      .join(": ");
+    for (const release of releases) {
+      if (!release.id || seen.has(release.id)) continue;
+      seen.add(release.id);
 
-    return {
-      chapterId: String(release.id),
-      number,
-      // Oldest first, so the newest release is the last index rather than the first.
-      index: releases.length - 1 - position,
-      title: label || "Chapter",
-      ...(Number.isFinite(volume) && volume > 0 ? { volume } : {}),
-      date: at ? new Date(at) : new Date(0),
-      language: "en",
-      webUrl: chapterUrl(String(release.id)),
-      ...(group ? { provider: { id: group, name: group } } : {}),
-    };
-  });
+      const { title, group } = parseLabel(release, entry.n);
+      const at = release.at ?? entry.at;
+      const chapter: Omit<Chapter, "index" | "number"> = {
+        chapterId: String(release.id),
+        title: chapterTitle(entry, release, title, rank),
+        ...(rank[0] === UNFILED ? {} : { volume: rank[0] }),
+        date: at ? new Date(at) : new Date(0),
+        language: "en",
+        webUrl: chapterUrl(String(release.id)),
+        ...(group ? { provider: { id: group, name: group } } : {}),
+      };
+
+      const width = release.w ?? 0;
+      const size = release.mb ?? 0;
+      const slot = slotOf(chapter, rank);
+      const held = slots.get(slot);
+
+      if (held === undefined) {
+        slots.set(slot, kept.length);
+        kept.push({ rank, width, size, chapter });
+        continue;
+      }
+
+      // One upload mirrored, of which the widest page, then the largest download, is the
+      // one worth reading.
+      const previous = kept[held]!;
+      if (width > previous.width || (width === previous.width && size > previous.size)) {
+        kept[held] = { rank, width, size, chapter };
+      }
+    }
+  }
+
+  // Stable, so two teams' takes on one chapter stay in the order the site listed them.
+  const ordered = kept.sort(
+    (left, right) =>
+      byDescending(left.rank[0], right.rank[0]) || byDescending(left.rank[1], right.rank[1]),
+  );
+
+  return ordered.map(({ rank, chapter }, position) => ({
+    ...chapter,
+    // An unnumbered release sits above the chapters it collects rather than ahead of
+    // chapter one, so it is never the point the app resumes a reader at.
+    number: rank[1] === UNFILED ? highestIn(ordered, rank[0]) + 1 : rank[1],
+    // Oldest first, so the newest release is the last index rather than the first.
+    index: ordered.length - 1 - position,
+  }));
+}
+
+/** The largest number the site stated inside one volume, or across the run without one. */
+function highestIn(entries: readonly { rank: [number, number] }[], volume: number): number {
+  let highest = 0;
+  for (const { rank } of entries) {
+    if (rank[0] === volume && rank[1] !== UNFILED && rank[1] > highest) highest = rank[1];
+  }
+  return highest;
 }
