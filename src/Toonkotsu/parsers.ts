@@ -529,20 +529,30 @@ export function parseChapters(
     }
   }
 
-  // Oldest first, as the site's own list reads, and stable — so two teams' takes on one
-  // chapter stay in the order the site listed them, which is the order the app draws them
-  // in once its own sort finds them equal.
-  const ordered = kept.sort(
-    (left, right) =>
-      byAscending(left.rank[0], right.rank[0]) || byAscending(left.rank[1], right.rank[1]),
+  // `index` counts from the first chapter, so it is read off the run the other way up.
+  // Both sorts start from the order the releases were built in and both are stable, so two
+  // teams' takes on one chapter stay in the order the site listed them either way round —
+  // which is the order the app draws them in once its own sort finds them equal.
+  const volumes = volumesIn(kept);
+  const indices = new Map(
+    [...kept]
+      .sort(
+        (left, right) =>
+          byAscending(left.rank[0], right.rank[0]) || byAscending(left.rank[1], right.rank[1]),
+      )
+      .map(({ chapter }, position) => [chapter.chapterId, position]),
   );
 
-  const volumes = volumesIn(ordered);
+  // Newest first.
+  const ordered = kept.sort(
+    (left, right) =>
+      byAscending(right.rank[0], left.rank[0]) || byAscending(right.rank[1], left.rank[1]),
+  );
 
-  return ordered.map(({ rank, slot, size, chapter }, position) => ({
+  return ordered.map(({ rank, slot, size, chapter }) => ({
     ...chapter,
     number: sortNumber(rank, ordered, volumes),
-    index: position,
+    index: indices.get(chapter.chapterId) ?? 0,
     // Only where the team has more than one upload of this chapter: on a chapter they
     // uploaded once the size says nothing, and every row would carry a number for nothing.
     ...(chapter.provider && size && (mirrors.get(slot) ?? 0) > 1
