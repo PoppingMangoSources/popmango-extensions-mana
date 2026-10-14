@@ -34,7 +34,6 @@ import {
   CONTENT_TAGS,
   THEME_TAGS,
   FilterID,
-  PORNOGRAPHIC_TAGS,
   STATUS_NAMES,
   TAG_GROUPS,
   UNLISTED_TAGS,
@@ -238,19 +237,11 @@ function tagGroupId(name: string, category: string | null | undefined): string {
 
 export type TagGroup = { id: string; title: string; options: Option[] };
 
-/**
- * The filter lists, grouped the way the site groups them.
- *
- * The site offers adult tags only when pornographic titles are selected.
- */
-export function parseTagGroups(facets: FacetsResponse, ratings: readonly string[]): TagGroup[] {
+export function parseTagGroups(facets: FacetsResponse): TagGroup[] {
   const grouped = new Map<string, Option[]>();
 
   for (const facet of facets.genres ?? []) {
     if (UNLISTED_TAGS.has(facet.name) || facet.category === "Demographic") continue;
-    if ((facet.isAdult || PORNOGRAPHIC_TAGS.has(facet.name)) && !ratings.includes("pornographic")) {
-      continue;
-    }
 
     const id = tagGroupId(facet.name, facet.category);
     grouped.set(id, [...(grouped.get(id) ?? []), { id: facet.name, title: facet.name }]);

@@ -5,7 +5,18 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.9)
+## Toonkotsu (current: v1.0.10)
+
+### Changed
+
+- Moved Genre to the first Advanced Search section with inline include/exclude chips.
+- Show the full tag catalogue regardless of the browse content-rating preference.
+  Content-rating restrictions still apply to fetched search results.
+- Marked AND inclusion and OR exclusion as the defaults in their picker labels and
+  subtitles. Empty selections already use those modes; the current host API does not
+  expose preselected search-filter values.
+
+## Toonkotsu (v1.0.9)
 
 ### Changed
 

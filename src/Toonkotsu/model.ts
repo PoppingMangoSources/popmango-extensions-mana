@@ -185,8 +185,6 @@ export const UNLISTED_TAGS = new Set([
   "Other",
 ]);
 
-export const PORNOGRAPHIC_TAGS = new Set(["Hentai", "Adult", "Smut"]);
-
 export const DEMOGRAPHIC_TAGS = new Set(["Shounen", "Shoujo", "Seinen", "Josei"]);
 
 export const CONTENT_TAGS = new Set(["Ecchi", "Mature", "Smut", "Adult", "Hentai"]);

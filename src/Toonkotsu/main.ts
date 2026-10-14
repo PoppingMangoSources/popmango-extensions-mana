@@ -4,6 +4,7 @@ import {
   CatalogRating,
   ContentRating,
   DefinedLanguages,
+  SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
   SearchGroup,
   SearchMultiPicker,
@@ -11,6 +12,7 @@ import {
   SearchPicker,
   SearchStepper,
   SearchTextField,
+  SearchTagsSection,
   type Chapter,
   type ChapterData,
   type ChapterPage,
@@ -90,7 +92,6 @@ import {
   parseLatestHighlights,
   parseTagGroups,
   ratingIdOf,
-  type TagGroup,
 } from "./parsers.ts";
 import { readChapterInPage } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
@@ -98,7 +99,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.9",
+  version: "1.0.10",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -149,15 +150,10 @@ class ToonkotsuSource
       .catch(() => ({}) as FacetsResponse);
   }
 
-  private async tagGroups(): Promise<TagGroup[]> {
-    const [facets, ratings] = await Promise.all([this.facets(), this.contentRatings()]);
-    return parseTagGroups(facets, ratings);
-  }
-
   async getSearchForm(): Promise<SearchForm> {
-    const groups = await this.tagGroups();
+    const groups = parseTagGroups(await this.facets());
 
-    return buildSearchForm({
+    const form = buildSearchForm({
       header: "Advanced Search",
       footer: "Anything left empty falls back to the defaults in Settings.",
       fields: [
@@ -225,13 +221,15 @@ class ToonkotsuSource
           id: "tags",
           title: "Tags",
           // The site's tag lists run to hundreds, so each category opens as a sheet.
-          children: groups.map((group) =>
-            SearchExcludableMultiPickerSheet({
-              id: group.id,
-              title: group.title,
-              options: group.options,
-            }),
-          ),
+          children: groups
+            .filter((group) => group.id !== FilterID.Genres)
+            .map((group) =>
+              SearchExcludableMultiPickerSheet({
+                id: group.id,
+                title: group.title,
+                options: group.options,
+              }),
+            ),
         }),
         SearchGroup({
           id: "tag_matching",
@@ -240,25 +238,46 @@ class ToonkotsuSource
             SearchPicker({
               id: FilterID.IncludeMode,
               title: "Tag Inclusion Mode",
-              options: MATCH_MODE_OPTIONS,
+              subtitle: "Default: AND",
+              options: MATCH_MODE_OPTIONS.map((option) => ({
+                ...option,
+                title: option.id === "all" ? "AND (Default)" : option.title,
+              })),
             }),
             SearchPicker({
               id: FilterID.ExcludeMode,
               title: "Tag Exclusion Mode",
-              options: [...MATCH_MODE_OPTIONS].reverse(),
+              subtitle: "Default: OR",
+              options: [...MATCH_MODE_OPTIONS].reverse().map((option) => ({
+                ...option,
+                title: option.id === "any" ? "OR (Default)" : option.title,
+              })),
             }),
           ],
         }),
         SearchTextField({ id: FilterID.Author, title: "Author", placeholder: "e.g. ONE" }),
       ],
     });
+    return {
+      sections: [
+        SearchTagsSection({
+          header: "Genre",
+          field: SearchExcludableMultiPicker({
+            id: FilterID.Genres,
+            title: "Genre",
+            options: groups.find((group) => group.id === FilterID.Genres)?.options ?? [],
+          }),
+        }),
+        ...form.sections,
+      ],
+    };
   }
 
   async getPreferenceMenu(): Promise<Form> {
     return buildPreferenceMenu(
       this.preferences,
       buildSettingsSections(async () => {
-        const groups = parseTagGroups(await this.facets(), ["pornographic"]);
+        const groups = parseTagGroups(await this.facets());
         return groups
           .flatMap((group) => group.options)
           .sort((left, right) => left.title.localeCompare(right.title));
