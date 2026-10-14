@@ -5,7 +5,16 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.16)
+## Toonkotsu (current: v1.0.17)
+
+### Added
+
+- An Upload Size setting, on by default, for the download that closes a chapter's name.
+  Turned off the names read plain, and because the download is then the only thing that
+  was telling one team's two uploads of a chapter apart, those become the one row they
+  now look like.
+
+## Toonkotsu (v1.0.16)
 
 ### Changed
 
