@@ -5,7 +5,28 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.12)
+## Toonkotsu (current: v1.0.13)
+
+### Fixed
+
+- The volumes still did not run in order. The app sorts the list on a chapter's number
+  before it looks at anything else, so a volume carried beside the number never reached
+  that sort at all, and every volume's chapter one was drawn in one block. Where a title
+  is filed into volumes the number now carries the volume with it, which is the site's own
+  order written as the one value the app sorts by.
+- Chapter rows are worded as the site words them — `Vol. 1 Ch. 1 - Friends`, and `Vol. 2`
+  for a whole volume, which also stops the longer wording running off the row.
+- A whole volume is listed after the chapters it collects rather than before them, as the
+  site lists it.
+
+### Changed
+
+- Every upload is kept again, including a team's own second upload of a chapter. Where one
+  team has more than one, each carries its download beside the team's name — `Rolia Scans
+  (19.1 MB)` against `Rolia Scans (9.5 MB)` — so the choice between a bigger scan and a
+  smaller one is the reader's to make rather than one this makes for them.
+
+## Toonkotsu (v1.0.12)
 
 ### Fixed
 

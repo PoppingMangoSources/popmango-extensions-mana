@@ -276,9 +276,7 @@ export type ChapterRelease = {
   at?: number | null;
   src?: string | null;
   group?: ChapterGroup | null;
-  /** Page width in pixels, which ranks one team's uploads of the same chapter. */
-  w?: number | null;
-  /** Download size in megabytes, which breaks a tie between two uploads of one width. */
+  /** Download size in megabytes, which is how one team's two uploads of a chapter differ. */
   mb?: number | null;
 };
 
