@@ -5,7 +5,14 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.6)
+## Toonkotsu (current: v1.0.7)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## Toonkotsu (v1.0.6)
 
 ### Changed
 
@@ -129,7 +136,14 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.1.2)
+## MangaDex (current: v1.1.3)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## MangaDex (v1.1.2)
 
 ### Added
 
@@ -275,7 +289,14 @@ counted up from `1.0.0`.
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.1.1)
+## ValirScans (current: v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## ValirScans (v1.1.1)
 
 ### Added
 
@@ -539,7 +560,14 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.1.1)
+## MangaFire (current: v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## MangaFire (v1.1.1)
 
 ### Added
 
@@ -683,7 +711,14 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.1.1)
+## StoneScape (current: v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## StoneScape (v1.1.1)
 
 ### Added
 
@@ -921,7 +956,14 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.1.1)
+## MangaUpdates (current: v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## MangaUpdates (v1.1.1)
 
 ### Added
 
@@ -1067,7 +1109,14 @@ counted up from `1.0.0`.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.2.0)
+## XCOMIC (current: v1.2.1)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## XCOMIC (v1.2.0)
 
 ### Fixed
 
@@ -1594,7 +1643,14 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.1.1)
+## FlameComics (current: v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## FlameComics (v1.1.1)
 
 ### Added
 
@@ -1714,7 +1770,14 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Kagane (current: v1.1.1)
+## Kagane (current: v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## Kagane (v1.1.1)
 
 ### Added
 
