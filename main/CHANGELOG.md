@@ -5,7 +5,19 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.17)
+## Toonkotsu (current: v1.0.18)
+
+### Fixed
+
+- Every chapter took far longer to open than it needed to. Reading one opened the
+  chapter's own page in the browser and waited for the whole of it — the site's
+  application bundle, its ad script, and its own reader starting on the very images this
+  was about to fetch itself. All the chapter loader actually needs is a document on the
+  site's origin, so once it is known where to find it the browser opens `/robots.txt`
+  instead, which brings none of that. The chapter's page is opened only to find the loader
+  in the first place, and after a site update that moves it.
+
+## Toonkotsu (v1.0.17)
 
 ### Added
 
