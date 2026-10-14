@@ -43,13 +43,20 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
     {
       header: "Chapters",
       footer:
-        "Off, every team's upload of a chapter is listed, as a version of the same chapter. " +
-        "On, the list is only the upload the site shows first for each one.",
+        "Deduplicate Chapters lists only the upload the site shows first for each chapter, " +
+        "rather than one from every team. Upload Size closes a chapter's name with the " +
+        "download it is offering, which is how one team's two uploads of it differ — with " +
+        "it off they are the same row, and only one is listed.",
       fields: [
         {
           type: "toggle" as const,
           key: PreferenceID.DeduplicateChapters,
           title: "Deduplicate Chapters",
+        },
+        {
+          type: "toggle" as const,
+          key: PreferenceID.ShowUploadSize,
+          title: "Upload Size",
         },
       ],
     },

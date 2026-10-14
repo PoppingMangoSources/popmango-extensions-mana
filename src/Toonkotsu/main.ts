@@ -99,7 +99,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.16",
+  version: "1.0.17",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -539,11 +539,12 @@ class ToonkotsuSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [series, mainOnly] = await Promise.all([
+    const [series, mainOnly, showSize] = await Promise.all([
       this.loadSeries(contentId),
       this.preferences.flag(PreferenceID.DeduplicateChapters),
+      this.preferences.flag(PreferenceID.ShowUploadSize),
     ]);
-    return parseChapters(series, { mainOnly });
+    return parseChapters(series, { mainOnly, showSize });
   }
 
   private loadSeries(contentId: string): Promise<SeriesResponse> {

@@ -49,6 +49,7 @@ export const PreferenceID = {
   Types: "types",
   HiddenTags: "hidden-tags",
   DeduplicateChapters: "deduplicate-chapters",
+  ShowUploadSize: "show-upload-size",
   SectionPrefix: "section",
 } as const;
 
@@ -224,6 +225,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.Types]: TYPE_OPTIONS.map((option) => option.id),
   [PreferenceID.HiddenTags]: [] as string[],
   [PreferenceID.DeduplicateChapters]: false,
+  [PreferenceID.ShowUploadSize]: true,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),

@@ -497,6 +497,13 @@ function providerOf(group: string | undefined): { id: string; name: string } | u
 export type ChapterOptions = {
   /** Keep only the upload the site shows first for each chapter, as its own list does. */
   mainOnly?: boolean;
+  /**
+   * Close each chapter's name with the download it is offering.
+   *
+   * Turning it off is what makes a team's two uploads of one chapter the same row: with
+   * nothing left to choose between them, only one of them is listed.
+   */
+  showSize?: boolean;
 };
 
 /**
@@ -537,7 +544,7 @@ export function parseChapters(
 
       const { title, group } = parseLabel(release, entry.n);
       const at = release.at ?? entry.at;
-      const size = sizeLabel(release.mb);
+      const size = options.showSize === false ? "" : sizeLabel(release.mb);
       const label = chapterTitle(entry, release, title, rank, size);
 
       // The label already carries the download, so two uploads that differ by one differ
