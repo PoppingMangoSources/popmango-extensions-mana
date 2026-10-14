@@ -5,7 +5,16 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.15)
+## Toonkotsu (current: v1.0.16)
+
+### Changed
+
+- The download moved off the team's name and onto the chapter's own row —
+  `Vol. 1 Ch. 1 (19.1 MB)` beside `Vol. 1 Ch. 1 (9.5 MB)`, both under Rolia Scans. A team
+  is one team again rather than one per size it has uploaded at, which is what carrying it
+  on the name cost: the app draws a single name per provider id.
+
+## Toonkotsu (v1.0.15)
 
 ### Fixed
 
