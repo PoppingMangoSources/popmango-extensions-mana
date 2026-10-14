@@ -5,7 +5,15 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.13)
+## Toonkotsu (current: v1.0.14)
+
+### Changed
+
+- The run is handed over newest first again. Where a team has more than one take on a
+  chapter those stay in the order the site lists them, either way up, and the first
+  chapter is still the one the app opens at.
+
+## Toonkotsu (v1.0.13)
 
 ### Fixed
 
