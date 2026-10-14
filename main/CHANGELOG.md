@@ -5,7 +5,19 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.19)
+## Toonkotsu (current: v1.0.20)
+
+### Changed
+
+- The sort menu is the site's own: Created Date, Updated Date, Uploaded Date, Best Match,
+  Title, Year, Rating, View Count, Follow Count and Chapter Count, in that order, each
+  asking the catalogue what the site's menu asks it. Direction is the app's own ascending
+  and descending switch rather than every sort listed twice, opening the way the site's
+  Order menu does — newest, biggest and best first, and a title from A.
+- The site gives ten names to eight orders, and the menu keeps all ten as the site does:
+  Updated and Uploaded Date pick the same list there, as do View and Follow Count.
+
+## Toonkotsu (v1.0.19)
 
 ### Changed
 
