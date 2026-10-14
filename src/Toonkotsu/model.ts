@@ -324,6 +324,8 @@ export type ReaderResult = {
   retryAfter?: number;
   error?: string;
   loader?: string;
+  /** The loader was not on this document, which is the one failure worth another page for. */
+  missingLoader?: boolean;
 };
 
 export type BrowserResponse = {

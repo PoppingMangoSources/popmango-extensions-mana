@@ -99,7 +99,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.17",
+  version: "1.0.18",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -592,15 +592,29 @@ class ToonkotsuSource
       throw new Error("This version of Mana cannot open Toonkotsu chapters (no WebView support).");
     }
 
+    const hint = await this.preferences.get(PreferenceID.ReaderLoader);
+
+    // The loader is a module on the site's own origin, so any document there can import it
+    // — and `/robots.txt` is one that brings no application bundle, no ads, and none of the
+    // site's own reader fetching these same images alongside us. Only finding the loader in
+    // the first place needs the chapter's own page, which is the document worth waiting on.
+    if (hint) {
+      const borrowed = await this.readIn(`${BASE_URL}/robots.txt`, id, hint);
+      if (!borrowed.missingLoader) return borrowed;
+    }
+
+    const result = await this.readIn(url, id, hint);
+    if (result.loader && result.loader !== hint) {
+      await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
+    }
+    return result;
+  }
+
+  private async readIn(url: string, id: number, hint: string): Promise<ReaderResult> {
     const page = await WebViewPage.create({ timeout: READER_TIMEOUT });
     try {
       await page.goto(url, { waitUntil: "load" });
-      const hint = await this.preferences.get(PreferenceID.ReaderLoader);
-      const result = await page.evaluate(readChapterInPage, id, hint);
-      if (result.loader && result.loader !== hint) {
-        await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
-      }
-      return result;
+      return await page.evaluate(readChapterInPage, id, hint);
     } finally {
       await page.close();
     }

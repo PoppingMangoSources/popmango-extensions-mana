@@ -55,7 +55,9 @@ export async function readChapterInPage(chapterId: number, hint: string): Promis
       }
     }
   }
-  if (!site) return { error: "the site's chapter loader was not found" };
+  if (!site) {
+    return { error: "the site's chapter loader was not found", missingLoader: true };
+  }
 
   let body: unknown;
   try {
