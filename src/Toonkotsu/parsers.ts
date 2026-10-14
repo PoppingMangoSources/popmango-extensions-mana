@@ -446,21 +446,48 @@ function chapterTitle(
 }
 
 /**
- * What makes two releases one team's second go at the same chapter.
+ * Nothing left to tell two releases apart by: the same chapter, the same team, the same
+ * wording and the same download.
  *
- * Two teams' takes on a chapter are versions the app offers side by side, so the team is
- * part of the slot. An unnumbered release is told apart by its label as well, because a
- * volume upload and an omake filed under the same volume are both "no number" and are not
- * the same chapter.
+ * The site lists some uploads twice under one team with every one of those the same, and
+ * two rows a reader cannot choose between are not a choice. Where the download differs
+ * both are kept, because that one is a choice — a bigger scan against a smaller one.
  */
-function slotOf(group: string, [volume, number]: readonly [number, number], label: string): string {
-  return `${volume}|${number}|${group.toLowerCase()}|${number === UNFILED ? label.toLowerCase() : ""}`;
+function sameUpload(
+  [volume, number]: readonly [number, number],
+  group: string,
+  label: string,
+  size: string,
+): string {
+  return `${volume}|${number}|${group.toLowerCase()}|${label.toLowerCase()}|${size}`;
 }
 
-/** The download the site quotes for an upload, which is how one mirror differs from another. */
+/**
+ * The download the site quotes for an upload, which is what one team's two uploads differ by.
+ *
+ * Written as the site writes it: megabytes however large it gets — a whole volume runs to
+ * `1274 MB` there rather than a gigabyte and a bit — and a decimal only while it is small
+ * enough for one to mean anything.
+ */
 function sizeLabel(mb: number | null | undefined): string {
   if (typeof mb !== "number" || !Number.isFinite(mb) || mb <= 0) return "";
-  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Number(mb.toFixed(1))} MB`;
+  return `${mb >= 100 ? Math.round(mb) : Number(mb.toFixed(1))} MB`;
+}
+
+/**
+ * The team, with the download it is offering beside it.
+ *
+ * **The app draws one name per provider id**, so a team's uploads have to carry different
+ * ids or every row takes whichever name the app saw first for that team — which is how a
+ * 118 MB chapter comes to be labelled 238.6 MB. The id is the name for that reason.
+ */
+function providerOf(
+  group: string | undefined,
+  size: string,
+): { id: string; name: string } | undefined {
+  if (!group) return undefined;
+  const name = size ? `${group} (${size})` : group;
+  return { id: name, name };
 }
 
 export type ChapterOptions = {
@@ -479,9 +506,9 @@ export type ChapterOptions = {
  * `alts`; each becomes a chapter of its own so the app can offer them as versions of one
  * another. `index` numbers the run from its oldest, counted over the order below.
  *
- * Where one team has uploaded a chapter more than once, every upload is kept and its
- * download hangs off the team's name — the reader decides between a wider scan and a
- * smaller one, which is not a judgement this can make for them.
+ * Every upload a team has made of a chapter is kept and each carries its own download, so
+ * the reader decides between a bigger scan and a smaller one — a judgement this cannot
+ * make for them. Only an upload with nothing at all to tell it from another is dropped.
  */
 export function parseChapters(
   { chapters }: SeriesResponse,
@@ -490,11 +517,9 @@ export function parseChapters(
   // A chapter's own release sometimes appears in its `alts` as well, and the site draws
   // that upload once — so the id decides, not the position it was listed in.
   const seen = new Set<number>();
-  const mirrors = new Map<string, number>();
+  const uploads = new Set<string>();
   const kept: {
     rank: [number, number];
-    slot: string;
-    size: string;
     chapter: Omit<Chapter, "index" | "number">;
   }[] = [];
 
@@ -509,13 +534,15 @@ export function parseChapters(
       const { title, group } = parseLabel(release, entry.n);
       const at = release.at ?? entry.at;
       const label = chapterTitle(entry, release, title, rank);
-      const slot = slotOf(group ?? "", rank, label);
-      mirrors.set(slot, (mirrors.get(slot) ?? 0) + 1);
+      const size = sizeLabel(release.mb);
 
+      const upload = sameUpload(rank, group ?? "", label, size);
+      if (uploads.has(upload)) continue;
+      uploads.add(upload);
+
+      const provider = providerOf(group, size);
       kept.push({
         rank,
-        slot,
-        size: sizeLabel(release.mb),
         chapter: {
           chapterId: String(release.id),
           title: label,
@@ -523,7 +550,7 @@ export function parseChapters(
           date: at ? new Date(at) : new Date(0),
           language: "en",
           webUrl: chapterUrl(String(release.id)),
-          ...(group ? { provider: { id: group, name: group } } : {}),
+          ...(provider ? { provider } : {}),
         },
       });
     }
@@ -549,15 +576,10 @@ export function parseChapters(
       byAscending(right.rank[0], left.rank[0]) || byAscending(right.rank[1], left.rank[1]),
   );
 
-  return ordered.map(({ rank, slot, size, chapter }) => ({
+  return ordered.map(({ rank, chapter }) => ({
     ...chapter,
     number: sortNumber(rank, ordered, volumes),
     index: indices.get(chapter.chapterId) ?? 0,
-    // Only where the team has more than one upload of this chapter: on a chapter they
-    // uploaded once the size says nothing, and every row would carry a number for nothing.
-    ...(chapter.provider && size && (mirrors.get(slot) ?? 0) > 1
-      ? { provider: { ...chapter.provider, name: `${chapter.provider.name} (${size})` } }
-      : {}),
   }));
 }
 
