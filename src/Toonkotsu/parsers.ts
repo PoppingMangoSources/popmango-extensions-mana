@@ -241,7 +241,7 @@ export function parseTagGroups(facets: FacetsResponse): TagGroup[] {
   const grouped = new Map<string, Option[]>();
 
   for (const facet of facets.genres ?? []) {
-    if (UNLISTED_TAGS.has(facet.name) || facet.category === "Demographic") continue;
+    if (UNLISTED_TAGS.has(facet.name)) continue;
 
     const id = tagGroupId(facet.name, facet.category);
     grouped.set(id, [...(grouped.get(id) ?? []), { id: facet.name, title: facet.name }]);
