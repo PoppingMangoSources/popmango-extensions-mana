@@ -4,7 +4,7 @@ import type { Option } from "@mana-app/types";
 
 import type { PreferenceField, PreferenceSection } from "../common/index.ts";
 import {
-  AGE_RATING_OPTIONS,
+  CONTENT_RATING_OPTIONS,
   LANGUAGE_OPTIONS,
   PreferenceID,
   UPLOAD_SOURCE_OPTIONS,
@@ -77,15 +77,10 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
       fields: [
         {
           type: "multiselect",
-          key: PreferenceID.AgeRating,
+          key: PreferenceID.NormalizedRatings,
           title: "Content Rating",
-          options: AGE_RATING_OPTIONS,
+          options: CONTENT_RATING_OPTIONS,
           minSelectionCount: 1,
-        },
-        {
-          type: "toggle",
-          key: PreferenceID.ShowPornographic,
-          title: "Include Pornographic Content",
         },
         { type: "toggle", key: PreferenceID.HideDisturbing, title: "Hide Disturbing Content" },
         {

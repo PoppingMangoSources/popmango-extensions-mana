@@ -44,6 +44,7 @@ export const PreferenceID = {
   // indistinguishable from the old default, and that default was the bug. A new key lets
   // the corrected default reach installs that already have the old one written.
   ContentRating: "content-rating-all",
+  NormalizedRatings: "content-ratings",
   AgeRating: "age-rating",
   ShowPornographic: "show-pornographic",
   ExcludedGenres: "excluded-genres",
@@ -70,6 +71,7 @@ export const SortID = {
   Updated: "updated_at",
   Rating: "rating",
   Created: "created_at",
+  Chapters: "current_books",
 } as const;
 
 export const SORT_OPTIONS: SortOption[] = [
@@ -78,6 +80,7 @@ export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Updated, title: "Updated", isOrderable: true, defaultAscending: false },
   { id: SortID.Rating, title: "Rating", isOrderable: true, defaultAscending: false },
   { id: SortID.Created, title: "Added", isOrderable: true, defaultAscending: false },
+  { id: SortID.Chapters, title: "Chapter count", isOrderable: true, defaultAscending: false },
   { id: SortID.PopularNow, title: "Popular now" },
   { id: SortID.ViewsMonth, title: "Most read this month" },
   { id: SortID.AverageViews, title: "Most read of all time" },
@@ -85,11 +88,17 @@ export const SORT_OPTIONS: SortOption[] = [
 
 export const CONTENT_RATINGS = ["Safe", "Suggestive", "Erotica", "Pornographic"];
 
-export const AGE_RATING_OPTIONS: Option[] = [
-  { id: "Safe", title: "Safe" },
-  { id: "FifteenPlus", title: "15+" },
-  { id: "EighteenPlus", title: "18+" },
-];
+export const CONTENT_RATING_OPTIONS: Option[] = CONTENT_RATINGS.map((rating) => ({
+  id: rating,
+  title: rating,
+}));
+
+export const RANGE_FIELDS = [
+  { id: FilterID.Chapters, title: "Chapters", lower: "Min", upper: "Max" },
+  { id: FilterID.Volumes, title: "Volumes", lower: "Min", upper: "Max" },
+  { id: FilterID.StartYear, title: "Year started", lower: "From", upper: "To" },
+  { id: FilterID.EndYear, title: "Year ended", lower: "From", upper: "To" },
+] as const;
 
 export const FORMAT_OPTIONS: Option[] = ["Manga", "Manhwa", "Manhua", "Comic", "Other"].map(
   (format) => ({ id: format, title: format }),
@@ -215,6 +224,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   // the first simply vanished from search. The app's own content setting is the place that
   // decision belongs, and it is applied on top of this.
   [PreferenceID.ContentRating]: [...CONTENT_RATINGS],
+  [PreferenceID.NormalizedRatings]: [] as string[],
   [PreferenceID.AgeRating]: [] as string[],
   [PreferenceID.ShowPornographic]: true,
   [PreferenceID.ExcludedGenres]: [] as string[],
@@ -283,7 +293,12 @@ export type SearchResponse = {
   facets?: { content_lang?: { value: string; count: number }[] };
 };
 
-export type BooksResponse = { items: ChapterBook[]; next_cursor: string | null };
+export type BookIndexResponse = {
+  count: number;
+  fields: string[];
+  groups: { title: string }[];
+  books: unknown[][];
+};
 
 export type TrendingResponse = {
   items: {

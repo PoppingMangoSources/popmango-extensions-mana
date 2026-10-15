@@ -8,7 +8,7 @@ import {
   BASE_URL,
   DEFAULT_CACHE_URL,
   type ChallengeResponse,
-  type BooksResponse,
+  type BookIndexResponse,
   type ChapterBook,
   type DetailsResponse,
   type GenreEntry,
@@ -20,6 +20,8 @@ import {
   type TrackerResponse,
   type TrendingResponse,
 } from "./model.ts";
+
+import { parseBookIndex } from "./parsers.ts";
 
 // The site says "your token is stale" with these, not "no". Only the status may
 // decide: a successful challenge body contains "access_token", so sniffing it for
@@ -169,36 +171,17 @@ export class KaganeApi {
   async fetchBooks(seriesId: string): Promise<ChapterBook[]> {
     const running = this.chapterLists.get(seriesId);
     if (running) return running;
-    const request = (async () => {
-      const books: ChapterBook[] = [];
-      const ids = new Set<string>();
-      const cursors = new Set<string>();
-      let before: string | undefined;
-      for (;;) {
-        const url = new UrlBuilder(API_URL)
-          .addPathComponent("series")
-          .addPathComponent(seriesId)
-          .addPathComponent("books")
-          .setQueryItem("limit", 200)
-          .setQueryItem("before", before)
-          .build();
-        const page = await this.fetchJson<BooksResponse>(url);
-        if (!Array.isArray(page.items)) throw new Error("Kagane returned an invalid chapter list");
-        for (const book of page.items) {
-          if (!book.book_id || ids.has(book.book_id)) {
-            throw new Error("Kagane repeated a chapter while loading the list. Please retry.");
-          }
-          ids.add(book.book_id);
-          books.push(book);
-        }
-        if (page.next_cursor === null) return books;
-        if (!page.next_cursor || cursors.has(page.next_cursor) || !page.items.length) {
-          throw new Error("Kagane chapter pagination did not advance. Please retry.");
-        }
-        cursors.add(page.next_cursor);
-        before = page.next_cursor;
-      }
-    })().finally(() => this.chapterLists.delete(seriesId));
+    const request = this.fetchJson<BookIndexResponse>(
+      new UrlBuilder(API_URL)
+        .addPathComponent("series")
+        .addPathComponent(seriesId)
+        .addPathComponent("books")
+        .addPathComponent("index")
+        .setQueryItem("fields", "List")
+        .build(),
+    )
+      .then(parseBookIndex)
+      .finally(() => this.chapterLists.delete(seriesId));
     this.chapterLists.set(seriesId, request);
     return request;
   }

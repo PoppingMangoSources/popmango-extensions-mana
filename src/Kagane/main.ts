@@ -56,7 +56,7 @@ import {
 import { KaganeApi } from "./client.ts";
 import {
   BASE_URL,
-  AGE_RATING_OPTIONS,
+  CONTENT_RATING_OPTIONS,
   CONTENT_RATINGS,
   DISCOVER_SECTIONS,
   FORMAT_OPTIONS,
@@ -64,6 +64,7 @@ import {
   languageOption,
   FilterID,
   PAGE_SIZE,
+  RANGE_FIELDS,
   PREFERENCE_DEFAULTS,
   PreferenceID,
   SORT_OPTIONS,
@@ -102,7 +103,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.8",
+  version: "1.1.9",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -153,22 +154,18 @@ class KaganeSource
   private async bodyOptions(query?: string, context?: SourceContext): Promise<SearchBodyOptions> {
     const [
       uploadSource,
-      legacyRatings,
+      contentRatings,
       contentLanguages,
       excludedGenreIds,
       excludedTagIds,
-      ages,
-      pornography,
       originalLanguages,
       translatedLanguages,
     ] = await Promise.all([
       this.preferences.text(PreferenceID.UploadSource, "all"),
-      this.preferences.strings(PreferenceID.ContentRating),
+      this.contentRatings(),
       this.preferences.strings(PreferenceID.ContentLanguages),
       this.preferences.strings(PreferenceID.ExcludedGenres),
       this.hiddenTags(),
-      this.preferences.strings(PreferenceID.AgeRating),
-      this.preferences.flag(PreferenceID.ShowPornographic),
       this.preferences.strings(PreferenceID.OriginalLanguages),
       this.preferences.strings(PreferenceID.TranslatedLanguages),
     ]);
@@ -176,7 +173,7 @@ class KaganeSource
     return {
       ...(query ? { query } : {}),
       uploadSource,
-      contentRatings: ages.length ? ratingsForAges(ages, pornography) : legacyRatings,
+      contentRatings,
       contentLanguages,
       originalLanguages,
       translatedLanguages,
@@ -187,6 +184,19 @@ class KaganeSource
         ? {}
         : { allowedRatings: context.allowedContentRatings }),
     };
+  }
+
+  private async contentRatings(): Promise<string[]> {
+    const [saved, ages, legacy, pornography] = await Promise.all([
+      this.preferences.strings(PreferenceID.NormalizedRatings),
+      this.preferences.strings(PreferenceID.AgeRating),
+      this.preferences.strings(PreferenceID.ContentRating),
+      this.preferences.flag(PreferenceID.ShowPornographic),
+    ]);
+    if (saved.length) return saved;
+    const ratings = ages.length ? ratingsForAges(ages, pornography) : legacy;
+    await this.preferences.set(PreferenceID.NormalizedRatings, ratings);
+    return ratings;
   }
 
   /**
@@ -244,10 +254,11 @@ class KaganeSource
   }
 
   async getSearchForm(): Promise<SearchForm> {
-    const [genres, tags, sources] = await Promise.all([
+    const [genres, tags, sources, hideDisturbing] = await Promise.all([
       this.genreOptions(),
       this.tagOptions(),
       this.sourceOptions(),
+      this.preferences.flag(PreferenceID.HideDisturbing),
     ]);
 
     return {
@@ -284,77 +295,55 @@ class KaganeSource
         }),
         SearchTagsSection({
           header: "Content rating",
+          footer: "Uses your source settings unless you select ratings here.",
           field: SearchMultiPicker({
-            id: FilterID.AgeRating,
+            id: FilterID.ContentRating,
             title: "Content rating",
-            options: AGE_RATING_OPTIONS,
+            options: CONTENT_RATING_OPTIONS,
           }),
         }),
         SearchListSection({
           header: "Content options",
           children: [
             SearchMenuPicker({
-              id: FilterID.Pornographic,
-              title: "Pornographic",
-              options: [
-                { id: "default", title: "Use Settings" },
-                { id: "include", title: "Include" },
-                { id: "exclude", title: "Leave out" },
-              ],
-            }),
-            SearchMenuPicker({
               id: FilterID.Disturbing,
               title: "Disturbing content",
+              subtitle: `Your setting (default): ${hideDisturbing ? "Leave out" : "Include"}`,
               options: [
-                { id: "default", title: "Use Settings" },
+                { id: "default", title: "Your setting" },
                 { id: "any", title: "Include" },
                 { id: "exclude", title: "Leave out" },
-                { id: "only", title: "Only" },
               ],
             }),
           ],
         }),
-        SearchListSection({
-          header: "Chapter and volume counts",
-          children: [
-            SearchMenuPicker({
-              id: FilterID.ChapterRange,
-              title: "Chapters",
-              options: [
-                { id: "", title: "Any" },
-                { id: "1-20", title: "1–20" },
-                { id: "21-100", title: "21–100" },
-                { id: "101+", title: "101+" },
-              ],
-            }),
-            SearchTextField({
-              id: FilterID.Chapters,
-              title: "Custom chapter count",
-              placeholder: "Chapters: 20, 1-20 or 100+",
-            }),
-            SearchTextField({
-              id: FilterID.Volumes,
-              title: "Volume count",
-              placeholder: "Volumes: 5, 1-5 or 10+",
-            }),
-          ],
-          footer: "A custom chapter count overrides the Chapters preset.",
-        }),
-        SearchListSection({
-          header: "Publication years",
-          children: [
-            SearchTextField({
-              id: FilterID.StartYear,
-              title: "Started year",
-              placeholder: "Started: 2020 or 2018-2022",
-            }),
-            SearchTextField({
-              id: FilterID.EndYear,
-              title: "Ended year",
-              placeholder: "Ended: 2020 or 2018-2022",
-            }),
-          ],
-        }),
+        ...RANGE_FIELDS.map(({ id, title, lower, upper }) =>
+          SearchListSection({
+            header: title,
+            children: [
+              ...(id === FilterID.Chapters
+                ? [
+                    SearchMenuPicker({
+                      id: FilterID.ChapterRange,
+                      title: "Chapter count",
+                      options: [
+                        { id: "", title: "Any" },
+                        { id: "1-20", title: "1–20" },
+                        { id: "21-100", title: "21–100" },
+                        { id: "101+", title: "101+" },
+                      ],
+                    }),
+                  ]
+                : []),
+              SearchTextField({ id: `${id}_min`, title: lower, placeholder: lower }),
+              SearchTextField({ id: `${id}_max`, title: upper, placeholder: upper }),
+            ],
+            footer:
+              id === FilterID.Chapters
+                ? "Min and Max override the chapter preset. Leave either blank for an open range."
+                : "Leave either field blank for an open range.",
+          }),
+        ),
         SearchListSection({
           header: "Authors, Artists & Groups",
           footer: "Enter one full author, artist or scanlation group name to find their series.",
@@ -451,18 +440,7 @@ class KaganeSource
   }
 
   async getPreferenceMenu(): Promise<Form> {
-    // Convert saved source categories to the site's age-band controls.
-    if (!(await this.preferences.strings(PreferenceID.AgeRating)).length) {
-      const ratings = await this.preferences.strings(PreferenceID.ContentRating);
-      await this.preferences.set(PreferenceID.AgeRating, [
-        ...new Set(
-          ratings.map((rating) =>
-            rating === "Safe" ? "Safe" : rating === "Suggestive" ? "FifteenPlus" : "EighteenPlus",
-          ),
-        ),
-      ]);
-      await this.preferences.set(PreferenceID.ShowPornographic, ratings.includes("Pornographic"));
-    }
+    await this.contentRatings();
     return buildPreferenceMenu(
       this.preferences,
       await buildSettingsSections({
@@ -472,6 +450,7 @@ class KaganeSource
         resetContentFilters: async () => {
           await this.preferences.reset(PreferenceID.ExcludedGenres);
           for (const key of EXCLUDED_TAG_KEYS) await this.preferences.reset(key);
+          await this.preferences.reset(PreferenceID.NormalizedRatings);
           await this.preferences.reset(PreferenceID.ContentRating);
           await this.preferences.reset(PreferenceID.AgeRating);
           await this.preferences.reset(PreferenceID.ShowPornographic);
@@ -626,7 +605,7 @@ class KaganeSource
       ? sources.find((entry) => entry.source_id === details.source_id)
       : undefined;
 
-    const books = details.series_books ?? (await this.api.fetchBooks(contentId));
+    const books = await this.api.fetchBooks(contentId);
 
     return parseChapters(
       contentId,

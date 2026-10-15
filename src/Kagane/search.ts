@@ -3,7 +3,7 @@
 import { ContentRating } from "@mana-app/types";
 
 import type { FilterReader } from "../common/index.ts";
-import { CONTENT_RATINGS, FilterID } from "./model.ts";
+import { CONTENT_RATINGS, FilterID, RANGE_FIELDS } from "./model.ts";
 import { TAG_GROUPS, resolveTypedTags, tagFilterId, tagIdsOf } from "./tag-groups.ts";
 
 export type SearchBodyOptions = {
@@ -49,16 +49,16 @@ export function selectedContentRatings(
   filters?: FilterReader,
 ): string[] {
   const ages = filters?.options(FilterID.AgeRating) ?? [];
-  const legacy = filters?.options(FilterID.ContentRating) ?? [];
+  const selected = filters?.options(FilterID.ContentRating) ?? [];
   const pornography = filters?.option(FilterID.Pornographic);
-  let ratings = ages.length
-    ? ratingsForAges(
-        ages,
-        pornography === "include" ||
-          (pornography !== "exclude" && options.contentRatings.includes("Pornographic")),
-      )
-    : legacy.length
-      ? legacy
+  let ratings = selected.length
+    ? selected
+    : ages.length
+      ? ratingsForAges(
+          ages,
+          pornography === "include" ||
+            (pornography !== "exclude" && options.contentRatings.includes("Pornographic")),
+        )
       : options.contentRatings;
   if (pornography === "exclude") ratings = ratings.filter((rating) => rating !== "Pornographic");
   else if (
@@ -248,7 +248,27 @@ export function buildSearchBody(
     if (selected.length)
       body[id] = id === FilterID.SourceType ? selected : checkedValues(selected, "languages");
   }
-  for (const id of [FilterID.StartYear, FilterID.EndYear, FilterID.Chapters, FilterID.Volumes]) {
+  for (const { id, title } of RANGE_FIELDS) {
+    const lower = filters.text(`${id}_min`).trim();
+    const upper = filters.text(`${id}_max`).trim();
+    if (lower || upper) {
+      const bounds: { min?: number; max?: number } = {};
+      for (const [key, raw] of [
+        ["min", lower],
+        ["max", upper],
+      ] as const) {
+        if (!raw) continue;
+        const number = Number(raw);
+        if (!/^\d+$/.test(raw) || !Number.isSafeInteger(number) || number > 2147483647)
+          throw new Error(`${title}: enter a whole number in each range field.`);
+        bounds[key] = number;
+      }
+      if (bounds.min !== undefined && bounds.max !== undefined && bounds.min > bounds.max)
+        throw new Error(`${title}: the range must be in ascending order.`);
+      body[id] = bounds;
+      continue;
+    }
+    // Saved searches from earlier builds may still carry a single range string.
     const raw =
       filters.text(id).trim() ||
       (id === FilterID.Chapters ? filters.option(FilterID.ChapterRange) : "");

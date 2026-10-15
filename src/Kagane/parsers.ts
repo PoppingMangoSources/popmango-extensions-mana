@@ -33,6 +33,7 @@ import {
   CHAPTER_VOLUME_SUFFIX_REGEX,
   TITLE_BRACKET_REGEX,
   type ChapterBook,
+  type BookIndexResponse,
   type DetailsResponse,
   type SeriesSummary,
 } from "./model.ts";
@@ -504,14 +505,70 @@ export function chapterLanguage(value: unknown): string {
     .join("-");
 }
 
+export function parseBookIndex(index: BookIndexResponse): ChapterBook[] {
+  if (
+    !Array.isArray(index.fields) ||
+    !Array.isArray(index.books) ||
+    !Array.isArray(index.groups) ||
+    index.books.length !== index.count
+  )
+    throw new Error("Kagane returned an incomplete chapter index.");
+
+  const ids = new Set<string>();
+  return index.books.map((row): ChapterBook => {
+    if (!Array.isArray(row) || row.length !== index.fields.length)
+      throw new Error("Kagane returned an invalid chapter index row.");
+    const value: Record<string, unknown> = Object.fromEntries(
+      index.fields.map((field, column) => [field, row[column]]),
+    );
+    const { book_id, title, sort_no, chapter_no, volume_no, released_at, group_ix } = value;
+    if (
+      typeof book_id !== "string" ||
+      !book_id ||
+      ids.has(book_id) ||
+      typeof title !== "string" ||
+      typeof sort_no !== "number" ||
+      !Number.isFinite(sort_no) ||
+      (chapter_no != null && typeof chapter_no !== "string") ||
+      (volume_no != null && typeof volume_no !== "string") ||
+      (released_at != null && (typeof released_at !== "number" || !Number.isFinite(released_at))) ||
+      !Array.isArray(group_ix)
+    )
+      throw new Error("Kagane returned invalid chapter index metadata.");
+    ids.add(book_id);
+    const groups = group_ix.map((position: unknown) => {
+      if (
+        typeof position !== "number" ||
+        !Number.isInteger(position) ||
+        position < 0 ||
+        !index.groups[position]
+      )
+        throw new Error("Kagane returned an invalid chapter group index.");
+      return index.groups[position]!;
+    });
+    const date = typeof released_at === "number" ? new Date(released_at * 1000) : undefined;
+    if (date && !Number.isFinite(date.getTime()))
+      throw new Error("Kagane returned an invalid chapter release date.");
+    return {
+      book_id,
+      title,
+      sort_no,
+      groups,
+      chapter_no: chapter_no as string | null | undefined,
+      volume_no: volume_no as string | null | undefined,
+      ...(date ? { became_visible_at: date.toISOString() } : {}),
+    };
+  });
+}
+
 export function parseChapters(
   seriesId: string,
   details: DetailsResponse,
   options: { sourceName?: string; official?: boolean },
 ): Chapter[] {
   const books = details.series_books ?? [];
-  // Start from oldest so genuinely unnumbered extras retain their release order.
-  const ordered = [...books].reverse();
+  // The index supplies reading order independently of uploads and restarted chapter numbers.
+  const ordered = [...books].sort((left, right) => (left.sort_no ?? 0) - (right.sort_no ?? 0));
 
   const chapters = ordered.map((book, index) => {
     const scanlator = parseScanlator(book, options.sourceName, options.official === true);
@@ -559,14 +616,7 @@ export function parseChapters(
       chapter.title = formatChapterLabel(chapter.number, chapter.volume, chapter.name);
   }
 
-  // `index` decides where the app resumes and index 0 must be the earliest chapter. Taken
-  // from the array it followed upload order, so a late re-upload of an early chapter left
-  // an unread series opening partway through.
   return chapters
-    .sort((left, right) => {
-      if (left.number !== right.number) return left.number - right.number;
-      return left.date.getTime() - right.date.getTime();
-    })
     .map(({ numbered: _numbered, name: _name, hasLabel: _hasLabel, ...chapter }, index) => ({
       ...chapter,
       index,
