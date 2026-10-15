@@ -50,7 +50,7 @@ becomes available to install.
 | Source | Site | Rating | Version |
 | :----- | :--- | :----- | :------ |
 | <img src="media/sources/flamecomics.png" width="22" align="top"/> **FlameComics** | [flamecomics.xyz](https://flamecomics.xyz) | Safe | v1.1.2 |
-| <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.org](https://kagane.org) | Mixed | v1.1.11 |
+| <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.org](https://kagane.org) | Mixed | v1.1.12 |
 | <img src="media/sources/mangadex.png" width="22" align="top"/> **MangaDex** | [mangadex.org](https://mangadex.org) | Mixed | v1.1.3 |
 | <img src="media/sources/mangafire.png" width="22" align="top"/> **MangaFire** | [mangafire.to](https://mangafire.to) | Mixed | v1.1.2 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.1.1 |

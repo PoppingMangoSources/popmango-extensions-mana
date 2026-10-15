@@ -85,7 +85,7 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Content",
       footer:
-        "Hide-lists apply to catalogue browsing, but not a search by name or the Trending chart. Kagane allows 50 excluded genre IDs and 50 excluded tag IDs across all groups; a grouped tag can contain several IDs.",
+        "Hide-lists apply to catalogue browsing and More like this, but not a search by name or the Trending chart. Kagane allows 50 excluded genre IDs and 50 excluded tag IDs across all groups; a grouped tag can contain several IDs.",
       fields: [
         {
           type: "multiselect",

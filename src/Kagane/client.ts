@@ -19,6 +19,7 @@ import {
   type TagEntry,
   type TrackerResponse,
   type TrendingResponse,
+  type SimilarOptions,
 } from "./model.ts";
 
 import { parseBookIndex, readerExpiry } from "./parsers.ts";
@@ -246,6 +247,35 @@ export class KaganeApi {
         .addPathComponent("series")
         .build(),
     );
+  }
+
+  async fetchSimilar(seriesId: string, options: SimilarOptions): Promise<SearchResponse> {
+    const url = new UrlBuilder(BASE_URL)
+      .addPathComponent("api/v1/rec/series")
+      .addPathComponent(seriesId)
+      .addPathComponent("similar")
+      .setQueryItem("kind", "similar")
+      .setQueryItem("limit", 10)
+      .setQueryItem(
+        "age_rating",
+        [
+          ...new Set(
+            options.ratings.map((rating) =>
+              rating === "Safe" ? "Safe" : rating === "Suggestive" ? "FifteenPlus" : "EighteenPlus",
+            ),
+          ),
+        ].join(","),
+      )
+      // Recommendations use visibility toggles, not the catalogue's exact-match flags.
+      .setQueryItem("is_pornographic", options.ratings.includes("Pornographic"))
+      .setQueryItem("is_disturbing", !options.hideDisturbing);
+    if (options.languages.length) url.setQueryItem("lang", options.languages.join(","));
+    if (options.uploadSource !== "all")
+      url.setQueryItem(
+        "source_type",
+        options.uploadSource === "official" ? "Official" : "Unofficial,Mixed",
+      );
+    return this.fetchJson<SearchResponse>(url.build());
   }
 
   imageUrl(imageId: string): string {

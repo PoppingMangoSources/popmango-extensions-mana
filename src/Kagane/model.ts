@@ -291,6 +291,7 @@ export type SeriesSummary = {
   latest_chapters?: LatestChapter[];
   slug?: string;
   rating?: number | null;
+  hidden_by_filter?: boolean;
 };
 
 export type SearchResponse = {
@@ -373,7 +374,15 @@ export type TrackedSeries = {
   source_id?: string | null;
   cover_image_id?: string | null;
   age_rating?: string | null;
+  content_rating?: string | null;
   is_pornographic?: boolean;
+};
+
+export type SimilarOptions = {
+  ratings: string[];
+  languages: string[];
+  uploadSource: string;
+  hideDisturbing: boolean;
 };
 
 export type ManifestPage = { page_no: number; page_id: string; ext?: string | null };

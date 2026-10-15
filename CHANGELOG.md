@@ -56,7 +56,15 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.11)
+## Kagane (current: v1.1.12)
+
+### Added
+
+- Fall back to the site's More like this recommendations when no usable Related Editions
+  are available, respecting rating, reading-language and browsing hide-lists. Skip both
+  enrichment requests during library migration.
+
+## Kagane (v1.1.11)
 
 ### Changed
 

@@ -100,13 +100,13 @@ import {
   matchesTagGroups,
   type SearchBodyOptions,
 } from "./search.ts";
-import { EXCLUDED_TAG_KEYS, groupTags } from "./tag-groups.ts";
+import { EXCLUDED_TAG_KEYS, groupTags, tagIdsOf } from "./tag-groups.ts";
 import { buildSettingsSections } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.11",
+  version: "1.1.12",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -561,26 +561,60 @@ class KaganeSource
       throw new Error("This title is excluded by Mana’s content-rating settings.");
     }
 
-    const trackerId = details.tracker_id;
-    if (!trackerId) return content;
-
-    // A migration walks a whole library through here and wants only enough to match a
-    // title, so the extra request below is bought once per title and thrown away.
+    // A migration needs only matching metadata, not the enrichment requests below.
     if (isMigration(context)) return content;
 
-    const related = await this.api
-      .fetchRelated(trackerId)
-      .then((response) => response.book_series ?? [])
-      .catch(() => []);
+    const related = details.tracker_id
+      ? await this.api
+          .fetchRelated(details.tracker_id)
+          .then((response) => response.book_series ?? [])
+          .catch(() => [])
+      : [];
 
-    const others = related
+    let others = related
       .filter(
         (entry) =>
           entry.id !== contentId &&
+          !!entry.cover_image_id?.trim() &&
           (context?.allowedContentRatings === undefined ||
             context.allowedContentRatings.includes(parseContentRating(entry)!)),
       )
       .slice(0, 10);
+    const similar = others.length === 0;
+    if (similar) {
+      const options = await this.bodyOptions(undefined, context);
+      const ratings = selectedContentRatings(options);
+      if (!ratings.length) return content;
+      const response = await this.api
+        .fetchSimilar(contentId, {
+          ratings,
+          languages: options.contentLanguages,
+          uploadSource: options.uploadSource,
+          hideDisturbing: options.hideDisturbing,
+        })
+        .catch(() => ({ content: [] }));
+      const hiddenGenres = new Set(options.excludedGenreIds);
+      const hiddenTags = new Set(options.excludedTagIds.flatMap(tagIdsOf));
+      const languages = new Set(options.contentLanguages.map((language) => language.toLowerCase()));
+      const seen = new Set([contentId]);
+      others = (response.content ?? [])
+        .filter((entry) => {
+          if (
+            seen.has(entry.series_id) ||
+            !entry.cover_image_id?.trim() ||
+            entry.hidden_by_filter ||
+            !ratings.includes(contentRatingId(entry) ?? "Erotica") ||
+            (options.hideDisturbing && entry.is_disturbing) ||
+            (languages.size && !languages.has(entry.translated_language?.toLowerCase() ?? "")) ||
+            entry.genres?.some((id) => hiddenGenres.has(id)) ||
+            entry.tags?.some((id) => hiddenTags.has(id))
+          )
+            return false;
+          seen.add(entry.series_id);
+          return true;
+        })
+        .map((entry) => ({ ...entry, id: entry.series_id }));
+    }
     if (others.length === 0) return content;
 
     return {
@@ -588,8 +622,8 @@ class KaganeSource
       additionalInfo: [
         ...(content.additionalInfo ?? []),
         additionalInfo.highlights.section({
-          id: "related",
-          title: "Related Editions",
+          id: similar ? "similar" : "related",
+          title: similar ? "More like this" : "Related Editions",
           hasMore: false,
           items: others.map((entry) =>
             additionalInfo.highlights.item({
