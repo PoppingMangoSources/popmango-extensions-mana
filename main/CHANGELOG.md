@@ -5,6 +5,37 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
+## Toonkotsu (current: v1.0.21)
+
+### Changed
+
+- Replace Top Rated with This Season and add descriptions to every discovery section.
+- Show Hidden Gems in one detailed row. Hidden Gems and Trending combine chapter progress
+  and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
+- Remove the duplicate Progress row from Latest Updates.
+
+## XCOMIC (current: v1.2.2)
+
+### Changed
+
+- Show Most Follows in a single detailed row.
+
+## ValirScans (current: v1.1.3)
+
+### Fixed
+
+- Read the site's Top 10 chart from its new rows payload, restoring the empty discovery row.
+- Fetch browse results and taxonomy directly from the site's catalogue API with correct
+  type names, status/origin choices, exclusion parameters and chapter-range fields.
+- Decode embedded Flight records without corrupting escaped text or raw reader payloads.
+
+### Changed
+
+- Populate the hero with the catalogue's Top Rated sort.
+- Add quick chapter-count presets alongside custom bounds and restrict catalogue requests
+  to comics, including the expanded prose formats among unsupported title types.
+
+
 ## Kagane (current: v1.1.10)
 
 ### Fixed
@@ -112,7 +143,7 @@ counted up from `1.0.0`.
 - Use genre/tag IDs and tracker links directly from details, avoiding two taxonomy requests
   whenever a title opens. Concurrent requests for the same details share one response.
 
-## Toonkotsu (current: v1.0.20)
+## Toonkotsu (v1.0.20)
 
 ### Changed
 
@@ -560,7 +591,7 @@ counted up from `1.0.0`.
   is left off because the app resolves a challenge and owns a link against the address the
   source declares, and a source pointed somewhere else keeps neither.
 
-## ValirScans (current: v1.1.2)
+## ValirScans (v1.1.2)
 
 ### Changed
 
@@ -1380,7 +1411,7 @@ counted up from `1.0.0`.
 - The source declares that it needs an account, which is what puts the app's own Account
   row on the source page.
 
-## XCOMIC (current: v1.2.1)
+## XCOMIC (v1.2.1)
 
 ### Changed
 
