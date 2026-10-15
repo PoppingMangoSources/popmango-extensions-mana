@@ -164,7 +164,7 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   const subtitle = [
     rank === undefined ? "" : `#${rank}`,
     progress,
-    options.card && score !== undefined ? `${Mark.Rating}${score.toFixed(1)}` : "",
+    options.card && score !== undefined ? `${Mark.Rating} ${score.toFixed(1)}` : "",
   ]
     .filter(Boolean)
     .join(" • ");
@@ -173,6 +173,8 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
     info.push({ key: "Rating", value: `${Mark.Rating} ${score.toFixed(1)}` });
   if (kind) info.push({ key: "Type", value: kind });
   if (state) info.push({ key: "Status", value: state });
+  if (options.card === "trending" && series.year)
+    info.push({ key: "Year", value: String(series.year) });
   if (reads && options.card !== "trending") info.push({ key: "Reads", value: reads });
 
   return {
