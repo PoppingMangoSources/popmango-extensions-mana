@@ -64,6 +64,7 @@ export class KaganeApi {
   private readonly genreList = new TimedCache<Record<string, string>>("kagane.genres", LIST_TTL_MS);
   private readonly tagList = new TimedCache<Record<string, string>>("kagane.tags", LIST_TTL_MS);
   private readonly sourceList = new TimedCache<UploadSource[]>("kagane.sources", LIST_TTL_MS);
+  private readonly languageList = new TimedCache<string[]>("kagane.languages", LIST_TTL_MS);
 
   // A refresh fires every row at once and a retry repeats them; identical calls in flight
   // share one response rather than knocking on Cloudflare twice for the same page.
@@ -274,6 +275,20 @@ export class KaganeApi {
         return Object.fromEntries(entries.map((genre) => [genre.id, genre.genre_name]));
       })
       .catch(() => ({}));
+  }
+
+  async fetchContentLanguages(): Promise<string[]> {
+    return this.languageList.get(async () => {
+      // Language choices come from catalogue facets, including uploader language codes
+      // outside the site's smaller original/translated-language menu.
+      const response = await this.postJson<SearchResponse>(
+        `${API_URL}/search/series?page=0&size=1&facets=true`,
+        {},
+      );
+      const languages = response.facets?.content_lang?.map((entry) => entry.value) ?? [];
+      if (!languages.length) throw new Error("Kagane returned no language choices");
+      return [...new Set(languages.map((language) => language.toLowerCase()))];
+    });
   }
 
   async fetchTagNames(): Promise<Record<string, string>> {

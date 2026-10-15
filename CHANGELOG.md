@@ -5,7 +5,21 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.1.4)
+## Kagane (current: v1.1.5)
+
+### Fixed
+
+- Remove duplicate genre/tag IDs after expanding grouped selections, preventing home rows
+  from failing with `too_many_values` for overlapping hide-lists.
+- Explain the site's 50-value limit before sending oversized filter selections, preserving
+  every exclusion rather than silently dropping choices.
+
+### Changed
+
+- Match the site's filter and sort names, including Status, Abandoned and Fan translation.
+- Load Language choices from catalogue facets and add the site's chapter-count presets.
+
+## Kagane (v1.1.4)
 
 ### Fixed
 

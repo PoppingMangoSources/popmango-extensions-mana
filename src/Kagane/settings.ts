@@ -3,12 +3,7 @@
 import type { Option } from "@mana-app/types";
 
 import type { PreferenceField, PreferenceSection } from "../common/index.ts";
-import {
-  CONTENT_RATING_OPTIONS,
-  LANGUAGE_OPTIONS,
-  PreferenceID,
-  UPLOAD_SOURCE_OPTIONS,
-} from "./model.ts";
+import { CONTENT_RATING_OPTIONS, PreferenceID, UPLOAD_SOURCE_OPTIONS } from "./model.ts";
 import { excludedTagsKey, groupTags } from "./tag-groups.ts";
 
 /**
@@ -29,6 +24,7 @@ async function groupedTagFields(tags: () => Promise<Option[]>): Promise<Preferen
 export type SettingsHooks = {
   genres: () => Promise<Option[]>;
   tags: () => Promise<Option[]>;
+  languages: () => Promise<Option[]>;
   resetContentFilters: () => Promise<void>;
   resetAll: () => Promise<void>;
 };
@@ -72,7 +68,7 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Content",
       footer:
-        "Applies to the home page and the listings. A search by name is not filtered by the hide-lists — searching for a title returns it whatever it is tagged. Leave Languages empty to ask for every language.",
+        "Applies to the home page and the listings. A search by name is not filtered by the hide-lists — searching for a title returns it whatever it is tagged. Leave Languages empty to ask for every language. Kagane allows 50 excluded genre IDs and 50 excluded tag IDs across all groups; a grouped tag can contain several IDs.",
       fields: [
         {
           type: "multiselect",
@@ -86,7 +82,8 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
           type: "multiselect",
           key: PreferenceID.ContentLanguages,
           title: "Languages",
-          options: LANGUAGE_OPTIONS,
+          options: hooks.languages,
+          maxSelectionCount: 50,
         },
         {
           type: "multiselect",

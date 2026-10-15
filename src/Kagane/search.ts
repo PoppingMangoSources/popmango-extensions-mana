@@ -56,21 +56,36 @@ export function selectedContentRatings(
 
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
 
+function checkedValues(values: string[], label: string): string[] {
+  const unique = [...new Set(values.map((value) => value.toLowerCase()))];
+  if (unique.length > 50) {
+    throw new Error(
+      `Kagane allows up to 50 ${label}; ${unique.length} are selected. Reduce the selection in Filters or Settings. A grouped tag can contain several site tag IDs.`,
+    );
+  }
+  return unique;
+}
+
 function buildIncludeExclude(
   included: string[],
   excluded: string[],
   matchAll: boolean,
+  label: string,
 ): IncludeExclude | undefined {
   // An explicit pick on the form overrides the hide-list for that one search;
   // sending it as both a value and an exclusion returns nothing.
-  const holdBack = new Set(included);
-  const exclusions = excluded.filter((id) => !holdBack.has(id));
+  const values = checkedValues(included, `included ${label}`);
+  const holdBack = new Set(values);
+  const exclusions = checkedValues(
+    excluded.filter((id) => !holdBack.has(id.toLowerCase())),
+    `excluded ${label}`,
+  );
 
-  if (included.length === 0 && exclusions.length === 0) return undefined;
+  if (values.length === 0 && exclusions.length === 0) return undefined;
 
   return {
-    ...(included.length > 0 ? { match_all: matchAll } : {}),
-    values: included,
+    ...(values.length > 0 ? { match_all: matchAll } : {}),
+    values,
     ...(exclusions.length > 0 ? { exclude: exclusions } : {}),
   };
 }
@@ -86,7 +101,8 @@ export function buildSearchBody(
   // Sent only when the reader has picked languages. The site's own search carries no
   // language filter at all, and asking for one narrows a title down to the single edition
   // whose row happens to be labelled with that language.
-  if (options.contentLanguages.length > 0) body["content_lang"] = options.contentLanguages;
+  if (options.contentLanguages.length > 0)
+    body["content_lang"] = checkedValues(options.contentLanguages, "languages");
 
   const query = options.query?.trim();
   if (query) body["title"] = query;
@@ -114,10 +130,10 @@ export function buildSearchBody(
   const hiddenTagIds = browsing ? options.excludedTagIds : [];
 
   if (!filters) {
-    const genres = buildIncludeExclude([], hiddenGenreIds, false);
+    const genres = buildIncludeExclude([], hiddenGenreIds, false, "genres");
     if (genres) body["genres"] = genres;
 
-    const tags = buildIncludeExclude([], hiddenTagIds.flatMap(tagIdsOf), false);
+    const tags = buildIncludeExclude([], hiddenTagIds.flatMap(tagIdsOf), false, "tags");
     if (tags) body["tags"] = tags;
     return body;
   }
@@ -135,7 +151,7 @@ export function buildSearchBody(
     body["is_disturbing"] = disturbing === "only";
 
   const sources = filters.options(FilterID.Sources);
-  if (sources.length > 0) body["source_id"] = sources;
+  if (sources.length > 0) body["source_id"] = checkedValues(sources, "sources");
 
   const genreSelection = filters.excludable(FilterID.Genres);
   const genres = buildIncludeExclude(
@@ -144,6 +160,7 @@ export function buildSearchBody(
     !filters.has(FilterID.MatchAllGenres) ||
       filters.option(FilterID.MatchAllGenres) === "all" ||
       filters.toggle(FilterID.MatchAllGenres),
+    "genres",
   );
   if (genres) body["genres"] = genres;
 
@@ -180,6 +197,7 @@ export function buildSearchBody(
     !filters.has(FilterID.MatchAllTags) ||
       filters.option(FilterID.MatchAllTags) === "all" ||
       filters.toggle(FilterID.MatchAllTags),
+    "tags",
   );
   if (tags) body["tags"] = tags;
 
@@ -190,10 +208,13 @@ export function buildSearchBody(
     FilterID.SourceType,
   ]) {
     const selected = filters.options(id);
-    if (selected.length) body[id] = selected;
+    if (selected.length)
+      body[id] = id === FilterID.SourceType ? selected : checkedValues(selected, "languages");
   }
   for (const id of [FilterID.StartYear, FilterID.EndYear, FilterID.Chapters, FilterID.Volumes]) {
-    const raw = filters.text(id).trim();
+    const raw =
+      filters.text(id).trim() ||
+      (id === FilterID.Chapters ? filters.option(FilterID.ChapterRange) : "");
     if (!raw) continue;
     const match = /^(\d+)(?:\s*(-)\s*(\d+)|(\+))?$/.exec(raw);
     if (!match) throw new Error("Use a number, a range such as 1-20, or a minimum such as 100+.");

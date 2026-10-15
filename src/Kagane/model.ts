@@ -30,6 +30,7 @@ export const FilterID = {
   StartYear: "start_year",
   EndYear: "end_year",
   Chapters: "current_books",
+  ChapterRange: "chapter_range",
   Volumes: "current_volumes",
   Staff: "staff",
   Groups: "groups",
@@ -66,13 +67,13 @@ export const SortID = {
 
 export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Relevance, title: "Relevance", isDefault: true },
-  { id: SortID.ViewsWeek, title: "Trending (Week)" },
-  { id: SortID.Updated, title: "Recently Updated", isOrderable: true, defaultAscending: false },
+  { id: SortID.ViewsWeek, title: "Most read" },
+  { id: SortID.Updated, title: "Updated", isOrderable: true, defaultAscending: false },
   { id: SortID.Rating, title: "Rating", isOrderable: true, defaultAscending: false },
-  { id: SortID.Created, title: "Newest Added", isOrderable: true, defaultAscending: false },
-  { id: SortID.ViewsToday, title: "Trending (Today)" },
-  { id: SortID.ViewsMonth, title: "Trending (Month)" },
-  { id: SortID.AverageViews, title: "Most Popular (All Time)" },
+  { id: SortID.Created, title: "Added", isOrderable: true, defaultAscending: false },
+  { id: SortID.ViewsToday, title: "Popular now" },
+  { id: SortID.ViewsMonth, title: "Most read this month" },
+  { id: SortID.AverageViews, title: "Most read of all time" },
 ];
 
 export const CONTENT_RATINGS = ["Safe", "Suggestive", "Erotica", "Pornographic"];
@@ -92,8 +93,7 @@ export const STATUS_OPTIONS: Option[] = [
   { id: "Ongoing", title: "Ongoing" },
   { id: "Completed", title: "Completed" },
   { id: "Hiatus", title: "Hiatus" },
-  // "Abandoned" is the API's word for cancelled.
-  { id: "Abandoned", title: "Cancelled" },
+  { id: "Abandoned", title: "Abandoned" },
 ];
 
 export const UPLOAD_SOURCE_OPTIONS: Option[] = [
@@ -106,15 +106,14 @@ export const LANGUAGE_OPTIONS: Option[] = [
   { id: "en", title: "English" },
   { id: "ja", title: "Japanese" },
   { id: "ko", title: "Korean" },
-  { id: "zh-Hans", title: "Chinese (Simplified)" },
-  { id: "zh-Hant", title: "Chinese (Traditional)" },
+  { id: "zh", title: "Chinese" },
   { id: "es", title: "Spanish" },
   { id: "es-419", title: "Spanish (Latin America)" },
   { id: "fr", title: "French" },
   { id: "de", title: "German" },
   { id: "it", title: "Italian" },
   { id: "pt", title: "Portuguese" },
-  { id: "pt-BR", title: "Portuguese (Brazil)" },
+  { id: "pt-br", title: "Portuguese (Brazil)" },
   { id: "ru", title: "Russian" },
   { id: "pl", title: "Polish" },
   { id: "tr", title: "Turkish" },
@@ -122,7 +121,16 @@ export const LANGUAGE_OPTIONS: Option[] = [
   { id: "id", title: "Indonesian" },
   { id: "th", title: "Thai" },
   { id: "vi", title: "Vietnamese" },
+  { id: "hi", title: "Hindi" },
 ];
+
+export function languageOption(code: string): Option {
+  const id = code.toLowerCase();
+  if (id === "zh-hk") return { id, title: "Chinese (zh-hk)" };
+  if (id === "es-la") return { id, title: "Spanish (es-la)" };
+  const known = LANGUAGE_OPTIONS.find((option) => option.id === id);
+  return known ?? { id, title: id };
+}
 
 export const SectionLayout = {
   Hero: "hero",
@@ -240,6 +248,7 @@ export type SearchResponse = {
   total_elements?: number;
   total_pages?: number;
   next_cursor?: string | null;
+  facets?: { content_lang?: { value: string; count: number }[] };
 };
 
 export type TrendingResponse = { items: { series: SeriesSummary; hidden_by_filter?: boolean }[] };

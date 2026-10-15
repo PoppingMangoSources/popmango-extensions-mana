@@ -59,6 +59,7 @@ import {
   DISCOVER_SECTIONS,
   FORMAT_OPTIONS,
   LANGUAGE_OPTIONS,
+  languageOption,
   FilterID,
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
@@ -98,7 +99,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.4",
+  version: "1.1.5",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -205,20 +206,29 @@ class KaganeSource
       .sort((left, right) => left.title.localeCompare(right.title));
   }
 
+  private async languageOptions(): Promise<Option[]> {
+    return this.api
+      .fetchContentLanguages()
+      .then((languages) => languages.map(languageOption))
+      .catch(() => LANGUAGE_OPTIONS);
+  }
+
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
   }
 
   async getSearchForm(): Promise<SearchForm> {
-    const [genres, tags, sources] = await Promise.all([
+    const [genres, tags, sources, languages] = await Promise.all([
       this.genreOptions(),
       this.tagOptions(),
       this.sourceOptions(),
+      this.languageOptions(),
     ]);
 
     return buildSearchForm({
       header: "Filters",
-      footer: "Leave a filter empty to use the defaults from Settings.",
+      footer:
+        "Leave a filter empty to use the defaults from Settings. Kagane allows 50 included and 50 excluded IDs per genre/tag list; grouped tags may contain several IDs.",
       fields: [
         SearchMultiPicker({
           id: FilterID.ContentRating,
@@ -230,7 +240,7 @@ class KaganeSource
           ? [
               SearchExcludableMultiPickerSheet({
                 id: FilterID.Genres,
-                title: "Genres & Format Tags",
+                title: "Genres",
                 options: genres,
               }),
             ]
@@ -238,7 +248,7 @@ class KaganeSource
         SearchMultiPicker({ id: FilterID.Status, title: "Upload Status", options: STATUS_OPTIONS }),
         SearchMultiPicker({
           id: FilterID.PublicationStatus,
-          title: "Publication Status",
+          title: "Status",
           options: STATUS_OPTIONS,
         }),
         SearchMultiPicker({
@@ -246,7 +256,7 @@ class KaganeSource
           title: "Source Type",
           options: [
             { id: "Official", title: "Official" },
-            { id: "Unofficial", title: "Unofficial" },
+            { id: "Unofficial", title: "Fan translation" },
             { id: "Mixed", title: "Mixed" },
           ],
         }),
@@ -256,17 +266,17 @@ class KaganeSource
           children: [
             SearchMultiPickerSheet({
               id: FilterID.ContentLanguage,
-              title: "Content Language",
-              options: LANGUAGE_OPTIONS,
+              title: "Language",
+              options: languages,
             }),
             SearchMultiPickerSheet({
               id: FilterID.OriginalLanguage,
-              title: "Originally Written In",
+              title: "Original language",
               options: LANGUAGE_OPTIONS,
             }),
             SearchMultiPickerSheet({
               id: FilterID.TranslatedLanguage,
-              title: "Available to Read In",
+              title: "Translated into",
               options: LANGUAGE_OPTIONS,
             }),
           ],
@@ -277,17 +287,28 @@ class KaganeSource
           children: [
             SearchTextField({
               id: FilterID.StartYear,
-              title: "Start Year",
+              title: "Started",
               placeholder: "2020 or 2018-2022",
             }),
             SearchTextField({
               id: FilterID.EndYear,
-              title: "End Year",
+              title: "Ended",
               placeholder: "2020 or 2018-2022",
+            }),
+            SearchPicker({
+              id: FilterID.ChapterRange,
+              title: "Chapters",
+              options: [
+                { id: "", title: "Any" },
+                { id: "1-20", title: "1–20" },
+                { id: "21-100", title: "21–100" },
+                { id: "101+", title: "101+" },
+              ],
             }),
             SearchTextField({
               id: FilterID.Chapters,
-              title: "Chapters",
+              title: "Custom chapter range",
+              subtitle: "Overrides the Chapters preset",
               placeholder: "20, 1-20 or 100+",
             }),
             SearchTextField({
@@ -297,10 +318,10 @@ class KaganeSource
             }),
           ],
         }),
-        SearchTextField({ id: FilterID.Staff, title: "Author / Artist", placeholder: "Full name" }),
+        SearchTextField({ id: FilterID.Staff, title: "Person", placeholder: "Full name" }),
         SearchTextField({
           id: FilterID.Groups,
-          title: "Scanlation Group",
+          title: "Group",
           placeholder: "Full group name",
         }),
         SearchPicker({
@@ -378,6 +399,7 @@ class KaganeSource
       await buildSettingsSections({
         genres: () => this.genreOptions(),
         tags: () => this.tagOptions(),
+        languages: () => this.languageOptions(),
         resetContentFilters: async () => {
           await this.preferences.reset(PreferenceID.ExcludedGenres);
           for (const key of EXCLUDED_TAG_KEYS) await this.preferences.reset(key);
