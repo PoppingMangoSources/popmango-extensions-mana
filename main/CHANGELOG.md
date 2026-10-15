@@ -36,7 +36,14 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.10)
+## Kagane (current: v1.1.11)
+
+### Changed
+
+- Show Trending This Week in three detailed rows, with the remaining chart titles available
+  by swiping horizontally.
+
+## Kagane (v1.1.10)
 
 ### Fixed
 
