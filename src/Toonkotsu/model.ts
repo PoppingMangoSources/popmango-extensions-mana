@@ -140,16 +140,16 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.SimpleHeroPaged,
   },
   {
-    id: SectionID.Trending,
-    title: "Trending",
-    subtitle: "What is gaining momentum with readers",
-    style: SectionStyle.DetailedDoubleRowPaged,
-  },
-  {
     id: SectionID.HiddenGems,
     title: "Hidden Gems",
     subtitle: "Highly rated finds with fewer readers",
     style: SectionStyle.DetailedSingleRowPaged,
+  },
+  {
+    id: SectionID.Trending,
+    title: "Trending",
+    subtitle: "What is gaining momentum with readers",
+    style: SectionStyle.DetailedDoubleRowPaged,
   },
   {
     id: SectionID.ThisSeason,

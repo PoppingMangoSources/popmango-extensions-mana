@@ -547,24 +547,28 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: SectionID.TopRated,
     title: "Rating Score",
+    subtitle: "The highest-rated comics according to readers",
     style: SectionStyle.SimpleHeroPaged,
     sort: SortID.Score,
   },
   {
     id: SectionID.MostReviews,
     title: "Most Reviews",
+    subtitle: "The comics readers have reviewed most",
     style: SectionStyle.DetailedDoubleRowPaged,
     sort: SortID.Reviews,
   },
   {
     id: SectionID.MostFollows,
     title: "Most Follows",
+    subtitle: "The comics readers follow most",
     style: SectionStyle.DetailedSingleRowPaged,
     sort: SortID.Follows,
   },
   {
     id: SectionID.Random,
     title: "Random Comics",
+    subtitle: "A fresh selection to explore with every refresh",
     style: SectionStyle.SimpleSingleRow,
     // A handful picked fresh each time is not a list to page through.
     viewMore: false,
@@ -572,17 +576,20 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: SectionID.LatestUploads,
     title: "Latest Uploads",
+    subtitle: "The newest chapter uploads from translation teams",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
     id: SectionID.MostChapters,
     title: "Most Chapters",
+    subtitle: "Long reads with the most chapters to explore",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.Chapters,
   },
   {
     id: SectionID.RecentlyAdded,
     title: "Recently Added",
+    subtitle: "The newest arrivals in the catalogue",
     style: SectionStyle.SimpleSingleRow,
   },
 ];

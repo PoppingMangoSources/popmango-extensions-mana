@@ -175,6 +175,15 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   if (state) info.push({ key: "Status", value: state });
   if (options.card === "trending" && series.year)
     info.push({ key: "Year", value: String(series.year) });
+  if (options.card === "trending") {
+    const genre = series.tags?.find(
+      (tag) =>
+        !UNLISTED_TAGS.has(tag) &&
+        !series.spoilerTags?.includes(tag) &&
+        tagGroupId(tag, undefined) === FilterID.Genres,
+    );
+    if (genre) info.push({ key: "Genre", value: clean(decodeEntities(genre)) });
+  }
   if (reads && options.card !== "trending") info.push({ key: "Reads", value: reads });
 
   return {
