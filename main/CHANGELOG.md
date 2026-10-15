@@ -5,7 +5,21 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.1.8)
+## Kagane (current: v1.1.9)
+
+### Changed
+
+- Use Safe, Suggestive, Erotica and Pornographic in both rating pickers, converting saved
+  age-band preferences without changing their meaning.
+- Default disturbing-content searches to the source setting and show that effective choice
+  on the form; Include and Leave out remain explicit overrides.
+- Replace typed range syntax with chapter/volume Min and Max fields and Started/Ended
+  From and To year fields, supporting either bound on its own.
+- Load the compact chapter index in one request, preserving IDs, scanlators and release
+  timestamps while validating the declared field order and total count.
+- Add the supported chapter-count sort with ascending and descending order.
+
+## Kagane (v1.1.8)
 
 ### Fixed
 
