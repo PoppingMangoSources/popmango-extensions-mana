@@ -133,7 +133,7 @@ export type HighlightOptions = {
   latest?: ChapterEntry;
   /** A detailed tile draws its info rows and no pill, so the two never both appear. */
   detailed?: boolean;
-  card?: "trending" | "gems";
+  card?: "trending";
 };
 
 export function parseHighlight(series: Series, options: HighlightOptions = {}): Highlight {

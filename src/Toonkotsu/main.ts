@@ -101,7 +101,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.23",
+  version: "1.0.24",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -351,7 +351,6 @@ class ToonkotsuSource
             ? parseHighlights([series], {
                 detailed,
                 ...(sectionId === SectionID.Trending ? { card: "trending" as const } : {}),
-                ...(sectionId === SectionID.HiddenGems ? { card: "gems" as const } : {}),
                 ...(sectionId === SectionID.MostRead ? { rank: rankAt(index) } : {}),
               })
             : [],

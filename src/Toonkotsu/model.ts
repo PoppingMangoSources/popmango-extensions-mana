@@ -129,8 +129,7 @@ export const SectionID = {
  * The home page, in the site's own order and under its own names.
  *
  * Most Read leads as a hero because the site ranks it and a rank wants the space; Trending
- * and Hidden Gems draw their rows, where the reads and the rating they are chosen on are
- * worth printing rather than hiding behind one pill. The rest are strips of covers.
+ * draws its detailed rows. The rest are strips of covers.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
@@ -140,16 +139,16 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.SimpleHeroPaged,
   },
   {
-    id: SectionID.HiddenGems,
-    title: "Hidden Gems",
-    subtitle: "Highly rated finds with fewer readers",
-    style: SectionStyle.DetailedSingleRowPaged,
-  },
-  {
     id: SectionID.Trending,
     title: "Trending",
     subtitle: "What is gaining momentum with readers",
     style: SectionStyle.DetailedDoubleRowPaged,
+  },
+  {
+    id: SectionID.HiddenGems,
+    title: "Hidden Gems",
+    subtitle: "Highly rated finds with fewer readers",
+    style: SectionStyle.SimpleSingleRow,
   },
   {
     id: SectionID.ThisSeason,
