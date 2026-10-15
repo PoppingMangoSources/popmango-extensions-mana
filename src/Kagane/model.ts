@@ -57,7 +57,8 @@ export const PreferenceID = {
 export const SortID = {
   Relevance: "",
   AverageViews: "avg_views",
-  ViewsToday: "popular_now",
+  ViewsToday: "avg_views_today",
+  PopularNow: "popular_now",
   ViewsWeek: "avg_views_week",
   ViewsMonth: "avg_views_month",
   Updated: "updated_at",
@@ -71,7 +72,7 @@ export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Updated, title: "Updated", isOrderable: true, defaultAscending: false },
   { id: SortID.Rating, title: "Rating", isOrderable: true, defaultAscending: false },
   { id: SortID.Created, title: "Added", isOrderable: true, defaultAscending: false },
-  { id: SortID.ViewsToday, title: "Popular now" },
+  { id: SortID.PopularNow, title: "Popular now" },
   { id: SortID.ViewsMonth, title: "Most read this month" },
   { id: SortID.AverageViews, title: "Most read of all time" },
 ];
@@ -134,6 +135,7 @@ export function languageOption(code: string): Option {
 
 export const SectionLayout = {
   Hero: "hero",
+  Detailed: "detailed",
   ChapterUpdates: "chapter-updates",
   Simple: "simple",
 } as const;
@@ -147,16 +149,36 @@ export type DiscoverSection = {
   style: SectionStyle;
   layout: SectionLayoutKind;
   sort: string;
-  viewMore?: boolean;
 };
 
 export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: "popular",
-    title: "Popular",
+    title: "Popular All Time",
     style: SectionStyle.SimpleHeroPaged,
     layout: SectionLayout.Hero,
+    sort: SortID.AverageViews,
+  },
+  {
+    id: "trending_month",
+    title: "Popular This Month",
+    style: SectionStyle.DetailedDoubleRowPaged,
+    layout: SectionLayout.Detailed,
+    sort: SortID.ViewsMonth,
+  },
+  {
+    id: "trending_week",
+    title: "Popular This Week",
+    style: SectionStyle.SimpleSingleRow,
+    layout: SectionLayout.Simple,
     sort: SortID.ViewsWeek,
+  },
+  {
+    id: "trending_today",
+    title: "Popular Today",
+    style: SectionStyle.SimpleSingleRow,
+    layout: SectionLayout.Simple,
+    sort: SortID.ViewsToday,
   },
   {
     id: "recently_added",
@@ -171,14 +193,6 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     style: SectionStyle.DetailedVerticalListGrouped,
     layout: SectionLayout.ChapterUpdates,
     sort: SortID.Updated,
-  },
-  {
-    id: "trending_week",
-    title: "Trending This Week",
-    style: SectionStyle.SimpleSingleRow,
-    layout: SectionLayout.Simple,
-    sort: "now",
-    viewMore: false,
   },
 ];
 
@@ -251,7 +265,6 @@ export type SearchResponse = {
   facets?: { content_lang?: { value: string; count: number }[] };
 };
 
-export type TrendingResponse = { items: { series: SeriesSummary; hidden_by_filter?: boolean }[] };
 export type BooksResponse = { items: ChapterBook[]; next_cursor: string | null };
 
 export type ChapterBook = {

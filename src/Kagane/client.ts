@@ -18,7 +18,6 @@ import {
   type SourcesResponse,
   type TagEntry,
   type TrackerResponse,
-  type TrendingResponse,
 } from "./model.ts";
 
 // The site says "your token is stale" with these, not "no". Only the status may
@@ -201,22 +200,6 @@ export class KaganeApi {
     })().finally(() => this.chapterLists.delete(seriesId));
     this.chapterLists.set(seriesId, request);
     return request;
-  }
-
-  async fetchTrending(body: Record<string, unknown>): Promise<TrendingResponse> {
-    const url = new UrlBuilder(API_URL)
-      .addPathComponent("series")
-      .addPathComponent("trending")
-      .setQueryItem("limit", 10);
-    for (const key of ["age_rating", "content_lang"]) {
-      const value = body[key];
-      if (Array.isArray(value))
-        url.setQueryItem(key === "content_lang" ? "lang" : key, value.join(","));
-    }
-    for (const key of ["is_pornographic", "is_disturbing"]) {
-      if (typeof body[key] === "boolean") url.setQueryItem(key, body[key]);
-    }
-    return this.fetchJson<TrendingResponse>(url.build());
   }
 
   async resolvePersonOrGroup(kind: "staff" | "groups", name: string): Promise<string> {
