@@ -3,6 +3,7 @@
 import {
   AdditionalInfoType,
   CatalogRating,
+  DefinedLanguages,
   additionalInfo,
   SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
@@ -101,10 +102,19 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.7",
+  version: "1.1.8",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
+  supportedLanguages: [
+    DefinedLanguages.ENGLISH,
+    DefinedLanguages.KOREAN,
+    DefinedLanguages.JAPANESE,
+    DefinedLanguages.FRENCH,
+    DefinedLanguages.CHINESE,
+    DefinedLanguages.SPANISH,
+    DefinedLanguages.PORTUGUESE,
+  ],
   thumbnail: "Kagane.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };

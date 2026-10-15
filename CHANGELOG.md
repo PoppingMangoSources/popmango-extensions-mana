@@ -5,7 +5,14 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.1.7)
+## Kagane (current: v1.1.8)
+
+### Fixed
+
+- Restore supported-language metadata so Kagane remains discoverable when Mana filters the
+  repository by language, while retaining provider-based chapter languages.
+
+## Kagane (v1.1.7)
 
 ### Fixed
 
