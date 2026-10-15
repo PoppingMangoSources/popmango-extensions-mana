@@ -5,7 +5,19 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.1.5)
+## Kagane (current: v1.1.6)
+
+### Changed
+
+- Show Popular All Time in the hero carousel and restore Popular This Month, Popular This
+  Week and Popular Today, using separate catalogue rankings and full View More listings.
+- Restore the monthly paged double row and weekly single row. Home rows request the site's
+  20-item size while View More keeps normal pagination.
+- Put selectable genres first, followed by inline format, status and content-rating choices.
+- Flatten language, chapter and year controls, replace nested tag groups with one searchable
+  picker, and keep less-used controls under More filters.
+
+## Kagane (v1.1.5)
 
 ### Fixed
 
