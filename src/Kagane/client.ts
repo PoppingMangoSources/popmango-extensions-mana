@@ -18,6 +18,7 @@ import {
   type SourcesResponse,
   type TagEntry,
   type TrackerResponse,
+  type TrendingResponse,
 } from "./model.ts";
 
 // The site says "your token is stale" with these, not "no". Only the status may
@@ -200,6 +201,22 @@ export class KaganeApi {
     })().finally(() => this.chapterLists.delete(seriesId));
     this.chapterLists.set(seriesId, request);
     return request;
+  }
+
+  async fetchTrending(body: Record<string, unknown>, limit: number): Promise<TrendingResponse> {
+    const url = new UrlBuilder(API_URL)
+      .addPathComponent("series")
+      .addPathComponent("trending")
+      .setQueryItem("limit", limit)
+      .setQueryItem("age_rating", (body["age_rating"] as string[]).join(","));
+    const languages = (body["content_lang"] ?? []) as string[];
+    // The chart accepts at most five language codes; longer selections are checked on
+    // its returned language labels without replacing the chart with a popularity list.
+    if (languages.length && languages.length <= 5) url.setQueryItem("lang", languages.join(","));
+    for (const flag of ["is_pornographic", "is_disturbing"]) {
+      if (typeof body[flag] === "boolean") url.setQueryItem(flag, body[flag]);
+    }
+    return this.fetchJson<TrendingResponse>(url.build());
   }
 
   async resolvePersonOrGroup(kind: "staff" | "groups", name: string): Promise<string> {

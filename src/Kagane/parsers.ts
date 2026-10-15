@@ -4,7 +4,6 @@ import {
   ContentRating,
   additionalInfo,
   ContentType,
-  DefinedLanguages,
   PublicationStatus,
   type Chapter,
   type Content,
@@ -26,6 +25,7 @@ import {
 } from "../common/index.ts";
 import {
   BASE_URL,
+  CONTENT_RATINGS,
   CHAPTER_GROUP_REGEX,
   CHAPTER_METADATA_REGEX,
   CHAPTER_NUMBER_PREFIX_REGEX,
@@ -103,24 +103,28 @@ function parseContentType(format: string | null | undefined): ContentType | unde
 }
 
 export function contentRatingId(
-  value: Pick<SeriesSummary, "age_rating" | "is_pornographic">,
+  value: Pick<SeriesSummary, "age_rating" | "is_pornographic" | "content_rating">,
 ): string | undefined {
-  if (value.is_pornographic === true) return "Pornographic";
-  switch (value.age_rating) {
-    case "Safe":
-      return "Safe";
-    case "FifteenPlus":
-      return "Suggestive";
-    case "EighteenPlus":
-      return value.is_pornographic === false ? "Erotica" : undefined;
-    default:
-      return undefined;
-  }
+  const legacy = CONTENT_RATINGS.find(
+    (rating) => rating.toLowerCase() === value.content_rating?.trim().toLowerCase(),
+  );
+  if (value.is_pornographic === true || legacy === "Pornographic") return "Pornographic";
+  if (value.age_rating === undefined && value.is_pornographic === undefined) return legacy;
+  if (typeof value.is_pornographic !== "boolean") return undefined;
+  const rating =
+    value.age_rating === "Safe"
+      ? "Safe"
+      : value.age_rating === "FifteenPlus"
+        ? "Suggestive"
+        : value.age_rating === "EighteenPlus"
+          ? "Erotica"
+          : undefined;
+  return value.content_rating != null && legacy !== rating ? undefined : rating;
 }
 
 export function parseContentRating(
-  value: Pick<SeriesSummary, "age_rating" | "is_pornographic">,
-): ContentRating | undefined {
+  value: Pick<SeriesSummary, "age_rating" | "is_pornographic" | "content_rating">,
+): ContentRating {
   switch (contentRatingId(value)) {
     case "Safe":
       return ContentRating.SAFE;
@@ -131,7 +135,7 @@ export function parseContentRating(
     case "Erotica":
       return ContentRating.MATURE;
     default:
-      return undefined;
+      return ContentRating.MATURE;
   }
 }
 
@@ -307,6 +311,20 @@ export function parseContent(
     ...(status === undefined ? {} : { status }),
     webUrl: seriesUrl(seriesId),
     additionalInfo: [
+      ...(contentRatingId(details) === undefined
+        ? [
+            additionalInfo.tags.section({
+              id: "content-rating-metadata",
+              title: "Content rating metadata",
+              items: [
+                additionalInfo.tags.item({
+                  id: "incomplete-rating",
+                  title: "Incomplete metadata; Mature is used for app compatibility",
+                }),
+              ],
+            }),
+          ]
+        : []),
       ...((details.series_links?.length ?? 0) > 0
         ? [
             additionalInfo.links.section({
@@ -452,10 +470,44 @@ function formatChapterLabel(number: number, volume: number | undefined, name: st
   return name ? `${label} - ${name}` : label;
 }
 
+export function chapterLanguage(value: unknown): string {
+  if (typeof value !== "string") return "und";
+  let code = value.trim().toLowerCase().replace(/_/g, "-");
+  const aliases: Record<string, string> = {
+    "es-la": "es-419",
+    "pt-la": "pt-br",
+    iw: "he",
+    in: "id",
+    ji: "yi",
+  };
+  code =
+    aliases[code] ?? code.replace(/^(iw|in|ji)-/, (prefix) => `${aliases[prefix.slice(0, -1)]}-`);
+  code = code.replace(/^(ja|ko|zh)-ro$/, "$1-latn");
+  if (
+    !/^[a-z]{2,3}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|\d{3}))?(?:-(?:[a-z0-9]{5,8}|\d[a-z0-9]{3}))*$/.test(
+      code,
+    ) ||
+    /^(?:unk|und|unknown)(?:-|$)/.test(code)
+  )
+    return "und";
+  return code
+    .split("-")
+    .map((part, index) =>
+      index === 0
+        ? part
+        : /^[a-z]{4}$/.test(part)
+          ? part[0]!.toUpperCase() + part.slice(1)
+          : /^[a-z]{2}$/.test(part)
+            ? part.toUpperCase()
+            : part,
+    )
+    .join("-");
+}
+
 export function parseChapters(
   seriesId: string,
   details: DetailsResponse,
-  options: { language: string; sourceName?: string; official?: boolean },
+  options: { sourceName?: string; official?: boolean },
 ): Chapter[] {
   const books = details.series_books ?? [];
   // Start from oldest so genuinely unnumbered extras retain their release order.
@@ -491,7 +543,7 @@ export function parseChapters(
       ...(Number.isFinite(volume) ? { volume } : {}),
       date:
         parseDate(book.became_visible_at ?? book.created_at ?? book.published_on) ?? new Date(0),
-      language: options.language || DefinedLanguages.ENGLISH,
+      language: chapterLanguage(details.translated_language),
       webUrl: chapterUrl(seriesId, book.book_id),
       ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
     };

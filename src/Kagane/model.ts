@@ -13,6 +13,8 @@ export const PAGE_SIZE = 50;
 export const FilterID = {
   Sort: "sort",
   ContentRating: "content_rating",
+  AgeRating: "age_rating",
+  Pornographic: "is_pornographic",
   Format: "format",
   Status: "upload_status",
   Genres: "genres",
@@ -42,6 +44,8 @@ export const PreferenceID = {
   // indistinguishable from the old default, and that default was the bug. A new key lets
   // the corrected default reach installs that already have the old one written.
   ContentRating: "content-rating-all",
+  AgeRating: "age-rating",
+  ShowPornographic: "show-pornographic",
   ExcludedGenres: "excluded-genres",
   ExcludedTags: "excluded-tags",
   UploadSource: "upload-source",
@@ -51,6 +55,8 @@ export const PreferenceID = {
   ShowSpoilerTags: "show-spoiler-tags",
   DataSaver: "data-saver",
   ContentLanguages: "content-languages",
+  OriginalLanguages: "original-languages",
+  TranslatedLanguages: "translated-languages",
   HideDisturbing: "hide-disturbing",
 } as const;
 
@@ -79,11 +85,10 @@ export const SORT_OPTIONS: SortOption[] = [
 
 export const CONTENT_RATINGS = ["Safe", "Suggestive", "Erotica", "Pornographic"];
 
-export const CONTENT_RATING_OPTIONS: Option[] = [
+export const AGE_RATING_OPTIONS: Option[] = [
   { id: "Safe", title: "Safe" },
-  { id: "Suggestive", title: "15+" },
-  { id: "Erotica", title: "18+ (Non-Pornographic)" },
-  { id: "Pornographic", title: "18+ (Pornographic)" },
+  { id: "FifteenPlus", title: "15+" },
+  { id: "EighteenPlus", title: "18+" },
 ];
 
 export const FORMAT_OPTIONS: Option[] = ["Manga", "Manhwa", "Manhua", "Comic", "Other"].map(
@@ -194,6 +199,14 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     layout: SectionLayout.ChapterUpdates,
     sort: SortID.Updated,
   },
+  {
+    id: "weekly_chart",
+    title: "Trending This Week",
+    subtitle: "Uses content rating and language settings; catalogue hide-lists do not apply.",
+    style: SectionStyle.DetailedVerticalList,
+    layout: SectionLayout.Detailed,
+    sort: "",
+  },
 ];
 
 export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | number> = {
@@ -202,6 +215,8 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   // the first simply vanished from search. The app's own content setting is the place that
   // decision belongs, and it is applied on top of this.
   [PreferenceID.ContentRating]: [...CONTENT_RATINGS],
+  [PreferenceID.AgeRating]: [] as string[],
+  [PreferenceID.ShowPornographic]: true,
   [PreferenceID.ExcludedGenres]: [] as string[],
   [PreferenceID.ExcludedTags]: [] as string[],
   [PreferenceID.UploadSource]: "all",
@@ -212,6 +227,8 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.DataSaver]: false,
   // Emptying this asks the site for every language rather than for none.
   [PreferenceID.ContentLanguages]: ["en"],
+  [PreferenceID.OriginalLanguages]: [] as string[],
+  [PreferenceID.TranslatedLanguages]: [] as string[],
   [PreferenceID.HideDisturbing]: true,
 };
 
@@ -244,6 +261,7 @@ export type SeriesSummary = {
   cover_image_id?: string | null;
   alternate_titles?: string[];
   age_rating?: string | null;
+  content_rating?: string | null;
   is_pornographic?: boolean;
   is_disturbing?: boolean;
   format?: string | null;
@@ -266,6 +284,17 @@ export type SearchResponse = {
 };
 
 export type BooksResponse = { items: ChapterBook[]; next_cursor: string | null };
+
+export type TrendingResponse = {
+  items: {
+    position: number;
+    delta: number | null;
+    is_new: boolean;
+    lift: number;
+    hidden_by_filter: boolean;
+    series: SeriesSummary;
+  }[];
+};
 
 export type ChapterBook = {
   book_id: string;
@@ -296,6 +325,7 @@ export type DetailsResponse = {
   tracker_id?: string | null;
   series_covers?: { image_id: string }[];
   age_rating?: string | null;
+  content_rating?: string | null;
   is_pornographic?: boolean;
   is_disturbing?: boolean;
   translated_language?: string | null;

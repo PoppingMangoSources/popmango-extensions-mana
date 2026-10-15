@@ -5,7 +5,27 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.1.6)
+## Kagane (current: v1.1.7)
+
+### Fixed
+
+- Restore the site's separate Trending This Week chart with its native order, ranks,
+  movement and weekly growth. Popular This Week remains a separate catalogue ranking.
+- Preserve and normalize the provider's chapter language; missing or invalid language
+  metadata is undetermined and never replaced with a reading preference.
+- Apply native rating policy to details and locally check catalogue responses. Explicit
+  evidence takes priority; incomplete metadata uses a Mature compatibility bucket and a
+  detail-page note. Cached metadata does not retain an earlier request's policy.
+
+### Changed
+
+- List every search control in visible sections without a More filters disclosure.
+- Give author/artist and scanlation-group searches their own section with clear labels.
+- Show Safe, 15+ and 18+ as age bands, with a separate pornography control in search and
+  source settings while retaining Mana's mature/explicit classification internally.
+- Move reading, original and translated-language preferences into source settings.
+
+## Kagane (v1.1.6)
 
 ### Changed
 

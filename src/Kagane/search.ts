@@ -11,6 +11,8 @@ export type SearchBodyOptions = {
   uploadSource: string;
   contentRatings: string[];
   contentLanguages: string[];
+  originalLanguages?: string[];
+  translatedLanguages?: string[];
   excludedGenreIds: string[];
   excludedTagIds: string[];
   allowedRatings?: readonly ContentRating[];
@@ -19,8 +21,7 @@ export type SearchBodyOptions = {
   tagNames?: Record<string, string>;
 };
 
-// Kagane names four ratings of its own; Erotica has no exact counterpart, and MATURE is
-// the closest rung the app offers below EXPLICIT.
+// The site uses age bands; Mana distinguishes mature from explicit content within 18+.
 const RATING_EQUIVALENTS: Record<string, ContentRating> = {
   Safe: ContentRating.SAFE,
   Suggestive: ContentRating.SUGGESTIVE,
@@ -47,10 +48,39 @@ export function selectedContentRatings(
   options: SearchBodyOptions,
   filters?: FilterReader,
 ): string[] {
-  const ratings = filters?.options(FilterID.ContentRating) ?? [];
-  return applyRatingPolicy(
-    ratings.length > 0 ? ratings : options.contentRatings,
-    options.allowedRatings,
+  const ages = filters?.options(FilterID.AgeRating) ?? [];
+  const legacy = filters?.options(FilterID.ContentRating) ?? [];
+  const pornography = filters?.option(FilterID.Pornographic);
+  let ratings = ages.length
+    ? ratingsForAges(
+        ages,
+        pornography === "include" ||
+          (pornography !== "exclude" && options.contentRatings.includes("Pornographic")),
+      )
+    : legacy.length
+      ? legacy
+      : options.contentRatings;
+  if (pornography === "exclude") ratings = ratings.filter((rating) => rating !== "Pornographic");
+  else if (
+    pornography === "include" &&
+    ratings.includes("Erotica") &&
+    !ratings.includes("Pornographic")
+  )
+    ratings = [...ratings, "Pornographic"];
+  return applyRatingPolicy(ratings, options.allowedRatings);
+}
+
+export function ratingsForAges(ages: string[], pornography: boolean): string[] {
+  return ages.flatMap((age) =>
+    age === "Safe"
+      ? ["Safe"]
+      : age === "FifteenPlus"
+        ? ["Suggestive"]
+        : age === "EighteenPlus"
+          ? pornography
+            ? ["Erotica", "Pornographic"]
+            : ["Erotica"]
+          : [],
   );
 }
 
@@ -103,6 +133,13 @@ export function buildSearchBody(
   // whose row happens to be labelled with that language.
   if (options.contentLanguages.length > 0)
     body["content_lang"] = checkedValues(options.contentLanguages, "languages");
+  if (options.originalLanguages?.length)
+    body["original_language"] = checkedValues(options.originalLanguages, "original languages");
+  if (options.translatedLanguages?.length)
+    body["translated_language"] = checkedValues(
+      options.translatedLanguages,
+      "translation languages",
+    );
 
   const query = options.query?.trim();
   if (query) body["title"] = query;

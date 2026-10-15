@@ -3,7 +3,12 @@
 import type { Option } from "@mana-app/types";
 
 import type { PreferenceField, PreferenceSection } from "../common/index.ts";
-import { CONTENT_RATING_OPTIONS, PreferenceID, UPLOAD_SOURCE_OPTIONS } from "./model.ts";
+import {
+  AGE_RATING_OPTIONS,
+  LANGUAGE_OPTIONS,
+  PreferenceID,
+  UPLOAD_SOURCE_OPTIONS,
+} from "./model.ts";
 import { excludedTagsKey, groupTags } from "./tag-groups.ts";
 
 /**
@@ -68,23 +73,21 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Content",
       footer:
-        "Applies to the home page and the listings. A search by name is not filtered by the hide-lists — searching for a title returns it whatever it is tagged. Leave Languages empty to ask for every language. Kagane allows 50 excluded genre IDs and 50 excluded tag IDs across all groups; a grouped tag can contain several IDs.",
+        "Hide-lists apply to catalogue browsing, but not a search by name or the Trending chart. Kagane allows 50 excluded genre IDs and 50 excluded tag IDs across all groups; a grouped tag can contain several IDs.",
       fields: [
         {
           type: "multiselect",
-          key: PreferenceID.ContentRating,
+          key: PreferenceID.AgeRating,
           title: "Content Rating",
-          options: CONTENT_RATING_OPTIONS,
+          options: AGE_RATING_OPTIONS,
           minSelectionCount: 1,
         },
-        { type: "toggle", key: PreferenceID.HideDisturbing, title: "Hide Disturbing Content" },
         {
-          type: "multiselect",
-          key: PreferenceID.ContentLanguages,
-          title: "Languages",
-          options: hooks.languages,
-          maxSelectionCount: 50,
+          type: "toggle",
+          key: PreferenceID.ShowPornographic,
+          title: "Include Pornographic Content",
         },
+        { type: "toggle", key: PreferenceID.HideDisturbing, title: "Hide Disturbing Content" },
         {
           type: "multiselect",
           key: PreferenceID.ExcludedGenres,
@@ -97,9 +100,35 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
       ],
     },
     {
+      header: "Languages",
+      footer:
+        "Applies to browsing and search. Leave a list empty for any language. Reading languages selects editions you can read; Original language and Translated into further narrow catalogue results. The Trending chart uses Reading languages.",
+      fields: [
+        {
+          type: "multiselect",
+          key: PreferenceID.ContentLanguages,
+          title: "Reading languages",
+          options: hooks.languages,
+          maxSelectionCount: 50,
+        },
+        {
+          type: "multiselect",
+          key: PreferenceID.OriginalLanguages,
+          title: "Original language",
+          options: LANGUAGE_OPTIONS,
+        },
+        {
+          type: "multiselect",
+          key: PreferenceID.TranslatedLanguages,
+          title: "Translated into",
+          options: LANGUAGE_OPTIONS,
+        },
+      ],
+    },
+    {
       header: "Browsing",
       footer:
-        "Upload Source picks which uploads appear everywhere; a single search can still override it with the Sources filter.",
+        "Upload Source selects uploads for catalogue browsing and search; a single search can override it with the Sources filter.",
       fields: [
         {
           type: "select",

@@ -3,11 +3,11 @@
 import {
   AdditionalInfoType,
   CatalogRating,
-  DefinedLanguages,
   additionalInfo,
   SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
-  SearchGroup,
+  SearchListSection,
+  SearchSortSection,
   SearchMenuPicker,
   SearchMultiPicker,
   SearchMultiPickerSheet,
@@ -45,7 +45,6 @@ import {
   FilterReader,
   PreferenceStore,
   buildPreferenceMenu,
-  buildSearchForm,
   pageOf,
   sectionById,
   toPageSections,
@@ -56,7 +55,7 @@ import {
 import { KaganeApi } from "./client.ts";
 import {
   BASE_URL,
-  CONTENT_RATING_OPTIONS,
+  AGE_RATING_OPTIONS,
   CONTENT_RATINGS,
   DISCOVER_SECTIONS,
   FORMAT_OPTIONS,
@@ -93,6 +92,7 @@ import {
   buildSearchBody,
   buildSortParameter,
   selectedContentRatings,
+  ratingsForAges,
   type SearchBodyOptions,
 } from "./search.ts";
 import { EXCLUDED_TAG_KEYS, groupTags } from "./tag-groups.ts";
@@ -101,11 +101,10 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.6",
+  version: "1.1.7",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
-  supportedLanguages: [DefinedLanguages.ENGLISH],
   thumbnail: "Kagane.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
@@ -142,20 +141,35 @@ class KaganeSource
     | undefined;
 
   private async bodyOptions(query?: string, context?: SourceContext): Promise<SearchBodyOptions> {
-    const [uploadSource, contentRatings, contentLanguages, excludedGenreIds, excludedTagIds] =
-      await Promise.all([
-        this.preferences.text(PreferenceID.UploadSource, "all"),
-        this.preferences.strings(PreferenceID.ContentRating),
-        this.preferences.strings(PreferenceID.ContentLanguages),
-        this.preferences.strings(PreferenceID.ExcludedGenres),
-        this.hiddenTags(),
-      ]);
+    const [
+      uploadSource,
+      legacyRatings,
+      contentLanguages,
+      excludedGenreIds,
+      excludedTagIds,
+      ages,
+      pornography,
+      originalLanguages,
+      translatedLanguages,
+    ] = await Promise.all([
+      this.preferences.text(PreferenceID.UploadSource, "all"),
+      this.preferences.strings(PreferenceID.ContentRating),
+      this.preferences.strings(PreferenceID.ContentLanguages),
+      this.preferences.strings(PreferenceID.ExcludedGenres),
+      this.hiddenTags(),
+      this.preferences.strings(PreferenceID.AgeRating),
+      this.preferences.flag(PreferenceID.ShowPornographic),
+      this.preferences.strings(PreferenceID.OriginalLanguages),
+      this.preferences.strings(PreferenceID.TranslatedLanguages),
+    ]);
 
     return {
       ...(query ? { query } : {}),
       uploadSource,
-      contentRatings,
+      contentRatings: ages.length ? ratingsForAges(ages, pornography) : legacyRatings,
       contentLanguages,
+      originalLanguages,
+      translatedLanguages,
       excludedGenreIds,
       excludedTagIds,
       hideDisturbing: await this.preferences.flag(PreferenceID.HideDisturbing),
@@ -220,62 +234,135 @@ class KaganeSource
   }
 
   async getSearchForm(): Promise<SearchForm> {
-    const [genres, tags, sources, languages] = await Promise.all([
+    const [genres, tags, sources] = await Promise.all([
       this.genreOptions(),
       this.tagOptions(),
       this.sourceOptions(),
-      this.languageOptions(),
     ]);
 
-    const form = buildSearchForm({
-      header: "Search options",
-      fields: [
-        SearchMultiPickerSheet({
-          id: FilterID.ContentLanguage,
-          title: "Language",
-          options: languages,
-        }),
-        SearchMenuPicker({
-          id: FilterID.ChapterRange,
-          title: "Chapters",
-          options: [
-            { id: "", title: "Any" },
-            { id: "1-20", title: "1–20" },
-            { id: "21-100", title: "21–100" },
-            { id: "101+", title: "101+" },
-          ],
-        }),
-        SearchTextField({
-          id: FilterID.Chapters,
-          title: "Custom chapter range",
-          subtitle: "Overrides the Chapters preset",
-          placeholder: "20, 1-20 or 100+",
-        }),
-        SearchTextField({
-          id: FilterID.StartYear,
-          title: "Started year",
-          placeholder: "2020 or 2018-2022",
-        }),
-        ...(tags.length
+    return {
+      sections: [
+        ...(genres.length
           ? [
-              SearchExcludableMultiPickerSheet({
-                id: FilterID.Tags,
-                title: "Tags",
-                options: groupTags(tags)
-                  .flatMap(({ options }) => options)
-                  .sort((left, right) => left.title.localeCompare(right.title)),
-              }),
-              SearchTextField({
-                id: FilterID.TagQuery,
-                title: "Tag names",
-                subtitle: "Separate names with commas; prefix a name with - to exclude it",
-                placeholder: "time travel, -tragedy",
+              SearchTagsSection({
+                header: "Genres",
+                footer:
+                  "Tap to include, tap again to exclude. Included genres match All (AND) by default.",
+                field: SearchExcludableMultiPicker({
+                  id: FilterID.Genres,
+                  title: "Genres",
+                  options: genres,
+                }),
               }),
             ]
           : []),
-        SearchGroup({
-          id: "more-filters",
-          title: "More filters",
+        SearchTagsSection({
+          header: "Format",
+          field: SearchMultiPicker({
+            id: FilterID.Format,
+            title: "Format",
+            options: FORMAT_OPTIONS,
+          }),
+        }),
+        SearchTagsSection({
+          header: "Publication status",
+          field: SearchMultiPicker({
+            id: FilterID.PublicationStatus,
+            title: "Publication status",
+            options: STATUS_OPTIONS,
+          }),
+        }),
+        SearchTagsSection({
+          header: "Content rating",
+          field: SearchMultiPicker({
+            id: FilterID.AgeRating,
+            title: "Content rating",
+            options: AGE_RATING_OPTIONS,
+          }),
+        }),
+        SearchListSection({
+          header: "Content options",
+          children: [
+            SearchMenuPicker({
+              id: FilterID.Pornographic,
+              title: "Pornographic",
+              options: [
+                { id: "default", title: "Use Settings" },
+                { id: "include", title: "Include" },
+                { id: "exclude", title: "Leave out" },
+              ],
+            }),
+            SearchMenuPicker({
+              id: FilterID.Disturbing,
+              title: "Disturbing content",
+              options: [
+                { id: "default", title: "Use Settings" },
+                { id: "any", title: "Include" },
+                { id: "exclude", title: "Leave out" },
+                { id: "only", title: "Only" },
+              ],
+            }),
+          ],
+        }),
+        SearchListSection({
+          header: "Chapter and volume counts",
+          children: [
+            SearchMenuPicker({
+              id: FilterID.ChapterRange,
+              title: "Chapters",
+              options: [
+                { id: "", title: "Any" },
+                { id: "1-20", title: "1–20" },
+                { id: "21-100", title: "21–100" },
+                { id: "101+", title: "101+" },
+              ],
+            }),
+            SearchTextField({
+              id: FilterID.Chapters,
+              title: "Custom chapter count",
+              placeholder: "Chapters: 20, 1-20 or 100+",
+            }),
+            SearchTextField({
+              id: FilterID.Volumes,
+              title: "Volume count",
+              placeholder: "Volumes: 5, 1-5 or 10+",
+            }),
+          ],
+          footer: "A custom chapter count overrides the Chapters preset.",
+        }),
+        SearchListSection({
+          header: "Publication years",
+          children: [
+            SearchTextField({
+              id: FilterID.StartYear,
+              title: "Started year",
+              placeholder: "Started: 2020 or 2018-2022",
+            }),
+            SearchTextField({
+              id: FilterID.EndYear,
+              title: "Ended year",
+              placeholder: "Ended: 2020 or 2018-2022",
+            }),
+          ],
+        }),
+        SearchListSection({
+          header: "Authors, Artists & Groups",
+          footer: "Enter one full author, artist or scanlation group name to find their series.",
+          children: [
+            SearchTextField({
+              id: FilterID.Staff,
+              title: "Author or artist name",
+              placeholder: "Author or artist (e.g. Naoki Urasawa)",
+            }),
+            SearchTextField({
+              id: FilterID.Groups,
+              title: "Scanlation group name",
+              placeholder: "Full scanlation group name",
+            }),
+          ],
+        }),
+        SearchListSection({
+          header: "Upload sources",
           children: [
             SearchMultiPicker({
               id: FilterID.SourceType,
@@ -300,42 +387,33 @@ class KaganeSource
               title: "Upload status",
               options: STATUS_OPTIONS,
             }),
-            SearchMultiPickerSheet({
-              id: FilterID.OriginalLanguage,
-              title: "Original language",
-              options: LANGUAGE_OPTIONS,
-            }),
-            SearchMultiPickerSheet({
-              id: FilterID.TranslatedLanguage,
-              title: "Translated into",
-              options: LANGUAGE_OPTIONS,
-            }),
-            SearchTextField({ id: FilterID.Staff, title: "Person", placeholder: "Full name" }),
-            SearchTextField({
-              id: FilterID.Groups,
-              title: "Group",
-              placeholder: "Full group name",
-            }),
-            SearchTextField({
-              id: FilterID.EndYear,
-              title: "Ended year",
-              placeholder: "2020 or 2018-2022",
-            }),
-            SearchTextField({
-              id: FilterID.Volumes,
-              title: "Volumes",
-              placeholder: "5, 1-5 or 10+",
-            }),
-            SearchMenuPicker({
-              id: FilterID.Disturbing,
-              title: "Disturbing content",
-              options: [
-                { id: "default", title: "Use Settings" },
-                { id: "any", title: "Include" },
-                { id: "exclude", title: "Leave out" },
-                { id: "only", title: "Only" },
-              ],
-            }),
+          ],
+        }),
+        ...(tags.length
+          ? [
+              SearchListSection({
+                header: "Tags",
+                children: [
+                  SearchExcludableMultiPickerSheet({
+                    id: FilterID.Tags,
+                    title: "Choose tags",
+                    options: groupTags(tags)
+                      .flatMap(({ options }) => options)
+                      .sort((left, right) => left.title.localeCompare(right.title)),
+                  }),
+                  SearchTextField({
+                    id: FilterID.TagQuery,
+                    title: "Tag names",
+                    placeholder: "Tag names: time travel, -tragedy",
+                  }),
+                ],
+                footer: "Separate names with commas; prefix a name with - to exclude it.",
+              }),
+            ]
+          : []),
+        SearchListSection({
+          header: "Matching options",
+          children: [
             SearchMenuPicker({
               id: FilterID.MatchAllGenres,
               title: "Match included genres",
@@ -354,63 +432,27 @@ class KaganeSource
                 { id: "any", title: "Any (OR)" },
               ],
             }),
-            SearchToggle({
-              id: FilterID.ExactMatch,
-              title: "Exact title match",
-            }),
+            SearchToggle({ id: FilterID.ExactMatch, title: "Exact title match" }),
           ],
         }),
-      ],
-      sortHeader: "Sort",
-    });
-
-    return {
-      sections: [
-        // A tags section keeps the choices inline even when they came from the server.
-        ...(genres.length
-          ? [
-              SearchTagsSection({
-                header: "Genres",
-                footer:
-                  "Tap to include, tap again to exclude. Included genres match All (AND) by default.",
-                field: SearchExcludableMultiPicker({
-                  id: FilterID.Genres,
-                  title: "Genres",
-                  options: genres,
-                }),
-              }),
-            ]
-          : []),
-        SearchTagsSection({
-          header: "Format",
-          field: SearchMultiPicker({
-            id: FilterID.Format,
-            title: "Format",
-            options: FORMAT_OPTIONS,
-          }),
-        }),
-        SearchTagsSection({
-          header: "Status",
-          field: SearchMultiPicker({
-            id: FilterID.PublicationStatus,
-            title: "Status",
-            options: STATUS_OPTIONS,
-          }),
-        }),
-        SearchTagsSection({
-          header: "Content rating",
-          field: SearchMultiPicker({
-            id: FilterID.ContentRating,
-            title: "Content rating",
-            options: CONTENT_RATING_OPTIONS,
-          }),
-        }),
-        ...form.sections,
+        SearchSortSection({ header: "Sort" }),
       ],
     };
   }
 
   async getPreferenceMenu(): Promise<Form> {
+    // Convert saved source categories to the site's age-band controls.
+    if (!(await this.preferences.strings(PreferenceID.AgeRating)).length) {
+      const ratings = await this.preferences.strings(PreferenceID.ContentRating);
+      await this.preferences.set(PreferenceID.AgeRating, [
+        ...new Set(
+          ratings.map((rating) =>
+            rating === "Safe" ? "Safe" : rating === "Suggestive" ? "FifteenPlus" : "EighteenPlus",
+          ),
+        ),
+      ]);
+      await this.preferences.set(PreferenceID.ShowPornographic, ratings.includes("Pornographic"));
+    }
     return buildPreferenceMenu(
       this.preferences,
       await buildSettingsSections({
@@ -421,6 +463,8 @@ class KaganeSource
           await this.preferences.reset(PreferenceID.ExcludedGenres);
           for (const key of EXCLUDED_TAG_KEYS) await this.preferences.reset(key);
           await this.preferences.reset(PreferenceID.ContentRating);
+          await this.preferences.reset(PreferenceID.AgeRating);
+          await this.preferences.reset(PreferenceID.ShowPornographic);
         },
         resetAll: async () => {
           for (const key of Object.keys(PREFERENCE_DEFAULTS)) {
@@ -439,7 +483,12 @@ class KaganeSource
     const spec = sectionById(DISCOVER_SECTIONS, sectionID);
     if (!spec) return { items: [] };
 
-    const { results } = await this.loadSection(spec, 1, link.context, 20);
+    const { results } = await this.loadSection(
+      spec,
+      1,
+      link.context,
+      spec.id === "weekly_chart" ? 5 : 20,
+    );
     return { items: results };
   }
 
@@ -484,10 +533,13 @@ class KaganeSource
       SectionLayout.Simple,
       filters.toggle(FilterID.ExactMatch),
       selectedContentRatings(options, filters),
+      request.context,
     );
   }
 
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
+    if (context?.allowedContentRatings?.length === 0)
+      throw new Error("This title is excluded by Mana’s content-rating settings.");
     const [details, titleOptions, showSpoilerTags] = await Promise.all([
       this.fetchDetails(contentId),
       this.titleOptions(),
@@ -500,6 +552,13 @@ class KaganeSource
       { ...titleOptions, showSpoilerTags },
       (imageId) => this.api.imageUrl(imageId),
     );
+
+    if (
+      context?.allowedContentRatings &&
+      !context.allowedContentRatings.includes(content.contentRating!)
+    ) {
+      throw new Error("This title is excluded by Mana’s content-rating settings.");
+    }
 
     const trackerId = details.tracker_id;
     if (!trackerId) return content;
@@ -548,9 +607,8 @@ class KaganeSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [details, languages, sources] = await Promise.all([
+    const [details, sources] = await Promise.all([
       this.fetchDetails(contentId),
-      this.preferences.strings(PreferenceID.ContentLanguages),
       this.api.fetchUploadSources(),
     ]);
 
@@ -563,12 +621,9 @@ class KaganeSource
     return parseChapters(
       contentId,
       { ...details, series_books: books },
-      {
-        language: details.translated_language ?? languages[0] ?? DefinedLanguages.ENGLISH,
-        ...(source === undefined
-          ? {}
-          : { sourceName: source.title, official: /^official$/i.test(source.source_type) }),
-      },
+      source === undefined
+        ? {}
+        : { sourceName: source.title, official: /^official$/i.test(source.source_type) },
     );
   }
 
@@ -651,6 +706,11 @@ class KaganeSource
     const options = await this.bodyOptions(undefined, context);
     const ratings = selectedContentRatings(options);
     if (!ratings.length) return { results: [], isLastPage: true };
+    if (spec.id === "weekly_chart") {
+      return page > 1
+        ? { results: [], isLastPage: true }
+        : this.loadTrending(options, ratings, size, context);
+    }
     const body = buildSearchBody(options);
     return this.runSearch(
       body,
@@ -660,7 +720,65 @@ class KaganeSource
       spec.layout,
       false,
       ratings,
+      context,
     );
+  }
+
+  private async loadTrending(
+    options: SearchBodyOptions,
+    ratings: string[],
+    limit: number,
+    context?: SourceContext,
+  ): Promise<PagedSearchResult> {
+    const body = buildSearchBody({
+      ...options,
+      contentRatings: ratings,
+      uploadSource: "all",
+      excludedGenreIds: [],
+      excludedTagIds: [],
+    });
+    const [chart, titleOptions] = await Promise.all([
+      this.api.fetchTrending(body, limit),
+      this.titleOptions(),
+    ]);
+    const languages = new Set(options.contentLanguages.map((language) => language.toLowerCase()));
+    return {
+      isLastPage: true,
+      results: chart.items
+        .filter(
+          (entry) =>
+            !entry.hidden_by_filter &&
+            ratings.includes(contentRatingId(entry.series) ?? "Erotica") &&
+            (languages.size <= 5 ||
+              languages.has(entry.series.translated_language?.toLowerCase() ?? "")),
+        )
+        .map((entry) => {
+          const book = entry.series;
+          const info: Pair[] = [{ key: "Rank", value: String(entry.position) }];
+          if (entry.is_new) info.push({ key: "Movement", value: "New" });
+          else if (entry.delta)
+            info.push({
+              key: "Movement",
+              value: `${entry.delta > 0 ? "Up" : "Down"} ${Math.abs(entry.delta)}`,
+            });
+          if (entry.lift > 1)
+            info.push({ key: "Weekly growth", value: `+${Math.round((entry.lift - 1) * 100)}%` });
+          const subtitle = [
+            book.format,
+            book.current_books === undefined ? undefined : `${book.current_books} chapters`,
+            book.genres?.slice(0, 2).join(", "),
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return {
+            ...parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
+              subtitle,
+              info,
+            }),
+            ...(context ? { context } : {}),
+          };
+        }),
+    };
   }
 
   private async runSearch(
@@ -671,6 +789,7 @@ class KaganeSource
     layout: SectionLayoutKind = SectionLayout.Simple,
     exactMatch = false,
     ratings: string[] = CONTENT_RATINGS,
+    context?: SourceContext,
   ): Promise<PagedSearchResult> {
     if (!ratings.length) return { results: [], isLastPage: true };
     const [response, titleOptions] = await Promise.all([
@@ -678,17 +797,14 @@ class KaganeSource
       this.titleOptions(),
     ]);
 
-    // A mixed selection such as Safe + Pornographic cannot be expressed by one age array
-    // and one flag. Only that case needs a final check; pagination still follows the API.
-    const mixed =
-      ratings.includes("Pornographic") && !ratings.includes("Erotica") && ratings.length > 1;
     const results: Highlight[] = (response.content ?? [])
-      .filter((book) => !mixed || ratings.includes(contentRatingId(book) ?? ""))
-      .map((book) =>
-        parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
+      .filter((book) => ratings.includes(contentRatingId(book) ?? "Erotica"))
+      .map((book) => ({
+        ...parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
           ...this.buildTileExtras(book, layout),
         }),
-      );
+        ...(context ? { context } : {}),
+      }));
 
     return { results, isLastPage: response.last !== false };
   }
