@@ -22,6 +22,18 @@ export const FilterID = {
   MatchAllTags: "match_all_tags",
   Sources: "source_id",
   ExactMatch: "exact_match",
+  PublicationStatus: "publication_status",
+  Disturbing: "is_disturbing",
+  OriginalLanguage: "original_language",
+  TranslatedLanguage: "translated_language",
+  ContentLanguage: "content_lang",
+  StartYear: "start_year",
+  EndYear: "end_year",
+  Chapters: "current_books",
+  Volumes: "current_volumes",
+  Staff: "staff",
+  Groups: "groups",
+  SourceType: "source_type",
 } as const;
 
 export const PreferenceID = {
@@ -38,40 +50,39 @@ export const PreferenceID = {
   ShowSpoilerTags: "show-spoiler-tags",
   DataSaver: "data-saver",
   ContentLanguages: "content-languages",
+  HideDisturbing: "hide-disturbing",
 } as const;
 
 export const SortID = {
   Relevance: "",
-  TotalViews: "total_views",
   AverageViews: "avg_views",
-  ViewsToday: "avg_views_today",
+  ViewsToday: "popular_now",
   ViewsWeek: "avg_views_week",
   ViewsMonth: "avg_views_month",
   Updated: "updated_at",
-  Name: "series_name",
-  BooksCount: "books_count",
+  Rating: "rating",
   Created: "created_at",
 } as const;
 
 export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Relevance, title: "Relevance", isDefault: true },
-  { id: SortID.TotalViews, title: "Popular (Total Views)" },
-  { id: SortID.AverageViews, title: "Popular (Average Views)" },
-  { id: SortID.ViewsToday, title: "Popular (Today)" },
-  { id: SortID.ViewsWeek, title: "Popular (Week)" },
-  { id: SortID.ViewsMonth, title: "Popular (Month)" },
-  { id: SortID.Updated, title: "Latest" },
-  { id: SortID.Name, title: "By Name" },
-  { id: SortID.BooksCount, title: "Books Count" },
-  { id: SortID.Created, title: "Created At" },
+  { id: SortID.ViewsWeek, title: "Trending (Week)" },
+  { id: SortID.Updated, title: "Recently Updated", isOrderable: true, defaultAscending: false },
+  { id: SortID.Rating, title: "Rating", isOrderable: true, defaultAscending: false },
+  { id: SortID.Created, title: "Newest Added", isOrderable: true, defaultAscending: false },
+  { id: SortID.ViewsToday, title: "Trending (Today)" },
+  { id: SortID.ViewsMonth, title: "Trending (Month)" },
+  { id: SortID.AverageViews, title: "Most Popular (All Time)" },
 ];
 
 export const CONTENT_RATINGS = ["Safe", "Suggestive", "Erotica", "Pornographic"];
 
-export const CONTENT_RATING_OPTIONS: Option[] = CONTENT_RATINGS.map((rating) => ({
-  id: rating,
-  title: rating,
-}));
+export const CONTENT_RATING_OPTIONS: Option[] = [
+  { id: "Safe", title: "Safe" },
+  { id: "Suggestive", title: "15+" },
+  { id: "Erotica", title: "18+ (Non-Pornographic)" },
+  { id: "Pornographic", title: "18+ (Pornographic)" },
+];
 
 export const FORMAT_OPTIONS: Option[] = ["Manga", "Manhwa", "Manhua", "Comic", "Other"].map(
   (format) => ({ id: format, title: format }),
@@ -115,7 +126,6 @@ export const LANGUAGE_OPTIONS: Option[] = [
 
 export const SectionLayout = {
   Hero: "hero",
-  Detailed: "detailed",
   ChapterUpdates: "chapter-updates",
   Simple: "simple",
 } as const;
@@ -129,6 +139,7 @@ export type DiscoverSection = {
   style: SectionStyle;
   layout: SectionLayoutKind;
   sort: string;
+  viewMore?: boolean;
 };
 
 export const DISCOVER_SECTIONS: DiscoverSection[] = [
@@ -137,43 +148,29 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: "Popular",
     style: SectionStyle.SimpleHeroPaged,
     layout: SectionLayout.Hero,
-    // All-time, by cumulative views. The averaged sorts read as a monthly chart.
-    sort: SortID.TotalViews,
-  },
-  {
-    id: "trending_month",
-    title: "Trending This Month",
-    style: SectionStyle.DetailedDoubleRowPaged,
-    layout: SectionLayout.Detailed,
-    sort: SortID.ViewsMonth,
-  },
-  {
-    id: "trending_week",
-    title: "Trending This Week",
-    style: SectionStyle.SimpleSingleRow,
-    layout: SectionLayout.Detailed,
     sort: SortID.ViewsWeek,
-  },
-  {
-    id: "trending_today",
-    title: "Trending Today",
-    style: SectionStyle.SimpleSingleRow,
-    layout: SectionLayout.Detailed,
-    sort: SortID.ViewsToday,
-  },
-  {
-    id: "latest_updates",
-    title: "Latest Updates",
-    style: SectionStyle.DetailedVerticalListGrouped,
-    layout: SectionLayout.ChapterUpdates,
-    sort: SortID.Updated,
   },
   {
     id: "recently_added",
     title: "Recently Added",
     style: SectionStyle.SimpleSingleRow,
-    layout: SectionLayout.Detailed,
+    layout: SectionLayout.Simple,
     sort: SortID.Created,
+  },
+  {
+    id: "latest_updates",
+    title: "Recently Updated",
+    style: SectionStyle.DetailedVerticalListGrouped,
+    layout: SectionLayout.ChapterUpdates,
+    sort: SortID.Updated,
+  },
+  {
+    id: "trending_week",
+    title: "Trending This Week",
+    style: SectionStyle.SimpleSingleRow,
+    layout: SectionLayout.Simple,
+    sort: "now",
+    viewMore: false,
   },
 ];
 
@@ -193,9 +190,10 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.DataSaver]: false,
   // Emptying this asks the site for every language rather than for none.
   [PreferenceID.ContentLanguages]: ["en"],
+  [PreferenceID.HideDisturbing]: true,
 };
 
-export type GenreEntry = { id: string; genre_name: string };
+export type GenreEntry = { id: string; genre_name: string; genre_type?: string };
 export type TagEntry = { id: string; tag_name: string };
 
 export type UploadSource = {
@@ -223,12 +221,17 @@ export type SeriesSummary = {
   start_year?: number | null;
   cover_image_id?: string | null;
   alternate_titles?: string[];
-  content_rating?: string | null;
+  age_rating?: string | null;
+  is_pornographic?: boolean;
+  is_disturbing?: boolean;
   format?: string | null;
   publication_status?: string | null;
   translated_language?: string | null;
   genres?: string[];
+  genre_list?: { id: string; name: string }[];
   latest_chapters?: LatestChapter[];
+  slug?: string;
+  rating?: number | null;
 };
 
 export type SearchResponse = {
@@ -236,13 +239,19 @@ export type SearchResponse = {
   last?: boolean;
   total_elements?: number;
   total_pages?: number;
+  next_cursor?: string | null;
 };
+
+export type TrendingResponse = { items: { series: SeriesSummary; hidden_by_filter?: boolean }[] };
+export type BooksResponse = { items: ChapterBook[]; next_cursor: string | null };
 
 export type ChapterBook = {
   book_id: string;
   series_id?: string | null;
   title: string;
   created_at?: string | null;
+  published_on?: string | null;
+  became_visible_at?: string | null;
   page_count?: number;
   sort_no?: number;
   chapter_no?: string | null;
@@ -257,14 +266,21 @@ export type DetailsResponse = {
   format?: string | null;
   source_id?: string | null;
   series_staff?: { name: string; role: string }[];
-  genres?: { genre_name: string }[];
-  tags?: { tag_name: string; spoiler?: boolean }[];
+  genres?: { genre_id: string; genre_name: string; is_spoiler?: boolean }[];
+  tags?: { tag_id: string; tag_name: string; is_spoiler?: boolean }[];
   series_alternate_titles?: { title: string; label?: string | null }[];
   series_books?: ChapterBook[];
   edition_info?: string | null;
   tracker_id?: string | null;
   series_covers?: { image_id: string }[];
-  content_rating?: string | null;
+  age_rating?: string | null;
+  is_pornographic?: boolean;
+  is_disturbing?: boolean;
+  translated_language?: string | null;
+  publication_status?: string;
+  current_books?: number;
+  series_links?: { url: string; label: string; kind?: string }[];
+  external_ids?: Record<string, string | number>;
   average_rating?: number | null;
   bayesian_rating?: number | null;
   total_views?: number | null;
@@ -280,7 +296,8 @@ export type TrackedSeries = {
   title: string;
   source_id?: string | null;
   cover_image_id?: string | null;
-  content_rating?: string | null;
+  age_rating?: string | null;
+  is_pornographic?: boolean;
 };
 
 export type ManifestPage = { page_no: number; page_id: string; ext?: string | null };
@@ -293,13 +310,6 @@ export type ChallengeResponse = {
 };
 
 export type IntegrityResponse = { token: string; exp: number };
-
-export const SOURCE_CHAPTER_NUMBER_FORMATS = new Set([
-  "Dark Horse Comics",
-  "Flame Comics",
-  "MangaDex",
-  "Square Enix Manga",
-]);
 
 export const TITLE_BRACKET_REGEX = /(\([^()]*\)|\[[^[\]]*\])\s*$/;
 

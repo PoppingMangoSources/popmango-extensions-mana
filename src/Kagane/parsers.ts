@@ -31,18 +31,11 @@ import {
   CHAPTER_NUMBER_PREFIX_REGEX,
   CHAPTER_TRAILING_GROUP_REGEX,
   CHAPTER_VOLUME_SUFFIX_REGEX,
-  SOURCE_CHAPTER_NUMBER_FORMATS,
   TITLE_BRACKET_REGEX,
   type ChapterBook,
   type DetailsResponse,
   type SeriesSummary,
 } from "./model.ts";
-
-/** Name (lowercased) to the id the search endpoint expects, for genres and for tags. */
-export type TaxonomyIds = {
-  genres: Record<string, string>;
-  tags: Record<string, string>;
-};
 
 export type TitleOptions = {
   cleanTitle: boolean;
@@ -109,16 +102,36 @@ function parseContentType(format: string | null | undefined): ContentType | unde
   }
 }
 
-export function parseContentRating(value: string | null | undefined): ContentRating {
-  switch ((value ?? "").toLowerCase()) {
-    case "safe":
-      return ContentRating.SAFE;
-    case "suggestive":
-      return ContentRating.SUGGESTIVE;
-    case "pornographic":
-      return ContentRating.EXPLICIT;
+export function contentRatingId(
+  value: Pick<SeriesSummary, "age_rating" | "is_pornographic">,
+): string | undefined {
+  if (value.is_pornographic === true) return "Pornographic";
+  switch (value.age_rating) {
+    case "Safe":
+      return "Safe";
+    case "FifteenPlus":
+      return "Suggestive";
+    case "EighteenPlus":
+      return value.is_pornographic === false ? "Erotica" : undefined;
     default:
+      return undefined;
+  }
+}
+
+export function parseContentRating(
+  value: Pick<SeriesSummary, "age_rating" | "is_pornographic">,
+): ContentRating | undefined {
+  switch (contentRatingId(value)) {
+    case "Safe":
+      return ContentRating.SAFE;
+    case "Suggestive":
+      return ContentRating.SUGGESTIVE;
+    case "Pornographic":
+      return ContentRating.EXPLICIT;
+    case "Erotica":
       return ContentRating.MATURE;
+    default:
+      return undefined;
   }
 }
 
@@ -143,17 +156,14 @@ export function formatKind(book: SeriesSummary): string {
   return format && format.toLowerCase() !== "other" ? titleCase(format) : "";
 }
 
-/**
- * The pill over a tile's cover.
- *
- * A listing row here carries no rating and no count — the rating lives on the title page —
- * so the pill says what the title *is*, and where it has got to when the site has not said
- * what it is.
- */
 export function highlightBadge(book: SeriesSummary): string {
   const kind = formatKind(book);
   const status = formatStatus(book) ?? "";
-  return firstFilled(typePill(kind), statusPill(status));
+  return firstFilled(
+    book.rating ? `★ ${(book.rating / 10).toFixed(1)}` : "",
+    typePill(kind),
+    statusPill(status),
+  );
 }
 
 /** What is left to say under the title once the pill has taken its half. */
@@ -195,8 +205,9 @@ export function parseLatestChapterDate(book: SeriesSummary): Date | undefined {
  * said has to be here too — otherwise a row is the only thing the reader sees and it is
  * missing the two facts the tile led with everywhere else.
  */
-export function buildInfoRows(book: SeriesSummary, genreNames: Record<string, string>): Pair[] {
+export function buildInfoRows(book: SeriesSummary): Pair[] {
   const rows: Pair[] = [];
+  if (book.rating) rows.push({ key: "Rating", value: `★ ${(book.rating / 10).toFixed(1)}` });
 
   const kind = formatKind(book);
   if (kind) rows.push({ key: "Type", value: `${Mark.Type} ${kind}` });
@@ -209,10 +220,7 @@ export function buildInfoRows(book: SeriesSummary, genreNames: Record<string, st
 
   if (book.start_year) rows.push({ key: "Year", value: String(book.start_year) });
 
-  const genres = (book.genres ?? [])
-    .map((id) => genreNames[id])
-    .filter((name): name is string => Boolean(name))
-    .slice(0, 2);
+  const genres = (book.genre_list ?? []).map((genre) => genre.name).slice(0, 2);
   if (genres.length > 0) rows.push({ key: "Genres", value: genres.join(", ") });
 
   // A tile stretches its whole row past about four lines, so the rest is dropped.
@@ -225,7 +233,7 @@ export function parseHighlight(
   coverFor: (imageId: string) => string,
   extra?: { subtitle?: string; info?: Pair[] },
 ): Highlight {
-  const badge = toBadge(highlightBadge(book));
+  const badge = extra?.info ? undefined : toBadge(highlightBadge(book));
 
   return {
     id: book.series_id,
@@ -234,7 +242,7 @@ export function parseHighlight(
     ...(extra?.subtitle ? { subtitle: extra.subtitle } : {}),
     ...(badge === undefined ? {} : { badge }),
     ...(extra?.info && extra.info.length > 0 ? { info: extra.info } : {}),
-    contentRating: parseContentRating(book.content_rating),
+    contentRating: parseContentRating(book),
     webUrl: seriesUrl(book.series_id),
   };
 }
@@ -242,7 +250,7 @@ export function parseHighlight(
 export function parseContent(
   seriesId: string,
   details: DetailsResponse,
-  options: TitleOptions & { showSpoilerTags: boolean; ids: TaxonomyIds },
+  options: TitleOptions & { showSpoilerTags: boolean },
   coverFor: (imageId: string) => string,
 ): Content {
   const sourceName = details.source_id ? options.sources[details.source_id] : undefined;
@@ -258,25 +266,23 @@ export function parseContent(
     .map((entry) => entry.title.trim())
     .filter(Boolean);
 
-  // A title's own payload names its genres and tags but never identifies them, while the
-  // search these become when tapped is by id — so the id is looked up from the site's own
-  // lists. A name with no id left is kept as itself: it still reads, and the alternative
-  // is dropping a tag the title genuinely carries.
   const tags: Tag[] = [
-    ...(details.genres ?? []).map((genre) => ({
-      id: options.ids.genres[genre.genre_name.toLowerCase()] ?? genre.genre_name,
-      title: genre.genre_name,
-    })),
+    ...(details.genres ?? [])
+      .filter((genre) => options.showSpoilerTags || !genre.is_spoiler)
+      .map((genre) => ({
+        id: genre.genre_id,
+        title: genre.genre_name,
+      })),
     ...(details.tags ?? [])
-      .filter((tag) => options.showSpoilerTags || tag.spoiler !== true)
+      .filter((tag) => options.showSpoilerTags || !tag.is_spoiler)
       .map((tag) => ({
-        id: options.ids.tags[tag.tag_name.toLowerCase()] ?? tag.tag_name,
+        id: tag.tag_id,
         title: tag.tag_name,
       })),
   ];
 
   const summary = buildSummary(details, sourceName);
-  const status = parseStatus(details.upload_status);
+  const status = parseStatus(details.publication_status ?? details.upload_status);
   const contentType = parseContentType(details.format);
 
   const panel = panelMode({ type: contentType, tags: tags.map((tag) => tag.title) });
@@ -289,12 +295,35 @@ export function parseContent(
     tags,
     ...(contentType === undefined ? {} : { contentType }),
     ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
-    contentRating: parseContentRating(details.content_rating),
+    contentRating: parseContentRating(details),
+    trackerInfo: Object.fromEntries(
+      (details.series_links ?? []).flatMap((link) => {
+        const match = /^https?:\/\/(?:www\.)?(anilist\.co|myanimelist\.net)\/manga\/(\d+)/.exec(
+          link.url,
+        );
+        return match ? [[match[1] === "anilist.co" ? "anilist" : "mal", match[2]!]] : [];
+      }),
+    ),
     ...(status === undefined ? {} : { status }),
     webUrl: seriesUrl(seriesId),
-    ...(authors.length > 0 || artists.length > 0
-      ? {
-          additionalInfo: [
+    additionalInfo: [
+      ...((details.series_links?.length ?? 0) > 0
+        ? [
+            additionalInfo.links.section({
+              id: "links",
+              title: "Links",
+              items: details.series_links!.map((link) =>
+                additionalInfo.links.item({
+                  id: link.url,
+                  title: link.label,
+                  url: link.url,
+                }),
+              ),
+            }),
+          ]
+        : []),
+      ...(authors.length > 0 || artists.length > 0
+        ? [
             additionalInfo.staff.section({
               id: "staff",
               title: "Staff",
@@ -318,9 +347,9 @@ export function parseContent(
                   ),
               ],
             }),
-          ],
-        }
-      : {}),
+          ]
+        : []),
+    ],
   };
 }
 
@@ -429,10 +458,7 @@ export function parseChapters(
   options: { language: string; sourceName?: string; official?: boolean },
 ): Chapter[] {
   const books = details.series_books ?? [];
-  const useSourceNumber = SOURCE_CHAPTER_NUMBER_FORMATS.has(details.format ?? "");
-
-  // The API lists newest first, but only roughly: a late upload of an early chapter sits
-  // out of place. Numbering comes from the reversed array, and `index` from the sort below.
+  // Start from oldest so genuinely unnumbered extras retain their release order.
   const ordered = [...books].reverse();
 
   const chapters = ordered.map((book, index) => {
@@ -447,25 +473,39 @@ export function parseChapters(
     const name = parseChapterName(title);
     const volume = Number.parseFloat((book.volume_no ?? "").replace(/[^\d.]/g, ""));
 
-    // sort_no is a position in the series for most formats, not a chapter number.
-    const number = useSourceNumber
-      ? (book.sort_no ?? index + 1)
-      : Number.isFinite(parsedNumber)
-        ? parsedNumber
-        : index + 1;
+    const numbered = Number.isFinite(parsedNumber);
+    const number = numbered ? parsedNumber : 0;
+    const label = title.replace(CHAPTER_METADATA_REGEX, "").trim();
+    const hasLabel = /^(?:\(?S\d+\)?\s*)?(?:episodes?|chapters?|ch\.?|volumes?|vol\.?)\s*\d/i.test(
+      label,
+    );
 
     return {
       chapterId: book.book_id,
       number,
       index,
-      title: formatChapterLabel(number, Number.isFinite(volume) ? volume : undefined, name),
+      numbered,
+      name,
+      hasLabel,
+      title: hasLabel ? label : name,
       ...(Number.isFinite(volume) ? { volume } : {}),
-      date: parseDate(book.created_at) ?? new Date(0),
+      date:
+        parseDate(book.became_visible_at ?? book.created_at ?? book.published_on) ?? new Date(0),
       language: options.language || DefinedLanguages.ENGLISH,
       webUrl: chapterUrl(seriesId, book.book_id),
       ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
     };
   });
+
+  let highest = Math.max(
+    0,
+    ...chapters.filter((chapter) => chapter.numbered).map((chapter) => chapter.number),
+  );
+  for (const chapter of chapters) {
+    if (!chapter.numbered) chapter.number = ++highest;
+    if (!chapter.hasLabel)
+      chapter.title = formatChapterLabel(chapter.number, chapter.volume, chapter.name);
+  }
 
   // `index` decides where the app resumes and index 0 must be the earliest chapter. Taken
   // from the array it followed upload order, so a late re-upload of an early chapter left
@@ -475,6 +515,9 @@ export function parseChapters(
       if (left.number !== right.number) return left.number - right.number;
       return left.date.getTime() - right.date.getTime();
     })
-    .map((chapter, index) => ({ ...chapter, index }))
+    .map(({ numbered: _numbered, name: _name, hasLabel: _hasLabel, ...chapter }, index) => ({
+      ...chapter,
+      index,
+    }))
     .reverse();
 }

@@ -8,6 +8,8 @@ import {
   BASE_URL,
   DEFAULT_CACHE_URL,
   type ChallengeResponse,
+  type BooksResponse,
+  type ChapterBook,
   type DetailsResponse,
   type GenreEntry,
   type IntegrityResponse,
@@ -16,6 +18,7 @@ import {
   type SourcesResponse,
   type TagEntry,
   type TrackerResponse,
+  type TrendingResponse,
 } from "./model.ts";
 
 // The site says "your token is stale" with these, not "no". Only the status may
@@ -66,7 +69,8 @@ export class KaganeApi {
   // share one response rather than knocking on Cloudflare twice for the same page.
   private readonly searches = new Map<string, Promise<SearchResponse>>();
 
-  accessToken = "";
+  private readonly accessTokens = new Map<string, string>();
+  private readonly chapterLists = new Map<string, Promise<ChapterBook[]>>();
 
   private get http(): NetworkClient {
     this.client ??= new NetworkClientBuilder()
@@ -161,6 +165,91 @@ export class KaganeApi {
     );
   }
 
+  async fetchBooks(seriesId: string): Promise<ChapterBook[]> {
+    const running = this.chapterLists.get(seriesId);
+    if (running) return running;
+    const request = (async () => {
+      const books: ChapterBook[] = [];
+      const ids = new Set<string>();
+      const cursors = new Set<string>();
+      let before: string | undefined;
+      for (;;) {
+        const url = new UrlBuilder(API_URL)
+          .addPathComponent("series")
+          .addPathComponent(seriesId)
+          .addPathComponent("books")
+          .setQueryItem("limit", 200)
+          .setQueryItem("before", before)
+          .build();
+        const page = await this.fetchJson<BooksResponse>(url);
+        if (!Array.isArray(page.items)) throw new Error("Kagane returned an invalid chapter list");
+        for (const book of page.items) {
+          if (!book.book_id || ids.has(book.book_id)) {
+            throw new Error("Kagane repeated a chapter while loading the list. Please retry.");
+          }
+          ids.add(book.book_id);
+          books.push(book);
+        }
+        if (page.next_cursor === null) return books;
+        if (!page.next_cursor || cursors.has(page.next_cursor) || !page.items.length) {
+          throw new Error("Kagane chapter pagination did not advance. Please retry.");
+        }
+        cursors.add(page.next_cursor);
+        before = page.next_cursor;
+      }
+    })().finally(() => this.chapterLists.delete(seriesId));
+    this.chapterLists.set(seriesId, request);
+    return request;
+  }
+
+  async fetchTrending(body: Record<string, unknown>): Promise<TrendingResponse> {
+    const url = new UrlBuilder(API_URL)
+      .addPathComponent("series")
+      .addPathComponent("trending")
+      .setQueryItem("limit", 10);
+    for (const key of ["age_rating", "content_lang"]) {
+      const value = body[key];
+      if (Array.isArray(value))
+        url.setQueryItem(key === "content_lang" ? "lang" : key, value.join(","));
+    }
+    for (const key of ["is_pornographic", "is_disturbing"]) {
+      if (typeof body[key] === "boolean") url.setQueryItem(key, body[key]);
+    }
+    return this.fetchJson<TrendingResponse>(url.build());
+  }
+
+  async resolvePersonOrGroup(kind: "staff" | "groups", name: string): Promise<string> {
+    if (/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(name)) return name;
+    const candidates =
+      kind === "staff"
+        ? (
+            await this.postJson<{ content: { staff_id: string; name: string }[] }>(
+              `${API_URL}/search/staff?size=8`,
+              { name },
+            )
+          ).content.map((person) => ({ id: person.staff_id, name: person.name }))
+        : (
+            await this.fetchJson<{ items: { group_id: string; title: string }[] }>(
+              new UrlBuilder(API_URL)
+                .addPathComponent("groups")
+                .addPathComponent("search")
+                .setQueryItem("q", name)
+                .setQueryItem("limit", 8)
+                .build(),
+            )
+          ).items.map((group) => ({ id: group.group_id, name: group.title }));
+    const exact = candidates.filter(
+      (candidate) => candidate.name.toLowerCase() === name.toLowerCase(),
+    );
+    const selected = exact.length ? exact : candidates;
+    if (selected.length === 1) return selected[0]!.id;
+    throw new Error(
+      selected.length
+        ? `Several matches for ${name}. Enter the full name or ID.`
+        : `No matches for ${name}.`,
+    );
+  }
+
   async fetchRelated(trackerId: string): Promise<TrackerResponse> {
     return this.fetchJson<TrackerResponse>(
       new UrlBuilder(API_URL)
@@ -247,7 +336,7 @@ export class KaganeApi {
   private forgetTokens(): void {
     this.integrityToken = "";
     this.integrityExpiry = 0;
-    this.accessToken = "";
+    this.accessTokens.clear();
   }
 
   async fetchChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
@@ -277,7 +366,7 @@ export class KaganeApi {
       }
 
       const challenge = parseJson<ChallengeResponse>(response, url);
-      this.accessToken = challenge.access_token;
+      this.accessTokens.set(`${chapterId}:${dataSaver}`, challenge.access_token);
       return challenge;
     }
 
@@ -297,12 +386,11 @@ export class KaganeApi {
       .addPathComponent("books")
       .addPathComponent("page");
 
-    if (dataSaver) builder.addPathComponent("datasaver");
-
     return builder
       .addPathComponent(chapterId)
       .addPathComponent(fileName)
       .setQueryItem("token", token)
+      .setQueryItem("is_datasaver", dataSaver)
       .build();
   }
 
@@ -314,8 +402,8 @@ export class KaganeApi {
     if (!chapterId || !fileName) return imageUrl;
 
     const origin = /^https?:\/\/[^/?#]+/i.exec(imageUrl)?.[0] ?? DEFAULT_CACHE_URL;
-    const token =
-      this.accessToken || (await this.fetchChallenge(chapterId, dataSaver)).access_token;
+    const token = this.accessTokens.get(`${chapterId}:${dataSaver}`);
+    if (!token) return imageUrl;
 
     return this.pageUrl(origin, chapterId, fileName, token, dataSaver);
   }

@@ -5,11 +5,11 @@ import {
   CatalogRating,
   DefinedLanguages,
   additionalInfo,
-  SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
   SearchGroup,
   SearchMultiPicker,
   SearchMultiPickerSheet,
+  SearchPicker,
   SearchTextField,
   SearchToggle,
   type Chapter,
@@ -55,8 +55,10 @@ import { KaganeApi } from "./client.ts";
 import {
   BASE_URL,
   CONTENT_RATING_OPTIONS,
+  CONTENT_RATINGS,
   DISCOVER_SECTIONS,
   FORMAT_OPTIONS,
+  LANGUAGE_OPTIONS,
   FilterID,
   PAGE_SIZE,
   PREFERENCE_DEFAULTS,
@@ -68,6 +70,7 @@ import {
   type SectionLayoutKind,
   type DiscoverSection,
   type SeriesSummary,
+  type DetailsResponse,
 } from "./model.ts";
 import {
   formatDescriptor,
@@ -80,17 +83,22 @@ import {
   parseContent,
   parseContentRating,
   parseHighlight,
-  type TaxonomyIds,
+  contentRatingId,
   type TitleOptions,
 } from "./parsers.ts";
-import { buildSearchBody, buildSortParameter, type SearchBodyOptions } from "./search.ts";
+import {
+  buildSearchBody,
+  buildSortParameter,
+  selectedContentRatings,
+  type SearchBodyOptions,
+} from "./search.ts";
 import { EXCLUDED_TAG_KEYS, groupTags, tagFilterId } from "./tag-groups.ts";
 import { buildSettingsSections } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.3",
+  version: "1.1.4",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -126,7 +134,9 @@ class KaganeSource
     ...Object.fromEntries(EXCLUDED_TAG_KEYS.map((key) => [key, [] as string[]])),
   });
 
-  private detailCache: { seriesId: string; details: unknown; at: number } | undefined;
+  private detailCache:
+    | { seriesId: string; details: Promise<DetailsResponse>; at: number }
+    | undefined;
 
   private async bodyOptions(query?: string, context?: SourceContext): Promise<SearchBodyOptions> {
     const [uploadSource, contentRatings, contentLanguages, excludedGenreIds, excludedTagIds] =
@@ -145,6 +155,7 @@ class KaganeSource
       contentLanguages,
       excludedGenreIds,
       excludedTagIds,
+      hideDisturbing: await this.preferences.flag(PreferenceID.HideDisturbing),
       ...(context?.allowedContentRatings === undefined
         ? {}
         : { allowedRatings: context.allowedContentRatings }),
@@ -178,19 +189,6 @@ class KaganeSource
     };
   }
 
-  /**
-   * The site's genre and tag lists, turned around so a name can be traded for the id a
-   * search needs. Both lists are cached by the client, so this costs nothing after the
-   * first title opened in a session.
-   */
-  private async taxonomyIds(): Promise<TaxonomyIds> {
-    const [genres, tags] = await Promise.all([
-      this.api.fetchGenreNames(),
-      this.api.fetchTagNames(),
-    ]);
-    return { genres: byName(genres), tags: byName(tags) };
-  }
-
   private async genreOptions(): Promise<Option[]> {
     return buildOptions(await this.api.fetchGenreNames());
   }
@@ -200,19 +198,9 @@ class KaganeSource
   }
 
   private async sourceOptions(): Promise<Option[]> {
-    const [sources, uploadSource] = await Promise.all([
-      this.api.fetchUploadSources(),
-      this.preferences.text(PreferenceID.UploadSource, "all"),
-    ]);
+    const sources = await this.api.fetchUploadSources();
 
     return sources
-      .filter((source) =>
-        uploadSource === "official"
-          ? /^official$/i.test(source.source_type)
-          : uploadSource === "scanlations"
-            ? !/^official$/i.test(source.source_type)
-            : true,
-      )
       .map((source) => ({ id: source.source_id, title: source.title }))
       .sort((left, right) => left.title.localeCompare(right.title));
   }
@@ -238,7 +226,93 @@ class KaganeSource
           options: CONTENT_RATING_OPTIONS,
         }),
         SearchMultiPicker({ id: FilterID.Format, title: "Format", options: FORMAT_OPTIONS }),
-        SearchMultiPicker({ id: FilterID.Status, title: "Status", options: STATUS_OPTIONS }),
+        ...(genres.length > 0
+          ? [
+              SearchExcludableMultiPickerSheet({
+                id: FilterID.Genres,
+                title: "Genres & Format Tags",
+                options: genres,
+              }),
+            ]
+          : []),
+        SearchMultiPicker({ id: FilterID.Status, title: "Upload Status", options: STATUS_OPTIONS }),
+        SearchMultiPicker({
+          id: FilterID.PublicationStatus,
+          title: "Publication Status",
+          options: STATUS_OPTIONS,
+        }),
+        SearchMultiPicker({
+          id: FilterID.SourceType,
+          title: "Source Type",
+          options: [
+            { id: "Official", title: "Official" },
+            { id: "Unofficial", title: "Unofficial" },
+            { id: "Mixed", title: "Mixed" },
+          ],
+        }),
+        SearchGroup({
+          id: "languages",
+          title: "Languages",
+          children: [
+            SearchMultiPickerSheet({
+              id: FilterID.ContentLanguage,
+              title: "Content Language",
+              options: LANGUAGE_OPTIONS,
+            }),
+            SearchMultiPickerSheet({
+              id: FilterID.OriginalLanguage,
+              title: "Originally Written In",
+              options: LANGUAGE_OPTIONS,
+            }),
+            SearchMultiPickerSheet({
+              id: FilterID.TranslatedLanguage,
+              title: "Available to Read In",
+              options: LANGUAGE_OPTIONS,
+            }),
+          ],
+        }),
+        SearchGroup({
+          id: "ranges",
+          title: "Years and Counts",
+          children: [
+            SearchTextField({
+              id: FilterID.StartYear,
+              title: "Start Year",
+              placeholder: "2020 or 2018-2022",
+            }),
+            SearchTextField({
+              id: FilterID.EndYear,
+              title: "End Year",
+              placeholder: "2020 or 2018-2022",
+            }),
+            SearchTextField({
+              id: FilterID.Chapters,
+              title: "Chapters",
+              placeholder: "20, 1-20 or 100+",
+            }),
+            SearchTextField({
+              id: FilterID.Volumes,
+              title: "Volumes",
+              placeholder: "5, 1-5 or 10+",
+            }),
+          ],
+        }),
+        SearchTextField({ id: FilterID.Staff, title: "Author / Artist", placeholder: "Full name" }),
+        SearchTextField({
+          id: FilterID.Groups,
+          title: "Scanlation Group",
+          placeholder: "Full group name",
+        }),
+        SearchPicker({
+          id: FilterID.Disturbing,
+          title: "Disturbing Content",
+          options: [
+            { id: "default", title: "Use Settings" },
+            { id: "any", title: "Any" },
+            { id: "exclude", title: "Exclude" },
+            { id: "only", title: "Only" },
+          ],
+        }),
         // The host no longer turns a long option list into a sheet on its own, so the
         // two lists the server fills — hundreds of tags, dozens of sources — ask for one.
         ...(sources.length > 0
@@ -249,10 +323,13 @@ class KaganeSource
           title: "Exact Match",
           subtitle: "Match the title as typed rather than loosely",
         }),
-        SearchToggle({
+        SearchPicker({
           id: FilterID.MatchAllGenres,
-          title: "Match All Genres",
-          subtitle: "Require every selected genre rather than any of them",
+          title: "Included Genres Must Match",
+          options: [
+            { id: "all", title: "All (AND)" },
+            { id: "any", title: "Any (OR)" },
+          ],
         }),
         ...(tags.length > 0
           ? [
@@ -260,10 +337,13 @@ class KaganeSource
                 id: "tag-filters",
                 title: "Tags",
                 children: [
-                  SearchToggle({
+                  SearchPicker({
                     id: FilterID.MatchAllTags,
-                    title: "Match All Tags",
-                    subtitle: "Require every selected tag rather than any of them",
+                    title: "Included Tags Must Match",
+                    options: [
+                      { id: "all", title: "All (AND)" },
+                      { id: "any", title: "Any (OR)" },
+                    ],
                   }),
                   // Twenty-odd groups is a lot to hunt through for one tag, so it may be
                   // typed instead — the site's own spelling is not needed, only the words.
@@ -288,16 +368,6 @@ class KaganeSource
             ]
           : []),
       ],
-      ...(genres.length > 0
-        ? {
-            tags: SearchExcludableMultiPicker({
-              id: FilterID.Genres,
-              title: "Genres",
-              options: genres,
-            }),
-            tagsHeader: "Genres",
-          }
-        : {}),
       sortHeader: "Sort",
     });
   }
@@ -350,6 +420,14 @@ class KaganeSource
       filters,
     );
 
+    for (const [id, kind] of [
+      [FilterID.Staff, "staff"],
+      [FilterID.Groups, "groups"],
+    ] as const) {
+      const name = filters.text(id).trim();
+      if (name) body[id] = { values: [await this.api.resolvePersonOrGroup(kind, name)] };
+    }
+
     const requestedSort = request.sort?.id ?? "";
     const sortId = SORT_OPTIONS.some((option) => option.id === requestedSort)
       ? requestedSort
@@ -359,24 +437,28 @@ class KaganeSource
       body,
       pageOf(request),
       PAGE_SIZE,
-      buildSortParameter(sortId),
+      buildSortParameter(
+        sortId,
+        SORT_OPTIONS.find((option) => option.id === sortId)?.isOrderable === true &&
+          request.sort?.ascending === true,
+      ),
       SectionLayout.Simple,
       filters.toggle(FilterID.ExactMatch),
+      selectedContentRatings(options, filters),
     );
   }
 
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
-    const [details, titleOptions, showSpoilerTags, ids] = await Promise.all([
+    const [details, titleOptions, showSpoilerTags] = await Promise.all([
       this.fetchDetails(contentId),
       this.titleOptions(),
       this.preferences.flag(PreferenceID.ShowSpoilerTags),
-      this.taxonomyIds(),
     ]);
 
     const content = parseContent(
       contentId,
       details,
-      { ...titleOptions, showSpoilerTags, ids },
+      { ...titleOptions, showSpoilerTags },
       (imageId) => this.api.imageUrl(imageId),
     );
 
@@ -392,7 +474,14 @@ class KaganeSource
       .then((response) => response.book_series ?? [])
       .catch(() => []);
 
-    const others = related.filter((entry) => entry.id !== contentId).slice(0, 10);
+    const others = related
+      .filter(
+        (entry) =>
+          entry.id !== contentId &&
+          (context?.allowedContentRatings === undefined ||
+            context.allowedContentRatings.includes(parseContentRating(entry)!)),
+      )
+      .slice(0, 10);
     if (others.length === 0) return content;
 
     return {
@@ -410,7 +499,7 @@ class KaganeSource
               title: formatTitle(entry.title, titleOptions, entry.source_id),
               cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
               // An edition carries its own rating, which need not be the one being read.
-              contentRating: parseContentRating(entry.content_rating),
+              contentRating: parseContentRating(entry),
               webUrl: seriesUrl(entry.id),
             }),
           ),
@@ -430,12 +519,18 @@ class KaganeSource
       ? sources.find((entry) => entry.source_id === details.source_id)
       : undefined;
 
-    return parseChapters(contentId, details, {
-      language: languages[0] ?? DefinedLanguages.ENGLISH,
-      ...(source === undefined
-        ? {}
-        : { sourceName: source.title, official: /^official$/i.test(source.source_type) }),
-    });
+    const books = details.series_books ?? (await this.api.fetchBooks(contentId));
+
+    return parseChapters(
+      contentId,
+      { ...details, series_books: books },
+      {
+        language: details.translated_language ?? languages[0] ?? DefinedLanguages.ENGLISH,
+        ...(source === undefined
+          ? {}
+          : { sourceName: source.title, official: /^official$/i.test(source.source_type) }),
+      },
+    );
   }
 
   async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
@@ -472,7 +567,10 @@ class KaganeSource
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
-    const seriesId = /\/series\/([^/?#]+)/i.exec(url)?.[1];
+    const seriesId =
+      /^https?:\/\/(?:www\.)?kagane\.org\/series\/(?:[^/?#]*-)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i.exec(
+        url,
+      )?.[1];
     if (!seriesId) return null;
 
     try {
@@ -494,10 +592,13 @@ class KaganeSource
   private async fetchDetails(seriesId: string): ReturnType<KaganeApi["fetchSeries"]> {
     const cached = this.detailCache;
     if (cached && cached.seriesId === seriesId && Date.now() - cached.at < DETAIL_CACHE_MS) {
-      return cached.details as Awaited<ReturnType<KaganeApi["fetchSeries"]>>;
+      return cached.details;
     }
 
-    const details = await this.api.fetchSeries(seriesId);
+    const details = this.api.fetchSeries(seriesId).catch((error: unknown) => {
+      if (this.detailCache?.details === details) this.detailCache = undefined;
+      throw error;
+    });
     this.detailCache = { seriesId, details, at: Date.now() };
     return details;
   }
@@ -507,9 +608,51 @@ class KaganeSource
     page: number,
     context?: SourceContext,
   ): Promise<PagedSearchResult> {
-    const body = buildSearchBody(await this.bodyOptions(undefined, context));
+    const options = await this.bodyOptions(undefined, context);
+    const ratings = selectedContentRatings(options);
+    if (!ratings.length) return { results: [], isLastPage: true };
+    const body = buildSearchBody(options);
+    if (spec.sort === "now") {
+      if (page > 1) return { results: [], isLastPage: true };
+      // The fixed chart accepts age and language, not custom tag/source exclusions.
+      // Its filtered weekly listing honours those choices without fetching ten details.
+      if (
+        body["genres"] ||
+        body["tags"] ||
+        body["source_type"] ||
+        (ratings.includes("Pornographic") && !ratings.includes("Erotica") && ratings.length > 1)
+      ) {
+        return this.runSearch(
+          body,
+          page,
+          PAGE_SIZE,
+          buildSortParameter(SortID.ViewsWeek),
+          spec.layout,
+          false,
+          ratings,
+        );
+      }
+      const response = await this.api.fetchTrending(body);
+      const titleOptions = await this.titleOptions();
+      return {
+        results: response.items
+          .filter((item) => !item.hidden_by_filter)
+          .map(({ series }) =>
+            parseHighlight(series, titleOptions, (imageId) => this.api.imageUrl(imageId)),
+          ),
+        isLastPage: true,
+      };
+    }
 
-    return this.runSearch(body, page, PAGE_SIZE, buildSortParameter(spec.sort), spec.layout);
+    return this.runSearch(
+      body,
+      page,
+      PAGE_SIZE,
+      buildSortParameter(spec.sort),
+      spec.layout,
+      false,
+      ratings,
+    );
   }
 
   private async runSearch(
@@ -519,45 +662,46 @@ class KaganeSource
     sort: string,
     layout: SectionLayoutKind = SectionLayout.Simple,
     exactMatch = false,
+    ratings: string[] = CONTENT_RATINGS,
   ): Promise<PagedSearchResult> {
-    const [response, titleOptions, genreNames] = await Promise.all([
+    if (!ratings.length) return { results: [], isLastPage: true };
+    const [response, titleOptions] = await Promise.all([
       this.api.fetchSearch(body, page, size, sort, exactMatch),
       this.titleOptions(),
-      layout === SectionLayout.Detailed ? this.api.fetchGenreNames() : {},
     ]);
 
-    const results: Highlight[] = (response.content ?? []).map((book) =>
-      parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
-        ...this.buildTileExtras(book, layout, genreNames),
-      }),
-    );
+    // A mixed selection such as Safe + Pornographic cannot be expressed by one age array
+    // and one flag. Only that case needs a final check; pagination still follows the API.
+    const mixed =
+      ratings.includes("Pornographic") && !ratings.includes("Erotica") && ratings.length > 1;
+    const results: Highlight[] = (response.content ?? [])
+      .filter((book) => !mixed || ratings.includes(contentRatingId(book) ?? ""))
+      .map((book) =>
+        parseHighlight(book, titleOptions, (imageId) => this.api.imageUrl(imageId), {
+          ...this.buildTileExtras(book, layout),
+        }),
+      );
 
-    return { results, isLastPage: response.last !== false || results.length === 0 };
+    return { results, isLastPage: response.last !== false };
   }
 
   private buildTileExtras(
     book: SeriesSummary,
     layout: SectionLayoutKind,
-    genreNames: Record<string, string>,
   ): { subtitle?: string; info?: Pair[] } {
     switch (layout) {
-      case SectionLayout.Detailed: {
-        const subtitle = formatDescriptor(book);
-        return {
-          ...(subtitle ? { subtitle } : {}),
-          info: buildInfoRows(book, genreNames),
-        };
-      }
-
       case SectionLayout.ChapterUpdates: {
         const chapter = formatLatestChapter(book);
         if (!chapter) {
           const subtitle = formatDescriptor(book);
-          return subtitle ? { subtitle } : {};
+          return { ...(subtitle ? { subtitle } : {}), info: buildInfoRows(book) };
         }
         return {
           subtitle: chapter,
-          info: [{ key: chapter, value: relativeTime(parseLatestChapterDate(book)) }],
+          info: [
+            { key: chapter, value: relativeTime(parseLatestChapterDate(book)) },
+            ...buildInfoRows(book).filter((row) => row.key !== "Chapters"),
+          ].slice(0, 4),
         };
       }
 
@@ -581,8 +725,3 @@ function buildOptions(map: Record<string, string> | undefined): Option[] {
 }
 
 export class Target extends KaganeSource {}
-
-/** Turns the site's `{ id: name }` list into the `{ name: id }` a tag tap needs. */
-function byName(entries: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(Object.entries(entries).map(([id, name]) => [name.toLowerCase(), id]));
-}

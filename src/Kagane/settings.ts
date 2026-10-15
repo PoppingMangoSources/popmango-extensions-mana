@@ -81,6 +81,7 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
           options: CONTENT_RATING_OPTIONS,
           minSelectionCount: 1,
         },
+        { type: "toggle", key: PreferenceID.HideDisturbing, title: "Hide Disturbing Content" },
         {
           type: "multiselect",
           key: PreferenceID.ContentLanguages,
