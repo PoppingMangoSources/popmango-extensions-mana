@@ -22,15 +22,24 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "03f1084303f1084303f1084303f1084303f1084303f1084303f1084303f10843"
+      "hash": "0ac5d31a0ac5d31a0ac5d31a0ac5d31a0ac5d31a0ac5d31a0ac5d31a0ac5d31a"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.1.7",
+      "version": "1.1.8",
       "description": "Manga, manhwa, manhua and comics from kagane.org.",
       "website": "https://kagane.org",
       "rating": 1,
+      "supportedLanguages": [
+        "en_US",
+        "ko_KR",
+        "ja_JP",
+        "fr_FR",
+        "zh-CN",
+        "es_ES",
+        "pt_BR"
+      ],
       "thumbnail": "Kagane.png",
       "developers": [
         {
@@ -41,7 +50,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 6298637,
-      "hash": "3a1b125e3a1b125e3a1b125e3a1b125e3a1b125e3a1b125e3a1b125e3a1b125e"
+      "hash": "0be562880be562880be562880be562880be562880be562880be562880be56288"
     },
     {
       "id": "mangadex",
@@ -63,7 +72,7 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "575a67d9575a67d9575a67d9575a67d9575a67d9575a67d9575a67d9575a67d9"
+      "hash": "50859c6750859c6750859c6750859c6750859c6750859c6750859c6750859c67"
     },
     {
       "id": "mangafire",
@@ -89,7 +98,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 6298637,
-      "hash": "1d9c1c5a1d9c1c5a1d9c1c5a1d9c1c5a1d9c1c5a1d9c1c5a1d9c1c5a1d9c1c5a"
+      "hash": "16c7515a16c7515a16c7515a16c7515a16c7515a16c7515a16c7515a16c7515a"
     },
     {
       "id": "mangaupdates",
@@ -111,7 +120,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "0cb6402e0cb6402e0cb6402e0cb6402e0cb6402e0cb6402e0cb6402e0cb6402e"
+      "hash": "138b0b46138b0b46138b0b46138b0b46138b0b46138b0b46138b0b46138b0b46"
     },
     {
       "id": "mangago",
@@ -133,7 +142,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "6a6b89b06a6b89b06a6b89b06a6b89b06a6b89b06a6b89b06a6b89b06a6b89b0"
+      "hash": "6396bef06396bef06396bef06396bef06396bef06396bef06396bef06396bef0"
     },
     {
       "id": "rinkocomics",
@@ -155,7 +164,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "37996e5837996e5837996e5837996e5837996e5837996e5837996e5837996e58"
+      "hash": "3e6e39cb3e6e39cb3e6e39cb3e6e39cb3e6e39cb3e6e39cb3e6e39cb3e6e39cb"
     },
     {
       "id": "rokaricomics",
@@ -177,7 +186,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 6298637,
-      "hash": "71cd5d3871cd5d3871cd5d3871cd5d3871cd5d3871cd5d3871cd5d3871cd5d38"
+      "hash": "78a22bd478a22bd478a22bd478a22bd478a22bd478a22bd478a22bd478a22bd4"
     },
     {
       "id": "stonescape",
@@ -199,7 +208,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 6298637,
-      "hash": "654d8d6d654d8d6d654d8d6d654d8d6d654d8d6d654d8d6d654d8d6d654d8d6d"
+      "hash": "5e78c2505e78c2505e78c2505e78c2505e78c2505e78c2505e78c2505e78c250"
     },
     {
       "id": "toonkotsu",
@@ -221,7 +230,7 @@
       "path": "Toonkotsu",
       "environment": "source",
       "intents": 6298637,
-      "hash": "2a2a2fad2a2a2fad2a2a2fad2a2a2fad2a2a2fad2a2a2fad2a2a2fad2a2a2fad"
+      "hash": "30fefaa730fefaa730fefaa730fefaa730fefaa730fefaa730fefaa730fefaa7"
     },
     {
       "id": "valirscans",
@@ -243,7 +252,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 6298925,
-      "hash": "2a6677212a6677212a6677212a6677212a6677212a6677212a6677212a667721"
+      "hash": "313b4236313b4236313b4236313b4236313b4236313b4236313b4236313b4236"
     },
     {
       "id": "xcomic",
@@ -265,7 +274,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "29f0c9fb29f0c9fb29f0c9fb29f0c9fb29f0c9fb29f0c9fb29f0c9fb29f0c9fb"
+      "hash": "30c597d830c597d830c597d830c597d830c597d830c597d830c597d830c597d8"
     }
   ]
 }
