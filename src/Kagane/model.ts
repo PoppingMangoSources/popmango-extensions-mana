@@ -179,7 +179,7 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     id: "weekly_chart",
     title: "Trending This Week",
     subtitle: "Titles gaining reading momentum this week",
-    style: SectionStyle.DetailedVerticalList,
+    style: SectionStyle.DetailedTripleRowPaged,
     layout: SectionLayout.Detailed,
     sort: "",
   },
