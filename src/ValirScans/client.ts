@@ -1,7 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import { buildClient, withChallengeRetry, withQuery } from "../common/index.ts";
-import { BASE_URL, NOVEL_TYPE, PAGE_CACHE_MS, SESSION_PATH } from "./model.ts";
+import {
+  BASE_URL,
+  TYPE_OPTIONS,
+  STATUS_OPTIONS,
+  ORIGIN_OPTIONS,
+  PAGE_CACHE_MS,
+  SESSION_PATH,
+} from "./model.ts";
 
 export type BrowseQuery = {
   page: number;
@@ -95,40 +102,39 @@ export class ValirScansApi {
     return this.get(`${BASE_URL}${SESSION_PATH}`);
   }
 
+  fetchFacets(): Promise<string> {
+    return this.get(`${BASE_URL}/api/series/facets`);
+  }
+
   fetchBrowse(query: BrowseQuery): Promise<string> {
-    const facets: [string, { included: string[]; excluded: string[] } | undefined][] = [
+    const params: Record<string, string | number | undefined> = {
+      page: query.page,
+      limit: 24,
+      mode: "comics",
+      q: query.search?.trim() || undefined,
+      ch_min: query.minChapters,
+      ch_max: query.maxChapters,
+      ...(query.sort ? { sort: query.sort, order: "desc" } : {}),
+    };
+    for (const [name, state] of [
       ["genre", query.genres],
       ["tag", query.tags],
-      ["type", query.types],
-      ["status", query.statuses],
-      ["origin", query.origins],
-    ];
-
-    const params: Record<string, string | number | readonly string[] | undefined> = {
-      page: query.page,
-      q: query.search,
-      minChapters: query.minChapters,
-      maxChapters: query.maxChapters,
-    };
-
-    // The site sorts one way and takes the direction separately, and every one of its own
-    // menu entries is the descending end of its measure.
-    if (query.sort) {
-      params["sort"] = query.sort;
-      params["order"] = "desc";
+    ] as const) {
+      if (state?.included.length) params[name] = state.included.join(",");
+      if (state?.excluded.length) params[`ex${name}`] = state.excluded.join(",");
     }
-
-    for (const [name, state] of facets) {
-      if (state?.included.length) params[name] = state.included;
-      // `genre` → `excludeGenre`, which is the spelling the site's own filter posts.
-      const excluded = [...(state?.excluded ?? [])];
-      // Prose is filtered out here, by the site, rather than by dropping rows afterwards:
-      // a page that lost rows would run short of the count the site says it has.
-      if (name === "type") excluded.push(NOVEL_TYPE);
-      if (excluded.length)
-        params[`exclude${name.charAt(0).toUpperCase()}${name.slice(1)}`] = excluded;
+    for (const [name, state, options] of [
+      ["type", query.types, TYPE_OPTIONS],
+      ["status", query.statuses, STATUS_OPTIONS],
+      ["origin", query.origins, ORIGIN_OPTIONS],
+    ] as const) {
+      if (!state?.included.length && !state?.excluded.length) continue;
+      const selected = (
+        state.included.length ? state.included : options.map((option) => option.id)
+      ).filter((id) => !state.excluded.includes(id));
+      if (!selected.length) return Promise.resolve('{"data":[],"meta":{"hasMore":false}}');
+      params[name] = selected.join(",");
     }
-
-    return this.get(withQuery(`${BASE_URL}/series`, params));
+    return this.get(withQuery(`${BASE_URL}/api/series`, params));
   }
 }

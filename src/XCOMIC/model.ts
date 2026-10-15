@@ -559,7 +559,7 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: SectionID.MostFollows,
     title: "Most Follows",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    style: SectionStyle.DetailedSingleRowPaged,
     sort: SortID.Follows,
   },
   {

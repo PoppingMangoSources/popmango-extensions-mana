@@ -6,6 +6,7 @@ import {
   SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
   SearchTextField,
+  SearchMenuPicker,
   type BasicURL,
   type BooleanState,
   type Chapter,
@@ -50,6 +51,7 @@ import {
 import { ValirScansApi, type BrowseQuery } from "./client.ts";
 import {
   BASE_URL,
+  CHAPTER_PRESETS,
   BUNDLED_GENRES,
   DISCOVER_SECTIONS,
   FilterID,
@@ -91,7 +93,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Comics from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
@@ -216,7 +218,7 @@ class ValirScansSource
   private async filterTaxonomy(): Promise<FilterTaxonomy> {
     return this.taxonomy
       .get(async () => {
-        const parsed = parseTaxonomy(await this.api.fetchBrowse({ page: 1 }));
+        const parsed = parseTaxonomy(await this.api.fetchFacets());
         // An empty list is a bad response, not a site with no genres. Throwing keeps it
         // out of the cache so the next open asks again.
         if (parsed.genres.length === 0) throw new Error("ValirScans listed no genres");
@@ -247,6 +249,11 @@ class ValirScansSource
         title: "Origin",
         options: ORIGIN_OPTIONS,
       }),
+      SearchMenuPicker({
+        id: FilterID.ChapterPreset,
+        title: "Chapter count",
+        options: CHAPTER_PRESETS,
+      }),
       SearchTextField({ id: FilterID.MinChapters, title: "Chapters From", placeholder: "20" }),
       SearchTextField({ id: FilterID.MaxChapters, title: "Chapters To", placeholder: "100" }),
     ];
@@ -254,7 +261,7 @@ class ValirScansSource
     return buildSearchForm({
       header: "Filters",
       footer:
-        "Each list includes what you pick and excludes what you pick twice. Anything left empty falls back to the site's own defaults.",
+        "Each list includes what you pick and excludes what you pick twice. Custom chapter bounds override quick selection. Empty fields use the site's defaults.",
       fields,
       sortHeader: "Sort",
     });
@@ -306,14 +313,16 @@ class ValirScansSource
     const allowed = link.context?.allowedContentRatings;
     const style = SECTION_SUBTITLES[sectionID] ?? "stats";
 
-    if (sectionID === SectionID.NewSeries) {
-      const { results } = await this.browse({ page: 1, sort: SortID.Newest }, allowed);
+    if (sectionID === SectionID.NewSeries || sectionID === SectionID.Featured) {
+      const { results } = await this.browse(
+        { page: 1, sort: sectionID === SectionID.Featured ? SortID.Rating : SortID.Newest },
+        allowed,
+      );
       return { items: results };
     }
 
     const home = await this.homeSections();
     const rows: Record<string, ValirSeries[]> = {
-      [SectionID.Featured]: home.featured,
       [SectionID.MostPopular]: home.mostPopular,
       [SectionID.LatestComics]: home.latestUpdates,
       [SectionID.PopularToday]: home.popularToday,
@@ -370,11 +379,23 @@ class ValirScansSource
     }
 
     // The New Series row's "view more" opens the same listing it is cut from.
-    if (request.listId === SectionID.NewSeries) {
-      return this.browse({ page: pageOf(request), sort: SortID.Newest }, allowed);
+    if (request.listId === SectionID.NewSeries || request.listId === SectionID.Featured) {
+      return this.browse(
+        {
+          page: pageOf(request),
+          sort: request.listId === SectionID.Featured ? SortID.Rating : SortID.Newest,
+        },
+        allowed,
+      );
     }
 
     const filters = new FilterReader(request);
+    const preset = /^(\d+)(?:-(\d+)|(\+))$/.exec(filters.option(FilterID.ChapterPreset));
+    const custom = !!(filters.text(FilterID.MinChapters) || filters.text(FilterID.MaxChapters));
+    const min = custom ? digits(filters.text(FilterID.MinChapters)) : preset?.[1];
+    const max = custom ? digits(filters.text(FilterID.MaxChapters)) : preset?.[2];
+    if (min && max && Number(min) > Number(max))
+      throw new Error("The chapter minimum must not exceed the maximum.");
 
     return this.browse(
       {
@@ -386,12 +407,8 @@ class ValirScansSource
         types: filters.excludable(FilterID.Types),
         statuses: filters.excludable(FilterID.Statuses),
         origins: filters.excludable(FilterID.Origins),
-        ...(digits(filters.text(FilterID.MinChapters))
-          ? { minChapters: digits(filters.text(FilterID.MinChapters)) }
-          : {}),
-        ...(digits(filters.text(FilterID.MaxChapters))
-          ? { maxChapters: digits(filters.text(FilterID.MaxChapters)) }
-          : {}),
+        ...(min ? { minChapters: min } : {}),
+        ...(max ? { maxChapters: max } : {}),
       },
       allowed,
     );

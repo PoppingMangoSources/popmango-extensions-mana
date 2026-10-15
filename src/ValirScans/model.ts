@@ -28,15 +28,6 @@ export const LOCK_MARK = "🔒";
 /** The house mark for a view count, the same one the other sources here use. */
 export const VIEWS_MARK = "⏯︎";
 
-/**
- * The site's own word for a prose series, and the one kind not offered here.
- *
- * A Mana chapter is a list of images and has no text form, so a novel would list and then
- * open to nothing. It is excluded through the site's own filter rather than by dropping
- * rows, so a page of results still runs to the length the site says it has.
- */
-export const NOVEL_TYPE = "Novel";
-
 /** Stops a runaway `totalPages` from turning one chapter list into hundreds of requests. */
 export const MAX_CHAPTER_PAGES = 20;
 
@@ -72,31 +63,18 @@ export const SectionID = {
   NewSeries: "new-series",
 } as const;
 
-/**
- * The home page, under the site's own names.
- *
- * Every row but New Series is cut from one document — the site renders its whole front
- * page server-side — so those together cost a single request rather than one each. New
- * Series is the browse listing sorted newest-first, which is the only one of them with a
- * longer list behind it and so the only one offering a "view more".
- *
- * The shapes follow the other sources here: a hero for the set the site is pushing, the
- * chart it ranks as a detailed row that can carry its numbers, a grouped vertical list for
- * new chapters — the one style the app draws `Highlight.info` in — and plain strips of
- * covers for the shelves.
- */
+// Top Rated and New Series use paginated catalogue sorts; the other rows share one home read.
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.Featured,
-    title: "Top Featured",
-    subtitle: "The site's own front-page slider",
+    title: "Top Rated",
+    subtitle: "The highest-rated comics in the catalogue",
     style: SectionStyle.SimpleHeroPaged,
-    viewMore: false,
   },
   {
     id: SectionID.MostPopular,
-    title: "Most Popular",
-    subtitle: "The catalogue's most read, in the site's own order",
+    title: "Top 10",
+    subtitle: "The site's Top 10 chart, in rank order",
     style: SectionStyle.DetailedDoubleRowPaged,
     viewMore: false,
   },
@@ -149,6 +127,7 @@ export const FilterID = {
   Origins: "origins",
   MinChapters: "min-chapters",
   MaxChapters: "max-chapters",
+  ChapterPreset: "chapter-preset",
 } as const;
 
 export const SortID = {
@@ -172,16 +151,21 @@ export const SORT_OPTIONS: SortOption[] = [
   { id: SortID.Newest, title: "Newest" },
 ];
 
-/**
- * The values the browse URL takes for each facet, exactly as the site spells them —
- * `?type=Manhwa`, `?status=Ongoing`, `?origin=KOREAN`. Novel is not among the types for
- * the reason given above.
- */
+// The site classifies these as prose; Mana catalogue requests use mode=comics.
+export const NOVEL_TYPES = [
+  "Novel",
+  "Light Novel",
+  "Web Novel",
+  "Published Novel",
+  "Fanfiction",
+  "Original Fiction",
+  "One Shot",
+];
+
 export const TYPE_OPTIONS: Option[] = [
   { id: "Manhwa", title: "Manhwa" },
   { id: "Manhua", title: "Manhua" },
   { id: "Manga", title: "Manga" },
-  { id: "Comic", title: "Comic" },
   { id: "Webtoon", title: "Webtoon" },
 ];
 
@@ -189,14 +173,25 @@ export const STATUS_OPTIONS: Option[] = [
   { id: "Ongoing", title: "Ongoing" },
   { id: "Completed", title: "Completed" },
   { id: "Hiatus", title: "Hiatus" },
-  { id: "Cancelled", title: "Cancelled" },
+  { id: "Dropped", title: "Dropped" },
+  { id: "Discontinued", title: "Discontinued" },
+  { id: "Upcoming", title: "Upcoming" },
 ];
 
 export const ORIGIN_OPTIONS: Option[] = [
   { id: "KOREAN", title: "Korean" },
   { id: "JAPANESE", title: "Japanese" },
   { id: "CHINESE", title: "Chinese" },
-  { id: "ENGLISH", title: "English" },
+  { id: "OTHER", title: "Other" },
+];
+
+export const CHAPTER_PRESETS = [
+  { id: "", title: "Any" },
+  { id: "1-50", title: "1–50" },
+  { id: "50-100", title: "50–100" },
+  { id: "100-200", title: "100–200" },
+  { id: "200+", title: "200+" },
+  { id: "500+", title: "500+" },
 ];
 
 /**
@@ -336,7 +331,6 @@ export type ValirReaderData = {
 };
 
 export type HomeSections = {
-  featured: ValirSeries[];
   editorsPicks: ValirSeries[];
   latestUpdates: ValirSeries[];
   popularToday: ValirSeries[];

@@ -133,6 +133,7 @@ export type HighlightOptions = {
   latest?: ChapterEntry;
   /** A detailed tile draws its info rows and no pill, so the two never both appear. */
   detailed?: boolean;
+  card?: "trending" | "gems";
 };
 
 export function parseHighlight(series: Series, options: HighlightOptions = {}): Highlight {
@@ -160,14 +161,19 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
     statusPill(state),
   );
 
-  const subtitle = [rank === undefined ? "" : `#${rank}`, progress].filter(Boolean).join(" • ");
+  const subtitle = [
+    rank === undefined ? "" : `#${rank}`,
+    progress,
+    options.card && score !== undefined ? `${Mark.Rating}${score.toFixed(1)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" • ");
   const info: Pair[] = [];
-  if (score !== undefined)
+  if (!options.card && score !== undefined)
     info.push({ key: "Rating", value: `${Mark.Rating} ${score.toFixed(1)}` });
-  if (reads) info.push({ key: "Reads", value: reads });
   if (kind) info.push({ key: "Type", value: kind });
-  if (progress) info.push({ key: "Progress", value: progress });
   if (state) info.push({ key: "Status", value: state });
+  if (reads && options.card !== "trending") info.push({ key: "Reads", value: reads });
 
   return {
     id: contentIdOf(series) ?? String(series.id),

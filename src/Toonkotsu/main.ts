@@ -101,7 +101,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.20",
+  version: "1.0.21",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -350,6 +350,8 @@ class ToonkotsuSource
           contentIdOf(series)
             ? parseHighlights([series], {
                 detailed,
+                ...(sectionId === SectionID.Trending ? { card: "trending" as const } : {}),
+                ...(sectionId === SectionID.HiddenGems ? { card: "gems" as const } : {}),
                 ...(sectionId === SectionID.MostRead ? { rank: rankAt(index) } : {}),
               })
             : [],
@@ -378,8 +380,6 @@ class ToonkotsuSource
         return this.api.post(`${BASE_URL}/api/v1/rankings`, {
           params: { limit: PAGE_SIZE, ...params, discovery: "gems", metric: "gems", page },
         });
-      case SectionID.TopRated:
-        return this.browse({ ...params, sort: "score", order: "desc", page });
       case SectionID.RecentlyAdded:
         return this.browse({ ...params, sort: "new", order: "desc", page });
       case SectionID.ThisSeason:

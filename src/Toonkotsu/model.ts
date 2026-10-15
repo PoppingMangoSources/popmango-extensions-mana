@@ -118,7 +118,6 @@ export const SORT_OPTIONS: SortOption[] = [
 export const SectionID = {
   MostRead: "most-read",
   Trending: "trending",
-  TopRated: "top-rated",
   HiddenGems: "hidden-gems",
   Latest: "latest",
   RecentlyAdded: "recently-added",
@@ -134,18 +133,48 @@ export const SectionID = {
  * worth printing rather than hiding behind one pill. The rest are strips of covers.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
-  { id: SectionID.MostRead, title: "Most Read", style: SectionStyle.SimpleHeroPaged },
-  { id: SectionID.Trending, title: "Trending", style: SectionStyle.DetailedDoubleRowPaged },
-  { id: SectionID.HiddenGems, title: "Hidden Gems", style: SectionStyle.DetailedDoubleRowPaged },
-  { id: SectionID.TopRated, title: "Top Rated", style: SectionStyle.SimpleSingleRow },
+  {
+    id: SectionID.MostRead,
+    title: "Most Read",
+    subtitle: "The titles readers open most",
+    style: SectionStyle.SimpleHeroPaged,
+  },
+  {
+    id: SectionID.Trending,
+    title: "Trending",
+    subtitle: "What is gaining momentum with readers",
+    style: SectionStyle.DetailedDoubleRowPaged,
+  },
+  {
+    id: SectionID.HiddenGems,
+    title: "Hidden Gems",
+    subtitle: "Highly rated finds with fewer readers",
+    style: SectionStyle.DetailedSingleRowPaged,
+  },
+  {
+    id: SectionID.ThisSeason,
+    title: "This Season",
+    subtitle: "The catalogue's seasonal picks",
+    style: SectionStyle.SimpleSingleRow,
+  },
   {
     id: SectionID.Latest,
     title: "Latest Updates",
+    subtitle: "Fresh chapter uploads as they arrive",
     style: SectionStyle.DetailedVerticalListGrouped,
   },
-  { id: SectionID.RecentlyAdded, title: "Recently Added", style: SectionStyle.SimpleSingleRow },
-  { id: SectionID.ThisSeason, title: "This Season", style: SectionStyle.SimpleSingleRow },
-  { id: SectionID.Completed, title: "Completed", style: SectionStyle.SimpleSingleRow },
+  {
+    id: SectionID.RecentlyAdded,
+    title: "Recently Added",
+    subtitle: "New arrivals in the catalogue",
+    style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.Completed,
+    title: "Completed",
+    subtitle: "Finished stories to read from start to end",
+    style: SectionStyle.SimpleSingleRow,
+  },
 ];
 
 export const CONTENT_RATING_OPTIONS: Option[] = [

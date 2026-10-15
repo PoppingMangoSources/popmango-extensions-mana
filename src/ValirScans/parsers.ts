@@ -32,7 +32,7 @@ import {
   LATEST_CHAPTERS_SHOWN,
   LOCK_MARK,
   LOCK_SUFFIX,
-  NOVEL_TYPE,
+  NOVEL_TYPES,
   VIEWS_MARK,
   type AccountStatus,
   type BrowsePage,
@@ -54,7 +54,12 @@ import {
  * the JSON values below be sliced out by the keys they are stored under.
  */
 function decodeFlightPayload(html: string): string {
-  return html.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  const chunks: string[] = [];
+  for (const match of html.matchAll(/<script[^>]*>self\.__next_f\.push\(([\s\S]*?)\)<\/script>/g)) {
+    const row: unknown = JSON.parse(match[1]!);
+    if (Array.isArray(row) && typeof row[1] === "string") chunks.push(row[1]);
+  }
+  return chunks.length ? chunks.join("") : html;
 }
 
 /**
@@ -122,7 +127,8 @@ function extractByMarker<T>(payload: string, marker: string, keepMarker = false)
 // ========================= Shapes =========================
 
 export function isNovel(series: ValirSeries): boolean {
-  return (series.type ?? "").toUpperCase().includes(NOVEL_TYPE.toUpperCase());
+  const type = (series.type ?? "").replace(/_/g, " ").toLowerCase();
+  return NOVEL_TYPES.some((name) => name.toLowerCase() === type);
 }
 
 /**
@@ -161,7 +167,8 @@ function parseStatus(series: ValirSeries): PublicationStatus | undefined {
   if (value.includes("ongoing")) return PublicationStatus.ONGOING;
   if (value.includes("complete")) return PublicationStatus.COMPLETED;
   if (value.includes("hiatus")) return PublicationStatus.HIATUS;
-  if (value.includes("cancel") || value.includes("drop")) return PublicationStatus.CANCELLED;
+  if (value.includes("cancel") || value.includes("drop") || value.includes("discontinued"))
+    return PublicationStatus.CANCELLED;
   return undefined;
 }
 
@@ -195,6 +202,17 @@ function formatChapterNumber(value: number | null | undefined): string {
 
 // ========================= The pages =========================
 
+function isValirSeries(value: unknown): value is ValirSeries {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "slug" in value &&
+    typeof value.slug === "string" &&
+    "title" in value &&
+    typeof value.title === "string"
+  );
+}
+
 export function parseHome(html: string): HomeSections {
   const payload = decodeFlightPayload(html);
 
@@ -203,29 +221,28 @@ export function parseHome(html: string): HomeSections {
   );
 
   return {
-    featured: extractByMarker<ValirSeries[]>(payload, '"initialSlides":')[0] ?? [],
     // The shelf, the updates row and the new-series strip all pass their contents as a
     // `series` prop, so they are told apart by the fields only one of them carries.
     editorsPicks:
       seriesLists.find((list) => "viewCount" in list[0]! && !("createdAt" in list[0]!)) ?? [],
     latestUpdates: seriesLists.find((list) => "lastChapterAt" in list[0]!) ?? [],
     popularToday: extractByMarker<ValirSeries[]>(payload, '"novels":')[0] ?? [],
-    // The ranked cards are emitted one at a time, in rank order, each under its own key.
-    mostPopular: extractByMarker<ValirSeries>(payload, '"novel":').filter(
-      (series) => !!series.slug && !!series.title,
+    // The Top 10 component supplies its ranked cards in a single rows prop.
+    mostPopular: (extractByMarker<ValirSeries[]>(payload, '"rows":')[0] ?? []).filter(
+      isValirSeries,
     ),
   };
 }
 
-export function parseBrowse(html: string): BrowsePage {
-  const payload = decodeFlightPayload(html);
-  const series = extractByMarker<ValirSeries[]>(payload, '"initialSeries":')[0];
-  if (!series) {
-    throw new Error(
-      "ValirScans returned no series for that page — the site layout may have changed.",
-    );
-  }
-  return { series, hasMore: payload.includes('"initialHasMore":true') };
+export function parseBrowse(body: string): BrowsePage {
+  const result = JSON.parse(body) as { data?: unknown; meta?: { hasMore?: boolean } };
+  if (
+    !Array.isArray(result.data) ||
+    !result.data.every(isValirSeries) ||
+    typeof result.meta?.hasMore !== "boolean"
+  )
+    throw new Error("ValirScans returned an invalid catalogue response.");
+  return { series: result.data, hasMore: result.meta.hasMore };
 }
 
 /**
@@ -233,19 +250,18 @@ export function parseBrowse(html: string): BrowsePage {
  * its own filter panel. Several shorter lists share those keys, so the longest is the one
  * the panel was built from.
  */
-export function parseTaxonomy(html: string): FilterTaxonomy {
-  const payload = decodeFlightPayload(html);
-
-  const pick = (key: string): Option[] =>
-    (
-      extractByMarker<{ name?: string; slug?: string }[]>(payload, `"${key}":`)
-        .filter((list) => Array.isArray(list) && !!list[0]?.name && !!list[0]?.slug)
-        .sort((left, right) => right.length - left.length)[0] ?? []
-    ).flatMap((entry) =>
-      entry.name && entry.slug ? [{ id: entry.slug, title: cleanText(entry.name) }] : [],
+export function parseTaxonomy(body: string): FilterTaxonomy {
+  const result = JSON.parse(body) as {
+    genres?: { name?: string; slug?: string }[];
+    tags?: { name?: string; slug?: string }[];
+  };
+  const pick = (entries: { name?: string; slug?: string }[] | undefined): Option[] =>
+    (entries ?? []).flatMap((entry) =>
+      typeof entry.name === "string" && typeof entry.slug === "string"
+        ? [{ id: entry.slug, title: cleanText(entry.name) }]
+        : [],
     );
-
-  return { genres: pick("genres"), tags: pick("tags") };
+  return { genres: pick(result.genres), tags: pick(result.tags) };
 }
 
 export function parseSeriesPage(html: string): ValirSeriesPage {
@@ -578,7 +594,7 @@ export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0)
     title: cleanText(series.title),
     cover: absolute(series.coverImage),
     ...(subtitle ? { subtitle } : {}),
-    ...(badge === undefined ? {} : { badge }),
+    ...(style === "rank" || style === "chapters" || badge === undefined ? {} : { badge }),
     ...(info.length === 0 ? {} : { info }),
     contentRating: ratingOf(series),
     webUrl: contentUrl(contentId),
