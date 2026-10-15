@@ -22,6 +22,8 @@ import {
   titleCase,
   toBadge,
   typePill,
+  base64ToBytes,
+  bytesToUtf8,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -564,7 +566,7 @@ export function parseBookIndex(index: BookIndexResponse): ChapterBook[] {
 export function parseChapters(
   seriesId: string,
   details: DetailsResponse,
-  options: { sourceName?: string; official?: boolean },
+  options: { sourceName?: string; official?: boolean; chapterTitle?: string },
 ): Chapter[] {
   const books = details.series_books ?? [];
   // The index supplies reading order independently of uploads and restarted chapter numbers.
@@ -596,6 +598,7 @@ export function parseChapters(
       numbered,
       name,
       hasLabel,
+      originalTitle: title,
       title: hasLabel ? label : name,
       ...(Number.isFinite(volume) ? { volume } : {}),
       date:
@@ -612,14 +615,60 @@ export function parseChapters(
   );
   for (const chapter of chapters) {
     if (!chapter.numbered) chapter.number = ++highest;
-    if (!chapter.hasLabel)
-      chapter.title = formatChapterLabel(chapter.number, chapter.volume, chapter.name);
+    switch (options.chapterTitle ?? "auto") {
+      case "original":
+        chapter.title = chapter.originalTitle;
+        break;
+      case "optional":
+        chapter.title = chapter.name || formatChapterLabel(chapter.number, chapter.volume, "");
+        break;
+      case "always":
+        chapter.title = formatChapterLabel(chapter.number, undefined, chapter.name);
+        break;
+      case "vol_chapter":
+        chapter.title = formatChapterLabel(chapter.number, chapter.volume, chapter.name);
+        break;
+      default:
+        if (!chapter.hasLabel)
+          chapter.title = formatChapterLabel(chapter.number, chapter.volume, chapter.name);
+    }
   }
 
   return chapters
-    .map(({ numbered: _numbered, name: _name, hasLabel: _hasLabel, ...chapter }, index) => ({
-      ...chapter,
-      index,
-    }))
+    .map(
+      (
+        {
+          numbered: _numbered,
+          name: _name,
+          hasLabel: _hasLabel,
+          originalTitle: _originalTitle,
+          ...chapter
+        },
+        index,
+      ) => ({
+        ...chapter,
+        index,
+      }),
+    )
     .reverse();
+}
+
+export function readerExpiry(token: string): number {
+  try {
+    const payload = token.split(".")[1];
+    if (payload) {
+      const claims: unknown = JSON.parse(bytesToUtf8(base64ToBytes(payload, true)));
+      if (
+        typeof claims === "object" &&
+        claims !== null &&
+        "exp" in claims &&
+        typeof claims.exp === "number" &&
+        Number.isFinite(claims.exp)
+      )
+        return claims.exp * 1000 - 15_000;
+    }
+  } catch {
+    // Opaque or incomplete tokens get a short renewal interval.
+  }
+  return Date.now() + 60_000;
 }

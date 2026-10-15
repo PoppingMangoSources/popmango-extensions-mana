@@ -74,6 +74,7 @@ import {
   type SectionLayoutKind,
   type DiscoverSection,
   type SeriesSummary,
+  type SearchResponse,
   type DetailsResponse,
 } from "./model.ts";
 import {
@@ -95,6 +96,8 @@ import {
   buildSortParameter,
   selectedContentRatings,
   ratingsForAges,
+  readTagSelection,
+  matchesTagGroups,
   type SearchBodyOptions,
 } from "./search.ts";
 import { EXCLUDED_TAG_KEYS, groupTags } from "./tag-groups.ts";
@@ -103,7 +106,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.9",
+  version: "1.1.10",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -127,6 +130,7 @@ const config: SourceConfig = {
 };
 
 const DETAIL_CACHE_MS = 60_000;
+type TagSearchPage = { response: SearchResponse; nextPage: number };
 
 class KaganeSource
   implements
@@ -146,6 +150,14 @@ class KaganeSource
     ...(PREFERENCE_DEFAULTS as Record<string, PreferenceValue>),
     ...Object.fromEntries(EXCLUDED_TAG_KEYS.map((key) => [key, [] as string[]])),
   });
+
+  private readonly tagSearchPages = new Map<
+    string,
+    {
+      at: number;
+      pages: Map<number, Promise<TagSearchPage>>;
+    }
+  >();
 
   private detailCache:
     | { seriesId: string; details: Promise<DetailsResponse>; at: number }
@@ -488,14 +500,11 @@ class KaganeSource
     const filters = new FilterReader(request);
     const options = await this.bodyOptions(request.query, request.context);
 
-    // The tag list is only needed to turn a typed name into an id, so it is fetched when
-    // one was typed rather than on every search.
-    const body = buildSearchBody(
-      filters.text(FilterID.TagQuery)
-        ? { ...options, tagNames: await this.api.fetchTagNames() }
-        : options,
-      filters,
-    );
+    const searchOptions = filters.text(FilterID.TagQuery)
+      ? { ...options, tagNames: await this.api.fetchTagNames() }
+      : options;
+    const tags = readTagSelection(filters, searchOptions.tagNames);
+    const body = buildSearchBody(searchOptions, filters, tags);
 
     for (const [id, kind] of [
       [FilterID.Staff, "staff"],
@@ -523,6 +532,9 @@ class KaganeSource
       filters.toggle(FilterID.ExactMatch),
       selectedContentRatings(options, filters),
       request.context,
+      tags.matchAll && tags.included.length > 1 && tags.included.some((group) => group.length > 1)
+        ? tags.included
+        : undefined,
     );
   }
 
@@ -596,9 +608,10 @@ class KaganeSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [details, sources] = await Promise.all([
+    const [details, sources, chapterTitle] = await Promise.all([
       this.fetchDetails(contentId),
       this.api.fetchUploadSources(),
+      this.preferences.text(PreferenceID.ChapterTitle, "auto"),
     ]);
 
     const source = details.source_id
@@ -610,9 +623,12 @@ class KaganeSource
     return parseChapters(
       contentId,
       { ...details, series_books: books },
-      source === undefined
-        ? {}
-        : { sourceName: source.title, official: /^official$/i.test(source.source_type) },
+      {
+        chapterTitle,
+        ...(source === undefined
+          ? {}
+          : { sourceName: source.title, official: /^official$/i.test(source.source_type) }),
+      },
     );
   }
 
@@ -643,7 +659,7 @@ class KaganeSource
   async willRequestImage(imageURL: string): Promise<NetworkRequest> {
     const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
     const url = imageURL.includes("token=")
-      ? await this.api.refreshPageUrl(imageURL, dataSaver).catch(() => imageURL)
+      ? await this.api.refreshPageUrl(imageURL, dataSaver)
       : imageURL;
 
     return { url, headers: { referer: `${BASE_URL}/`, origin: BASE_URL } };
@@ -779,10 +795,13 @@ class KaganeSource
     exactMatch = false,
     ratings: string[] = CONTENT_RATINGS,
     context?: SourceContext,
+    tagGroups?: string[][],
   ): Promise<PagedSearchResult> {
     if (!ratings.length) return { results: [], isLastPage: true };
     const [response, titleOptions] = await Promise.all([
-      this.api.fetchSearch(body, page, size, sort, exactMatch),
+      tagGroups
+        ? this.searchTagGroups(body, page, size, sort, exactMatch, tagGroups)
+        : this.api.fetchSearch(body, page, size, sort, exactMatch),
       this.titleOptions(),
     ]);
 
@@ -796,6 +815,52 @@ class KaganeSource
       }));
 
     return { results, isLastPage: response.last !== false };
+  }
+
+  private async searchTagGroups(
+    body: Record<string, unknown>,
+    page: number,
+    size: number,
+    sort: string,
+    exactMatch: boolean,
+    groups: string[][],
+  ): Promise<SearchResponse> {
+    const key = JSON.stringify([body, size, sort, exactMatch, groups]);
+    let cached = this.tagSearchPages.get(key);
+    if (!cached || Date.now() - cached.at > 30_000) {
+      if (this.tagSearchPages.size >= 25)
+        this.tagSearchPages.delete(this.tagSearchPages.keys().next().value!);
+      cached = { at: Date.now(), pages: new Map() };
+      this.tagSearchPages.set(key, cached);
+    }
+    const pages = cached.pages;
+    const load = (logicalPage: number): Promise<TagSearchPage> => {
+      const existing = pages.get(logicalPage);
+      if (existing) return existing;
+      const request = (async (): Promise<TagSearchPage> => {
+        const previous = logicalPage > 1 ? await load(logicalPage - 1) : undefined;
+        if (previous?.response.last === true)
+          return { response: { content: [], last: true }, nextPage: previous.nextPage };
+        let rawPage = previous?.nextPage ?? 1;
+        for (let attempt = 0; attempt < 20; attempt++, rawPage++) {
+          const response = await this.api.fetchSearch(body, rawPage, size, sort, exactMatch);
+          const content = (response.content ?? []).filter((book) =>
+            matchesTagGroups(book.tags, groups),
+          );
+          if (content.length || response.last !== false)
+            return { response: { ...response, content }, nextPage: rawPage + 1 };
+        }
+        throw new Error(
+          "Too many Kagane pages did not match all selected tags. Narrow your search.",
+        );
+      })().catch((error: unknown) => {
+        pages.delete(logicalPage);
+        throw error;
+      });
+      pages.set(logicalPage, request);
+      return request;
+    };
+    return (await load(page)).response;
   }
 
   private buildTileExtras(

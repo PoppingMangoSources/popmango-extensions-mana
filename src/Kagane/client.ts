@@ -21,7 +21,7 @@ import {
   type TrendingResponse,
 } from "./model.ts";
 
-import { parseBookIndex } from "./parsers.ts";
+import { parseBookIndex, readerExpiry } from "./parsers.ts";
 
 // The site says "your token is stale" with these, not "no". Only the status may
 // decide: a successful challenge body contains "access_token", so sniffing it for
@@ -72,7 +72,11 @@ export class KaganeApi {
   // share one response rather than knocking on Cloudflare twice for the same page.
   private readonly searches = new Map<string, Promise<SearchResponse>>();
 
-  private readonly accessTokens = new Map<string, string>();
+  private readonly readerSessions = new Map<
+    string,
+    { challenge: ChallengeResponse; expiry: number }
+  >();
+  private readonly readerRequests = new Map<string, Promise<ChallengeResponse>>();
   private readonly chapterLists = new Map<string, Promise<ChapterBook[]>>();
 
   private get http(): NetworkClient {
@@ -334,10 +338,21 @@ export class KaganeApi {
   private forgetTokens(): void {
     this.integrityToken = "";
     this.integrityExpiry = 0;
-    this.accessTokens.clear();
+    this.readerSessions.clear();
   }
 
-  async fetchChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
+  fetchChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
+    const key = `${chapterId}:${dataSaver}`;
+    const running = this.readerRequests.get(key);
+    if (running) return running;
+    const request = this.loadChallenge(chapterId, dataSaver).finally(() =>
+      this.readerRequests.delete(key),
+    );
+    this.readerRequests.set(key, request);
+    return request;
+  }
+
+  private async loadChallenge(chapterId: string, dataSaver: boolean): Promise<ChallengeResponse> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("books")
       .addPathComponent(chapterId)
@@ -364,7 +379,12 @@ export class KaganeApi {
       }
 
       const challenge = parseJson<ChallengeResponse>(response, url);
-      this.accessTokens.set(`${chapterId}:${dataSaver}`, challenge.access_token);
+      if (!challenge.access_token || !challenge.manifest?.pages?.length)
+        throw new Error("Kagane returned an incomplete reader session. Reopen the chapter.");
+      this.readerSessions.set(`${chapterId}:${dataSaver}`, {
+        challenge,
+        expiry: readerExpiry(challenge.access_token),
+      });
       return challenge;
     }
 
@@ -399,11 +419,27 @@ export class KaganeApi {
     const [, chapterId, fileName] = match;
     if (!chapterId || !fileName) return imageUrl;
 
-    const origin = /^https?:\/\/[^/?#]+/i.exec(imageUrl)?.[0] ?? DEFAULT_CACHE_URL;
-    const token = this.accessTokens.get(`${chapterId}:${dataSaver}`);
-    if (!token) return imageUrl;
-
-    return this.pageUrl(origin, chapterId, fileName, token, dataSaver);
+    // Issued pages keep their original quality mode until the chapter is reopened.
+    const quality = /[?&]is_datasaver=(true|false)(?:&|$)/.exec(imageUrl)?.[1];
+    const mode = quality === undefined ? dataSaver : quality === "true";
+    let session = this.readerSessions.get(`${chapterId}:${mode}`);
+    if (!session || Date.now() >= session.expiry) {
+      await this.fetchChallenge(chapterId, mode);
+      session = this.readerSessions.get(`${chapterId}:${mode}`);
+    }
+    const challenge = session?.challenge;
+    const page = challenge?.manifest?.pages?.find(
+      (entry) => `${entry.page_id}.${entry.ext ?? "jxl"}` === fileName,
+    );
+    if (!challenge || !page)
+      throw new Error("Kagane chapter pages changed. Reopen the chapter to reload them.");
+    return this.pageUrl(
+      challenge.cache_url || DEFAULT_CACHE_URL,
+      chapterId,
+      fileName,
+      challenge.access_token,
+      mode,
+    );
   }
 }
 

@@ -321,7 +321,7 @@ export function groupTags(options: Option[]): GroupedTags[] {
   });
 }
 
-export type TypedTags = { included: string[]; excluded: string[] };
+export type TypedTags = { included: string[][]; excluded: string[] };
 
 /**
  * Tag names typed into the search form, turned into the ids a search needs.
@@ -346,7 +346,7 @@ export function resolveTypedTags(input: string, tagsById: Record<string, string>
     else index.set(key, [id]);
   }
 
-  const included: string[] = [];
+  const included: string[][] = [];
   const excluded: string[] = [];
 
   for (const entry of typed.split(",")) {
@@ -355,7 +355,10 @@ export function resolveTypedTags(input: string, tagsById: Record<string, string>
 
     const exclude = name.startsWith("-");
     const ids = index.get(clusterKey(exclude ? name.slice(1) : name));
-    if (ids) (exclude ? excluded : included).push(...ids);
+    if (ids) {
+      if (exclude) excluded.push(...ids);
+      else included.push(ids);
+    }
   }
 
   return { included, excluded };

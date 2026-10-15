@@ -84,6 +84,33 @@ export function ratingsForAges(ages: string[], pornography: boolean): string[] {
   );
 }
 
+export type TagSelection = { included: string[][]; excluded: string[]; matchAll: boolean };
+
+export function readTagSelection(
+  filters: FilterReader,
+  tagNames: Record<string, string> = {},
+): TagSelection {
+  const picks = [FilterID.Tags, ...TAG_GROUPS.map((group) => tagFilterId(group.id))].map((id) =>
+    filters.excludable(id),
+  );
+  const typed = resolveTypedTags(filters.text(FilterID.TagQuery), tagNames);
+  return {
+    included: [...picks.flatMap((pick) => pick.included.map(tagIdsOf)), ...typed.included]
+      .map((group) => [...new Set(group.map((id) => id.toLowerCase()))])
+      .filter((group) => group.length > 0),
+    excluded: [...picks.flatMap((pick) => pick.excluded.flatMap(tagIdsOf)), ...typed.excluded],
+    matchAll:
+      !filters.has(FilterID.MatchAllTags) ||
+      filters.option(FilterID.MatchAllTags) === "all" ||
+      filters.toggle(FilterID.MatchAllTags),
+  };
+}
+
+export function matchesTagGroups(ids: string[] | undefined, groups: string[][]): boolean {
+  const present = new Set((ids ?? []).map((id) => id.toLowerCase()));
+  return groups.every((group) => group.some((id) => present.has(id)));
+}
+
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
 
 function checkedValues(values: string[], label: string): string[] {
@@ -123,6 +150,7 @@ function buildIncludeExclude(
 export function buildSearchBody(
   options: SearchBodyOptions,
   filters?: FilterReader,
+  selection?: TagSelection,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   if (options.uploadSource === "official") body["source_type"] = ["Official"];
@@ -201,39 +229,13 @@ export function buildSearchBody(
   );
   if (genres) body["genres"] = genres;
 
-  // Tags are picked a group at a time but searched as one list, so every group's picker
-  // is read and the selections pooled.
-  // The ungrouped id is read alongside the groups: a tag tapped on a title's page arrives
-  // under it, since nothing outside this source knows which group that tag belongs to.
-  const tagFilters = [FilterID.Tags, ...TAG_GROUPS.map((group) => tagFilterId(group.id))];
-  const tagSelection = tagFilters.reduce<{ included: string[]; excluded: string[] }>(
-    (pooled, id) => {
-      const picked = filters.excludable(id);
-      pooled.included.push(...picked.included);
-      pooled.excluded.push(...picked.excluded);
-      return pooled;
-    },
-    { included: [], excluded: [] },
-  );
-
-  // Twenty-odd pickers is a lot to hunt through for one tag, so a name may be typed
-  // instead. Names are resolved against the site's list rather than the pickers, so a tag
-  // reaches the search whichever group it was sorted into.
-  const typed = resolveTypedTags(filters.text(FilterID.TagQuery), options.tagNames ?? {});
-
-  // A picker offers one option per tag while the site holds several ids for it, so each
-  // selected value carries them all and is opened back up here.
+  const pickedTags = selection ?? readTagSelection(filters, options.tagNames);
+  // A flat API list cannot express (alias A OR alias B) AND another tag.
+  // Request their union and check the conceptual groups on the returned bulk rows.
   const tags = buildIncludeExclude(
-    [...new Set([...tagSelection.included.flatMap(tagIdsOf), ...typed.included])],
-    [
-      ...new Set([
-        ...[...tagSelection.excluded, ...hiddenTagIds].flatMap(tagIdsOf),
-        ...typed.excluded,
-      ]),
-    ],
-    !filters.has(FilterID.MatchAllTags) ||
-      filters.option(FilterID.MatchAllTags) === "all" ||
-      filters.toggle(FilterID.MatchAllTags),
+    pickedTags.included.flat(),
+    [...pickedTags.excluded, ...hiddenTagIds.flatMap(tagIdsOf)],
+    pickedTags.matchAll && pickedTags.included.every((group) => group.length === 1),
     "tags",
   );
   if (tags) body["tags"] = tags;

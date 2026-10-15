@@ -59,6 +59,18 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
       footer: "Some tags are marked as spoilers by the site and hidden on a title's page.",
       fields: [
         {
+          type: "select",
+          key: PreferenceID.ChapterTitle,
+          title: "Chapter Titles",
+          options: [
+            { id: "auto", title: "Automatic" },
+            { id: "always", title: "Ch.X + Title" },
+            { id: "vol_chapter", title: "Vol.X Ch.Y + Title" },
+            { id: "optional", title: "Title only" },
+            { id: "original", title: "Original website title" },
+          ],
+        },
+        {
           type: "toggle",
           key: PreferenceID.ShowSpoilerTags,
           title: "Show Spoiler Tags",

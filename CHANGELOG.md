@@ -5,7 +5,27 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.1.9)
+## Kagane (current: v1.1.10)
+
+### Fixed
+
+- Match any alias of a selected tag while preserving Match All across separate tags,
+  including typed tag names and searches spanning multiple result pages.
+- Renew expired reader tokens automatically per chapter and quality mode, sharing concurrent
+  renewals and using the refreshed image server without mixing chapters or page identities.
+
+### Added
+
+- Chapter-title choices for chapter number plus title, volume/chapter plus title, title only
+  and original website title. Automatic retains the existing display by default.
+
+### Changed
+
+- Place the weekly Trending chart directly below the hero, followed by a single-row Popular
+  This Month section. Move Popular Today and Recently Added below Recently Updated.
+- Give every discovery section a short description of its ranking or contents.
+
+## Kagane (v1.1.9)
 
 ### Changed
 

@@ -55,6 +55,7 @@ export const PreferenceID = {
   CleanTitle: "clean-title",
   ShowSpoilerTags: "show-spoiler-tags",
   DataSaver: "data-saver",
+  ChapterTitle: "chapter-title",
   ContentLanguages: "content-languages",
   OriginalLanguages: "original-languages",
   TranslatedLanguages: "translated-languages",
@@ -169,27 +170,47 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: "popular",
     title: "Popular All Time",
+    subtitle: "The most-read titles across all time",
     style: SectionStyle.SimpleHeroPaged,
     layout: SectionLayout.Hero,
     sort: SortID.AverageViews,
   },
   {
+    id: "weekly_chart",
+    title: "Trending This Week",
+    subtitle: "Titles gaining reading momentum this week",
+    style: SectionStyle.DetailedVerticalList,
+    layout: SectionLayout.Detailed,
+    sort: "",
+  },
+  {
     id: "trending_month",
     title: "Popular This Month",
-    style: SectionStyle.DetailedDoubleRowPaged,
-    layout: SectionLayout.Detailed,
+    subtitle: "The most-read titles this month",
+    style: SectionStyle.SimpleSingleRow,
+    layout: SectionLayout.Simple,
     sort: SortID.ViewsMonth,
   },
   {
     id: "trending_week",
     title: "Popular This Week",
+    subtitle: "The most-read titles this week",
     style: SectionStyle.SimpleSingleRow,
     layout: SectionLayout.Simple,
     sort: SortID.ViewsWeek,
   },
   {
+    id: "latest_updates",
+    title: "Recently Updated",
+    subtitle: "Fresh chapters as they arrive",
+    style: SectionStyle.DetailedVerticalListGrouped,
+    layout: SectionLayout.ChapterUpdates,
+    sort: SortID.Updated,
+  },
+  {
     id: "trending_today",
     title: "Popular Today",
+    subtitle: "The most-read titles today",
     style: SectionStyle.SimpleSingleRow,
     layout: SectionLayout.Simple,
     sort: SortID.ViewsToday,
@@ -197,24 +218,10 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
   {
     id: "recently_added",
     title: "Recently Added",
+    subtitle: "New arrivals in the catalogue",
     style: SectionStyle.SimpleSingleRow,
     layout: SectionLayout.Simple,
     sort: SortID.Created,
-  },
-  {
-    id: "latest_updates",
-    title: "Recently Updated",
-    style: SectionStyle.DetailedVerticalListGrouped,
-    layout: SectionLayout.ChapterUpdates,
-    sort: SortID.Updated,
-  },
-  {
-    id: "weekly_chart",
-    title: "Trending This Week",
-    subtitle: "Uses content rating and language settings; catalogue hide-lists do not apply.",
-    style: SectionStyle.DetailedVerticalList,
-    layout: SectionLayout.Detailed,
-    sort: "",
   },
 ];
 
@@ -235,6 +242,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.CleanTitle]: false,
   [PreferenceID.ShowSpoilerTags]: false,
   [PreferenceID.DataSaver]: false,
+  [PreferenceID.ChapterTitle]: "auto",
   // Emptying this asks the site for every language rather than for none.
   [PreferenceID.ContentLanguages]: ["en"],
   [PreferenceID.OriginalLanguages]: [] as string[],
@@ -278,6 +286,7 @@ export type SeriesSummary = {
   publication_status?: string | null;
   translated_language?: string | null;
   genres?: string[];
+  tags?: string[];
   genre_list?: { id: string; name: string }[];
   latest_chapters?: LatestChapter[];
   slug?: string;
