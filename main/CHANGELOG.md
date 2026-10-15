@@ -5,6 +5,26 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
+## Kagane (current: v1.1.4)
+
+### Fixed
+
+- Load the rebuilt API's chapter pages through its cursor endpoint, preserving real chapter
+  numbers, chapter zero, upload dates and the title's actual language.
+- Read age ratings, pornography flags and spoiler metadata from the current response fields.
+- Correct Data Saver image URLs and keep reader tokens separate for each chapter.
+- Open slugged series links using their existing UUIDs.
+
+### Changed
+
+- Match the site's Popular, Recently Added, Recently Updated and Trending This Week rows.
+  Custom exclusions use the filtered weekly listing where the fixed chart cannot apply them.
+- Match the current sort menu, including Rating, with direction controls only where supported.
+- Add publication status, language, year/count ranges, author/artist, group and disturbing-content
+  filters. Genre and tag inclusion defaults to All (AND), matching the site.
+- Use genre/tag IDs and tracker links directly from details, avoiding two taxonomy requests
+  whenever a title opens. Concurrent requests for the same details share one response.
+
 ## Toonkotsu (current: v1.0.20)
 
 ### Changed
@@ -162,7 +182,7 @@ counted up from `1.0.0`.
 
 - Moved Hidden Gems directly above Top Rated on the home page.
 
-## Kagane (current: v1.1.3)
+## Kagane (v1.1.3)
 
 ### Changed
 
