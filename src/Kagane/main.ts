@@ -4,6 +4,8 @@ import {
   AdditionalInfoType,
   CatalogRating,
   DefinedLanguages,
+  HttpClient,
+  RequestOrigin,
   additionalInfo,
   SearchExcludableMultiPicker,
   SearchExcludableMultiPickerSheet,
@@ -23,8 +25,9 @@ import {
   type DeepLinkContext,
   type Form,
   type Highlight,
-  type ImageRequestHandler,
-  type NetworkRequest,
+  type CoverRequestHandler,
+  type ImageRequest,
+  type PageRequestHandler,
   type Option,
   type Pair,
   type PageLink,
@@ -52,10 +55,12 @@ import {
   relativeTime,
   type PreferenceValue,
   isMigration,
+  withDefaults,
 } from "../common/index.ts";
 import { KaganeApi } from "./client.ts";
 import {
   BASE_URL,
+  type JsonObject,
   CONTENT_RATING_OPTIONS,
   CONTENT_RATINGS,
   DISCOVER_SECTIONS,
@@ -106,7 +111,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.12",
+  version: "1.1.13",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -138,12 +143,24 @@ class KaganeSource
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
-    ImageRequestHandler
+    CoverRequestHandler,
+    PageRequestHandler
 {
   readonly info = info;
   readonly config = config;
 
   private readonly api = new KaganeApi();
+  // A page's token outlives neither its reader session nor a quality switch, so each page
+  // is re-signed as it is asked for — here, because the transport hooks cannot wait.
+  private readonly images = new HttpClient().addRequestInterceptor(async (request, context) => {
+    if (context.origin === RequestOrigin.General) return request;
+    if (request.url.includes("token=")) {
+      const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
+      request.url = await this.api.refreshPageUrl(request.url, dataSaver);
+    }
+    withDefaults(request.headers, { referer: `${BASE_URL}/`, origin: BASE_URL });
+    return request;
+  });
   // The store answers only for keys it has a default for, and the hide-lists are one key
   // per tag group, so those are declared here alongside the fixed ones.
   private readonly preferences = new PreferenceStore(info.id, {
@@ -690,13 +707,12 @@ class KaganeSource
     return { pages };
   }
 
-  async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
-    const url = imageURL.includes("token=")
-      ? await this.api.refreshPageUrl(imageURL, dataSaver)
-      : imageURL;
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return this.images;
+  }
 
-    return { url, headers: { referer: `${BASE_URL}/`, origin: BASE_URL } };
+  getPageTransport(_request: ImageRequest): HttpClient {
+    return this.images;
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
@@ -821,7 +837,7 @@ class KaganeSource
   }
 
   private async runSearch(
-    body: Record<string, unknown>,
+    body: JsonObject,
     page: number,
     size: number,
     sort: string,
@@ -852,7 +868,7 @@ class KaganeSource
   }
 
   private async searchTagGroups(
-    body: Record<string, unknown>,
+    body: JsonObject,
     page: number,
     size: number,
     sort: string,

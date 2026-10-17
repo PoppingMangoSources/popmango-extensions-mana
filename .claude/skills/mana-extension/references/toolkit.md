@@ -177,7 +177,7 @@ through these.
 ## `src/common/network.ts` — the network client
 
 ```ts
-buildClient({ baseUrl, requests, interval, accept, headers, resolutionUrl, originFor, json, maxRetries, timeout, sendOrigin })
+buildClient({ baseUrl, requests, interval, accept, headers, resolutionUrl, originFor, json, maxRetries, timeout, sendOrigin, statusValidator })
 ```
 
 Applies rate limiting, sets `origin`/`referer`/`accept`/`accept-language`/`user-agent`, and
@@ -192,42 +192,34 @@ challenge fingerprint (`challenges.cloudflare.com`, `cf-browser-verification`, `
 - `sendOrigin: false` — for hosts that reject a cross-origin `origin` header on plain GETs.
 
 A site needing more than this — a per-URL user agent, an injected cookie — gets its own
-`client.ts` built on `NetworkClientBuilder` directly. Per-request `headers` always win over
-the client defaults.
+`client.ts` built on `HttpClient` directly. Defaults go in through `withDefaults`, so a
+call site's own `headers` always win over them.
 
-### A non-2xx response throws before you see it
+`imageClient(headers)` is the client a source hands back from `getCoverTransport` and
+`getPageTransport` when its images only need a referer: it adds the headers to the app's
+image requests and leaves the source's own calls alone.
 
-The host's default status validator accepts only 200–299 and turns everything else into a
-`NetworkError` **after** the response interceptors run but before the caller is handed the
-response. Any code that reads `response.status` to react to a 401, 404 or 429 is therefore
-unreachable, and the server's own error message is replaced by a generic one.
+### Statuses: every one reaches the caller
 
-A client that needs to see those statuses — a token to refresh, an error body to quote,
-a 404 to treat as empty — must say so:
+The host no longer refuses anything — a 401, a 404 or a 429 comes back as a response like
+any other. `buildClient` keeps the old contract for its callers and throws an
+`HttpStatusError` outside 200–299; pass `statusValidator` to let the statuses a source
+reacts to through. A client built on `HttpClient` directly sees them all, and checks
+`status` itself at the point that cares, or calls `requireOk()`.
 
-```ts
-new NetworkClientBuilder().setStatusValidator(() => true)
-```
+`isCloudflareChallenge(response)` reads Cloudflare's own `cf-mitigated` header, and
+`isApiChallenge(response)` adds the test a JSON API needs on top of it: a 403 or 503 that
+is not JSON was written at the edge rather than by the API.
 
-Then check the status yourself at the point that cares. Leave it unset when a failed
-request genuinely should throw. Note the host's own Cloudflare check lives inside the
-branch this disables, so a client that opts out needs its own challenge detection —
-which is what the response interceptor above is for.
-
-### POST bodies are objects, not strings
-
-`NetworkRequest.body` is handed over as an **object**; the host serialises it according to
-the request's `content-type`. Calling `JSON.stringify` first makes the host encode that
-string in turn, so the server receives a quoted JSON string literal where it expects an
-object and answers **400 Bad Request** — on every call, with no clue as to why.
+### Bodies are chosen, not inferred
 
 ```ts
-await http.post(url, { body: { page: 0 }, headers: { "content-type": "application/json" } });
+await http.post(url, Body.json({ page: 0 }));
+await http.post(url, Body.form({ action: "chapters", manga: "123" }), { headers });
 ```
 
-For an endpoint that wants no body, omit the key entirely rather than passing `""` or
-`"{}"`. A site that wants a pre-encoded form body still gets one — the rule is that you
-never double-encode, not that you never encode.
+Each factory sets its own content type, so a `content-type` header beside it is noise. A
+POST with no body passes `undefined`.
 
 ### Cloudflare detection on a JSON API
 
@@ -277,10 +269,6 @@ What the other Mana repositories do, and why this is shaped the way it is:
   resolving is not the signal either — it fires when the *challenge* page loads.
 - **Any successful request clears the cooldown.** Without that, one failed attempt on the
   home page sends every later screen straight to the manual prompt for the whole cooldown.
-
-`setStatusValidator` has to let 403 and 503 through, or the host throws before the source
-can tell a challenge from an ordinary error. Comix uses
-`status >= 200 && status < 400 || status === 403 || status === 503`.
 
 For a JSON API, a 403 or 503 is usually an expired token or a rate limit rather than a
 challenge. Require a real fingerprint before reporting one, or every row prompts for a

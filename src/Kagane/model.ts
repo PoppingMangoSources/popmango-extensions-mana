@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
+import { SectionStyle, type JsonValue, type Option, type SortOption } from "@mana-app/types";
 
 export const BASE_URL = "https://kagane.org";
 export const API_URL = `${BASE_URL}/api/v2`;
 
 export const DEFAULT_CACHE_URL = BASE_URL;
+
+/** A request body, which the API is sent as JSON. */
+export type JsonObject = { [key: string]: JsonValue };
 
 // The size the site's own rows ask for.
 export const PAGE_SIZE = 50;

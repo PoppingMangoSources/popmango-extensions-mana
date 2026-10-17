@@ -1,12 +1,20 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import { Body, CloudflareError, HttpClient, type HttpResponse } from "@mana-app/types";
 
-import { TimedCache, UrlBuilder, challengedUrl, withChallengeRetry } from "../common/index.ts";
+import {
+  TimedCache,
+  UrlBuilder,
+  challengedUrl,
+  isCloudflareChallenge,
+  withChallengeRetry,
+  withDefaults,
+} from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
   DEFAULT_CACHE_URL,
+  type JsonObject,
   type ChallengeResponse,
   type BookIndexResponse,
   type ChapterBook,
@@ -31,22 +39,16 @@ const STALE_TOKEN_STATUSES = new Set([401, 403, 507]);
 
 const LIST_TTL_MS = 24 * 60 * 60 * 1000;
 
-function headerValue(response: NetworkResponse, name: string): string {
-  const headers = response.headers ?? {};
-  const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
-  return key === undefined ? "" : String(headers[key] ?? "");
-}
-
 // A JSON 403/503 is an expired token or a rate limit, not a challenge; only a real
 // fingerprint counts, or every row prompts for a WebView that cannot help.
-function isCloudflareChallenge(response: NetworkResponse): boolean {
-  if (headerValue(response, "cf-mitigated").toLowerCase() === "challenge") return true;
+async function isChallenged(response: HttpResponse): Promise<boolean> {
+  if (isCloudflareChallenge(response)) return true;
   if (response.status !== 403 && response.status !== 503) return false;
 
-  const contentType = headerValue(response, "content-type").toLowerCase();
+  const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
   if (contentType.includes("application/json")) return false;
 
-  const body = response.data ?? "";
+  const body = await response.text();
   const looksHtml = contentType.includes("text/html") || /^\s*(?:<!doctype html|<html)/i.test(body);
 
   return (
@@ -56,7 +58,7 @@ function isCloudflareChallenge(response: NetworkResponse): boolean {
 }
 
 export class KaganeApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
 
   private integrityToken = "";
   private integrityExpiry = 0;
@@ -80,34 +82,28 @@ export class KaganeApi {
   private readonly readerRequests = new Map<string, Promise<ChallengeResponse>>();
   private readonly chapterLists = new Map<string, Promise<ChapterBook[]>>();
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
-      .setRateLimit(3, 1)
-      // Without this the host throws on any non-2xx before the caller sees the
-      // response, which would make the stale-token retry below unreachable and
-      // replace the API's own error message with a generic one.
-      .setStatusValidator(() => true)
-      .addRequestInterceptor(async (request: NetworkRequest) => ({
-        ...request,
-        headers: {
+  private get http(): HttpClient {
+    this.client ??= new HttpClient()
+      .setRateLimit(3, 1000)
+      .addRequestInterceptor((request) => {
+        withDefaults(request.headers, {
           // No user-agent: the app's own matches the connection it makes, and a
           // hand-written one is inconsistent enough to get challenged.
           accept: "application/json",
           "content-type": "application/json",
           origin: BASE_URL,
           referer: `${BASE_URL}/`,
-          ...request.headers,
-        },
-      }))
-      .addResponseInterceptor(async (response: NetworkResponse) => {
+        });
+        return request;
+      })
+      .addResponseInterceptor(async (response) => {
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
-        if (isCloudflareChallenge(response)) {
+        if (await isChallenged(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
-      })
-      .build();
+      });
     return this.client;
   }
 
@@ -120,22 +116,21 @@ export class KaganeApi {
 
   private async postJson<T>(
     url: string,
-    body: Record<string, unknown> | undefined,
+    body: JsonObject | undefined,
     headers?: Record<string, string>,
   ): Promise<T> {
     return withChallengeRetry(BASE_URL, async () => {
-      const response = await this.http.post(url, {
-        ...(body === undefined ? {} : { body }),
-        // `body` stays an object — the host serialises it, and pre-encoding it here
-        // means the server gets a quoted string and answers 400.
-        headers: { "content-type": "application/json", ...headers },
-      });
+      const response = await this.http.post(
+        url,
+        body === undefined ? undefined : Body.json(body),
+        headers ? { headers } : undefined,
+      );
       return parseJson<T>(response, url);
     });
   }
 
   async fetchSearch(
-    body: Record<string, unknown>,
+    body: JsonObject,
     page: number,
     size: number,
     sort: string,
@@ -191,7 +186,7 @@ export class KaganeApi {
     return request;
   }
 
-  async fetchTrending(body: Record<string, unknown>, limit: number): Promise<TrendingResponse> {
+  async fetchTrending(body: JsonObject, limit: number): Promise<TrendingResponse> {
     const url = new UrlBuilder(API_URL)
       .addPathComponent("series")
       .addPathComponent("trending")
@@ -392,10 +387,7 @@ export class KaganeApi {
     for (const force of [false, true]) {
       const token = await this.fetchIntegrityToken(force);
       const response = await withChallengeRetry(BASE_URL, () =>
-        this.http.post(url, {
-          body: {},
-          headers: { "content-type": "application/json", "x-integrity-token": token },
-        }),
+        this.http.post(url, Body.json({}), { headers: { "x-integrity-token": token } }),
       ).catch((error: unknown) => {
         // A challenge here replaces the session both tokens were minted against, so
         // neither survives it; the next open mints them afresh rather than reusing them.
@@ -408,7 +400,7 @@ export class KaganeApi {
         throw new Error("Kagane rejected the reader token. Try again in a moment.");
       }
 
-      const challenge = parseJson<ChallengeResponse>(response, url);
+      const challenge = await parseJson<ChallengeResponse>(response, url);
       if (!challenge.access_token || !challenge.manifest?.pages?.length)
         throw new Error("Kagane returned an incomplete reader session. Reopen the chapter.");
       this.readerSessions.set(`${chapterId}:${dataSaver}`, {
@@ -473,13 +465,16 @@ export class KaganeApi {
   }
 }
 
-function parseJson<T>(response: NetworkResponse, url: string): T {
+// Every status reaches here, so the stale-token retry above can see one and the API's own
+// error message is the one reported.
+async function parseJson<T>(response: HttpResponse, url: string): Promise<T> {
+  const body = await response.text();
   if (response.status >= 400) {
-    throw new Error(`${errorMessage(response.data)} (HTTP ${response.status} for ${url})`);
+    throw new Error(`${errorMessage(body)} (HTTP ${response.status} for ${url})`);
   }
 
   try {
-    return JSON.parse(response.data) as T;
+    return JSON.parse(body) as T;
   } catch {
     throw new Error(`Kagane returned a response that was not JSON (${url})`);
   }

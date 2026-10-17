@@ -155,9 +155,9 @@ Throw with a useful message when you find zero pages. A silent empty array shows
 blank reader with nothing to act on; the throw is your only diagnostic channel.
 
 If images 403 when the reader loads them, the CDN wants a referer. Implement
-`willRequestImage` and return a `NetworkRequest` with `origin` and `referer` set to the
-host the image belongs to, mapping each CDN host to its own origin when the images come
-from a different domain than the pages.
+`getCoverTransport` and `getPageTransport` and return an `imageClient` with `origin` and
+`referer` set to the host the image belongs to — an interceptor of your own when each CDN
+host needs its own origin because the images come from a different domain than the pages.
 
 ## Before you write code
 

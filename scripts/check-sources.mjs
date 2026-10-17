@@ -39,7 +39,6 @@ const RESET = "[0m";
 /** Intent bits, from `references/api.md`. The app reads this mask and nothing else. */
 const Intent = {
   preferenceMenuBuilder: 0,
-  imageRequestHandler: 2,
   pageLinkResolver: 3,
   providesSearch: 10,
   providesSearchForm: 11,
@@ -47,6 +46,8 @@ const Intent = {
   chaptersInContent: 20,
   providesChapters: 21,
   canHandleURL: 22,
+  coverTransport: 25,
+  pageTransport: 26,
 };
 
 const has = (intents, bit) => (BigInt(intents) & (1n << BigInt(bit))) !== 0n;
@@ -57,6 +58,11 @@ const REMOVED_API = [
   [/\bisNSFW\b/, "Content.isNSFW — replaced by contentRating"],
   [/\bdisableTagNavigation\b/, "SourceConfig.disableTagNavigation — the key was removed"],
   [/\bSearchPickerPresentation\b/, "SearchPickerPresentation — use the matching builder"],
+  [/\bNetworkClientBuilder\b/, "NetworkClientBuilder — replaced by HttpClient"],
+  [/\bNetwork(?:Client|Request|Response)\b/, "the Network* types — replaced by the Http* ones"],
+  [/\bsetStatusValidator\s*\(/, "setStatusValidator — every status now reaches the caller"],
+  [/\bwillRequestImage\s*\(/, "willRequestImage — replaced by getCoverTransport and getPageTransport"],
+  [/\bresponseEncoding\b/, "responseEncoding — read the body with bytes() or base64()"],
 ];
 
 const failures = [];
@@ -251,7 +257,8 @@ function checkSource(source, catalog, changelog, base) {
     ["getSearchForm", Intent.providesSearchForm],
     ["getSortOptions", Intent.providesSearchSortOptions],
     ["getPreferenceMenu", Intent.preferenceMenuBuilder],
-    ["willRequestImage", Intent.imageRequestHandler],
+    ["getCoverTransport", Intent.coverTransport],
+    ["getPageTransport", Intent.pageTransport],
     ["handleURL", Intent.canHandleURL],
   ]) {
     if (new RegExp(`\\b${method}\\s*\\(`).test(code)) {
@@ -283,19 +290,10 @@ function checkSource(source, catalog, changelog, base) {
     // Explicit browser-scope properties are used inside serialized WebView functions.
     [/(?<![.\w])crypto\.subtle\b/, "`crypto.subtle` — use src/common/aes.ts"],
     [/\bnew TextDecoder\s*\(/, "`TextDecoder` — the runtime has none"],
-    [/[^.\w]fetch\s*\(/, "`fetch` — use the NetworkClient"],
+    [/[^.\w]fetch\s*\(/, "`fetch` — use HttpClient"],
   ]) {
     const at = findInFiles(files, new RegExp(pattern.source, pattern.flags));
     check(name, at === undefined, `uses ${description}`, at);
-  }
-
-  // --- A client that reads response.status has to let those statuses through.
-  if (/response\.status|\.status\s*===?\s*(?:403|503)/.test(code)) {
-    check(
-      name,
-      /setStatusValidator/.test(code) || /buildClient\s*\(/.test(code),
-      "reads response.status without setStatusValidator — the host throws on non-2xx first",
-    );
   }
 
   // --- Section styles: a style outside the enum renders as nothing in particular.

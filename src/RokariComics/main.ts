@@ -11,8 +11,10 @@ import {
   type Content,
   type DeepLinkContext,
   type Form,
-  type ImageRequestHandler,
-  type NetworkRequest,
+  type CoverRequestHandler,
+  type HttpClient,
+  type ImageRequest,
+  type PageRequestHandler,
   type Option,
   type PageLink,
   type PageLinkResolver,
@@ -40,6 +42,8 @@ import {
   sectionById,
   toPageSections,
   type PreferenceValue,
+  IMAGE_ACCEPT,
+  imageClient,
 } from "../common/index.ts";
 import { RokariComicsApi } from "./client.ts";
 import {
@@ -75,7 +79,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rokaricomics",
   name: "RokariComics",
-  version: "1.1.1",
+  version: "1.1.2",
   description: "Comics from rokaricomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -96,10 +100,16 @@ class RokariComicsSource
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
-    ImageRequestHandler
+    CoverRequestHandler,
+    PageRequestHandler
 {
   readonly info = info;
   readonly config = config;
+  /** The theme serves its artwork from the site itself, behind a referer check. */
+  private readonly images = imageClient({
+    referer: `${BASE_URL}/`,
+    accept: IMAGE_ACCEPT,
+  });
 
   private readonly api = new RokariComicsApi();
   private readonly preferences = new PreferenceStore(
@@ -312,15 +322,12 @@ class RokariComicsSource
     return { pages: pages.map((url) => ({ url })) };
   }
 
-  /** The theme serves its artwork from the site itself, behind a referer check. */
-  async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return {
-      url: imageURL,
-      headers: {
-        referer: `${BASE_URL}/`,
-        accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      },
-    };
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return this.images;
+  }
+
+  getPageTransport(_request: ImageRequest): HttpClient {
+    return this.images;
   }
 
   private contentIdFromUrl(value: string): string | undefined {

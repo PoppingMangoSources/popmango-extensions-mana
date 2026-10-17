@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import { CloudflareError, HttpClient } from "@mana-app/types";
 
-import { ACCEPT_LANGUAGE, challengedUrl, isChallengePage } from "../common/index.ts";
+import { ACCEPT_LANGUAGE, challengedUrl, isApiChallenge, withDefaults } from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
@@ -17,36 +17,6 @@ import {
   type VolumeItem,
 } from "./model.ts";
 import { canonicalise, sign, type QueryParam } from "./vrf.ts";
-
-function isJson(body: string): boolean {
-  try {
-    JSON.parse(body);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Cloudflare names a challenge in a header of its own and answers the interstitial with a
- * 403 as readily as a 200. Where neither that header nor the interstitial's markup is
- * present, the body shape decides: everything under `/api` answers JSON, so a refusal that
- * is not JSON was written at the edge rather than by the API.
- *
- * Without that last test the two cannot be told apart. Reporting every 403 as a challenge
- * sends a reader to a page with no puzzle on it when the API simply said no — and this API
- * says no for a stale signature, which is an ordinary error a WebView cannot help with.
- */
-function isCloudflareChallenge(response: NetworkResponse): boolean {
-  const headers = response.headers ?? {};
-  const key = Object.keys(headers).find((name) => name.toLowerCase() === "cf-mitigated");
-  if (key !== undefined && String(headers[key] ?? "").toLowerCase() === "challenge") return true;
-
-  if (response.status !== 403 && response.status !== 503) return false;
-
-  const body = response.data ?? "";
-  return isChallengePage(body) || !isJson(body);
-}
 
 /** Surfaces the API's own error text instead of a bare status code. */
 function errorMessage(body: string): string | undefined {
@@ -75,33 +45,29 @@ export type TitleQuery = {
 };
 
 export class MangaFireApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   // The home page fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
-      .setRateLimit(3, 1)
-      // 403 and 503 have to reach us, or a challenge cannot be told from a real error.
-      .setStatusValidator(
-        (status) => (status >= 200 && status < 400) || status === 403 || status === 503,
-      )
-      .addRequestInterceptor(async (request: NetworkRequest) => ({
-        ...request,
-        headers: {
+  private get http(): HttpClient {
+    this.client ??= new HttpClient()
+      .setRateLimit(3, 1000)
+      .addRequestInterceptor((request) => {
+        withDefaults(request.headers, {
           referer: `${BASE_URL}/`,
           accept: "application/json",
           "accept-language": ACCEPT_LANGUAGE,
-          ...request.headers,
-        },
-      }))
-      .addResponseInterceptor(async (response: NetworkResponse) => {
-        if (isCloudflareChallenge(response)) {
+        });
+        return request;
+      })
+      .addResponseInterceptor(async (response) => {
+        // This API also says no to a stale signature, which is an ordinary error a WebView
+        // cannot help with — so a refusal is only a challenge when Cloudflare wrote it.
+        if (await isApiChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
-      })
-      .build();
+      });
     return this.client;
   }
 
@@ -132,7 +98,7 @@ export class MangaFireApi {
 
     const request = (async () => {
       const response = await this.http.get(url);
-      const body = response.data ?? "";
+      const body = await response.text();
 
       if (response.status >= 400) {
         const stated = errorMessage(body);

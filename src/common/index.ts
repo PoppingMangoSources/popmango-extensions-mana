@@ -21,7 +21,8 @@ export * from "./urls.ts";
 export * from "./html.ts";
 // `aes.ts` is deliberately absent. It imports `crypto-js`, whose modules mutate a shared
 // object and so cannot be tree-shaken — re-exporting it here put the whole cipher into every
-// source that imported anything at all from this barrel, at ninety kilobytes each. The one
-// source that decrypts imports `./aes.ts` directly.
+// source that imported anything at all from this barrel, at ninety kilobytes each. A source
+// that needs CBC imports `./aes.ts` directly; CTR has no dependency and is exported below.
+export * from "./aes-ctr.ts";
 export * from "./bytes.ts";
 export * from "./cache.ts";

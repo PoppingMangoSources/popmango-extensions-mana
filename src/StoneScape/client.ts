@@ -1,8 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import { CloudflareError, HttpClient } from "@mana-app/types";
 
-import { ACCEPT_LANGUAGE, challengedUrl, isChallengePage, withQuery } from "../common/index.ts";
+import {
+  ACCEPT_LANGUAGE,
+  challengedUrl,
+  isApiChallenge,
+  withDefaults,
+  withQuery,
+} from "../common/index.ts";
 import {
   API_URL,
   BASE_URL,
@@ -18,36 +24,6 @@ import {
   type SeriesQuery,
   type SeriesResponse,
 } from "./model.ts";
-
-function isJson(body: string): boolean {
-  try {
-    JSON.parse(body);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Cloudflare names a challenge in a header of its own, and answers the interstitial with a
- * 403 as readily as a 200. Where neither the header nor the interstitial's markup is
- * present, the body shape decides: everything under `/api` answers JSON, so a refusal that
- * is not JSON was written at the edge rather than by the API.
- *
- * That last test is what keeps the two apart. Treating every 403 as a challenge sends a
- * reader to a page with no puzzle on it when the API simply said no; treating none of them
- * as one leaves a real block with no way to clear it.
- */
-function isCloudflareChallenge(response: NetworkResponse): boolean {
-  const headers = response.headers ?? {};
-  const key = Object.keys(headers).find((name) => name.toLowerCase() === "cf-mitigated");
-  if (key !== undefined && String(headers[key] ?? "").toLowerCase() === "challenge") return true;
-
-  if (response.status !== 403 && response.status !== 503) return false;
-
-  const body = response.data ?? "";
-  return isChallengePage(body) || !isJson(body);
-}
 
 /** Surfaces the API's own error text instead of a bare status code. */
 function errorMessage(body: string): string | undefined {
@@ -69,36 +45,30 @@ function errorMessage(body: string): string | undefined {
 }
 
 export class StoneScapeApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   // The home page fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
-      .setRateLimit(5, 1)
-      // 403 and 503 have to reach us, or a challenge cannot be told from a real error.
-      .setStatusValidator(
-        (status) => (status >= 200 && status < 400) || status === 403 || status === 503,
-      )
-      .addRequestInterceptor(async (request: NetworkRequest) => ({
-        ...request,
-        headers: {
+  private get http(): HttpClient {
+    this.client ??= new HttpClient()
+      .setRateLimit(5, 1000)
+      .addRequestInterceptor((request) => {
+        withDefaults(request.headers, {
           origin: BASE_URL,
           referer: `${BASE_URL}/`,
           accept: "application/json, text/plain, */*",
           "accept-language": ACCEPT_LANGUAGE,
-          ...request.headers,
-        },
-      }))
-      .addResponseInterceptor(async (response: NetworkResponse) => {
+        });
+        return request;
+      })
+      .addResponseInterceptor(async (response) => {
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
-        if (isCloudflareChallenge(response)) {
+        if (await isApiChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
-      })
-      .build();
+      });
     return this.client;
   }
 
@@ -108,7 +78,7 @@ export class StoneScapeApi {
 
     const request = (async () => {
       const response = await this.http.get(url);
-      const body = response.data ?? "";
+      const body = await response.text();
 
       if (response.status >= 400) {
         const stated = errorMessage(body);

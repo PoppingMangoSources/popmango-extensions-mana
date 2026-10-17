@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import { Body, HttpClient, HttpMethod, type HttpResponse, type JsonValue } from "@mana-app/types";
 
 import { withQuery, type QueryParams } from "../common/index.ts";
 import { API_URL, MUTATION_INTERVAL_MS } from "./model.ts";
@@ -8,35 +8,23 @@ import { readToken } from "./session.ts";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
+const METHODS: Record<Method, HttpMethod> = {
+  GET: HttpMethod.Get,
+  POST: HttpMethod.Post,
+  PUT: HttpMethod.Put,
+  DELETE: HttpMethod.Delete,
+};
+
 type CallOptions = {
   query?: QueryParams;
-  body?: unknown;
+  body?: JsonValue;
   /** Reads that work signed out; anything else is refused before it leaves the device. */
   anonymous?: boolean;
   /** Signing in: a stale session must not travel alongside the credentials replacing it. */
   withoutSession?: boolean;
   /** A write, which the site rate limits far harder than reads. */
   mutation?: boolean;
-  /**
-   * Signing in. The host deserialises a response before the source is shown any status
-   * and fails the whole call when there is nothing to read, and the site's only body-less
-   * answer to a login is the 401 that refuses the details — so here, and only here, an
-   * unreadable answer has a single meaning worth naming.
-   */
-  unreadableMeansRefused?: boolean;
 };
-
-/**
- * How the host reports a response it could not read — best effort, since the wording is
- * the host's own. Nothing that matters is allowed to depend on this matching.
- */
-const UNREADABLE = /could not be serialized|nil or zero length/i;
-
-/** Read off the value rather than an `Error` shape: what the host throws is its own. */
-function messageOf(error: unknown): string {
-  const message = (error as { message?: unknown } | null | undefined)?.message;
-  return typeof message === "string" ? message : "";
-}
 
 /** The site's answer to a write sent inside its five-second window. */
 class ThrottledError extends Error {
@@ -45,7 +33,6 @@ class ThrottledError extends Error {
   }
 }
 
-/** A 404 that did carry a body, so its status was readable. */
 class NotFoundError extends Error {}
 
 export class UnauthorizedError extends Error {
@@ -63,26 +50,15 @@ function delay(ms: number): Promise<void> {
 }
 
 export class MangaUpdatesApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
 
   // Writes are chained rather than fired together: the site allows one every five
   // seconds, and a rejected write silently loses the reader's progress.
   private mutations: Promise<unknown> = Promise.resolve();
   private lastMutationAt = 0;
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
-      .setRateLimit(5, 1)
-      // The site answers 401, 404 and 412 with no body at all, and the host cannot
-      // deserialise an empty response — it fails the whole request with "input data was
-      // nil or zero length" before the source sees a status. So only the statuses that
-      // come with a body are accepted, and the rest are read back off the error instead.
-      .setStatusValidator((status) => (status >= 200 && status < 400) || status === 400)
-      .addRequestInterceptor(async (request: NetworkRequest) => ({
-        ...request,
-        headers: { accept: "application/json", ...request.headers },
-      }))
-      .build();
+  private get http(): HttpClient {
+    this.client ??= new HttpClient().setRateLimit(5, 1000).addHeader("accept", "application/json");
     return this.client;
   }
 
@@ -118,33 +94,22 @@ export class MangaUpdatesApi {
     const url = withQuery(`${API_URL}${path}`, options.query);
     const headers: Record<string, string> = {};
     if (token && !options.withoutSession) headers.authorization = `Bearer ${token}`;
-    if (options.body !== undefined) headers["content-type"] = "application/json";
 
-    const response = await this.http
-      .request({
+    const response = await this.http.request(
+      {
         url,
-        method,
-        headers,
-        // The host serialises the body; pre-encoding it sends the server a quoted string.
-        ...(options.body === undefined ? {} : { body: options.body }),
-      })
-      .catch((error: unknown) => {
-        // A refused status arrives as an error carrying the response it refused, which is
-        // how the bodiless answers above still reach `parse`. Anything with no response
-        // behind it is a real transport failure and stays one.
-        if (error instanceof NetworkError && typeof error.res?.status === "number") {
-          return error.res;
-        }
-        if (options.unreadableMeansRefused && UNREADABLE.test(messageOf(error))) {
-          throw new UnauthorizedError();
-        }
-        throw error;
-      });
+        method: METHODS[method],
+        ...(options.body === undefined ? {} : { body: Body.json(options.body) }),
+      },
+      { headers },
+    );
 
     return this.parse<T>(response, url);
   }
 
-  private parse<T>(response: NetworkResponse, url: string): T {
+  // The site answers 401, 404 and 412 with no body at all, so the status is read before
+  // anything is asked of the body.
+  private async parse<T>(response: HttpResponse, url: string): Promise<T> {
     // Only 401 means the session is the problem. A 403 is the site — or something between
     // it and the reader — refusing the request, and calling that "sign in" misdirects.
     // A 404 is an answer: the title is simply not on any of the reader's lists.
@@ -153,11 +118,11 @@ export class MangaUpdatesApi {
     if (response.status === 412) throw new ThrottledError();
 
     if (response.status >= 400) {
-      throw new Error(`${reason(response.data)} (HTTP ${response.status})`);
+      throw new Error(`${reason(await response.text())} (HTTP ${response.status})`);
     }
 
     // A few writes answer 200 with an empty body rather than a JSON envelope.
-    const body = (response.data ?? "").trim();
+    const body = (await response.text()).trim();
     if (!body) return undefined as T;
 
     try {

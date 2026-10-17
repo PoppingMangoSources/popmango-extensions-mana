@@ -170,9 +170,11 @@ Finish with `references/release.md`: version bump, CHANGELOG entry, README row.
 The failures this repo has actually shipped, each silent:
 
 - [ ] Icon at `assets/<Name>.png`, `thumbnail` a bare filename — not under `src/`
-- [ ] POST bodies passed as objects, never `JSON.stringify`-ed
-- [ ] `setStatusValidator` set on any client that reads `response.status` — otherwise the
-      host throws on non-2xx first and that code never runs
+- [ ] POST bodies sent through `Body.json` / `Body.form`, never `JSON.stringify`-ed by hand
+- [ ] Every status reaches the caller now — code that reads a body checks `status` or `ok`
+      first, rather than trusting that a refusal would have thrown
+- [ ] `CloudflareError`, `HttpClient` and `Body` imported from `@mana-app/types` — none of
+      them is a global any more
 - [ ] No hand-written `user-agent` on a client fronting Cloudflare
 - [ ] A JSON API's 403/503 not reported as a challenge without a real fingerprint
 - [ ] Unnumbered chapters renumbered above the main run, not left at `0`
@@ -210,8 +212,6 @@ The failures this repo has actually shipped, each silent:
       `isMigration(context)`, or a migration buys it once per title and throws it away
 - [ ] A challenge judged cleared by the site's own scripts appearing, never by markers
       being absent — and one wanting a person handed over at once
-- [ ] `setStatusValidator` lets 403 and 503 reach the source, or a challenge cannot be told
-      from an ordinary error
 - [ ] Identical requests in flight share one promise, so a refresh does not ask twice
 - [ ] No cap on a section that already matches the default page size
 - [ ] A new source starts at `1.0.0`; **every** push that changes one bumps its **patch**

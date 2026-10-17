@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
+import type { HttpClient } from "@mana-app/types";
+
 import { buildClient, withChallengeRetry, withQuery } from "../common/index.ts";
 import {
   BASE_URL,
@@ -24,7 +26,7 @@ export type BrowseQuery = {
 };
 
 export class ValirScansApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   private readonly inFlight = new Map<string, Promise<string>>();
 
   /**
@@ -37,7 +39,7 @@ export class ValirScansApi {
    */
   private readonly pages = new Map<string, { at: number; body: string }>();
 
-  private get http(): NetworkClient {
+  private get http(): HttpClient {
     this.client ??= buildClient({
       baseUrl: BASE_URL,
       requests: 4,
@@ -65,7 +67,7 @@ export class ValirScansApi {
           `ValirScans' server did not answer (HTTP ${response.status}). The site is up but its origin is not responding — try again in a few minutes.`,
         );
       }
-      const body = response.data ?? "";
+      const body = await response.text();
       this.pages.set(url, { at: Date.now(), body });
       return body;
     }).finally(() => {

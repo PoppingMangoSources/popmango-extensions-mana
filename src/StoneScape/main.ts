@@ -13,8 +13,10 @@ import {
   type DeepLinkContext,
   type Form,
   type Highlight,
-  type ImageRequestHandler,
-  type NetworkRequest,
+  type CoverRequestHandler,
+  type HttpClient,
+  type ImageRequest,
+  type PageRequestHandler,
   type Option,
   type PageLink,
   type PageLinkResolver,
@@ -42,6 +44,8 @@ import {
   sectionById,
   toPageSections,
   type PreferenceValue,
+  IMAGE_ACCEPT,
+  imageClient,
 } from "../common/index.ts";
 import { StoneScapeApi } from "./client.ts";
 import {
@@ -78,7 +82,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Manhwa, manhua and manga from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -99,10 +103,20 @@ class StoneScapeSource
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
-    ImageRequestHandler
+    CoverRequestHandler,
+    PageRequestHandler
 {
   readonly info = info;
   readonly config = config;
+  /**
+   * Covers and pages are served from the site itself, behind the same Cloudflare, and it
+   * refuses an image asked for without a referer of its own.
+   */
+  private readonly images = imageClient({
+    referer: `${BASE_URL}/`,
+    origin: BASE_URL,
+    accept: IMAGE_ACCEPT,
+  });
 
   private readonly api = new StoneScapeApi();
   private readonly preferences = new PreferenceStore(
@@ -313,19 +327,12 @@ class StoneScapeSource
     return { pages: pages.map((url) => ({ url })) };
   }
 
-  /**
-   * Covers and pages are served from the site itself, behind the same Cloudflare, and it
-   * refuses an image asked for without a referer of its own.
-   */
-  async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return {
-      url: imageURL,
-      headers: {
-        referer: `${BASE_URL}/`,
-        origin: BASE_URL,
-        accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      },
-    };
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return this.images;
+  }
+
+  getPageTransport(_request: ImageRequest): HttpClient {
+    return this.images;
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {

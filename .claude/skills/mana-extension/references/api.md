@@ -1,6 +1,6 @@
 # The `@mana-app/types` surface and the runtime that consumes it
 
-Verified against `@mana-app/types@0.0.27` and `@mana-app/dev@0.1.14` by reading the
+Verified against `@mana-app/types@0.1.0` and `@mana-app/dev@0.2.0` by reading the
 type declarations and the runtime embedded in `mana-dev`.
 
 ## How the app decides what your source can do
@@ -14,7 +14,7 @@ normally; a method that does not exist is a feature that does not exist.
 | --- | --- | --- |
 | 0 | `preferenceMenuBuilder` | `getPreferenceMenu` |
 | 1 | `requiresSetup` | `getSetupMenu` **and** `validateSetupForm` **and** `isRunnerSetup` |
-| 2 | `imageRequestHandler` | `willRequestImage` |
+| 2 | retired | was `willRequestImage`, which no longer exists |
 | 3 | `pageLinkResolver` | `getSectionsForPage` **and** `resolvePageSection` |
 | 4 | `libraryPageLinkProvider` | `getLibraryPageLinks` |
 | 5 | `authenticatable` | `getAuthenticatedUser` + `handleUserSignOut` **and** one flavour below |
@@ -37,6 +37,8 @@ normally; a method that does not exist is a feature that does not exist.
 | 22 | `canHandleURL` | `handleURL` |
 | 23 | `allowsMultipleInstances` | `config.allowsMultipleInstances` |
 | 24 | `requiresAuthenticationToAccessContent` | `config.requiresAuthenticationToAccessContent` |
+| 25 | `coverTransport` | `getCoverTransport` |
+| 26 | `pageTransport` | `getPageTransport` |
 
 Check your own build with:
 
@@ -62,19 +64,24 @@ The source runs in a bare V8 / JavaScriptCore context, not Node and not a browse
   bundler-injected shim.
 - **`console` may not exist.** Do not rely on logging. A thrown `Error` message is the only
   diagnostic channel guaranteed to reach the user, so put real detail in it.
-- **`NetworkResponse.data` is always a `string`.** It is UTF-8 text unless the request asks
-  otherwise, so a page served as windows-1252, Shift-JIS or any other non-UTF-8 encoding does
-  not arrive as mojibake — the request fails at the bridge, with a message naming
-  serialisation or Unicode. `getText(client, url)` in `src/common/network.ts` recovers those
-  by re-reading the page through the WebView, which decodes with the charset the page
-  declares. What comes back is the serialised DOM, so a byte the decoder could not map
-  arrives as U+FFFD; a parser that slices titles should cut at that character rather than
-  pass it on.
-- **`responseEncoding?: "text" | "base64"` on a request is the one way to get bytes.** It
-  defaults to `"text"`; `"base64"` hands back the body base64-encoded instead of
-  UTF-8-decoded, which is what makes an image, an archive or an encrypted blob survive the
-  bridge intact. A host built before 0.0.27 ignores the field and answers text, so a source
-  that depends on the bytes has to notice that rather than trust them.
+- **Every status is a response.** `HttpClient` throws only for a transfer that never
+  completed (`NetworkError`, `TimeoutError`, `AbortError`) or a challenge the runtime
+  recognised (`CloudflareError`, which it checks before any response interceptor runs).
+  A 404 or a 500 comes back like a 200, so check `status` or `ok` where it matters, or call
+  `requireOk()` to throw an `HttpStatusError` that keeps the response.
+- **A body is read on demand, and only inside the source method that asked for it.**
+  `text()`, `json()`, `bytes()`, `arrayBuffer()` and `base64()` are asynchronous and
+  repeatable; a response kept past its method throws when read. A page served in a
+  non-UTF-8 encoding can still fail at `text()` — `getText(client, url)` in
+  `src/common/network.ts` recovers it through the WebView, which decodes with the charset
+  the page declares. What comes back is the serialised DOM, so a byte the decoder could not
+  map arrives as U+FFFD; a parser that slices titles should cut at that character.
+- **A body is sent as one of `Body.json`, `Body.form`, `Body.text` or `Body.bytes`.** Each
+  sets its own content type. Body-taking helpers are `(url, body, options)`.
+- **Headers are an `HttpHeaders`, mutated in place.** An interceptor sets or deletes on
+  `request.headers` and returns the request; property access is lowercase and
+  case-sensitive, `get`/`set`/`has`/`delete` are not. A request has no cookie list: the jar
+  sends what it holds, and anything more goes in the `cookie` header.
 - **`onEnvironmentLoaded` is not awaited.** The runtime calls
   `target.onEnvironmentLoaded?.().catch(...)` and moves on, so anything it assigns can still
   be undefined when the first real method runs. Build the client lazily instead.
@@ -82,8 +89,25 @@ The source runs in a bare V8 / JavaScriptCore context, not Node and not a browse
   `globalThis.Target = __exports__.Target`; a source directory without one fails the build
   with `No Target class found in self-contained bundle`.
 
-Host globals available: `NetworkClient`, `NetworkClientBuilder` (imported from the types
-package), `CloudflareError`, `NetworkError`, `ObjectStore`, `SecureStore`, `WebViewPage`.
+Host globals available: `ObjectStore`, `SecureStore`, `WebViewPage`. `HttpClient`, `Body`
+and the error classes — `CloudflareError` among them — are imported from `@mana-app/types`
+and bundled into the source; none of them is a global any more.
+
+### Images: `getCoverTransport` and `getPageTransport`
+
+Both are synchronous and return an `HttpClient`, which the app then sends the image request
+through — its request interceptors, rate limiter, retries and response interceptors all
+apply, offline downloads included. Implement only the one you need: without either, images
+load natively; with only the page hook, covers still do. `ImageRequest` is `{ url, origin }`,
+and `context.origin` in an interceptor is `RequestOrigin.Cover` or `RequestOrigin.Page` for
+these and `RequestOrigin.General` for the source's own calls. Anything asynchronous — a
+token to refresh — belongs in a request interceptor, which may rewrite `request.url`.
+
+A response interceptor may replace the body with `response.withBody(bytes, { contentType })`,
+which is how a page encrypted at rest is decrypted one page at a time as the reader reaches
+it. An image nobody reads stays native. The fragment of a URL is stripped before any
+interceptor sees the request, but `getPageTransport` is handed the URL as the source wrote
+it — so a per-page secret can travel there and pick the client.
 
 **No `crypto.subtle`.** A site that AES-encrypts its image list needs `src/common/aes.ts`.
 For a primitive that file does not carry, `crypto-js` is a dependency here and bundles into
@@ -347,10 +371,12 @@ knowing, but not a reason to prefer hooking over asking.
 
 ### What the built bundle carries
 
-`mana-dev` bundles `@mana-app/types` into the `.mana` file, including its own
-`NetworkClientBuilder`, whose `build()` returns `new NetworkClient(this)` against the
-*global* `NetworkClient`. When driving a built bundle in a sandbox, stub the global
-`NetworkClient` — stubbing the builder does nothing, because the bundle brings its own.
+`mana-dev` bundles `@mana-app/types` into the `.mana` file, including the whole of
+`HttpClient`, which asks the host for every transfer through `globalThis.__manaHTTPBridge`.
+When driving a built bundle in a sandbox, install that bridge — `createHttpBridge()` in
+`scripts/harness/runtime.mjs` is one backed by Node's `fetch`. A function handed to
+`WebViewPage.evaluate` is lowered with the rest of the bundle, and the bundle carries a
+`serializedFunctionPrelude` of the async helpers it needs inside the page.
 
 The runtime also ships polyfills for `buffer`, `process`, `events`, `path` and `util`,
 embedded by `watcher/scripts/bundle-polyfills.js`. Nothing there covers `crypto.subtle`,

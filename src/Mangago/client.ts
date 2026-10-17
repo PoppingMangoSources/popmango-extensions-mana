@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import { CloudflareError, HttpClient, type HttpResponse } from "@mana-app/types";
 
 import {
   ACCEPT_LANGUAGE,
@@ -8,8 +8,12 @@ import {
   challengedUrl,
   hostOf,
   isChallengePage,
+  isCloudflareChallenge,
+  withDefaults,
 } from "../common/index.ts";
 import { BROWSE_USER_AGENT, DOMAIN, READER_USER_AGENT } from "./model.ts";
+
+const SUPER_USER = "_m_superu=1";
 
 const READER_NAVIGATION_HEADERS: Record<string, string> = {
   "sec-fetch-site": "same-origin",
@@ -52,53 +56,45 @@ export function readerOrigin(target: string): string {
   return host ? `https://${host}` : DOMAIN;
 }
 
-export function buildMangagoClient(): NetworkClient {
-  const interceptRequest = async (request: NetworkRequest): Promise<NetworkRequest> => {
-    const reader = isReaderPageUrl(request.url);
-    const origin = reader ? readerOrigin(request.url) : DOMAIN;
+export function buildMangagoClient(): HttpClient {
+  return new HttpClient()
+    .setRateLimit(3, 1000)
+    .addRequestInterceptor((request) => {
+      const reader = isReaderPageUrl(request.url);
+      const origin = reader ? readerOrigin(request.url) : DOMAIN;
 
-    return {
-      ...request,
-      headers: {
+      withDefaults(request.headers, {
         referer: `${origin}/`,
         origin,
         accept: HTML_ACCEPT,
         "accept-language": ACCEPT_LANGUAGE,
         "user-agent": reader ? READER_USER_AGENT : BROWSE_USER_AGENT,
         ...(reader ? READER_NAVIGATION_HEADERS : {}),
-        ...request.headers,
-      },
-      cookies: isMangagoHost(request.url)
-        ? [...(request.cookies ?? []), { name: "_m_superu", value: "1" }]
-        : request.cookies,
-    };
-  };
+      });
+      // A request carries no cookies of its own any more, only a header, so this one is
+      // added to whatever the call site already wrote there rather than in place of it.
+      if (isMangagoHost(request.url)) {
+        const cookies = request.headers.get("cookie");
+        request.headers.set("cookie", cookies ? `${cookies}; ${SUPER_USER}` : SUPER_USER);
+      }
+      return request;
+    })
+    .addResponseInterceptor(async (response) => {
+      // The challenged URL is what the app opens for the reader; Cloudflare answers it
+      // with the interstitial, and the clearance it mints covers the whole domain.
+      if (
+        isCloudflareChallenge(response) ||
+        response.status === 403 ||
+        response.status === 503 ||
+        (mayBeMarkup(response) && isChallengePage(await response.text()))
+      ) {
+        throw new CloudflareError(challengedUrl(response, DOMAIN));
+      }
+      return response;
+    });
+}
 
-  const interceptResponse = async (response: NetworkResponse): Promise<NetworkResponse> => {
-    // The challenged URL is what the app opens for the reader; Cloudflare answers it
-    // with the interstitial, and the clearance it mints covers the whole domain.
-    const mitigated = response.headers?.["cf-mitigated"];
-    if (
-      mitigated === "challenge" ||
-      response.status === 403 ||
-      response.status === 503 ||
-      isChallengePage(response.data)
-    ) {
-      throw new CloudflareError(challengedUrl(response, DOMAIN));
-    }
-    return response;
-  };
-
-  return (
-    new NetworkClientBuilder()
-      .setRateLimit(3, 1)
-      // Without this the host throws on 403 and 503 before the interceptor above sees them,
-      // which left every challenge reported as a plain network error.
-      .setStatusValidator(
-        (status) => (status >= 200 && status < 400) || status === 403 || status === 503,
-      )
-      .addRequestInterceptor(interceptRequest)
-      .addResponseInterceptor(interceptResponse)
-      .build()
-  );
+/** Only markup can be the interstitial; an image is left unread. */
+function mayBeMarkup(response: HttpResponse): boolean {
+  return !/^image\//i.test(response.headers.get("content-type") ?? "");
 }

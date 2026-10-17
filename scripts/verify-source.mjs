@@ -18,13 +18,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { ContentRating, PublicationStatus, SectionStyle } from "@mana-app/types";
-import {
-  CloudflareError,
-  ManaStore,
-  NetworkClient,
-  NetworkError,
-  decodeIntents,
-} from "./harness/runtime.mjs";
+import { ManaStore, createHttpBridge, decodeIntents } from "./harness/runtime.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST_SOURCES = path.join(ROOT, "dist", "sources");
@@ -59,9 +53,7 @@ function loadTarget(bundlePath, settings = {}) {
   const store = new ManaStore(settings);
 
   const sandbox = {
-    NetworkClient,
-    NetworkError,
-    CloudflareError,
+    __manaHTTPBridge: createHttpBridge(),
     ObjectStore: store,
     SecureStore: new ManaStore(),
     console,
@@ -153,30 +145,61 @@ function checkEnum(enumeration, enumName, field, value, label) {
   );
 }
 
+/** The symbol `@mana-app/types` dispatches an image request to a client through. */
+const IMAGE_DISPATCH = Symbol.for("mana.http.image.v1");
+
+/** `RequestOrigin.Cover` and `RequestOrigin.Page`. */
+const Origin = { Cover: 1, Page: 2 };
+
+/** The first bytes of every format a page or cover is served in. */
+function isImage(bytes) {
+  const at = (i) => bytes[i] ?? -1;
+  return (
+    (at(0) === 0x89 && at(1) === 0x50 && at(2) === 0x4e && at(3) === 0x47) ||
+    (at(0) === 0xff && at(1) === 0xd8 && at(2) === 0xff) ||
+    (at(0) === 0x47 && at(1) === 0x49 && at(2) === 0x46) ||
+    (at(0) === 0x52 && at(1) === 0x49 && at(8) === 0x57 && at(9) === 0x45) ||
+    (at(4) === 0x66 && at(5) === 0x74 && at(6) === 0x79 && at(7) === 0x70) ||
+    (at(0) === 0xff && at(1) === 0x0a) ||
+    (at(4) === 0x4a && at(5) === 0x58 && at(6) === 0x4c && at(7) === 0x20)
+  );
+}
+
 /**
- * Fetches a handful of URLs and reports the ones that do not come back as an image.
+ * Fetches a handful of images and reports the ones that do not come back as one.
  *
- * A source with `willRequestImage` is telling the app how to ask for its images — most
- * often a referer a CDN refuses to serve without. Fetching bare would report 403 against
- * a source that works perfectly in the app, so the handler is applied here too.
+ * A source with a cover or page transport is telling the app how to ask for its images —
+ * a referer a CDN refuses to serve without, or a page to decrypt on the way in — so the
+ * image goes through that client exactly as the app would send it, and what is checked is
+ * what the app would be handed to decode.
  */
-async function checkImageUrls(urls, target) {
+async function checkImages(images, target) {
   const broken = [];
-  for (const url of urls) {
+  for (const { url, origin } of images) {
     try {
-      const request = target?.willRequestImage ? await target.willRequestImage(url) : undefined;
-      const headers = {};
-      for (const [key, value] of Object.entries(request?.headers ?? {})) {
-        headers[key] = String(value);
+      const hook = origin === Origin.Page ? target?.getPageTransport : target?.getCoverTransport;
+      if (typeof hook !== "function") {
+        const response = await fetch(url);
+        const type = response.headers.get("content-type") ?? "";
+        // What this is looking for is a 404 or an HTML error page dressed as a 200. Some
+        // image proxies answer without a content-type at all, and calling those unreachable
+        // reports a cover that renders perfectly well in the app as broken.
+        if (!(response.ok && (type === "" || type.startsWith("image/")))) {
+          broken.push(`${url} -> HTTP ${response.status} ${type}`);
+        }
+        continue;
       }
-      const response = await fetch(request?.url ?? url, { headers });
-      const type = response.headers.get("content-type") ?? "";
-      // What this is looking for is a 404 or an HTML error page dressed as a 200. Some image
-      // proxies answer without a content-type at all, and calling those unreachable reports a
-      // cover that renders perfectly well in the app as broken.
-      const served = response.ok && (type === "" || type.startsWith("image/"));
-      if (!served) {
-        broken.push(`${url} -> HTTP ${response.status} ${type}`);
+
+      const client = hook.call(target, { url, origin });
+      const response = await client[IMAGE_DISPATCH]({ url, origin });
+      if (!response.ok) {
+        broken.push(`${url} -> HTTP ${response.status}`);
+        continue;
+      }
+      const bytes = await response.bytes();
+      if (!isImage(bytes)) {
+        const head = [...bytes.subarray(0, 8)].map((b) => b.toString(16).padStart(2, "0"));
+        broken.push(`${url} -> not an image (starts ${head.join(" ")})`);
       }
     } catch (error) {
       broken.push(`${url} -> ${firstLine(error)}`);
@@ -439,15 +462,17 @@ async function verify(name, probe, verbose) {
   // A shape check passes happily on a cover URL that 404s, which is a blank grid for the
   // reader. Sample what the source actually produced and fetch it.
   const sampled = [
-    ...preview.sections.flatMap((entry) => entry.items.slice(0, 1).map((item) => item.cover)),
-    preview.search[0]?.cover,
-    preview.content?.cover,
-    preview.pages[0]?.url,
-  ].filter((url) => typeof url === "string" && url.startsWith("http"));
+    ...preview.sections.flatMap((entry) =>
+      entry.items.slice(0, 1).map((item) => ({ url: item.cover, origin: Origin.Cover })),
+    ),
+    { url: preview.search[0]?.cover, origin: Origin.Cover },
+    { url: preview.content?.cover, origin: Origin.Cover },
+    { url: preview.pages[0]?.url, origin: Origin.Page },
+  ].filter(({ url }) => typeof url === "string" && url.startsWith("http"));
 
   if (sampled.length > 0) {
     await step(results, "images", async () => {
-      const broken = await checkImageUrls(sampled, target);
+      const broken = await checkImages(sampled, target);
       assert(broken.length === 0, `unreachable image(s):\n      ${broken.join("\n      ")}`);
       return `${sampled.length} sampled, all served`;
     });

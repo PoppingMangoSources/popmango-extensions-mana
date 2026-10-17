@@ -20,6 +20,7 @@ import {
   SectionStyle,
   type Chapter,
   type ChapterData,
+  type HttpClient,
   type Content,
   type ChapterSource,
   type Form,
@@ -99,7 +100,7 @@ class TemplateSource
   readonly info = info;
   readonly config = config;
 
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   private readonly preferences = new PreferenceStore(info.id, PREFERENCE_DEFAULTS);
 
   /**
@@ -107,14 +108,14 @@ class TemplateSource
    * method call, so anything assigned there can still be undefined when the
    * app asks for the home page.
    */
-  private get http(): NetworkClient {
+  private get http(): HttpClient {
     this.client ??= buildTemplateClient();
     return this.client;
   }
 
   private async fetchHtml(url: string, params?: QueryParams): Promise<CheerioAPI> {
     const response = await this.http.get(withQuery(url, params));
-    return load(response.data);
+    return load(await response.text());
   }
 
   /**

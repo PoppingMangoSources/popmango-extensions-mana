@@ -5,7 +5,15 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.24)
+## Toonkotsu (current: v1.0.25)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Ask the API for a chapter's page keys directly, opening a WebView only when it refuses.
+- Decrypt each page as the reader reaches it rather than the whole chapter before it opens.
+
+## Toonkotsu (v1.0.24)
 
 ### Changed
 
@@ -34,7 +42,13 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.2.3)
+## XCOMIC (current: v1.2.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## XCOMIC (v1.2.3)
 
 ### Changed
 
@@ -46,7 +60,14 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.1.3)
+## ValirScans (current: v1.1.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## ValirScans (v1.1.3)
 
 ### Fixed
 
@@ -62,7 +83,14 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.12)
+## Kagane (current: v1.1.13)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports, re-signing each page as it is asked for.
+
+## Kagane (v1.1.12)
 
 ### Added
 
@@ -479,7 +507,13 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.1.3)
+## MangaDex (current: v1.1.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## MangaDex (v1.1.3)
 
 ### Changed
 
@@ -526,7 +560,14 @@ counted up from `1.0.0`.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.1.1)
+## RokariComics (current: v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## RokariComics (v1.1.1)
 
 ### Added
 
@@ -764,7 +805,14 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.1.1)
+## RinkoComics (current: v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## RinkoComics (v1.1.1)
 
 ### Added
 
@@ -903,7 +951,14 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.1.2)
+## MangaFire (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## MangaFire (v1.1.2)
 
 ### Changed
 
@@ -1054,7 +1109,14 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.1.2)
+## StoneScape (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## StoneScape (v1.1.2)
 
 ### Changed
 
@@ -1299,7 +1361,13 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.1.2)
+## MangaUpdates (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client, which hands back the site's empty refusals as statuses.
+
+## MangaUpdates (v1.1.2)
 
 ### Changed
 
@@ -1986,7 +2054,13 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.1.2)
+## FlameComics (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## FlameComics (v1.1.2)
 
 ### Changed
 
@@ -2494,7 +2568,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.1.1)
+## Mangago (current: v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## Mangago (v1.1.1)
 
 ### Added
 

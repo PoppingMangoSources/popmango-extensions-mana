@@ -16,8 +16,10 @@ import {
   type ContentRating,
   type DeepLinkContext,
   type Form,
-  type ImageRequestHandler,
-  type NetworkRequest,
+  type CoverRequestHandler,
+  type HttpClient,
+  type ImageRequest,
+  type PageRequestHandler,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -47,6 +49,8 @@ import {
   sectionById,
   toPageSections,
   type PreferenceValue,
+  IMAGE_ACCEPT,
+  imageClient,
 } from "../common/index.ts";
 import { ValirScansApi, type BrowseQuery } from "./client.ts";
 import {
@@ -93,7 +97,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.1.3",
+  version: "1.1.4",
   description: "Comics from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
@@ -115,11 +119,17 @@ class ValirScansSource
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
-    ImageRequestHandler,
+    CoverRequestHandler,
+    PageRequestHandler,
     WebViewAuthenticatable
 {
   readonly info = info;
   readonly config = config;
+  /** The site serves its artwork from its own host, behind a referer check. */
+  private readonly images = imageClient({
+    referer: `${BASE_URL}/`,
+    accept: IMAGE_ACCEPT,
+  });
 
   private readonly api = new ValirScansApi();
   private readonly preferences = new PreferenceStore(
@@ -481,15 +491,12 @@ class ValirScansSource
     return { pages: reader.pages.map((url) => ({ url })) };
   }
 
-  /** The site serves its artwork from its own host, behind a referer check. */
-  async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return {
-      url: imageURL,
-      headers: {
-        referer: `${BASE_URL}/`,
-        accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      },
-    };
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return this.images;
+  }
+
+  getPageTransport(_request: ImageRequest): HttpClient {
+    return this.images;
   }
 
   private contentIdFromUrl(value: string): string | undefined {

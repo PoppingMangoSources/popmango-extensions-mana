@@ -362,13 +362,9 @@ export type Facet = { name: string; category?: string | null; isAdult?: boolean 
 
 export type FacetsResponse = { genres?: Facet[] | null };
 
-export type ReaderPage = {
-  url?: string;
-  raw?: string;
-};
-
 export type ReaderResult = {
-  pages?: ReaderPage[];
+  /** The chapter as the site answered it, whose page list is found by `pagesIn`. */
+  body?: unknown;
   gate?: string;
   retryAfter?: number;
   error?: string;
@@ -381,36 +377,15 @@ export type BrowserResponse = {
   ok: boolean;
   status: number;
   text(): Promise<string>;
-  arrayBuffer(): Promise<ArrayBuffer>;
 };
 
 export type BrowserScope = {
   document: { querySelectorAll(selector: string): ArrayLike<{ href?: string }> };
   performance: { getEntriesByType(type: string): { name: string }[] };
-  location: { href: string };
   fetch: (
     url: string,
     init?: { credentials?: string; headers?: Record<string, string> },
   ) => Promise<BrowserResponse>;
-  crypto: {
-    subtle: {
-      importKey(
-        format: string,
-        key: Uint8Array,
-        algorithm: { name: string },
-        extractable: boolean,
-        usages: string[],
-      ): Promise<unknown>;
-      decrypt(
-        algorithm: { name: string; counter: Uint8Array; length: number },
-        key: unknown,
-        data: ArrayBuffer,
-      ): Promise<ArrayBuffer>;
-    };
-  };
-  atob(value: string): string;
-  btoa(value: string): string;
-  URL: new (url: string, base: string) => { href: string };
 };
 
 export type SitePage = { src?: string; k?: string; n?: string };

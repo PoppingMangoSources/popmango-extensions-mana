@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
+import { Body, type HttpClient } from "@mana-app/types";
+
 import { buildClient, withQuery } from "../common/index.ts";
 import { AJAX_PATH, BASE_URL, PAGE_CACHE_MS, SortID } from "./model.ts";
 
@@ -14,7 +16,7 @@ export type BrowseQuery = {
 type AjaxResponse = { success?: boolean; data?: { html?: string | null } | null };
 
 export class RinkoComicsApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   private readonly inFlight = new Map<string, Promise<string>>();
   /**
    * Pages already read, held briefly.
@@ -27,7 +29,7 @@ export class RinkoComicsApi {
    */
   private readonly pages = new Map<string, { at: number; body: string }>();
 
-  private get http(): NetworkClient {
+  private get http(): HttpClient {
     this.client ??= buildClient({
       baseUrl: BASE_URL,
       requests: 3,
@@ -50,13 +52,13 @@ export class RinkoComicsApi {
 
     const request = this.http
       .get(url)
-      .then((response) => {
+      .then(async (response) => {
         if (response.status >= 500) {
           throw new Error(
             `RinkoComics' server did not answer (HTTP ${response.status}). The site is up but its origin is not responding — try again in a few minutes.`,
           );
         }
-        const body = response.data ?? "";
+        const body = await response.text();
         this.pages.set(url, { at: Date.now(), body });
         return body;
       })
@@ -104,34 +106,26 @@ export class RinkoComicsApi {
     return this.get(`${BASE_URL}/${path.replace(/^\/+/, "")}`);
   }
 
-  /**
-   * One batch of the chapter list past the first.
-   *
-   * The body is handed over as an object: the host serialises it according to the request's
-   * own content type, and pre-encoding it would have the server receive a quoted string
-   * where it expects a form.
-   */
+  /** One batch of the chapter list past the first. */
   async fetchChapterBatch(
     comicId: string,
     nonce: string,
     offset: number,
   ): Promise<string | undefined> {
-    const response = await this.http.post(`${BASE_URL}${AJAX_PATH}`, {
-      body: {
+    const response = await this.http.post(
+      `${BASE_URL}${AJAX_PATH}`,
+      Body.form({
         action: "load_more_chapters",
         nonce,
         comic_id: comicId,
         offset: String(offset),
-      },
-      headers: {
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "x-requested-with": "XMLHttpRequest",
-      },
-    });
+      }),
+      { headers: { "x-requested-with": "XMLHttpRequest" } },
+    );
 
     let parsed: AjaxResponse;
     try {
-      parsed = JSON.parse(response.data ?? "") as AjaxResponse;
+      parsed = JSON.parse(await response.text()) as AjaxResponse;
     } catch {
       return undefined;
     }

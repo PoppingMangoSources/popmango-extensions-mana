@@ -1,12 +1,20 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import {
+  Body,
+  CloudflareError,
+  HttpClient,
+  type HttpResponse,
+  type JsonValue,
+} from "@mana-app/types";
 
 import {
   HTML_ACCEPT,
   challengedUrl,
   isChallengePage,
+  isCloudflareChallenge,
   withChallengeRetry,
+  withDefaults,
 } from "../common/index.ts";
 import {
   acceptLanguage,
@@ -16,12 +24,6 @@ import {
   setActiveBaseUrl,
   type GraphQLResponse,
 } from "./model.ts";
-
-function isCloudflareChallenge(response: NetworkResponse): boolean {
-  const headers = response.headers ?? {};
-  const key = Object.keys(headers).find((name) => name.toLowerCase() === "cf-mitigated");
-  return key !== undefined && String(headers[key] ?? "").toLowerCase() === "challenge";
-}
 
 /**
  * Statuses that mean this host is not serving right now, rather than an answer. Anything
@@ -34,31 +36,25 @@ const UNAVAILABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504, 520, 521, 52
 const API_PATH = "/query/";
 
 export class XCOMICApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
-      .setRateLimit(3, 1)
-      .setStatusValidator(
-        (status) => (status >= 200 && status < 400) || status === 403 || status === 503,
-      )
+  private get http(): HttpClient {
+    this.client ??= new HttpClient()
+      .setRateLimit(3, 1000)
       // Read off the request rather than off the active mirror: a request that fell
       // through to another host must not announce itself as coming from the first.
-      .addRequestInterceptor(async (request: NetworkRequest) => {
+      .addRequestInterceptor((request) => {
         const origin = mirrorOrigin(request.url) ?? baseUrl();
-        return {
-          ...request,
-          headers: {
-            origin,
-            referer: `${origin}/`,
-            "accept-language": acceptLanguage(),
-            ...request.headers,
-          },
-        };
+        withDefaults(request.headers, {
+          origin,
+          referer: `${origin}/`,
+          "accept-language": acceptLanguage(),
+        });
+        return request;
       })
-      .addResponseInterceptor(async (response: NetworkResponse) => {
+      .addResponseInterceptor((response) => {
         // The API host cannot render the interstitial, so the challenge points at the site.
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
@@ -66,12 +62,11 @@ export class XCOMICApi {
           throw new CloudflareError(challengedUrl(response, baseUrl()));
         }
         return response;
-      })
-      .build();
+      });
     return this.client;
   }
 
-  async query<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  async query<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
     const key = `${baseUrl()}|${query}|${JSON.stringify(variables)}`;
     return this.share(key, () => this.runQuery<T>(query, variables));
   }
@@ -103,8 +98,8 @@ export class XCOMICApi {
    */
   private async send(
     path: string,
-    run: (url: string) => Promise<NetworkResponse>,
-  ): Promise<NetworkResponse> {
+    run: (url: string) => Promise<HttpResponse>,
+  ): Promise<HttpResponse> {
     const candidates = mirrorCandidates();
     let unreachable: unknown;
 
@@ -118,7 +113,7 @@ export class XCOMICApi {
         // answers an ordinary block with the same status and no challenge markup.
         if (
           (response.status === 403 || response.status === 503) &&
-          isChallengePage(response.data ?? "")
+          isChallengePage(await response.text())
         ) {
           throw new CloudflareError(challengedUrl(response, origin));
         }
@@ -131,14 +126,9 @@ export class XCOMICApi {
         setActiveBaseUrl(origin);
         return response;
       } catch (error) {
+        // Every status arrives as a response, so what is thrown is a host that could not be
+        // reached at all — worth asking the next mirror about.
         if (error instanceof CloudflareError || isLast) throw error;
-
-        // The statuses the client refuses arrive as a throw rather than a response, so the
-        // walk has to look inside one: a host that answered 404 has answered, and asking
-        // the others only repeats the question three more times.
-        const status = error instanceof NetworkError ? error.res?.status : undefined;
-        if (status !== undefined && !UNAVAILABLE_STATUSES.has(status)) throw error;
-
         unreachable = error;
       }
     }
@@ -158,16 +148,15 @@ export class XCOMICApi {
     return request;
   }
 
-  private async runQuery<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  private async runQuery<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
     return withChallengeRetry(baseUrl(), async () => {
       const response = await this.send(API_PATH, (url) =>
-        this.http.post(url, {
-          headers: { accept: "application/json", "content-type": "application/json" },
-          body: { query, variables },
+        this.http.post(url, Body.json({ query, variables }), {
+          headers: { accept: "application/json" },
         }),
       );
 
-      const body = this.body(response);
+      const body = await this.body(response);
 
       let parsed: GraphQLResponse<T>;
       try {
@@ -199,11 +188,11 @@ export class XCOMICApi {
 
   // A challenge is recognised while the mirrors are being walked, so by the time a
   // response reaches here it is the answer that host meant to give.
-  private body(response: NetworkResponse): string {
+  private body(response: HttpResponse): Promise<string> {
     if (response.status >= 400) {
       throw new Error(`XCOMIC rejected the request (HTTP ${response.status})`);
     }
 
-    return response.data ?? "";
+    return response.text();
   }
 }

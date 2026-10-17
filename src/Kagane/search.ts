@@ -3,7 +3,7 @@
 import { ContentRating } from "@mana-app/types";
 
 import type { FilterReader } from "../common/index.ts";
-import { CONTENT_RATINGS, FilterID, RANGE_FIELDS } from "./model.ts";
+import { CONTENT_RATINGS, FilterID, RANGE_FIELDS, type JsonObject } from "./model.ts";
 import { TAG_GROUPS, resolveTypedTags, tagFilterId, tagIdsOf } from "./tag-groups.ts";
 
 export type SearchBodyOptions = {
@@ -151,8 +151,8 @@ export function buildSearchBody(
   options: SearchBodyOptions,
   filters?: FilterReader,
   selection?: TagSelection,
-): Record<string, unknown> {
-  const body: Record<string, unknown> = {};
+): JsonObject {
+  const body: JsonObject = {};
   if (options.uploadSource === "official") body["source_type"] = ["Official"];
   else if (options.uploadSource === "scanlations") body["source_type"] = ["Unofficial", "Mixed"];
 

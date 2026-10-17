@@ -3,6 +3,7 @@
 import {
   AdditionalInfoType,
   CatalogRating,
+  CloudflareError,
   ContentRating,
   DefinedLanguages,
   additionalInfo,
@@ -18,6 +19,7 @@ import {
   type ChapterSource,
   type DeepLinkContext,
   type Form,
+  type HttpClient,
   type Highlight,
   type ImageRedrawHandler,
   type Option,
@@ -113,7 +115,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.1.1",
+  version: "1.1.2",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -149,7 +151,7 @@ class MangagoSource
   readonly info = info;
   readonly config = config;
 
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   private readonly preferences = new PreferenceStore(
     info.id,
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
@@ -170,14 +172,14 @@ class MangagoSource
   private redrawQueue: Promise<void> = Promise.resolve();
   private releaseRedraw: (() => void) | undefined;
 
-  private get http(): NetworkClient {
+  private get http(): HttpClient {
     this.client ??= buildMangagoClient();
     return this.client;
   }
 
   private async fetchHtml(url: string, headers?: Record<string, string>): Promise<string> {
     const response = await this.http.get(url, headers ? { headers } : undefined);
-    return response.data;
+    return response.text();
   }
 
   private async hiddenGenreTitles(): Promise<string[]> {

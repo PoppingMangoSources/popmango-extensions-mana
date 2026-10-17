@@ -13,6 +13,7 @@ import {
   SearchStepper,
   SearchTextField,
   SearchTagsSection,
+  CloudflareError,
   type Chapter,
   type ChapterData,
   type ChapterPage,
@@ -20,9 +21,11 @@ import {
   type Content,
   type DeepLinkContext,
   type Form,
+  type CoverRequestHandler,
+  type HttpClient,
   type Highlight,
-  type ImageRequestHandler,
-  type NetworkRequest,
+  type ImageRequest,
+  type PageRequestHandler,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -50,11 +53,10 @@ import {
   pageOf,
   resolveSortId,
   sectionById,
-  resolveUrl as absolute,
   toPageSections,
   withCovers,
 } from "../common/index.ts";
-import { ToonkotsuApi, catalogueUrl } from "./client.ts";
+import { ToonkotsuApi, catalogueUrl, type ChapterAnswer } from "./client.ts";
 import {
   BASE_URL,
   CONTENT_RATING_OPTIONS,
@@ -95,13 +97,14 @@ import {
   parseTagGroups,
   ratingIdOf,
 } from "./parsers.ts";
+import { chapterPage, imageClient, pageClient, pagesIn } from "./pages.ts";
 import { readChapterInPage } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.24",
+  version: "1.0.25",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -122,7 +125,8 @@ class ToonkotsuSource
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
-    ImageRequestHandler
+    CoverRequestHandler,
+    PageRequestHandler
 {
   readonly info = info;
   readonly config = config;
@@ -576,9 +580,9 @@ class ToonkotsuSource
     if (result.error) throw new Error(`Toonkotsu reader failed for chapter ${id}: ${result.error}`);
 
     const pages: ChapterPage[] = [];
-    for (const page of result.pages ?? []) {
-      if (page.raw) pages.push({ raw: page.raw });
-      else if (page.url) pages.push({ url: absolute(page.url, BASE_URL) });
+    for (const page of pagesIn(result.body)) {
+      const entry = chapterPage(page);
+      if (entry) pages.push(entry);
     }
 
     if (pages.length === 0) {
@@ -589,6 +593,13 @@ class ToonkotsuSource
   }
 
   private async readChapter(url: string, id: number): Promise<ReaderResult> {
+    // The keys are served to an unsigned request, so a document is only needed when the
+    // site refuses one — and a challenge here is the API's, which the WebView may already
+    // hold the clearance for.
+    const asked = await this.api.chapter(id).catch((): ChapterAnswer => ({}));
+    if (asked.refused) return asked.refused;
+    if (asked.body !== undefined) return { body: asked.body };
+
     if (typeof WebViewPage === "undefined") {
       throw new Error("This version of Mana cannot open Toonkotsu chapters (no WebView support).");
     }
@@ -597,9 +608,8 @@ class ToonkotsuSource
 
     // Both ways in — the API asked directly, and the site's own loader — are reached from any
     // document on the site's origin, and `/robots.txt` is one that brings no application
-    // bundle, no ads, and none of the site's own reader fetching these same images alongside
-    // us. Only finding the loader needs the chapter's own page, which is worth waiting on just
-    // when the API has refused and the loader is not where it was last seen.
+    // bundle and no ads. Only finding the loader needs the chapter's own page, which is worth
+    // waiting on just when the API has refused and the loader is not where it was last seen.
     let result = await this.readIn(`${BASE_URL}/robots.txt`, id, hint);
     if (result.missingLoader) result = await this.readIn(url, id, hint);
 
@@ -619,8 +629,12 @@ class ToonkotsuSource
     }
   }
 
-  async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return { url: imageURL, method: "GET", headers: { referer: `${BASE_URL}/` } };
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return imageClient();
+  }
+
+  getPageTransport(request: ImageRequest): HttpClient {
+    return pageClient(request.url);
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {

@@ -16,8 +16,10 @@ import {
   type Content,
   type DeepLinkContext,
   type Form,
-  type ImageRequestHandler,
-  type NetworkRequest,
+  type CoverRequestHandler,
+  type HttpClient,
+  type ImageRequest,
+  type PageRequestHandler,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -43,6 +45,8 @@ import {
   sectionById,
   toPageSections,
   type PreferenceValue,
+  IMAGE_ACCEPT,
+  imageClient,
 } from "../common/index.ts";
 import { MangaFireApi } from "./client.ts";
 import {
@@ -87,7 +91,7 @@ import type { QueryParam } from "./vrf.ts";
 const info: SourceInfo = {
   id: "mangafire",
   name: "MangaFire",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Manga, manhwa and manhua from mangafire.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -122,10 +126,16 @@ class MangaFireSource
     SearchProvider,
     PageLinkResolver,
     SourcePreferenceProvider,
-    ImageRequestHandler
+    CoverRequestHandler,
+    PageRequestHandler
 {
   readonly info = info;
   readonly config = config;
+  /** The image CDN refuses a request that does not carry a referer from the site itself. */
+  private readonly images = imageClient({
+    referer: `${BASE_URL}/`,
+    accept: IMAGE_ACCEPT,
+  });
 
   private readonly api = new MangaFireApi();
   private readonly preferences = new PreferenceStore(
@@ -435,15 +445,12 @@ class MangaFireSource
     return { pages: pages.map((url) => ({ url })) };
   }
 
-  /** The image CDN refuses a request that does not carry a referer from the site itself. */
-  async willRequestImage(imageURL: string): Promise<NetworkRequest> {
-    return {
-      url: imageURL,
-      headers: {
-        referer: `${BASE_URL}/`,
-        accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-      },
-    };
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return this.images;
+  }
+
+  getPageTransport(_request: ImageRequest): HttpClient {
+    return this.images;
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {

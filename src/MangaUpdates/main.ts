@@ -90,7 +90,7 @@ import {
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -307,7 +307,6 @@ class MangaUpdatesTracker
       .call<LoginResponse>("/account/login", "PUT", {
         anonymous: true,
         withoutSession: true,
-        unreadableMeansRefused: true,
         body: { username, password },
       })
       .catch(async (error: unknown) => {

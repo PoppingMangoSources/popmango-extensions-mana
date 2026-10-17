@@ -1,8 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkRequest, type NetworkResponse } from "@mana-app/types";
+import { CloudflareError, HttpClient } from "@mana-app/types";
 
-import { UrlBuilder, challengedUrl, withChallengeRetry } from "../common/index.ts";
+import {
+  UrlBuilder,
+  challengedUrl,
+  isCloudflareChallenge,
+  withChallengeRetry,
+  withDefaults,
+} from "../common/index.ts";
 import {
   BASE_URL,
   BUILD_ID_TTL_MS,
@@ -13,16 +19,10 @@ import {
   type SeriesListItem,
 } from "./model.ts";
 
-function isCloudflareChallenge(response: NetworkResponse): boolean {
-  const headers = response.headers ?? {};
-  const key = Object.keys(headers).find((name) => name.toLowerCase() === "cf-mitigated");
-  return key !== undefined && String(headers[key] ?? "").toLowerCase() === "challenge";
-}
-
 type Cached<T> = { value: Promise<T>; at: number };
 
 export class FlameComicsApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
 
   private buildId: string | undefined;
   private buildIdAt = 0;
@@ -30,26 +30,21 @@ export class FlameComicsApi {
   private home: Cached<HomepageResponse> | undefined;
   private browse: Cached<BrowseResponse> | undefined;
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
-      .setRateLimit(3, 1)
-      // 403 and 503 have to reach us, or a challenge cannot be told from a real error.
-      .setStatusValidator(
-        (status) => (status >= 200 && status < 400) || status === 403 || status === 503,
-      )
-      .addRequestInterceptor(async (request: NetworkRequest) => ({
-        ...request,
-        headers: { referer: `${BASE_URL}/`, ...request.headers },
-      }))
-      .addResponseInterceptor(async (response: NetworkResponse) => {
+  private get http(): HttpClient {
+    this.client ??= new HttpClient()
+      .setRateLimit(3, 1000)
+      .addRequestInterceptor((request) => {
+        withDefaults(request.headers, { referer: `${BASE_URL}/` });
+        return request;
+      })
+      .addResponseInterceptor((response) => {
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
         if (isCloudflareChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
-      })
-      .build();
+      });
     return this.client;
   }
 
@@ -62,7 +57,7 @@ export class FlameComicsApi {
       if (response.status >= 400) {
         throw new Error(`Flame Comics rejected the request (HTTP ${response.status})`);
       }
-      return response.data;
+      return response.text();
     });
   }
 

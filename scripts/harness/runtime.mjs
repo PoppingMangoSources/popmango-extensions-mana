@@ -5,193 +5,123 @@
  * Host shims for running a built `.mana` bundle outside the Mana app.
  *
  * The bundle is self-contained JavaScript that ends in
- * `globalThis.Target = __exports__.Target` and expects the host to provide
- * `NetworkClient`, `CloudflareError`, `NetworkError`, `ObjectStore` and
- * `SecureStore` as globals. These implementations mirror the contract the
- * in-app runtime provides, backed by Node's `fetch`.
+ * `globalThis.Target = __exports__.Target`. It carries its own `HttpClient`, which asks
+ * the host for every transfer through `globalThis.__manaHTTPBridge`, and expects
+ * `ObjectStore` and `SecureStore` as globals. These implementations mirror the contract
+ * the in-app runtime provides, backed by Node's `fetch`.
  */
 
-const STATUS_MESSAGES = {
-  400: "Bad Request",
-  401: "Unauthorized",
-  403: "Forbidden",
-  404: "Not Found.",
-  405: "Method Not Allowed",
-  410: "Gone.",
-  429: "Too Many Requests.",
-  500: "Internal Server Error.",
-  502: "Bad Gateway",
-  503: "Service Unavailable.",
-  504: "Gateway Timeout",
+/** The bridge's operation codes, in the order `@mana-app/types` declares them. */
+const Operation = {
+  Fetch: 0,
+  Read: 1,
+  Release: 2,
+  Cancel: 3,
+  CreateBody: 4,
+  RetainBody: 5,
+  Invalidate: 6,
+  BeginOperation: 7,
+  EndOperation: 8,
 };
 
-export class NetworkError extends Error {
-  constructor(name, message, req, res) {
-    super(message);
-    this.name = name;
-    this.req = req;
-    this.res = res;
-  }
-}
+const METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
 
-export class CloudflareError extends Error {
-  constructor(resolutionURL) {
-    super(`Cloudflare challenge encountered${resolutionURL ? ` (${resolutionURL})` : ""}`);
-    this.name = "CloudflareError";
-    this.resolutionURL = resolutionURL;
-  }
-}
+/** `BodyReader.Base64`; anything else is read as text. */
+const BASE64_READER = 1;
 
-function buildUrl(url, params) {
-  if (!params) return url;
-  const entries = Object.entries(params).filter(
-    ([, value]) => value !== undefined && value !== null && value !== "",
-  );
-  if (entries.length === 0) return url;
-  const query = entries
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-    .join("&");
-  return `${url}${url.includes("?") ? "&" : "?"}${query}`;
-}
-
-async function applyAll(value, transformers) {
-  let current = value;
-  for (const transform of transformers) current = await transform(current);
-  return current;
-}
-
-function asArray(value) {
-  if (!value) return [];
-  return Array.isArray(value) ? value : [value];
-}
+/** `HttpBodyKind.Bytes`, the one body that crosses the bridge as base64. */
+const BYTES_BODY = 3;
 
 /**
- * Serialises a request body the way the app's own host does.
+ * The host side of the HTTP bridge.
  *
- * Sources pass a POST body as an object and the host encodes it by the request's own
- * content type — a form where the header says form, JSON otherwise. Node's `fetch` does
- * neither and stringifies the object to `[object Object]`, which every API answers with a
- * 400, so this harness used to report a source's own bug for anything posting a body.
+ * A response body stays here, keyed by id, until the bundle reads or releases it, which
+ * is how the app keeps an image it is only passing along out of the JavaScript runtime.
+ * Every status is a response; only a transfer that never completes is an error.
  */
-function encodeBody(body, contentType) {
-  if (body == null || typeof body === "string") return body ?? undefined;
-  if (body instanceof URLSearchParams || body instanceof ArrayBuffer) return body;
-  if (ArrayBuffer.isView(body)) return body;
+export function createHttpBridge() {
+  const bodies = new Map();
+  const transfers = new Map();
+  let next = 0;
 
-  if (/application\/x-www-form-urlencoded/i.test(contentType ?? "")) {
-    const form = new URLSearchParams();
-    for (const [key, value] of Object.entries(body)) {
-      if (value != null) form.set(key, String(value));
-    }
-    return form.toString();
-  }
+  const keep = (bytes) => {
+    const bodyID = String(++next);
+    bodies.set(bodyID, bytes);
+    return { bodyID, sessionID: "harness" };
+  };
 
-  return JSON.stringify(body);
-}
-
-/**
- * Reads the private fields `NetworkClientBuilder` sets. The builder ships in
- * `@mana-app/types` and calls `new NetworkClient(this)`, so the field names
- * here are the actual contract, not a guess.
- */
-export class NetworkClient {
-  constructor(builder) {
-    this.requestTransformers = builder?.requestTransformers ?? [];
-    this.responseTransformers = builder?.responseTransformers ?? [];
-    this.baseHeaders = builder?.headers ?? {};
-    this.cookies = builder?.cookies ?? [];
-    this.timeout = builder?.timeout ?? 30_000;
-    this.requestsPerSecond = builder?.requestsPerSecond ?? 0;
-    this.statusValidator = builder?.statusValidator;
-    this.maxRetries = builder?.maxRetries ?? 0;
-    this.lastRequestAt = 0;
-  }
-
-  get(url, config = {}) {
-    return this.request({ ...config, url, method: "GET" });
-  }
-
-  post(url, config = {}) {
-    return this.request({ ...config, url, method: "POST" });
-  }
-
-  async request(req) {
-    await this.throttle();
-
-    const prepared = await applyAll(
-      {
-        ...req,
-        headers: { ...this.baseHeaders, ...(req.headers ?? {}) },
-      },
-      [...this.requestTransformers, ...asArray(req.transformRequest)],
-    );
-
-    const target = buildUrl(prepared.url, prepared.params);
-    const headers = {};
-    for (const [key, value] of Object.entries(prepared.headers ?? {})) {
-      headers[key] = String(value);
-    }
-    const cookies = [...this.cookies, ...(prepared.cookies ?? [])];
-    if (cookies.length > 0) {
-      headers.cookie = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-    }
-
+  async function fetchResponse(message) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), prepared.timeout ?? this.timeout);
+    transfers.set(message.requestID, controller);
+    const timer = setTimeout(() => controller.abort(), message.timeoutMs ?? 30_000);
 
-    let raw;
     try {
-      raw = await fetch(target, {
-        method: prepared.method ?? "GET",
-        headers,
-        body: encodeBody(prepared.body, headers["content-type"] ?? headers["Content-Type"]),
+      const body =
+        message.body === undefined
+          ? undefined
+          : message.bodyKind === BYTES_BODY
+            ? Buffer.from(message.body, "base64")
+            : message.body;
+      const raw = await fetch(message.url, {
+        method: METHODS[message.method] ?? "GET",
+        headers: message.headers,
+        body,
         redirect: "follow",
         signal: controller.signal,
       });
+      const bytes = new Uint8Array(await raw.arrayBuffer());
+      return {
+        ...keep(bytes),
+        status: raw.status,
+        url: raw.url || message.url,
+        headers: Object.fromEntries(raw.headers.entries()),
+      };
+    } catch (error) {
+      if (controller.signal.aborted) {
+        const timeout = new Error(`${message.url} timed out`);
+        timeout.name = "TimeoutError";
+        throw timeout;
+      }
+      throw error;
     } finally {
       clearTimeout(timer);
+      transfers.delete(message.requestID);
     }
-
-    // `responseEncoding: "base64"` (types 0.0.27) hands a body back as base64 so a binary
-    // file survives the bridge; anything else is decoded as UTF-8 text as it always was.
-    const data =
-      prepared.responseEncoding === "base64"
-        ? Buffer.from(await raw.arrayBuffer()).toString("base64")
-        : await raw.text();
-    const response = {
-      data,
-      status: raw.status,
-      headers: Object.fromEntries(raw.headers.entries()),
-      request: prepared,
-    };
-
-    const validate = prepared.validateStatus ?? this.statusValidator;
-    const ok = validate ? validate(raw.status) : raw.status >= 200 && raw.status < 300;
-
-    const transformed = await applyAll(response, [
-      ...this.responseTransformers,
-      ...asArray(prepared.transformResponse),
-    ]);
-
-    if (!ok) {
-      throw new NetworkError(
-        "NetworkError",
-        STATUS_MESSAGES[raw.status] ?? `Request failed with status ${raw.status}`,
-        prepared,
-        transformed,
-      );
-    }
-
-    return transformed;
   }
 
-  async throttle() {
-    if (!this.requestsPerSecond) return;
-    const minGap = 1000 / this.requestsPerSecond;
-    const wait = this.lastRequestAt + minGap - Date.now();
-    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-    this.lastRequestAt = Date.now();
-  }
+  return {
+    requiresOperation: false,
+    now: () => Date.now(),
+    async send(message) {
+      switch (message.operation) {
+        case Operation.Fetch:
+          return fetchResponse(message);
+        case Operation.Read: {
+          const bytes = bodies.get(message.bodyID);
+          if (!bytes) throw new Error(`Response body ${message.bodyID} was already released`);
+          const buffer = Buffer.from(bytes);
+          return {
+            value:
+              message.reader === BASE64_READER ? buffer.toString("base64") : buffer.toString("utf8"),
+          };
+        }
+        case Operation.Release:
+          bodies.delete(message.bodyID);
+          return {};
+        case Operation.Cancel:
+          transfers.get(message.requestID)?.abort();
+          return {};
+        case Operation.CreateBody:
+          return keep(new Uint8Array(Buffer.from(message.value ?? "", "base64")));
+        default:
+          return {};
+      }
+    },
+    /** The bytes a body id holds, for a check that reads what the app would be handed. */
+    bytes(bodyID) {
+      return bodies.get(bodyID);
+    },
+  };
 }
 
 /** In-memory stand-in for the app's key-value stores. */
@@ -247,7 +177,7 @@ export class ManaStore {
 export const INTENT_NAMES = [
   "preferenceMenuBuilder",
   "requiresSetup",
-  "imageRequestHandler",
+  "retired",
   "pageLinkResolver",
   "libraryPageLinkProvider",
   "authenticatable",
@@ -270,6 +200,8 @@ export const INTENT_NAMES = [
   "canHandleURL",
   "allowsMultipleInstances",
   "requiresAuthenticationToAccessContent",
+  "coverTransport",
+  "pageTransport",
 ];
 
 export function decodeIntents(mask) {

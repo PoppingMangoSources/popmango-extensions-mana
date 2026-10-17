@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { NetworkClientBuilder, type NetworkResponse } from "@mana-app/types";
+import { HttpClient } from "@mana-app/types";
 
 import { ACCEPT_LANGUAGE, withQuery, type QueryParams } from "../common/index.ts";
 import { API_URL, BASE_URL } from "./model.ts";
@@ -35,24 +35,22 @@ function errorMessage(body: string): string | undefined {
 }
 
 export class MangaDexApi {
-  private client: NetworkClient | undefined;
+  private client: HttpClient | undefined;
   // The home page fires six rows at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
-  private get http(): NetworkClient {
-    this.client ??= new NetworkClientBuilder()
+  private get http(): HttpClient {
+    this.client ??= new HttpClient()
       // The API asks for five a second across a client and answers 429 above it. Four
       // leaves room for the cover requests the app makes on its own alongside these.
-      .setRateLimit(4, 1)
-      // Every status has to reach us: the API writes its reason into the body, and a 404
-      // from `/manga/{id}` is an answer rather than a failure.
-      .setStatusValidator(() => true)
-      .addHeader("accept", "application/json")
-      .addHeader("accept-language", ACCEPT_LANGUAGE)
-      // No user-agent of our own: the API sits behind Cloudflare, which scores a written
-      // one against the connection making the request and refuses the mismatch.
-      .addHeader("referer", `${BASE_URL}/`)
-      .build();
+      .setRateLimit(4, 1000)
+      .addHeaders({
+        accept: "application/json",
+        "accept-language": ACCEPT_LANGUAGE,
+        // No user-agent of our own: the API sits behind Cloudflare, which scores a written
+        // one against the connection making the request and refuses the mismatch.
+        referer: `${BASE_URL}/`,
+      });
     return this.client;
   }
 
@@ -68,8 +66,10 @@ export class MangaDexApi {
   }
 
   private async run<T>(url: string): Promise<T> {
-    const response: NetworkResponse = await this.http.get(url);
-    const body = response.data ?? "";
+    // The API writes its reason into the body, and a 404 from `/manga/{id}` is an answer
+    // rather than a failure, so every status is read here.
+    const response = await this.http.get(url);
+    const body = await response.text();
 
     if (response.status >= 400) {
       const stated = errorMessage(body);

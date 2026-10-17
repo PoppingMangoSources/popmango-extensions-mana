@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import type { WebViewPageInstance } from "@mana-app/types";
+import { CloudflareError, type WebViewPageInstance } from "@mana-app/types";
 
 // The page itself may take a while to answer; the challenge on it is judged separately.
 const PAGE_TIMEOUT_SECONDS = 30;
