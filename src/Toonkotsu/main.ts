@@ -67,7 +67,6 @@ import {
   EARLIEST_YEAR,
   FACETS_LIFETIME_MS,
   FilterID,
-  HUMAN_CHECK_SECONDS,
   MATCH_MODE_OPTIONS,
   COUNTRY_OPTIONS,
   PAGE_SIZE,
@@ -103,13 +102,13 @@ import {
   ratingIdOf,
 } from "./parsers.ts";
 import { chapterPage, imageClient, pageClient, pagesIn } from "./pages.ts";
-import { readChapterInPage, waitForUnlock } from "./reader.ts";
+import { readChapterInPage } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.26",
+  version: "1.0.27",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -580,7 +579,6 @@ class ToonkotsuSource
     const url = `${contentUrl(contentId)}/${id}`;
     let result = await this.readChapter(url, id);
     let retries = 0;
-    let checked = false;
 
     for (;;) {
       if (result.gate === "transient") {
@@ -593,11 +591,10 @@ class ToonkotsuSource
         const minutes = Math.max(1, Math.ceil((result.retryAfter ?? 600) / 60));
         throw new Error(`Toonkotsu is rate limiting this device. Try again in ${minutes} min.`);
       } else if (result.gate) {
-        // Only a check that will not pass on its own is handed to the reader, as a challenge
-        // on the chapter's own page, where the site runs it.
-        if (checked) throw new CloudflareError(url);
-        checked = true;
-        if (!(await this.passHumanCheck(url))) throw new CloudflareError(url);
+        // The check needs a person, and the site runs it on the chapter's own page. Trying it
+        // in the background never passed, and every chapter the reader preloads would start
+        // one of its own.
+        throw new CloudflareError(url);
       } else {
         break;
       }
@@ -644,21 +641,6 @@ class ToonkotsuSource
       await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
     }
     return result;
-  }
-
-  /** Opens the chapter in the site's own reader and gives its human check time to pass. */
-  private async passHumanCheck(url: string): Promise<boolean> {
-    if (typeof WebViewPage === "undefined") return false;
-
-    const page = await WebViewPage.create({ timeout: READER_TIMEOUT });
-    try {
-      await page.goto(url, { waitUntil: "domcontentloaded" });
-      return await page.evaluate(waitForUnlock, HUMAN_CHECK_SECONDS * 1000);
-    } catch {
-      return false;
-    } finally {
-      await page.close();
-    }
   }
 
   private async readIn(url: string, id: number, hint: string): Promise<ReaderResult> {
