@@ -17,6 +17,9 @@ export const TRANSIENT_RETRIES = 2;
 /** The longest the site's own reader waits out a momentary limit, in seconds. */
 export const TRANSIENT_WAIT_LIMIT = 10;
 
+/** How long the site's reader is given to pass its human check without a tap, in seconds. */
+export const HUMAN_CHECK_SECONDS = 20;
+
 /**
  * The range the publication-year steppers run over.
  *

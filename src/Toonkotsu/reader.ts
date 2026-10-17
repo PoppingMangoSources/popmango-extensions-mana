@@ -144,3 +144,27 @@ export async function readChapterInPage(chapterId: number, hint: string): Promis
 
   return { body, loader };
 }
+
+/**
+ * Waits on the site's own reader to pass its human check, which it often does without a tap.
+ *
+ * The page's record of its requests shows the unlock being posted without touching the page,
+ * which the check's own scripts could notice. Runs inside the browser through `evaluate`.
+ */
+export function waitForUnlock(timeoutMs: number): Promise<boolean> {
+  const scope = globalThis as unknown as {
+    performance: { getEntriesByType(type: string): { name: string }[] };
+    setTimeout(fn: () => void, ms: number): unknown;
+  };
+  const started = Date.now();
+
+  return new Promise((resolve) => {
+    const poll = (): void => {
+      const entries = scope.performance.getEntriesByType("resource");
+      if (entries.some((entry) => entry.name.includes("/api/manga/unlock"))) resolve(true);
+      else if (Date.now() - started > timeoutMs) resolve(false);
+      else scope.setTimeout(poll, 500);
+    };
+    poll();
+  });
+}

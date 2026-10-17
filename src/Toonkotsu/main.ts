@@ -67,6 +67,7 @@ import {
   EARLIEST_YEAR,
   FACETS_LIFETIME_MS,
   FilterID,
+  HUMAN_CHECK_SECONDS,
   MATCH_MODE_OPTIONS,
   COUNTRY_OPTIONS,
   PAGE_SIZE,
@@ -102,13 +103,13 @@ import {
   ratingIdOf,
 } from "./parsers.ts";
 import { chapterPage, imageClient, pageClient, pagesIn } from "./pages.ts";
-import { readChapterInPage } from "./reader.ts";
+import { readChapterInPage, waitForUnlock } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.27",
+  version: "1.0.28",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -147,6 +148,8 @@ class ToonkotsuSource
   );
   // Recently-read cursors for the uploads feed, which repeats a title across pages.
   private readonly seenByPage = new Map<number, string[]>();
+  private humanCheck: Promise<boolean> | undefined;
+  private humanCheckPassedAt = 0;
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -579,6 +582,7 @@ class ToonkotsuSource
     const url = `${contentUrl(contentId)}/${id}`;
     let result = await this.readChapter(url, id);
     let retries = 0;
+    let checked = false;
 
     for (;;) {
       if (result.gate === "transient") {
@@ -591,10 +595,11 @@ class ToonkotsuSource
         const minutes = Math.max(1, Math.ceil((result.retryAfter ?? 600) / 60));
         throw new Error(`Toonkotsu is rate limiting this device. Try again in ${minutes} min.`);
       } else if (result.gate) {
-        // The check needs a person, and the site runs it on the chapter's own page. Trying it
-        // in the background never passed, and every chapter the reader preloads would start
-        // one of its own.
-        throw new CloudflareError(url);
+        // Only a check that will not pass on its own is handed to the reader, as a challenge
+        // on the chapter's own page, where the site runs it.
+        if (checked) throw new CloudflareError(url);
+        checked = true;
+        if (!(await this.passHumanCheck(url))) throw new CloudflareError(url);
       } else {
         break;
       }
@@ -641,6 +646,44 @@ class ToonkotsuSource
       await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
     }
     return result;
+  }
+
+  /**
+   * Gives the site's human check a chance to pass on its own, once for every chapter waiting.
+   *
+   * One pass unlocks the whole guest session, so the chapters the reader preloads alongside
+   * the one opened wait on the same attempt rather than each opening a page of their own.
+   */
+  private passHumanCheck(url: string): Promise<boolean> {
+    // A read refused just before the check passed is answered just after it; it is asked
+    // again rather than given a check of its own.
+    if (Date.now() - this.humanCheckPassedAt < HUMAN_CHECK_SECONDS * 1000) {
+      return Promise.resolve(true);
+    }
+    this.humanCheck ??= this.runHumanCheck(url)
+      .then((passed) => {
+        if (passed) this.humanCheckPassedAt = Date.now();
+        return passed;
+      })
+      .finally(() => {
+        this.humanCheck = undefined;
+      });
+    return this.humanCheck;
+  }
+
+  /** Opens the chapter in the site's own reader and gives its human check time to pass. */
+  private async runHumanCheck(url: string): Promise<boolean> {
+    if (typeof WebViewPage === "undefined") return false;
+
+    const page = await WebViewPage.create({ timeout: READER_TIMEOUT });
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      return await page.evaluate(waitForUnlock, HUMAN_CHECK_SECONDS * 1000);
+    } catch {
+      return false;
+    } finally {
+      await page.close();
+    }
   }
 
   private async readIn(url: string, id: number, hint: string): Promise<ReaderResult> {
