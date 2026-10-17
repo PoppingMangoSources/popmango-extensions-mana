@@ -11,6 +11,15 @@ export const PAGE_SIZE = 42;
 
 export const READER_TIMEOUT = 180;
 
+/** How often a read the site calls a momentary limit is asked again, as its own reader does. */
+export const TRANSIENT_RETRIES = 2;
+
+/** The longest the site's own reader waits out a momentary limit, in seconds. */
+export const TRANSIENT_WAIT_LIMIT = 10;
+
+/** How long the site's reader is given to pass its human check without a tap, in seconds. */
+export const HUMAN_CHECK_SECONDS = 20;
+
 /**
  * The range the publication-year steppers run over.
  *
@@ -41,6 +50,7 @@ export const FilterID = {
   YearTo: "year_to",
   ChaptersMin: "chapters_min",
   ChaptersMax: "chapters_max",
+  HasChapters: "has_chapters",
 } as const;
 
 export const PreferenceID = {
@@ -400,6 +410,8 @@ export type SiteFailure = {
     error?: string;
     /** The site wants the request signed, which only its own loader can do. */
     resign?: boolean;
+    /** A limit that lifts by itself within seconds, which the site's reader simply waits out. */
+    transient?: boolean;
   };
 };
 

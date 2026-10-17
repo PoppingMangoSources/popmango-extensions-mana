@@ -75,7 +75,8 @@ function probe(siteSelector: string): string {
 // One WebView may be active per source, so a home page of many rows shares one attempt.
 let inFlight: Promise<boolean> | undefined;
 
-function delay(ms: number): Promise<void> {
+/** Resolves after `ms`, or at once in a runtime with no timer to wait on. */
+export function delay(ms: number): Promise<void> {
   const timer = (globalThis as { setTimeout?: (fn: () => void, ms: number) => unknown }).setTimeout;
   if (!timer) return Promise.resolve();
   return new Promise((resolve) => {

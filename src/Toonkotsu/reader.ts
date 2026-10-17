@@ -38,7 +38,8 @@ export async function readChapterInPage(chapterId: number, hint: string): Promis
       // loader the same thing again only costs another page. Being asked for a signature is
       // the one refusal the loader can answer.
       if (data?.code === "manga-limit" && !data.resign) {
-        return { refused: { gate: data.reason || "verify", retryAfter: data.retryAfterSec } };
+        const gate = data.transient ? "transient" : data.reason || "verify";
+        return { refused: { gate, retryAfter: data.retryAfterSec } };
       }
       return {};
     }
@@ -122,9 +123,8 @@ export async function readChapterInPage(chapterId: number, hint: string): Promis
     } catch (error) {
       const failure = (error ?? {}) as SiteFailure;
       if (failure.status === 429 && failure.data?.code === "manga-limit") {
-        return {
-          result: { gate: failure.data.reason || "verify", retryAfter: failure.data.retryAfterSec },
-        };
+        const gate = failure.data.transient ? "transient" : failure.data.reason || "verify";
+        return { result: { gate, retryAfter: failure.data.retryAfterSec } };
       }
       return { result: { error: failure.data?.error || failure.message || String(error) } };
     }
@@ -143,4 +143,28 @@ export async function readChapterInPage(chapterId: number, hint: string): Promis
   }
 
   return { body, loader };
+}
+
+/**
+ * Waits on the site's own reader to pass its human check, which it often does without a tap.
+ *
+ * The page's record of its requests shows the unlock being posted without touching the page,
+ * which the check's own scripts could notice. Runs inside the browser through `evaluate`.
+ */
+export function waitForUnlock(timeoutMs: number): Promise<boolean> {
+  const scope = globalThis as unknown as {
+    performance: { getEntriesByType(type: string): { name: string }[] };
+    setTimeout(fn: () => void, ms: number): unknown;
+  };
+  const started = Date.now();
+
+  return new Promise((resolve) => {
+    const poll = (): void => {
+      const entries = scope.performance.getEntriesByType("resource");
+      if (entries.some((entry) => entry.name.includes("/api/manga/unlock"))) resolve(true);
+      else if (Date.now() - started > timeoutMs) resolve(false);
+      else scope.setTimeout(poll, 500);
+    };
+    poll();
+  });
 }

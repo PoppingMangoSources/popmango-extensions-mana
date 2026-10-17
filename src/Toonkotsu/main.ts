@@ -12,6 +12,7 @@ import {
   SearchPicker,
   SearchStepper,
   SearchTextField,
+  SearchToggle,
   SearchTagsSection,
   CloudflareError,
   type Chapter,
@@ -48,6 +49,7 @@ import {
   TimedCache,
   buildPreferenceMenu,
   buildSearchForm,
+  delay,
   isDetailedStyle,
   isMigration,
   pageOf,
@@ -65,6 +67,7 @@ import {
   EARLIEST_YEAR,
   FACETS_LIFETIME_MS,
   FilterID,
+  HUMAN_CHECK_SECONDS,
   MATCH_MODE_OPTIONS,
   COUNTRY_OPTIONS,
   PAGE_SIZE,
@@ -77,6 +80,8 @@ import {
   SectionID,
   SortID,
   TAG_GROUPS,
+  TRANSIENT_RETRIES,
+  TRANSIENT_WAIT_LIMIT,
   TYPE_OPTIONS,
   latestYear,
   type CatalogueParams,
@@ -98,13 +103,13 @@ import {
   ratingIdOf,
 } from "./parsers.ts";
 import { chapterPage, imageClient, pageClient, pagesIn } from "./pages.ts";
-import { readChapterInPage } from "./reader.ts";
+import { readChapterInPage, waitForUnlock } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.25",
+  version: "1.0.26",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -201,6 +206,7 @@ class ToonkotsuSource
               upperBound: 2000,
               step: 10,
             }),
+            SearchToggle({ id: FilterID.HasChapters, title: "Has Chapters" }),
           ],
         }),
         SearchMultiPicker({
@@ -499,6 +505,8 @@ class ToonkotsuSource
       ...stepped(filters, FilterID.YearTo, "yearTo", EARLIEST_YEAR),
       ...stepped(filters, FilterID.ChaptersMin, "chaptersMin", 0),
       ...stepped(filters, FilterID.ChaptersMax, "chaptersMax", 0),
+      // Spelled out: the site reads this one as the word, where its other flags are `1`.
+      ...(filters.toggle(FilterID.HasChapters) ? { hasChapters: "true" } : {}),
       sort,
       order,
       page,
@@ -570,13 +578,32 @@ class ToonkotsuSource
     if (!Number.isFinite(id)) throw new Error(`"${chapterId}" is not a Toonkotsu chapter id`);
 
     const url = `${contentUrl(contentId)}/${id}`;
-    const result = await this.readChapter(url, id);
+    let result = await this.readChapter(url, id);
+    let retries = 0;
+    let checked = false;
 
-    if (result.gate === "wait") {
-      const minutes = Math.max(1, Math.ceil((result.retryAfter ?? 600) / 60));
-      throw new Error(`Toonkotsu is rate limiting this device. Try again in ${minutes} min.`);
+    for (;;) {
+      if (result.gate === "transient") {
+        if (retries++ === TRANSIENT_RETRIES) {
+          throw new Error("Toonkotsu is limiting reads right now. Try again in a moment.");
+        }
+        const seconds = Math.min(Math.max(result.retryAfter ?? 2, 1), TRANSIENT_WAIT_LIMIT);
+        await delay(seconds * 1000);
+      } else if (result.gate === "wait") {
+        const minutes = Math.max(1, Math.ceil((result.retryAfter ?? 600) / 60));
+        throw new Error(`Toonkotsu is rate limiting this device. Try again in ${minutes} min.`);
+      } else if (result.gate) {
+        // Only a check that will not pass on its own is handed to the reader, as a challenge
+        // on the chapter's own page, where the site runs it.
+        if (checked) throw new CloudflareError(url);
+        checked = true;
+        if (!(await this.passHumanCheck(url))) throw new CloudflareError(url);
+      } else {
+        break;
+      }
+      result = await this.readChapter(url, id);
     }
-    if (result.gate) throw new CloudflareError(url);
+
     if (result.error) throw new Error(`Toonkotsu reader failed for chapter ${id}: ${result.error}`);
 
     const pages: ChapterPage[] = [];
@@ -617,6 +644,21 @@ class ToonkotsuSource
       await this.preferences.set(PreferenceID.ReaderLoader, result.loader);
     }
     return result;
+  }
+
+  /** Opens the chapter in the site's own reader and gives its human check time to pass. */
+  private async passHumanCheck(url: string): Promise<boolean> {
+    if (typeof WebViewPage === "undefined") return false;
+
+    const page = await WebViewPage.create({ timeout: READER_TIMEOUT });
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      return await page.evaluate(waitForUnlock, HUMAN_CHECK_SECONDS * 1000);
+    } catch {
+      return false;
+    } finally {
+      await page.close();
+    }
   }
 
   private async readIn(url: string, id: number, hint: string): Promise<ReaderResult> {

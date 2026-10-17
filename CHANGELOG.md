@@ -5,7 +5,18 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.25)
+## Toonkotsu (current: v1.0.26)
+
+### Added
+
+- Add the site's Has Chapters filter to search.
+
+### Changed
+
+- Wait out a momentary reading limit and try again, as the site's own reader does, rather than asking for a human check.
+- Give the site's human check a chance to pass on its own before handing it to the reader.
+
+## Toonkotsu (v1.0.25)
 
 ### Changed
 

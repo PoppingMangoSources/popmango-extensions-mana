@@ -105,7 +105,8 @@ export class ToonkotsuApi {
       // A human check or a wait stands whichever way the chapter is asked for, so asking the
       // loader the same thing again only costs another page.
       if (data?.code === "manga-limit" && !data.resign) {
-        return { refused: { gate: data.reason || "verify", retryAfter: data.retryAfterSec } };
+        const gate = data.transient ? "transient" : data.reason || "verify";
+        return { refused: { gate, retryAfter: data.retryAfterSec } };
       }
       return {};
     }
