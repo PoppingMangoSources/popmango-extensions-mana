@@ -212,49 +212,131 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
   return result;
 }
 
-/** Codepoints rather than characters: `String.fromCharCode` takes them a chunk at a time. */
+/**
+ * Each pair of base64 characters a 12-bit run of input encodes to, as two bytes in memory
+ * order, so one lookup writes both through a `Uint16Array` view.
+ */
+let base64Pairs: Uint16Array | undefined;
+
+/** Codepoints rather than characters, so a code goes straight into a byte array. */
 const BASE64_CODES = Uint8Array.from(BASE64_ALPHABET, (character) => character.charCodeAt(0));
 
+function base64PairTable(): Uint16Array {
+  if (base64Pairs) return base64Pairs;
+  const littleEndian = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+  const table = new Uint16Array(4096);
+  for (let i = 0; i < 4096; i++) {
+    const high = BASE64_CODES[i >> 6]!;
+    const low = BASE64_CODES[i & 63]!;
+    table[i] = littleEndian ? high | (low << 8) : (high << 8) | low;
+  }
+  base64Pairs = table;
+  return table;
+}
+
 /**
- * How many characters are built before they are turned into a string.
- *
- * `String.fromCharCode` is applied to a slice, so the chunk has to stay well inside the
- * argument limit a runtime will accept — eight thousand is far below every engine's.
+ * How many characters become one string at a time. `String.fromCharCode` is applied to a
+ * slice, so the chunk stays far inside the argument limit any engine accepts.
  */
 const BASE64_CHUNK = 8192;
 
 /**
- * Encodes bytes as padded base64 — what a page handed to the app as `raw` has to be,
- * where `bytesToBase64Url` answers the shape a signature travels in.
+ * Encodes bytes as padded base64.
  *
- * Built a chunk at a time rather than a character at a time: a decrypted page is megabytes,
- * and appending to one string four times per three bytes spent half a second on a two
- * megabyte image, which is most of what a reader waits for.
+ * Written for a decrypted page, which is close to a megabyte and handed back to the app as
+ * base64. An app's own JavaScript on iOS runs without a JIT, so the characters are written
+ * into a byte array two at a time and turned into strings a chunk at a time; appending to one
+ * string per character took almost half a second a page there.
  */
 export function bytesToBase64(bytes: Uint8Array): string {
-  const parts: string[] = [];
-  const chunk = new Uint8Array(BASE64_CHUNK);
-  let at = 0;
+  const pairs = base64PairTable();
+  const length = bytes.length;
+  const whole = length - (length % 3);
+  const codes = new Uint8Array(Math.ceil(length / 3) * 4);
+  const view = new Uint16Array(codes.buffer);
 
-  const flush = (): void => {
-    parts.push(String.fromCharCode(...chunk.subarray(0, at)));
-    at = 0;
-  };
-
-  for (let i = 0; i < bytes.length; i += 3) {
-    const first = bytes[i]!;
-    const second = bytes[i + 1];
-    const third = bytes[i + 2];
-
-    chunk[at++] = BASE64_CODES[first >> 2]!;
-    chunk[at++] = BASE64_CODES[((first & 0x03) << 4) | ((second ?? 0) >> 4)]!;
-    chunk[at++] =
-      second === undefined ? 0x3d : BASE64_CODES[((second & 0x0f) << 2) | ((third ?? 0) >> 6)]!;
-    chunk[at++] = third === undefined ? 0x3d : BASE64_CODES[third & 0x3f]!;
-
-    if (at >= BASE64_CHUNK) flush();
+  let w = 0;
+  for (let i = 0; i < whole; i += 3) {
+    const n = (bytes[i]! << 16) | (bytes[i + 1]! << 8) | bytes[i + 2]!;
+    view[w++] = pairs[n >> 12]!;
+    view[w++] = pairs[n & 4095]!;
   }
-  if (at > 0) flush();
 
+  if (whole < length) {
+    const second = whole + 1 < length;
+    const n = (bytes[whole]! << 16) | (second ? bytes[whole + 1]! << 8 : 0);
+    let at = w * 2;
+    codes[at++] = BASE64_CODES[n >> 18]!;
+    codes[at++] = BASE64_CODES[(n >> 12) & 63]!;
+    codes[at++] = second ? BASE64_CODES[(n >> 6) & 63]! : 0x3d;
+    codes[at] = 0x3d;
+  }
+
+  // `apply` rather than a spread: without a JIT, spreading each chunk into arguments costs ten
+  // times what the rest of this function does.
+  const parts: string[] = [];
+  for (let i = 0; i < codes.length; i += BASE64_CHUNK) {
+    parts.push(
+      String.fromCharCode.apply(null, codes.subarray(i, i + BASE64_CHUNK) as unknown as number[]),
+    );
+  }
   return parts.join("");
+}
+
+/**
+ * Where each base64 character stands, for every code unit a string can hold, so a lookup
+ * never needs a range check first: anything outside the alphabet is `-1`.
+ */
+let base64Body: Int8Array | undefined;
+
+function base64BodyTable(): Int8Array {
+  if (base64Body) return base64Body;
+  const table = new Int8Array(65536).fill(-1);
+  table.set(BASE64_VALUES);
+  base64Body = table;
+  return table;
+}
+
+/**
+ * Decodes a base64 body the host handed over: one unbroken run of characters, padded or not,
+ * in either alphabet.
+ *
+ * `base64ToBytes` forgives whitespace and stray characters a character at a time, which a
+ * blob scraped out of a page needs; a megabyte of image does not, and reading it four
+ * characters to an iteration is what keeps it to a few tens of milliseconds without a JIT.
+ */
+export function base64BodyToBytes(value: string): Uint8Array {
+  let length = value.length;
+  while (length > 0 && value.charCodeAt(length - 1) === 0x3d) length--;
+
+  const out = new Uint8Array((length * 3) >> 2);
+  const whole = length - (length & 3);
+  const table = base64BodyTable();
+  const at = (i: number): number => table[value.charCodeAt(i)]!;
+
+  // The lookups are written out in the loop rather than through `at`: a call per character
+  // is most of the cost without a JIT.
+  let o = 0;
+  for (let i = 0; i < whole; i += 4) {
+    const n =
+      (table[value.charCodeAt(i)]! << 18) |
+      (table[value.charCodeAt(i + 1)]! << 12) |
+      (table[value.charCodeAt(i + 2)]! << 6) |
+      table[value.charCodeAt(i + 3)]!;
+    if (n < 0) throw new Error("The body is not base64, so its bytes cannot be recovered.");
+    out[o] = n >> 16;
+    out[o + 1] = n >> 8;
+    out[o + 2] = n;
+    o += 3;
+  }
+
+  const rest = length & 3;
+  if (rest === 1) throw new Error("The body is not base64, so its bytes cannot be recovered.");
+  if (rest > 1) {
+    const n = (at(whole) << 18) | (at(whole + 1) << 12) | (rest === 3 ? at(whole + 2) << 6 : 0);
+    if (n < 0) throw new Error("The body is not base64, so its bytes cannot be recovered.");
+    out[o++] = n >> 16;
+    if (rest === 3) out[o] = n >> 8;
+  }
+  return out;
 }

@@ -1,11 +1,18 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { HttpClient, RequestOrigin, type ChapterPage } from "@mana-app/types";
+import { HttpClient, RequestOrigin, type ChapterPage, type HttpResponse } from "@mana-app/types";
 
-import { aesCtrDecrypt, base64ToBytes, resolveUrl, withDefaults } from "../common/index.ts";
+import {
+  aesCtrDecryptInPlace,
+  base64BodyToBytes,
+  base64ToBytes,
+  bytesToBase64,
+  resolveUrl,
+  withDefaults,
+} from "../common/index.ts";
 import { BASE_URL, type SitePage } from "./model.ts";
 
-type PageKeys = { key: Uint8Array; counter: Uint8Array };
+type PageKeys = { key: Uint8Array; nonce: Uint8Array };
 
 /** The longest array of objects carrying a `src`, wherever in the answer the site put it. */
 export function pagesIn(body: unknown): SitePage[] {
@@ -78,10 +85,9 @@ function keysOf(url: string): PageKeys | undefined {
   const n = fields.get("n");
   if (!k || !n) return undefined;
 
-  // The site counts blocks in the low eight bytes and keeps its nonce in the high eight.
-  const counter = new Uint8Array(16);
-  counter.set(base64ToBytes(n).subarray(0, 8), 0);
-  return { key: base64ToBytes(k), counter };
+  // The site counts blocks in the low eight bytes of the counter and keeps its nonce in the
+  // high eight.
+  return { key: base64ToBytes(k), nonce: base64ToBytes(n).subarray(0, 8) };
 }
 
 /** Decrypted pages arrive as the site's own file, which says what it is in its first bytes. */
@@ -124,7 +130,33 @@ export function pageClient(url: string): HttpClient {
 
   return withReferer(new HttpClient()).addResponseInterceptor(async (response, context) => {
     if (context.origin !== RequestOrigin.Page || !response.ok) return response;
-    const image = aesCtrDecrypt(await response.bytes(), keys.key, keys.counter);
-    return response.withBody(image, { contentType: imageType(image) });
+    // Read as base64 and decoded here: `bytes()` decodes by searching the alphabet for every
+    // character, which is most of a page's time on a device with no JIT.
+    const image = aesCtrDecryptInPlace(
+      base64BodyToBytes(await response.base64()),
+      keys.key,
+      keys.nonce,
+    );
+    return handOver(response.withBody(image, { contentType: imageType(image) }), image);
   });
+}
+
+/** `BodyReader.Base64`, which the types package does not export. */
+const BASE64_READER = 1;
+
+/**
+ * Gives a rewritten response its base64 up front.
+ *
+ * The host takes a rewritten body back as base64, and the runtime builds that string by
+ * appending to it four characters at a time — close to half a second a page without a JIT,
+ * against a few tens of milliseconds here. The response's own cache of what it has been read
+ * as is where the export looks first, so the string is left there. A runtime shaped
+ * differently simply encodes it itself, as it would have anyway.
+ */
+function handOver(response: HttpResponse, image: Uint8Array): HttpResponse {
+  const storage = (response as unknown as { storage?: { reads?: unknown } }).storage;
+  if (storage?.reads instanceof Map) {
+    storage.reads.set(BASE64_READER, Promise.resolve(bytesToBase64(image)));
+  }
+  return response;
 }
