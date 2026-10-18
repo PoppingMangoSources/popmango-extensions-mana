@@ -5,7 +5,15 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.31)
+## Toonkotsu (current: v1.0.32)
+
+### Changed
+
+- Bundle a WebCrypto dependency for SHA-256, HMAC signing, and AES-CTR page decryption; prefer native WebCrypto when available.
+- Try signed chapter requests before opening the site's loader, refresh rejected signing keys, and unmask each page's own key. Keep the unsigned fast path and human-check fallback.
+- Validate page keys and nonces before handing encrypted image URLs to the reader. Built with the 0.2.0 HTTP and image transport toolchain.
+
+## Toonkotsu (v1.0.31)
 
 ### Fixed
 
