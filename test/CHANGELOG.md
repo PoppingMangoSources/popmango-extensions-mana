@@ -1,0 +1,2717 @@
+# Changelog
+
+A new source starts at `1.0.0`, and every push that changes one bumps its patch digit,
+whatever the push contains. The minor digit moves only when it is asked for by name. The
+sources that were already here were renumbered to `1.1.0` in one go; before that they
+counted up from `1.0.0`.
+
+## Toonkotsu (current: v1.0.28)
+
+### Changed
+
+- Give the site's human check a chance to pass on its own in the background again, with every chapter loading at once waiting on the same attempt.
+
+## Toonkotsu (v1.0.27)
+
+### Changed
+
+- Hand the site's human check straight to the reader again, rather than first trying it in the background.
+
+## Toonkotsu (v1.0.26)
+
+### Added
+
+- Add the site's Has Chapters filter to search.
+
+### Changed
+
+- Wait out a momentary reading limit and try again, as the site's own reader does, rather than asking for a human check.
+- Give the site's human check a chance to pass on its own before handing it to the reader.
+
+## Toonkotsu (v1.0.25)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Ask the API for a chapter's page keys directly, opening a WebView only when it refuses.
+- Decrypt each page as the reader reaches it rather than the whole chapter before it opens.
+
+## Toonkotsu (v1.0.24)
+
+### Changed
+
+- Show Hidden Gems as a simple single row like This Season, directly below Trending.
+
+## Toonkotsu (v1.0.23)
+
+### Changed
+
+- Show one non-spoiler genre below Year on Trending cards.
+- Place Hidden Gems above Trending.
+
+## Toonkotsu (v1.0.22)
+
+### Changed
+
+- Separate the rating star and number with a space in every discovery section.
+- Show the publication year below Status on Trending cards when available.
+
+## Toonkotsu (v1.0.21)
+
+### Changed
+
+- Replace Top Rated with This Season and add descriptions to every discovery section.
+- Show Hidden Gems in one detailed row. Hidden Gems and Trending combine chapter progress
+  and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
+- Remove the duplicate Progress row from Latest Updates.
+
+## XCOMIC (current: v1.2.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## XCOMIC (v1.2.3)
+
+### Changed
+
+- Add a description under every discovery section heading.
+
+## XCOMIC (v1.2.2)
+
+### Changed
+
+- Show Most Follows in a single detailed row.
+
+## ValirScans (current: v1.1.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## ValirScans (v1.1.3)
+
+### Fixed
+
+- Read the site's Top 10 chart from its new rows payload, restoring the empty discovery row.
+- Fetch browse results and taxonomy directly from the site's catalogue API with correct
+  type names, status/origin choices, exclusion parameters and chapter-range fields.
+- Decode embedded Flight records without corrupting escaped text or raw reader payloads.
+
+### Changed
+
+- Populate the hero with the catalogue's Top Rated sort.
+- Add quick chapter-count presets alongside custom bounds and restrict catalogue requests
+  to comics, including the expanded prose formats among unsupported title types.
+
+
+## Kagane (current: v1.1.14)
+
+### Changed
+
+- Bring back the grouped tag pickers in search — Era, Adaptations and the rest each open as their own sheet under Tags.
+
+## Kagane (v1.1.13)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports, re-signing each page as it is asked for.
+
+## Kagane (v1.1.12)
+
+### Added
+
+- Fall back to the site's More like this recommendations when no usable Related Editions
+  are available, respecting rating, reading-language and browsing hide-lists. Skip both
+  enrichment requests during library migration.
+
+## Kagane (v1.1.11)
+
+### Changed
+
+- Show Trending This Week in three detailed rows, with the remaining chart titles available
+  by swiping horizontally.
+
+## Kagane (v1.1.10)
+
+### Fixed
+
+- Match any alias of a selected tag while preserving Match All across separate tags,
+  including typed tag names and searches spanning multiple result pages.
+- Renew expired reader tokens automatically per chapter and quality mode, sharing concurrent
+  renewals and using the refreshed image server without mixing chapters or page identities.
+
+### Added
+
+- Chapter-title choices for chapter number plus title, volume/chapter plus title, title only
+  and original website title. Automatic retains the existing display by default.
+
+### Changed
+
+- Place the weekly Trending chart directly below the hero, followed by a single-row Popular
+  This Month section. Move Popular Today and Recently Added below Recently Updated.
+- Give every discovery section a short description of its ranking or contents.
+
+## Kagane (v1.1.9)
+
+### Changed
+
+- Use Safe, Suggestive, Erotica and Pornographic in both rating pickers, converting saved
+  age-band preferences without changing their meaning.
+- Default disturbing-content searches to the source setting and show that effective choice
+  on the form; Include and Leave out remain explicit overrides.
+- Replace typed range syntax with chapter/volume Min and Max fields and Started/Ended
+  From and To year fields, supporting either bound on its own.
+- Load the compact chapter index in one request, preserving IDs, scanlators and release
+  timestamps while validating the declared field order and total count.
+- Add the supported chapter-count sort with ascending and descending order.
+
+## Kagane (v1.1.8)
+
+### Fixed
+
+- Restore supported-language metadata so Kagane remains discoverable when Mana filters the
+  repository by language, while retaining provider-based chapter languages.
+
+## Kagane (v1.1.7)
+
+### Fixed
+
+- Restore the site's separate Trending This Week chart with its native order, ranks,
+  movement and weekly growth. Popular This Week remains a separate catalogue ranking.
+- Preserve and normalize the provider's chapter language; missing or invalid language
+  metadata is undetermined and never replaced with a reading preference.
+- Apply native rating policy to details and locally check catalogue responses. Explicit
+  evidence takes priority; incomplete metadata uses a Mature compatibility bucket and a
+  detail-page note. Cached metadata does not retain an earlier request's policy.
+
+### Changed
+
+- List every search control in visible sections without a More filters disclosure.
+- Give author/artist and scanlation-group searches their own section with clear labels.
+- Show Safe, 15+ and 18+ as age bands, with a separate pornography control in search and
+  source settings while retaining Mana's mature/explicit classification internally.
+- Move reading, original and translated-language preferences into source settings.
+
+## Kagane (v1.1.6)
+
+### Changed
+
+- Show Popular All Time in the hero carousel and restore Popular This Month, Popular This
+  Week and Popular Today, using separate catalogue rankings and full View More listings.
+- Restore the monthly paged double row and weekly single row. Home rows request the site's
+  20-item size while View More keeps normal pagination.
+- Put selectable genres first, followed by inline format, status and content-rating choices.
+- Flatten language, chapter and year controls, replace nested tag groups with one searchable
+  picker, and keep less-used controls under More filters.
+
+## Kagane (v1.1.5)
+
+### Fixed
+
+- Remove duplicate genre/tag IDs after expanding grouped selections, preventing home rows
+  from failing with `too_many_values` for overlapping hide-lists.
+- Explain the site's 50-value limit before sending oversized filter selections, preserving
+  every exclusion rather than silently dropping choices.
+
+### Changed
+
+- Match the site's filter and sort names, including Status, Abandoned and Fan translation.
+- Load Language choices from catalogue facets and add the site's chapter-count presets.
+
+## Kagane (v1.1.4)
+
+### Fixed
+
+- Load the rebuilt API's chapter pages through its cursor endpoint, preserving real chapter
+  numbers, chapter zero, upload dates and the title's actual language.
+- Read age ratings, pornography flags and spoiler metadata from the current response fields.
+- Correct Data Saver image URLs and keep reader tokens separate for each chapter.
+- Open slugged series links using their existing UUIDs.
+
+### Changed
+
+- Match the site's Popular, Recently Added, Recently Updated and Trending This Week rows.
+  Custom exclusions use the filtered weekly listing where the fixed chart cannot apply them.
+- Match the current sort menu, including Rating, with direction controls only where supported.
+- Add publication status, language, year/count ranges, author/artist, group and disturbing-content
+  filters. Genre and tag inclusion defaults to All (AND), matching the site.
+- Use genre/tag IDs and tracker links directly from details, avoiding two taxonomy requests
+  whenever a title opens. Concurrent requests for the same details share one response.
+
+## Toonkotsu (v1.0.20)
+
+### Changed
+
+- The sort menu is the site's own: Created Date, Updated Date, Uploaded Date, Best Match,
+  Title, Year, Rating, View Count, Follow Count and Chapter Count, in that order, each
+  asking the catalogue what the site's menu asks it. Direction is the app's own ascending
+  and descending switch rather than every sort listed twice, opening the way the site's
+  Order menu does — newest, biggest and best first, and a title from A.
+- The site gives ten names to eight orders, and the menu keeps all ten as the site does:
+  Updated and Uploaded Date pick the same list there, as do View and Follow Count.
+
+## Toonkotsu (v1.0.19)
+
+### Changed
+
+- A chapter is read by asking the site's API for it directly. The site serves a chapter's
+  page keys to an unsigned request, unmasked, so the site's own loader no longer has to be
+  found and run first, and a fresh install no longer opens a chapter's whole page the first
+  time either. The loader stays as the fallback for whenever the site asks for a signed
+  request or masks its keys again; a human check or a wait is reported straight away
+  rather than asked again through it.
+
+## Toonkotsu (v1.0.18)
+
+### Fixed
+
+- Every chapter took far longer to open than it needed to. Reading one opened the
+  chapter's own page in the browser and waited for the whole of it — the site's
+  application bundle, its ad script, and its own reader starting on the very images this
+  was about to fetch itself. All the chapter loader actually needs is a document on the
+  site's origin, so once it is known where to find it the browser opens `/robots.txt`
+  instead, which brings none of that. The chapter's page is opened only to find the loader
+  in the first place, and after a site update that moves it.
+
+## Toonkotsu (v1.0.17)
+
+### Added
+
+- An Upload Size setting, on by default, for the download that closes a chapter's name.
+  Turned off the names read plain, and because the download is then the only thing that
+  was telling one team's two uploads of a chapter apart, those become the one row they
+  now look like.
+
+## Toonkotsu (v1.0.16)
+
+### Changed
+
+- The download moved off the team's name and onto the chapter's own row —
+  `Vol. 1 Ch. 1 (19.1 MB)` beside `Vol. 1 Ch. 1 (9.5 MB)`, both under Rolia Scans. A team
+  is one team again rather than one per size it has uploaded at, which is what carrying it
+  on the name cost: the app draws a single name per provider id.
+
+## Toonkotsu (v1.0.15)
+
+### Fixed
+
+- Every row of a team's uploads showed the same download, so a 118 MB chapter was labelled
+  239 MB. The app draws one name per provider id and every one of a team's uploads was
+  handed over under the same id, so they all took whichever name it read first. Each upload
+  is now its own, and the sizes read as the site quotes them.
+- The same upload was listed twice where the site lists it twice — same chapter, same team,
+  same wording, same download, nothing to choose between. One of those is now dropped. Two
+  uploads that differ by their download are both kept, because that is a choice.
+
+### Changed
+
+- Every team's name carries the download beside it, not only where the team has uploaded
+  the chapter more than once.
+- Sizes are written as the site writes them: megabytes however large, so a whole volume
+  reads `1274 MB`, and a decimal only while one means something.
+
+## Toonkotsu (v1.0.14)
+
+### Changed
+
+- The run is handed over newest first again. Where a team has more than one take on a
+  chapter those stay in the order the site lists them, either way up, and the first
+  chapter is still the one the app opens at.
+
+## Toonkotsu (v1.0.13)
+
+### Fixed
+
+- The volumes still did not run in order. The app sorts the list on a chapter's number
+  before it looks at anything else, so a volume carried beside the number never reached
+  that sort at all, and every volume's chapter one was drawn in one block. Where a title
+  is filed into volumes the number now carries the volume with it, which is the site's own
+  order written as the one value the app sorts by.
+- Chapter rows are worded as the site words them — `Vol. 1 Ch. 1 - Friends`, and `Vol. 2`
+  for a whole volume, which also stops the longer wording running off the row.
+- A whole volume is listed after the chapters it collects rather than before them, as the
+  site lists it.
+
+### Changed
+
+- Every upload is kept again, including a team's own second upload of a chapter. Where one
+  team has more than one, each carries its download beside the team's name — `Rolia Scans
+  (19.1 MB)` against `Rolia Scans (9.5 MB)` — so the choice between a bigger scan and a
+  smaller one is the reader's to make rather than one this makes for them.
+
+## Toonkotsu (v1.0.12)
+
+### Fixed
+
+- The chapter list was in no order at all. It kept the order the API answered in, which is
+  not the order the site lists, and sorting on the chapter number alone would not have
+  fixed it either: the teams that publish by volume restart their numbering inside each
+  one, so volume three's first chapter files between volume one's second and first. The
+  run now goes by volume, then by number within it, which reproduces the site's own list
+  row for row.
+- A whole-volume upload was titled "Chapter" and numbered zero, which filed eleven of them
+  ahead of chapter one. Each now carries the site's own wording — "Volume 11" — and sits at
+  the head of the volume it collects, as the site has it.
+- A chapter's label states its volume where the site states one, because three chapters
+  called "Chapter 1" in a row is that list read without it.
+- A team's own mirror of an upload was listed twice. Where one team has uploaded the same
+  chapter more than once the widest page, then the largest download, is the one kept; two
+  different teams' takes are still offered as versions of each other.
+
+### Added
+
+- A Deduplicate Chapters setting, off by default. On, the list is only the upload the site
+  shows first for each chapter rather than one from every team.
+
+## Toonkotsu (v1.0.11)
+
+### Fixed
+
+- Included Kids in the tag picker, matching the site's full searchable tag list.
+
+## Toonkotsu (v1.0.10)
+
+### Changed
+
+- Moved Genre to the first Advanced Search section with inline include/exclude chips.
+- Show the full tag catalogue regardless of the browse content-rating preference.
+  Content-rating restrictions still apply to fetched search results.
+- Marked AND inclusion and OR exclusion as the defaults in their picker labels and
+  subtitles. Empty selections already use those modes; the current host API does not
+  expose preselected search-filter values.
+
+## Toonkotsu (v1.0.9)
+
+### Changed
+
+- Matched Advanced Search labels to the site: Status, Country, Year From/To,
+  Chapters From/To and Tag Inclusion/Exclusion Mode with AND/OR choices.
+- Grouped tags as Content, Format, Genre and Theme, restored Doujinshi, and matched
+  the site's country choices and adult-tag visibility. Saved tag filters remain readable.
+
+## Toonkotsu (v1.0.8)
+
+### Changed
+
+- Moved Hidden Gems directly above Top Rated on the home page.
+
+## Kagane (v1.1.3)
+
+### Changed
+
+- Moved the source to kagane.org, including API requests, image request headers,
+  reader links and Cloudflare resolution.
+
+## Toonkotsu (v1.0.7)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## Toonkotsu (v1.0.6)
+
+### Changed
+
+- Replaced the reader with the site-module WebView approach: load the chapter page,
+  import the site's chapter loader, obtain its decoded page keys and decrypt images
+  with native AES using four workers.
+- Cache the working chapter-loader URL for subsequent reads and rediscover it when the
+  cached module stops working. The source no longer embeds the reader's signing secret.
+- Removed the alternate native API reader and Accelerated Reader setting. All chapters
+  now use the same WebView reader, with its existing 180-second host timeout.
+- Reuse the most recent series response for thirty seconds across details and chapters,
+  including concurrent requests. Failed responses are discarded so the next call retries.
+
+### Added
+
+- Tracker IDs for AniList, MyAnimeList and MangaUpdates from the site's external IDs.
+- A Recommendations row showing up to ten titles from the existing series response,
+  without additional network requests.
+
+## Toonkotsu (v1.0.5)
+
+### Changed
+
+- Added an Accelerated Reader, enabled by default, that fetches encrypted images and
+  decrypts them with the browser engine's native AES. Native blob encoding replaces the
+  large JavaScript base64 loops, and the chapter crosses the image bridge in one result.
+- The browser loads only a small document on the site's origin; it runs no site reader,
+  application bundles or ads. Page downloads remain limited to eight at a time.
+- Browser image requests have a fifteen-second timeout and the accelerated reader has
+  a thirty-second overall deadline, so a failed request does not leave it waiting forever.
+- The ordinary reader remains available when acceleration is disabled or the host lacks
+  the required browser APIs. The ordinary image client now explicitly disables its own
+  request-rate limit; download concurrency remains bounded by the reader.
+
+## Toonkotsu (v1.0.4)
+
+### Fixed
+
+- Restored the eight-slot reader that decrypts images before returning them to the app.
+  Device testing of v1.0.3 showed successful image downloads followed by native image
+  decoder failures; the experimental response callback did not deliver usable images.
+- Removed the experimental Load Pages as Needed option and its page-link metadata. No
+  setting needs changing to use the restored reader. The v1.0.2 scheduling, request sharing
+  and page-validation improvements remain.
+
+## Toonkotsu (v1.0.3)
+
+### Added
+
+- An experimental Load Pages as Needed reader option, enabled by default. Chapters
+  return page URLs immediately; encrypted images are decoded through the image request's
+  response callback instead of preparing every image before the chapter opens.
+- Decryption metadata travels with each page in a URL fragment that is removed before
+  requesting the image. Cached page links and concurrent requests keep their own keys.
+- Turning Load Pages as Needed off restores the eight-slot reader from v1.0.2 for app
+  builds whose native image loader does not run response callbacks. Native app support
+  for the experimental path still needs device testing.
+
+## Toonkotsu (v1.0.2)
+
+### Changed
+
+- Encrypted page downloads now keep up to eight slots busy, starting the next page as
+  soon as one finishes instead of waiting for the slowest page in each batch. Page order
+  is preserved; the app still needs all encrypted pages prepared before opening a chapter.
+- Simultaneous opens of the same chapter share one load. Completed image data is not
+  cached, and a failed load drains its active requests before allowing a retry.
+- The full page list is checked before downloading images, so malformed page metadata
+  does not trigger a partial chapter download.
+
+## Toonkotsu (v1.0.1)
+
+### Fixed
+
+- A chapter took far too long to open. The reader cannot draw a page until every encrypted
+  page in the chapter has been deciphered — the app gives a source no way to do that one
+  page at a time — so all of that work lands before anything appears, and these chapters
+  run from fourteen to sixty-seven pages of full-length strips.
+  - Page images were queueing behind the API's five-a-second limit. They come off a static
+    CDN rather than the API and now have a client of their own, with how many are in flight
+    bounded directly instead: eight at a time.
+  - Deciphering is four times faster. Turning the bytes back into base64 was appending to a
+    string four times per three bytes, reading them searched the alphabet once per
+    character, and the cipher itself was paying `crypto-js` to convert a page into four
+    hundred thousand boxed numbers and back. A megabyte-and-a-half page now takes 126ms
+    through the whole path rather than 570ms.
+- A build of the app that does not honour `responseEncoding` answers an image as text
+  rather than bytes. That is now named as the cause, rather than decoded into a page of
+  noise: the bytes above 0x7f are already replaced by the time the source sees them, so
+  there is nothing to recover.
+
+## Toonkotsu (v1.0.0)
+
+### Added
+
+- A source for toonkotsu.com, reading its own API rather than its pages.
+- The home page is the site's own eight rows under its own names: Most Read, Trending, Top
+  Rated, Hidden Gems, Latest Updates, Recently Added, This Season and Completed. Most Read
+  leads as a hero carrying the site's rank; Trending and Hidden Gems draw their rows, where
+  the reads and the rating they are chosen on are worth printing. Each row can be turned
+  off, and one that is off costs no request.
+- The site's whole filter set: its tags under its own five headings, each includable or
+  excludable with a match mode for either side, plus demographic, publication status,
+  original language, content rating, author, a year range and a chapter-count range.
+  Fifteen sorts, with Best Match offered only once there is a word to rank against.
+- Content ratings, types and hidden tags are settings, and they narrow what the site is
+  asked for rather than what is thrown away afterwards — a reader who wants no pornographic
+  titles never requests one.
+- A pasted title link is looked up directly instead of being searched for, and a link
+  opened from elsewhere resolves to the title it names.
+- The profile carries the site's own grouping of a title's tags — genres, themes, cast,
+  setting and format — alongside the flat list the app filters on, and the wide hero image
+  the site draws behind a title rides along as a second cover.
+- Every upload is its own chapter, so a second team's take on a chapter already listed is
+  offered as a version of it rather than hidden.
+- Chapters are read through the site's own signed reader, and a page the site encrypted is
+  decrypted here: the key is unwrapped per page and the image deciphered before the app
+  ever sees it. A page the site left alone is handed over as a link, which costs nothing.
+- An upload the site lists both as a chapter's own release and again among its alternates
+  is shown once, as the site shows it.
+- Numbers in the filter form are stepped rather than typed — publication years and chapter
+  counts — so there is nothing to mistype, and one left at its bound asks for nothing.
+
+## MangaDex (current: v1.1.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## MangaDex (v1.1.3)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## MangaDex (v1.1.2)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## MangaDex (v1.1.1)
+
+### Changed
+
+- The rule deciding which rows draw a pill moved into the shared runtime, where a second
+  source now reads it too. No change to what the app shows.
+
+## MangaDex (v1.1.0)
+
+### Added
+
+- A source for mangadex.org, reading its own API rather than its pages.
+- The home page is the site's own six rows in the site's own order: Popular New Titles,
+  Latest Updates, Seasonal, Recommended, Self-Published and Recently Added. Each can be
+  turned off, and a row that is off costs no request.
+- Seasonal, Recommended and Self-Published are the curator's own lists, found by name
+  rather than pinned to an id — the seasonal list is replaced four times a year, and the
+  newest one whose season has actually started is the one the site is showing.
+- Latest Updates is one row per title. The uploads feed lists a chapter at a time, so a
+  title that published three at once is three entries and the site shows it once.
+- Filters are the site's own: content rating, publication status, demographic, original
+  language, year, author or artist, and every tag the site has, in the four groups it files
+  them under. The tag list is read from the site once a day, with a bundled copy standing
+  in until then so the form is never empty.
+- Chapters carry their group, their language and their volume. A chapter that only points
+  at a publisher's own app has no pages here and is left out, and the placeholder groups
+  are excluded by default as the site's own reader excludes them.
+- Settings for translated languages, cover quality, data saver, and forcing port 443 for a
+  network that allows nothing else out.
+
+## RokariComics (current: v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## RokariComics (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## RokariComics (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## RokariComics (v1.0.5)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## RokariComics (v1.0.4)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+
+## RokariComics (v1.0.3)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+## RokariComics (v1.0.2)
+
+### Changed
+
+- A score the theme prints in a card's corner is now the frosted pill over its cover. Not
+  every build of the theme fills that in, and a card without one draws no pill rather than
+  an empty one.
+
+## RokariComics (v1.0.1)
+
+### Changed
+
+- The home page is reordered: the hero, then Popular Weekly, Popular All-Time and
+  Recommendation, with Latest Updates, Popular Today and Popular Monthly following in the
+  order they were in.
+- Every plain strip of covers now says the same thing under a title — the chapter the theme
+  prints on the card — so the line reads as one thing wherever it is met rather than as a
+  different measure per row.
+- The weekly chart says only where the site put it, `#1`, and gives the rest rows of its
+  own: its genres, then its latest chapter. No more than two genres are named; a third
+  wraps and crowds the tile out of its row.
+- A ranked row carries a chapter at last. The site's Popular widget prints a rank, a cover
+  and genres and no chapter at all, so the label is taken from elsewhere on the same page,
+  where the grid does print one — a lookup across a document already parsed, not a second
+  request. A title the rest of the page never mentions falls back to its genres.
+
+## RokariComics (v1.0.0)
+
+### Added
+
+- Initial release, reading rokaricomics.com.
+- Seven home rows under the site's own names: Featured, Latest Updates, Popular Today,
+  Recommendation, and the three tabs of its Popular widget — Weekly, Monthly and All-Time.
+  The theme renders its whole front page, sidebar included, so all seven are cut from one
+  document: the home page costs a single request however many rows are switched on.
+- The Popular widget is three rows rather than a strip of chips. All three arrive in that
+  same document already, and a row shows what is climbing without a tap first. Weekly is
+  the one drawn detailed, carrying its rank and genres as rows of their own; the other two
+  say the same thing on one line, so they stay plain strips.
+- Each of the other rows is shaped for what it knows. Featured takes the hero slot with the
+  chapter the slide names — read out of the sentence it prints when the theme puts it
+  nowhere else. Latest Updates is a grouped vertical list naming each title's newest
+  chapters against how long ago they landed, the one style the app draws those rows in.
+- Searching by the theme's own parameters: its genre list read off the directory page and
+  kept for a day, able to include and exclude, with status and type pickers and all six of
+  its sorts. Words on their own go to the site's own search; a filtered search goes through
+  the directory, where the facets are understood.
+- A chapter's id is its own path, so opening one is a single request rather than a second
+  read of the title's page to find the link.
+- Locked chapters are listed with a padlock and can be turned off from Settings. Opening
+  one says where it unlocks rather than failing bare.
+- Pasting a title link searches for that title, and a rokaricomics.com link opens in the
+  app.
+
+### Notes
+
+- Two switches the reference carries are deliberately left off. "Use Post IDs" changes the
+  shape of every content id, which invalidates a reader's whole library for this source —
+  not something a toggle should be able to do from inside Settings. The base-URL override
+  is left off because the app resolves a challenge and owns a link against the address the
+  source declares, and a source pointed somewhere else keeps neither.
+
+## ValirScans (v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## ValirScans (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## ValirScans (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## ValirScans (v1.0.7)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## ValirScans (v1.0.6)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## ValirScans (v1.0.5)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## ValirScans (v1.0.4)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## ValirScans (v1.0.3)
+
+### Changed
+
+- A title the site has graded nothing wears its view count as the pill instead, behind the
+  house mark for it — so a cover is not left bare just because nobody has rated it. The
+  line under the title then says what the title is, rather than repeating what the pill
+  above it is already showing.
+
+## ValirScans (v1.0.2)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile — so it is said once, and in the same place whether the tile is a
+  hero, a chart or a strip. It has come out of the strips' subtitle, which now reads
+  `⏯︎ 1.2M`, out of the hero's, and out of Most Popular's rows. The title page still lists
+  it, where no pill is drawn.
+
+## ValirScans (v1.0.1)
+
+### Changed
+
+- Editors' Picks now sits above Latest Comic Updates.
+- Every plain strip of covers says the same two numbers the site grades a title by, in the
+  same order — `★ 8.4 • ⏯︎ 1.2M` — so the line reads as one thing wherever it is met
+  rather than as a different measure per row. A title graded neither way says what it is
+  instead of leaving the line empty.
+
+## ValirScans (v1.0.0)
+
+### Added
+
+- Initial release, reading valirscans.org.
+- Six home rows under the site's own names: Top Featured, Most Popular, Latest Comic
+  Updates, Popular Today, Editors' Picks and New Series. The site renders its front page
+  server-side, so all but the last are cut from one document — those five cost a single
+  request between them however many are switched on.
+- Each row is shaped for what it knows. Top Featured takes the hero slot with the two
+  numbers the site ranks it on. Most Popular is the site's own chart, so it keeps that
+  order and carries its views, rating and state as rows of their own. Latest Comic Updates
+  is a grouped vertical list naming each title's newest chapters against the time they
+  landed. The rest are plain strips of covers, each saying the thing it is about.
+- Searching and browsing by every facet the site's own filter panel offers — genres, tags,
+  type, status, origin and a chapter count — each of them able to include or exclude, with
+  the genre and tag lists read off the site and kept for a day, and its seven sorts offered
+  whole.
+- Signing in, through the site's own login page in the app's WebView. Nothing is
+  intercepted: what is kept is the session cookie the site sets, which is then carried by
+  this source's requests — so a chapter the account already has opens rather than
+  reporting itself locked.
+- Locked chapters are listed with a padlock and can be turned off from Settings. Opening
+  one says where it unlocks rather than failing bare.
+- Pasting a title link searches for that title, and a valirscans.org link opens in the app.
+
+### Notes
+
+- Comics only. The site publishes novels alongside them, and a novel chapter is prose where
+  a Mana chapter is a list of images — so a novel would list and then open to nothing. They
+  are excluded through the site's own filter rather than dropped from the rows, which keeps
+  a page of results as long as the site says it is; the Latest Novel Updates row is left off
+  for the same reason, and a novel chapter reached by a link says what it is instead of
+  showing a blank reader.
+
+## RinkoComics (current: v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## RinkoComics (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## RinkoComics (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## RinkoComics (v1.0.6)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+
+## RinkoComics (v1.0.5)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+## RinkoComics (v1.0.4)
+
+### Changed
+
+- A tile's pill carries what the site counts a title has been read, behind the house mark
+  for it. The hero's line under the title then says how much there is to read — the other
+  number the site prints on a ranked card — rather than repeating the count above it.
+
+## RinkoComics (v1.0.3)
+
+### Fixed
+
+- The chapter list was slow and skipped chapters. Its rows were being read with a selector
+  that also matched the little chapter links on the front page's cards, so the walk counted
+  more rows than it had actually read and stepped past real chapters — then kept asking for
+  pages already behind it. It now reads only chapter rows and steps by the run the endpoint
+  hands over.
+- Hide Locked Chapters replaces Show Locked Chapters, and turning it on now sticks. The old
+  switch defaulted to on, which is exactly the case the store's saved-`false` problem broke;
+  worded this way round it reads back the same either way, and the shared fix covers the
+  rest.
+- A title's page is read once rather than three times over — once for its details, once for
+  its chapters and once more for the nonce the chapter walk needs, each of them a whole
+  rendered page.
+- An origin that does not answer says so. The site sits behind Cloudflare and has been seen
+  timing out under load; that arrived as a bare "request failed" with a chapter list stuck
+  on placeholders.
+
+### Changed
+
+- The hero carries the two numbers the site prints on a ranked card, the view count behind
+  the house mark for it.
+
+## RinkoComics (v1.0.2)
+
+### Fixed
+
+- A held-back chapter never reached the Latest Releases row. The site drops the link on one
+  it has locked, and the row only kept chapters that had a link — so the newest release,
+  the one the padlock is for, was the single chapter always missing from it.
+- The home page was slow to open. Its rows are all cut from one document and the client
+  shares a request that is in flight, but the app resolves rows one after another: by the
+  time the second asked, the first had finished and the sharing window had closed. That was
+  three fetches of a whole rendered page, and three passes of the parser over it. The page
+  is now read and parsed once and held briefly, which is one of each — and still short
+  enough that pulling to refresh fetches the site again.
+
+### Changed
+
+- The hero carries the two numbers the site prints on a ranked card, the view count behind
+  the house mark for it: `⏯︎ 1.2M • Ch. 180`. A hero draws no rows of its own, so that line
+  is the only place they fit.
+
+## RinkoComics (v1.0.1)
+
+### Fixed
+
+- Featured and Hot This Week were the same titles in the same order — the site's own slider
+  repeats the run it ranks, so the page carried one query twice. Hot This Week now leads as
+  the hero and the slider has no row of its own.
+
+### Changed
+
+- The home page is laid out the way the other sources here lay theirs out: a hero for the
+  set the site is pushing, a plain strip of covers for its pinned picks, and a grouped
+  vertical list for new chapters.
+- Latest Releases lists each title's recent chapters as rows of their own, every one
+  against the time it landed, rather than crushing the newest onto a single line. That is
+  what the row is for, and the site prints several per card.
+- A chapter the site has held back carries a padlock rather than the word "locked", both in
+  that row and in the chapter list, which reads at a glance down a long list.
+- Locked chapters are listed by default. The home page advertises them that way, so leaving
+  them out of the chapter list meant tapping one in and not finding it. Turning them off is
+  still a setting.
+
+## RinkoComics (v1.0.0)
+
+### Added
+
+- Initial release, reading rinkocomics.com.
+- Four home rows, in the site's own order and under its own names: Featured, Hot This Week,
+  Editor's Choice and Latest Releases. The site builds its whole front page server-side, so
+  all four are cut from one document — the home page costs a single request however many
+  rows are switched on.
+- Each row is shaped for what it actually knows. Featured is a slider carrying artwork and
+  genres, so it takes the hero slot. Hot This Week is the only row the site gives numbers
+  for, and it is a vertical list — the one style the app draws key/value rows in — so its
+  rank, views and chapter count each get a row and it reads as the chart it is. Editor's
+  Choice is a browsing shelf two deep, and Latest Releases a single strip carrying the
+  newest chapter and how long ago it landed.
+- Searching and browsing by the site's own parameters, with its genre list read off the
+  browse page and kept for a day, and its four sorts offered whole.
+- Chapters are walked past the first batch through the theme's own load-more action.
+- Locked chapters are hidden by default and can be shown from Settings, where they are
+  marked. Opening one explains that it unlocks on the website rather than failing bare.
+- Pasting a title link searches for that title, and a rinkocomics.com link opens in the app.
+
+### Notes
+
+- Comics only. The site publishes novels alongside them, and a novel chapter is prose where
+  a Mana chapter is a list of images — so a novel would list and then open to nothing. The
+  site's own Latest Novels row is left off for the same reason, and a novel chapter reached
+  by a link says what it is instead of showing a blank reader.
+
+## MangaFire (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## MangaFire (v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## MangaFire (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## MangaFire (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## MangaFire (v1.0.9)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## MangaFire (v1.0.8)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## MangaFire (v1.0.7)
+
+### Changed
+
+- A tile's pill carries what the title is — a listing row here is graded nothing and
+  counted nothing, so that is the one thing it has. The format has come out of the
+  subtitle and the info rows with it, and a ranked row now says only where the site put
+  it. The title page still lists the type, where no pill is drawn.
+
+## MangaFire (v1.0.6)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## MangaFire (v1.0.5)
+
+### Fixed
+
+- A prologue sat at the top of the chapter list instead of at its start, and the app opened
+  chapter 1 rather than it. The site numbers a prologue 0, and that was read as "carries no
+  number of its own" — the mark that sends a side story or an extra above the main run so it
+  cannot be mistaken for the beginning. Chapter zero is the beginning, and is now left where
+  the site put it. A chapter the site really does leave unnumbered still sorts above the run.
+
+## MangaFire (v1.0.4)
+
+### Added
+
+- A chapter says who put it up, and an official release is ticked. Every upload of a
+  chapter is listed by default, so a row that shows several side by side now says which of
+  them is the publisher's own.
+
+## MangaFire (v1.0.3)
+
+### Changed
+
+- The house symbols for type and status are now `♤` and `◌`.
+
+## MangaFire (v1.0.2)
+
+### Changed
+
+- No row writes a symbol under a title any more. A glyph belongs on a labelled row, where
+  the key says what it stands for; on the line under a title it is a mark with nothing to
+  read it against. The format now reads plainly there, and the symbols stay on the title
+  page and on the rows Latest Updates draws.
+- Trending is two rows deep rather than three.
+- Latest Updates is a vertical list carrying the chapter and how long ago it landed as rows
+  of their own, which is the one style the app draws those in.
+- Recently Added is a plain single strip of covers. What is new about it is the artwork,
+  and it has no ranking or chapter to report underneath.
+
+### Added
+
+- Chapters can be read as the site's volume releases instead, from Settings. A title the
+  site publishes no volumes for falls back to its chapters rather than opening empty.
+- The several uploads the site lists for one chapter are all shown by default, so a
+  particular group's release can be picked. Merging them into one row is a setting, and
+  only then does preferring the official upload decide which one survives — earlier
+  releases merged always, with no way to see what had been dropped.
+- A content-rating setting of the source's own, alongside the app's. Both have to allow a
+  grade for it to be asked for, so whichever is stricter wins.
+
+## MangaFire (v1.0.1)
+
+### Changed
+
+- The source carries the site's own mark instead of the stand-in it shipped with. A source
+  already installed keeps the icon it was added with, so this needs the update to land.
+
+### Added
+
+- Initial release, reading mangafire.to through its own JSON API.
+- Four home rows: Most Viewed (All Time) leads as the hero carousel, then Trending, Latest
+  Updates and Recently Added. The all-time ranking is the steadiest list the site keeps, so
+  the biggest slot on the page holds the same well-known titles for weeks rather than
+  reshuffling on a day's traffic — which is what Trending directly beneath it is for.
+- Every request the API takes is signed. The signature is computed in the source, so a row
+  costs one request; the alternative is a WebView turn per call, which is what makes the
+  site feel slow elsewhere.
+- Filtering by type, status, demographic, theme, genre and release year, with a minimum
+  chapter count and an author or artist by name — the name is resolved to the site's own id
+  first, so an unknown one returns nothing rather than the whole catalogue. Genres can be
+  excluded as well as included, and the match mode is the site's own single control over
+  both genres and themes. The site's twelve sorts are offered whole.
+- The reader's content-rating policy is pushed into the request as the site's own rating
+  parameter, so a filtered page is a full page rather than a short one.
+- Chapters are read in the languages chosen in Settings, and where the site lists the same
+  chapter from several groups the official upload is kept by default.
+- Pasting a title link searches for that title, and a mangafire.to link opens in the app.
+
+### Notes
+
+- The site signs its API with tables of its own. Should it change them, every request stops
+  being accepted at once — which shows up as the API refusing in its own words rather than
+  as a Cloudflare prompt, so the two stay distinguishable.
+
+## StoneScape (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## StoneScape (v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## StoneScape (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## StoneScape (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## StoneScape (v1.0.16)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## StoneScape (v1.0.15)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## StoneScape (v1.0.14)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## StoneScape (v1.0.13)
+
+### Changed
+
+- A title the site has graded nothing wears its view count as the pill instead, behind the
+  house mark for it — so a cover is not left bare just because nobody has rated it. The
+  Views row, and the count under the title, drop out of that card for as long as the pill
+  is the one showing it.
+
+## StoneScape (v1.0.12)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile. It has come out of the line under the title and out of the info rows
+  with it, so the same number is not printed twice on one card. The title page still lists
+  it, where no pill is drawn.
+
+## StoneScape (v1.0.11)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## StoneScape (v1.0.10)
+
+### Fixed
+
+- A chapter numbered 0 sat at the top of the list instead of at its start. Zero was read as
+  "carries no number of its own" — the mark that sends a side story above the main run so it
+  cannot be mistaken for the beginning — when it is the beginning. It is now left where the
+  site put it, and a chapter the site really does leave unnumbered still sorts above the run.
+
+## StoneScape (v1.0.9)
+
+### Changed
+
+- The house symbols for type and status are now `♤` and `◌`.
+
+## StoneScape (v1.0.8)
+
+### Changed
+
+- Popular This Week says only what the series is under the title — the format on its own.
+  The status moved down into the rows, directly beneath the view count, so the line under
+  the title carries one thing rather than two.
+- The hero carousel carries the view count alongside the chapter and the rating.
+- A view count anywhere in the source is marked with the same symbol the tiles use.
+
+### Fixed
+
+- Every row now shows the series' own cover, exactly as the site serves it — the hero
+  carousel included, and whatever the file type. Earlier releases substituted the banner
+  on the hero and, worse, on any tile whose cover happened to be a GIF, so the same
+  series wore a different picture depending on where it was met.
+
+### Changed
+
+- Each home row says the thing its own ranking is about instead of repeating the chapter
+  number down the page: Popular This Week carries the format and status, Popular This
+  Month the view count. A locked chapter is marked in words rather than with an emoji.
+
+### Fixed
+
+- A Cloudflare challenge could not be told from an ordinary refusal. The client let the
+  host reject a non-2xx response before the source ever saw it, so a block arrived as a
+  bare network error with no way to clear it. 403 and 503 now reach the source, and a
+  challenge is recognised by Cloudflare's own header, the interstitial's markup, or a
+  refusal that is not JSON — everything under `/api` answers JSON, so one that does not was
+  written at the edge. An API that simply says no now says so in its own words instead of
+  sending the reader to a page with no puzzle on it.
+
+### Changed
+
+- Featured is its own row at the foot of the home page, after Latest Releases, matching how
+  FlameComics lays its front page out.
+- The weekly row is named Popular This Week, which is the site's own word for it. A row
+  carries the name the site gives it, never one of ours.
+- The genre filter is an inline set of chips. It had asked for a sheet, which a tags section
+  ignores; the site's forty-odd genres are what chips are for.
+- The featured row is no longer capped. The site hand-picks that set and sends it whole.
+- Popular This Year now leads the home page as the hero carousel, and the site's own
+  Featured picks sit further down as an ordinary row. The year is the steadiest of the
+  three popular periods, so the biggest slot on the page holds the same well-regarded
+  titles for weeks instead of reshuffling on a day's traffic.
+
+### Added
+
+- Initial release, reading stonescape.xyz through its own JSON API.
+- Five home rows: Popular This Year, Popular This Week, Popular This Month, Latest Releases
+  and Featured. The site collapses its three popular periods into tabs; each is given a
+  row here, so what is climbing over a month is visible without a tap.
+- Filtering by status and by genre, the genre list read from the site and kept for a day so
+  the form opens without waiting. Sorting by latest, popular this month or this year, and
+  A–Z or Z–A.
+- Paid chapters are hidden by default and can be shown from Settings, where they are marked
+  with a lock. Opening one explains that it unlocks on the website rather than failing bare.
+- Pasting a series link searches for that series, and a stonescape.xyz link opens in the app.
+
+### Notes
+
+- Comics only. The site also publishes novels, whose chapters are HTML text; a Mana chapter
+  is a list of images with no text form, so a novel would list and then open to nothing.
+
+## Repository
+
+### Added
+
+- `utf8ToBytes` and `bytesToBase64Url` in the shared runtime, beside the decoders that were
+  already there. The runtime has no `TextEncoder`, so a site that asks for a signed request
+  had no way to turn its own request line into bytes and back into something a query string
+  can carry.
+
+### Fixed
+
+- Two workflows pasted a value straight into a shell script — a dispatch input and, on a
+  fork's pull request, an attacker-chosen branch name. Both now reach the shell as
+  environment variables, so a name carrying shell metacharacters is a string rather than
+  something to run.
+
+### Added
+
+- A broken rule is now reported as a GitHub annotation as well as a log line, so it lands
+  on the pull request's diff at the file and line that broke it rather than in a job
+  nobody opens.
+- The API notes record the `SourceContext` that `getContent` is gaining, what the host
+  uses it for, and which sources here do work a migration does not want.
+
+### Changed
+
+- Every command in the README, the contributor notes and the scaffold's own output now
+  reads `bun run`. The toolchain is bun and CI has always run it; only the writing said
+  otherwise, which left a newcomer following instructions their CI would not match. The
+  pre-push hook prefers bun and falls back to npm, so a clone without it still gets the
+  gates rather than a "command not found" it cannot act on.
+
+### Added
+
+- Every source that serves chapters now declares itself a `ChapterSource` rather than a
+  `ContentSource`. The narrower interface requires `getChapterData`, so a source that grows
+  chapters and forgets it is now a compile error instead of an app waiting for chapters
+  that never arrive.
+- `getText` in the shared runtime, for a site served in an encoding the host cannot decode.
+  There is no binary response mode, so a windows-1252 or Shift-JIS page does not arrive as
+  mojibake — the request fails outright. Those reads are retried through the WebView, which
+  decodes with the charset the page declares. Only an encoding failure is recovered; every
+  other error is the site's own answer and is left alone.
+
+### Fixed
+
+- The toolkit reference still documented a `sortStyle` option on the search form. The
+  option was removed from the SDK and the code had already dropped it.
+
+## Repository
+
+### Added
+
+- The contract test now judges the home page as a whole and fetches what it produced. A
+  hero row with too few titles repeats one cover across the carousel; two rows opening
+  with the same titles in the same order are one query wearing two names; a row that
+  returns nothing, or sixty-one titles, is not a strip. And a cover URL that 404s passes
+  every shape check while leaving the reader a blank grid, so a sample of the covers and
+  the first page are fetched — through the source's own `willRequestImage`, since a CDN
+  that wants a referer would otherwise report broken on a source that works.
+
+  A failing check that reports a list now prints the whole list rather than its first line.
+
+### Fixed
+
+- The repository icon still did not load. The URL it was published under was right for a
+  site rooted at the repository, but the catalog is deployed into `main/` so the address
+  people paste stays stable — which put every asset one level deeper than the icon's URL
+  claimed, and the app was fetching a 404. The path now carries that segment.
+
+  A repository already added keeps the name and icon it was added with, so remove it and
+  add it again to pick these up.
+
+### Fixed
+
+- The repository's own icon never loaded in the app. It was published as the relative
+  path `assets/Repository.png`, which the app has no base to resolve against, so it now
+  names the published file in full.
+
+## MangaUpdates (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client, which hands back the site's empty refusals as statuses.
+
+## MangaUpdates (v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## MangaUpdates (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## MangaUpdates (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## MangaUpdates (v1.0.11)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## MangaUpdates (v1.0.10)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## MangaUpdates (v1.0.9)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## MangaUpdates (v1.0.8)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile. It has come out of the line under the title and out of the info rows
+  with it, so the same number is not printed twice on one card. The title page still lists
+  it, where no pill is drawn.
+
+## MangaUpdates (v1.0.7)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## MangaUpdates (v1.0.6)
+
+### Fixed
+
+- Tracking a title still failed with "Response could not be serialized". v1.0.5 tried to
+  recognise the host's own wording for a response it could not read, which was the wrong
+  thing to depend on. The lookup that asks whether a title is on any of your lists now
+  treats any failure as "it is not", the way the reference implementation does — the site
+  answers that question with a body-less 404 the host cannot read, and nothing in a source
+  can tell that apart from any other failure. The cost is that a lookup lost to a bad
+  connection reads as untracked rather than as an error (v1.0.6).
+
+### Changed
+
+- The Account screen now states where it stands rather than leaving it to be inferred: a
+  Status row reading "Signed in as ..." or "Not signed in", a Sign Out button that names
+  the account, and a footer saying outright that the screen cannot redraw itself and has
+  to be reopened to confirm a sign-in or sign-out. Nothing a source does can put a message
+  on that screen while the reader is looking at it, so it says so instead of pretending
+  otherwise (v1.0.6).
+
+### Added
+
+- A sign-in screen the app owns rather than one built out of a button in settings. It is
+  submitted in one go instead of typed into, and the app closes it itself once the site
+  accepts the details — which is the confirmation a source cannot give itself, since it
+  has no way to redraw its own settings (v1.0.5).
+
+### Fixed
+
+- Tracking a title still failed with "Response could not be serialized, input data was nil
+  or zero length" after v1.0.4. Refusing the status was not enough: the host reads a
+  response body before it shows the source any status, so a body-less 404 — which is how
+  the site says a title is on none of your lists — never reaches a status check at all.
+  The failure itself is now read as that answer, on the two reads where an empty response
+  is the site's real reply, and on signing in where it means the details were refused
+  (v1.0.5).
+- Signing out said nothing either, so it had the same problem as signing in: it now names
+  the account it signed out of, and a second press says the account is already signed out
+  (v1.0.5).
+
+- Tracking any title failed with "Response could not be serialized, input data was nil or
+  zero length". The site answers 401, 404 and 412 with no body at all — a 404 being how it
+  says a title is not yet on any of your lists — and the host cannot deserialise an empty
+  response, so it failed the request before the source could read the status. Those
+  statuses are no longer accepted from the host and are read back off the error instead,
+  which also fixes a wrong password reporting the same thing (v1.0.4).
+- Signing in said nothing, so the only way to tell it had worked was to leave Settings and
+  come back — and pressing the button again signed in all over again. The app rebuilds
+  that screen only when it is opened and gives a source no way to redraw it or raise a
+  notice, so the button now reports who it signed in as, and a second press says the
+  account is already signed in rather than repeating the request (v1.0.3).
+
+- The Sign In button did nothing but report both fields empty. The app runs every form
+  callback on its own, so the typed username and password were gone by the time the
+  button read them; they are now written down as they are typed — the password to the
+  keychain, and dropped the moment the site has been given it (v1.0.2).
+- Checked every call against the site's published API description. A write refused for
+  being inside the five-second window is now waited out and sent again rather than lost,
+  signing in no longer carries the session it is replacing, the account screen no longer
+  reads contribution counts as though they were reading counts, and Drama CD joins the
+  types the search offers (v1.0.1).
+
+### Added
+
+- Initial release. Signs in with a MangaUpdates username and password, and tracks a
+  title's list, chapter, volume and score against the account.
+- Browse rows for Trending Now, Popular Manga, Popular Manhwa and Top Rated, and a search
+  form covering genres, types, release state, licensing, year and reader categories.
+- Reading progress never moves backwards, and writes are spaced so the site's one-write
+  every-five-seconds limit does not silently drop them.
+- An account screen in the source's own settings, so signing in does not depend on where
+  the app chooses to put its own prompt.
+- The source declares that it needs an account, which is what puts the app's own Account
+  row on the source page.
+
+## XCOMIC (v1.2.1)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## XCOMIC (v1.2.0)
+
+### Fixed
+
+- The Genres filter could open empty. The list is read off the site's own search page, and
+  a page that cannot be read — or whose markup has moved — left nothing to pick, because
+  there was no bundled list behind it. The site's own genres and formats now ship with the
+  source and stand in when the page does not parse; the live list is still preferred where
+  it can be had.
+
+## XCOMIC (v1.1.26)
+
+### Fixed
+
+- Links out to the site pointed at a path it no longer serves. An edition sits at `/source/`,
+  which is what the site renamed `/comic/` to, and a row now carries the path the site itself
+  gave it rather than one built from the id.
+- A link naming the work rather than one edition of it — `/title/…`, which is what the site's
+  own share button gives — opened nothing. It now resolves to whichever edition the reader
+  reads, and a link to the old `/comic/…` still opens.
+
+## XCOMIC (v1.1.25)
+
+### Added
+
+- A title states the marks the site gives it — hot, and newly taken on.
+
+### Removed
+
+- The Hot Comics row, which drew nothing. The site has a mark for what it is pushing but
+  no listing of it, so the row had to be browse with the unmarked titles dropped — and
+  neither the forty-eight that updated last nor the ninety-six most followed carried the
+  mark at all. A row that is always empty is worse than no row.
+
+## XCOMIC (v1.1.22)
+
+### Added
+
+- A title carries the ids the site holds for it elsewhere — AniList, MyAnimeList,
+  MangaUpdates, Kitsu, Anime-Planet, Shikimori and MangaBaka — so a tracker finds its own
+  entry without the reader searching for it. Where the site has folded a work into another,
+  the ids of the surviving one are used.
+- The profile states how far the edition has got, the years the original ran, and any note
+  the site keeps beside the summary rather than inside it.
+
+### Fixed
+
+- The status filter matched nothing. The site renamed what it filters on — `ongoing` became
+  `releasing`, `pending` became `upcoming` — so the old words picked out no titles at all.
+  Several statuses can now be asked for at once, which is what the site itself offers, and
+  the Upload Status filter it no longer answers is gone.
+
+## XCOMIC (v1.1.21)
+
+### Fixed
+
+- Latest Uploads could outgrow what a home row is for. The feed hands back three chapters
+  per title, and a busy page of thirty-six titles came to sixty-one entries — one past the
+  app's ceiling for a strip. Twenty titles are asked for now, which cannot exceed it.
+
+## XCOMIC (v1.1.20)
+
+### Added
+
+- The source says which way a title should be read, from the direction the site states, the
+  format its tags name, or what the title is.
+- Demographics and the site's own wording for its tags join the tag list, deduplicated
+  against the slugs that were already there.
+- A title the site has finished uploading but never marked as finished writing takes its
+  status from the upload instead of showing none.
+- Requests carry the reader's languages as `Accept-Language`, which the site reads.
+
+### Fixed
+
+- A chapter the site has withdrawn is no longer listed. It stays in the site's own list and
+  serves no pages, so tapping one opened an empty reader.
+- A long chapter list is read three pages at a time. Asked for all of them at once the site
+  answers 429 and the list is lost, which a series of a thousand chapters reliably did.
+- A row leaves out anything the site gave no cover for, rather than drawing a blank tile.
+
+## XCOMIC (v1.1.19)
+
+### Added
+
+- A Random Comics row, under Most Follows, off the site's own random endpoint. It picks a
+  fresh handful every time the home page is drawn, so it offers no page two.
+
+### Changed
+
+- Most Follows draws each tile's rows now rather than a pill over the cover, matching Most
+  Reviews above it.
+
+## XCOMIC (v1.1.18)
+
+### Removed
+
+- The Most Views sorts, and the three home rows built on them. The site answers every one
+  of its view windows with the top-rated order now, so a reader picking Most Views (7 days)
+  got Rating Score under another name. Asking for one anyway falls back to Rating Score,
+  which is what the site would have done.
+
+### Changed
+
+- Most Follows moved up to sit under Most Reviews and above Latest Uploads, as the single
+  row it already was.
+
+## XCOMIC (v1.1.17)
+
+### Changed
+
+- Only a plain word search lists every edition of a match. Ordering the results, or
+  filtering with no word at all, is the catalogue-ranking job the site answers a work at a
+  time, and now so does this — so a sort no longer returns the same series twenty times
+  over before reaching the next one.
+
+## XCOMIC (v1.1.16)
+
+### Fixed
+
+- An entry read `Kill The Villainess [src-site:mka]`, and its chapters named the same thing
+  as their scanlator. The site's importer parks a marker for where it scraped a record in
+  the same field it names the publisher in; that is not a publisher, and it is dropped. A
+  title whose marker sits beside a real team in the name falls back to the team.
+
+## XCOMIC (v1.1.15)
+
+### Changed
+
+- The publisher tag reads `On the Way to Meet Mom [WEBTOON]` again, in square brackets, as
+  Kagane writes its own. The two sit next to each other in the app, and one labelling a
+  title differently from the other reads as a bug rather than as a choice.
+
+## XCOMIC (v1.1.14)
+
+### Changed
+
+- Search lists every edition of a match rather than the one a browsing row would have
+  picked. A series carried by several teams or houses is several entries on the site, and a
+  reader searching for it is usually after a particular one — each is named by its
+  publisher and carries its own chapter count. Browsing rows still name a work once.
+
+## XCOMIC (v1.1.13)
+
+### Fixed
+
+- Browsing rows never named who published an entry. The site states that on the edition
+  rather than on the work, and browse reads works — so the rows that had carried the label
+  all along were the only ones showing it, and every browsing row showed none.
+
+### Changed
+
+- The publisher an entry came from reads as `On the Way to Meet Mom (WEBTOON)` rather than
+  in square brackets, which is how the site's other readers write it. A title the site
+  already wrote a suffix onto keeps the site's own wording untouched.
+
+## XCOMIC (v1.1.12)
+
+### Added
+
+- A tile says how widely a title has been read. The site counts views per window rather
+  than as one total, so the pill takes the window covering everything it has ever counted,
+  and the title page counts them under the score. Views sit second in the pill's order,
+  behind the rating and ahead of the likes.
+
+### Changed
+
+- A row that draws each tile's info rows no longer draws a pill over the cover as well.
+  Latest Uploads, Most Reviews and Most Views (24 hours) were saying the same number twice.
+- A chapter names the aggregator it came through as the site writes it rather than as the
+  bare slug behind it, where no team or group is named.
+
+## XCOMIC (v1.1.11)
+
+### Added
+
+- A chapter carries the volume it was collected into, where the site states one. The
+  chapter's own line is unchanged — it already says so where the site says so.
+
+## XCOMIC (v1.1.10)
+
+### Added
+
+- A browse tile says when the last chapter went up again. The title endpoint names no
+  chapter but does state the time, which the tile had lost with the move to it.
+- A browse tile says where a title has got to where the site states it, so one with nothing
+  graded, counted or typed still carries a pill.
+
+### Fixed
+
+- A title nobody has followed or commented on took a pill saying none rather than falling
+  through to its rating or its type, and carried a row saying none as well.
+
+## XCOMIC (v1.1.9)
+
+### Fixed
+
+- Every browsing row and search came back empty. The site's comic browse endpoint now
+  throws inside its own resolver whatever it is asked — no field and no filter makes any
+  difference to it — and browsing reads the site's own title endpoint instead. A title is
+  the work and holds one comic per edition of it, so a tile stands for the edition in the
+  first language the reader asked for, longest run winning a tie.
+
+### Changed
+
+- A browse tile names the length of the run where it used to name the newest chapter, which
+  is what the title endpoint counts.
+
+## XCOMIC (v1.1.8)
+
+### Changed
+
+- Browse no longer tells the site to stand its own account-level filtering aside. Two of
+  those flags were sent on every request and are gone; the third is sent only when a reader
+  turns it on.
+
+## XCOMIC (v1.1.7)
+
+### Changed
+
+- A rejected query says where it was rejected. The site answers every one of them with the
+  same "Internal Server Error" and no detail, but it does point at a line and column, and
+  that is the only way to tell which field it has stopped serving.
+
+## XCOMIC (v1.1.6)
+
+### Fixed
+
+- Every browsing row and search still came back empty. The site stopped answering the
+  browse endpoint for a summary or a title's other names, which fails the whole query
+  rather than the field — and a tile shows neither, so it no longer asks. The same field
+  list without them is what every other endpoint already answers.
+
+## XCOMIC (v1.1.5)
+
+### Fixed
+
+- Every browsing row and search came back empty. The browse endpoint answers a lighter
+  comic than the feeds do, and asking it for the team behind an edition failed the whole
+  query rather than leaving the field null. Only the endpoints whose answer carries it are
+  asked for it now; a browse row reads the team out of the name, where the site writes it
+  for older records anyway.
+
+## XCOMIC (v1.1.4)
+
+### Fixed
+
+- A series published by several teams reads as several copies of itself. Each is its own
+  entry on the site, under the same name, so a row of them said the same thing three times
+  over. Each now names the team behind it — the site's own `subName`, or the bracketed
+  suffix older records carry in the name instead. A new setting under Titles turns the
+  label off.
+- A chapter names the team that made it rather than the aggregator it arrived through.
+  `srcName` is the route an upload took, not its scanlator, so it now comes after both the
+  edition's own team and the groups credited on the chapter.
+
+## XCOMIC (v1.1.3)
+
+### Fixed
+
+- A title that carries two comics lists both again. The row was taken from the feed's item,
+  which is the title, so a series with a second team's upload in the same batch showed only
+  one of them. The rows come off the chapters instead and a comic is kept once, at its newest
+  upload, which is where the site puts it.
+
+## XCOMIC (v1.1.2)
+
+### Fixed
+
+- Latest Uploads reads the feed that actually carries the uploads. The last release moved it
+  to `get_comic_latestUploads`, which the site still accepts and still answers — with an
+  empty feed, and no error to say so. It is back on the title-keyed feed, still one row per
+  title showing its newest chapter, and the page is sorted by publication time because the
+  feed hands its items over grouped by title instead.
+
+## XCOMIC (v1.1.1)
+
+### Fixed
+
+- Latest Uploads did not list what the site lists. It was reading the whole catalogue sorted
+  by last update rather than the site's own uploads feed, which is a different order and a
+  different set of titles. It reads the feed again, and a title is one row however many
+  chapters it published at once — the feed repeats it once per upload and the site shows it
+  once.
+
+## XCOMIC (v1.1.0)
+
+### Changed
+
+- Latest Uploads is back to naming one chapter under a title. Listing the three newest read
+  as a wall of numbers where a single line had been enough.
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## XCOMIC (v1.0.28)
+
+### Changed
+
+- A Latest Uploads row lists the title's three newest chapters and when each landed, which is
+  how an uploads row reads everywhere else. The newest one is no longer repeated as a
+  subtitle above the line that already names it.
+- Reviews are gone. The count is off the title page and out of every query; the site's own
+  Most Reviews row and sort stay, since those are for finding a title rather than reading a
+  number off one.
+
+## XCOMIC (v1.0.27)
+
+### Fixed
+
+- The chapter list failed outright with "Bad Request". The site dropped the input type the
+  full list was asking for, and the full list is what this source asks for unless the
+  deduplicating setting is turned on — so every title opened to an error. It now names the
+  type the site still has.
+- Latest Uploads showed a title's genres and nothing else. The site's uploads feed hands back
+  a comic stripped of its score, follows and comments, so the row had nothing to put in its
+  lines. The row is browsed by latest update instead, which is the same order over the whole
+  title and carries everything a row on this page carries.
+
+### Changed
+
+- The counts get a line each again rather than sharing one. Three of them on a line was
+  truncated by the tile it was meant to fit inside, which is worse than the row it saved.
+  Reviews are left to the title page, and the counts are now asked for ahead of the genres so
+  the cut at four rows falls on the line a reader is least likely to want.
+- A tile carries the upload time wherever it came from. Only Latest Uploads used to show it,
+  because only that feed handed a chapter over; every listing has been asked for the newest
+  chapter's date since, so every detailed row shows when a title last moved.
+
+## XCOMIC (v1.0.26)
+
+### Changed
+
+- A detailed tile carries every count the site prints under a title. Comments were being cut
+  off the end of the rows and reviews were never shown at all, so the follows, comments and
+  reviews now share one line the way the site prints them, leaving the rating, the upload
+  time and the genres a row each.
+
+## XCOMIC (v1.0.25)
+
+### Fixed
+
+- Latest Uploads was empty. The site moved the feed from comics to titles and inverted its
+  shape on the way: an entry used to carry one comic and its newest chapter, and now carries
+  several chapters, each holding the comic it belongs to. It also pages by `first`/`limit`
+  rather than by `size`. A title is still one row, showing its newest chapter — but a title
+  whose newest chapter the site has since withdrawn now falls back to the one before it
+  instead of dropping out of the row entirely.
+- The row reads in time order again. Entries arrive grouped by title rather than by when
+  they were published, which is not the order a row called "latest" should be in.
+- The feed no longer pages forever. It answers a request carrying its own cursor with that
+  same cursor, so the walk now stops unless the cursor has actually moved backwards.
+
+## XCOMIC (v1.0.24)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## XCOMIC (v1.0.23)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## XCOMIC (v1.0.22)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## XCOMIC (v1.0.21)
+
+### Changed
+
+- The pill over a tile's cover now falls through the house order rather than only carrying
+  a rating: what the site grades a title, then what the title is, then where it has got to,
+  and a bare cover rather than an empty pill. Whatever the pill takes is left out of that
+  card's subtitle and info rows, so nothing is said twice.
+
+## XCOMIC (v1.0.20)
+
+### Changed
+
+- A title the site has graded nothing wears its follower count as the pill instead, behind
+  the house mark for it — so a cover is not left bare just because nobody has scored it.
+  The API returns no view count on a listing row, so that is the next number it has. The
+  Follows row drops out of that card for as long as the pill is the one showing it.
+
+## XCOMIC (v1.0.19)
+
+### Changed
+
+- The rating is now the frosted pill the app draws over a tile's cover, which it draws on
+  every shape of tile. It has come out of the line under the title and out of the info rows
+  with it, so the same number is not printed twice on one card. The title page still lists
+  it, where no pill is drawn.
+
+## XCOMIC (v1.0.18)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## XCOMIC (v1.0.17)
+
+### Fixed
+
+- A chapter numbered 0 was indexed past the end of the run rather than at its start, so
+  a prologue showed as the newest chapter and an unread title offered to open at
+  chapter 1. Zero was being read as "states no number" — the mark that sends a notice
+  past the end so it is never the resume point — when it is a stated number like any
+  other. A chapter the site really does leave unnumbered still sits past the end.
+
+## XCOMIC (v1.0.16)
+
+### Changed
+
+- The comment count on a tile carries its speech bubble again, in the same filled,
+  monochrome form as the star and the heart beside it. Dropping it left that row looking
+  bare next to the two above it.
+
+### Changed
+
+- Deduplicate Chapter List ships off. The site lists every group's upload, and collapsing
+  them by chapter number hid the translation a reader may have come for. Turn it on under
+  Chapters to keep one entry per chapter number (v1.0.9).
+
+### Added
+
+- A request now falls through to another mirror when the one it asked is not serving. A
+  host that is refused, times out, or answers with a gateway error is passed over for the
+  next in the list, and whichever one answers is where the rest of that screen goes — so a
+  dead mirror costs one wait rather than one per row. A 404 or a rejected query is taken as
+  the answer it is and asked nowhere else, and a Cloudflare challenge stops the walk, since
+  every mirror sits behind the same one and only you can clear it (v1.0.8).
+
+### Changed
+
+- The Comments count on a tile is drawn with a plain speech bubble rather than the colour
+  emoji, which sat oddly beside the heart on the line above it (v1.0.8).
+
+- The mirror setting's note reads "All mirrors" rather than "Both", now that there are
+  four of them (v1.0.8).
+
+### Added
+
+- `yona.to` joins the mirror list, alongside `xcomic.me`, `xcomic.net` and `comik.to`.
+  Pick one under Mirror in the source's settings if the site is blocked on your network;
+  links to any of the four open in the source (v1.0.7).
+
+### Fixed
+
+- The search form was slow to open. Its filter lists come from the site's whole search
+  page, which was read again every time the form was built — a source instance does not
+  live long enough to remember it. The lists are kept for a day now, so only the first
+  open of the day pays for that page, and a page that parses to no genres at all is
+  treated as a failed read rather than remembered as an empty form (v1.0.6).
+
+### Changed
+
+- Every source hands the app the URL that was actually challenged by Cloudflare rather
+  than the site root, so the prompt opens the page that is blocked (v1.0.5).
+- Rows are named as the site's own sort control names them, and both language pickers
+  carry all 107 codes the site publishes rather than 93 (v1.0.3).
+- Most Reviews leads the detailed rows and Most Follows sits under Most Chapters; tiles
+  carry the rating in place of the type, with follows and comments marked by their own
+  glyphs (v1.0.2).
+- Renamed from XComic, restarted at v1.0.0, and gained a `comik.to` mirror (v1.0.0).
+
+### Added
+
+- The score, follows, reviews and comment counts the site publishes now reach the tiles
+  and the detail page, and Most Follows and Most Reviews rows were added (v1.0.1).
+
+### Fixed
+
+- The Formats filter was removed: the site files its formats among its genres, and eight
+  of its twelve hardcoded ids did not exist on the site at all (v1.0.1).
+
+## XComic (v1.0.1)
+
+### Fixed
+
+- Every row on the home page failed or came back empty. The first release invented the
+  shape of four API requests rather than using the site's own: the two feeds page by
+  cursor and reject a page number outright, the chapter list keys on `comic_id` and names
+  its own order, browse needs the offset of the page it is asking for, and its results
+  arrive as a list of nodes rather than one wrapper. All four match the site now.
+
+### Changed
+
+- The home page is laid out like the other sources here: a hero, a detailed pair for
+  today's trending, then this week, the grouped chapter feed, all-time, and recently added.
+
+## XComic (v1.0.0)
+
+First release. Manga, manhwa, manhua and comics from xcomic.me:
+
+- Six home rows — Top Rated, Most Views for today, this week and all time, Latest Uploads
+  and Recently Added — each of which can be turned off in settings.
+- The site's full advanced search: types, content ratings, demographics, genres with
+  include, exclude and match-all, original and upload status, chapter count, a year or a
+  year range, and original and translated languages, with nineteen sort orders.
+- Settings for content ratings, types, translated languages and a genre hide-list, which
+  stand in for anything the search form leaves blank.
+- Chapters keep the site's own order and name their scanlator, whether that is an official
+  source, a group, or the person who uploaded it.
+
+## FlameComics (current: v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## FlameComics (v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## FlameComics (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## FlameComics (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## FlameComics (v1.0.15)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## FlameComics (v1.0.14)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## FlameComics (v1.0.13)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## FlameComics (v1.0.12)
+
+### Changed
+
+- A tile's pill carries the likes the site counts, then what the title is, then where it
+  has got to. Whatever it takes is left out of that card's subtitle and info rows, so
+  nothing is said twice.
+
+## FlameComics (v1.0.11)
+
+### Changed
+
+- A library migration no longer buys a Similar Titles lookup for every title it walks
+  through. The app now says when a request is a migration, and one wants only enough
+  metadata to match a title — so that extra request is skipped and everything else is
+  answered as before.
+
+## FlameComics (v1.0.10)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## FlameComics (v1.0.9)
+
+### Fixed
+
+- A chapter the site leaves unnumbered no longer sorts ahead of chapter 1, where it
+  became the one an unread title opened at. It now sits above the numbered run, and a
+  chapter the site numbers 0 stays where it belongs, at the start.
+
+## FlameComics (v1.0.8)
+
+### Changed
+
+- Popular leads as the hero with Staff Picks below it, both naming the type and the like
+  count; the Featured carousel is a single row with no subtitle (v1.0.4).
+- Tiles write the heart against the count — `Likes  ♥ 141` (v1.0.4).
+
+## FlameComics (v1.0.1)
+
+### Added
+
+- A Featured row carrying the site's own front-page carousel. A slide pointing at a novel
+  rather than a comic is left out.
+- Every row shows the publication status beside the like count.
+
+### Changed
+
+- The like count is labelled `Likes ♥` rather than a bare heart.
+- Popular moved to a detailed two-row layout now that Featured holds the top of the page.
+
+## FlameComics (v1.0.0)
+
+First release. Manhwa, manhua and manga from flamecomics.xyz:
+
+- Three home rows — Popular, Latest Updates and Staff Picks — all served from the one
+  payload the site's own homepage uses, so the whole page costs a single request. Each
+  carries the site's like count as a heart.
+- The site has no search endpoint, so its full catalogue is fetched once and filtered here:
+  categories with include, exclude and match-all, publisher, author and artist the same
+  way, plus type, status, year, language and country, and six sort orders.
+- Chapters are read from the series payload that already carries them, and page images
+  come from the CDN with the token the site uses as a cache-buster.
+
+## Kagane (v1.1.2)
+
+### Changed
+
+- The pill over a cover gives a title's type as the word on its own. The book in front of
+  it spent a few characters of artwork on nothing the reader needed told.
+
+## Kagane (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## Kagane (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## Kagane (v1.0.38)
+
+### Fixed
+
+- The Cloudflare bypass never worked. It watches the page it opened by asking it a question
+  every so often, and the host answers the first question and then throws on every one after
+  it — so each attempt sat out its whole budget and handed the challenge over as though
+  nothing had been tried. It now asks in the form that can be asked twice.
+
+## Kagane (v1.0.37)
+
+### Changed
+
+- Types and statuses are written the same way whatever the site shouted: `ONGOING`,
+  `ON_HIATUS` and `manhwa` all come out as words, while a name the site capitalised itself
+  and a short initialism like `OEL` are left as they were.
+- The pill says a status behind a link mark rather than behind nothing, which is what the
+  type beside it already did.
+
+## Kagane (v1.0.36)
+
+### Fixed
+
+- The rows beneath a title on a detailed tile were losing whatever the pill over the cover
+  had taken — most often the rating, which then showed nowhere at all, because those tiles
+  use a thumbnail the app draws no pill over. The rows now carry the site's whole read, the
+  pill's pick included; only the line directly under the title still gives way to the pill.
+
+### Changed
+
+- The pill words a type with a book in front of it and a status with nothing. The outline
+  marks read against a key in a column of rows; a few characters over artwork have nothing
+  to read against, and "Ongoing" says what it is unaided.
+
+## Kagane (v1.0.35)
+
+### Changed
+
+- A tile's pill carries what the title is, and where it has got to when the site has not
+  said what it is — a listing row here is graded nothing and counted nothing, so that is
+  what it has. The line under the title keeps whichever half the pill did not take.
+
+## Kagane (v1.0.34)
+
+### Changed
+
+- A library migration no longer buys a related-editions lookup for every title it walks
+  through. The app now says when a request is a migration, and one wants only enough
+  metadata to match a title — so that extra request is skipped and everything else is
+  answered as before.
+
+## Kagane (v1.0.33)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## Kagane (v1.0.32)
+
+### Changed
+
+- The view count in a title's summary is marked with the same symbol the other sources
+  use, beside the star the rating already carried.
+
+### Fixed
+
+- A search by name no longer applies the hide-lists. Searching for a title returned only
+  some of its editions: the uploader of one had tagged it with something on the hide-list,
+  so that row was excluded before the search ever ran, while another edition of the same
+  work — tagged differently by a different group — came back. The hide-lists are for
+  keeping the home page and the listings clear of what you would rather not browse; typing
+  a title's name is asking for that title, and it now returns whatever it is tagged. Nothing
+  changes for the home page, the listings, or a filter-only search (v1.0.27).
+
+- The language filter is sent again. v1.0.26 dropped it on the reading that the site's own
+  search carries none; the site does send it, and that was not what was hiding the editions
+  (v1.0.27).
+
+### Fixed
+
+- Search returned one edition of a title where the site returns several. Every request
+  carried a `content_lang` filter built from the Languages setting, which pinned results to
+  the single edition whose row is labelled with that language — a second translation of the
+  same work, by a different group, never arrived. The site's own search applies no language
+  filter, so neither does this one unless the reader picks languages; Languages now ships
+  empty, meaning every edition, and can be emptied again after being set. The setting is
+  stored under a new key so the correction reaches installs that already have `English`
+  written (v1.0.26).
+
+### Fixed
+
+- Search returned fewer editions of a title than the site does. The Content Rating setting
+  shipped as Safe and Suggestive, so a second scanlation of the same series rated a rung
+  higher than the first was dropped before it ever reached the results. It now ships as all
+  four rungs, the way the site itself answers, and the app's own content setting narrows it
+  from there. The setting is stored under a new key so the correction reaches installs that
+  already have the old value written — check it once if you had narrowed it deliberately
+  (v1.0.25).
+
+- A tag picker offered the same name twice. The site publishes `Costume/S` and `Costumes`
+  as separate entries, and tidying the first produced a second chip reading exactly like
+  the one beside it, each holding half of the tag's ids. Sixty such pairs are now joined
+  into one chip carrying both (v1.0.25).
+
+### Added
+
+- Tags can now be typed as well as picked. The search form takes a comma-separated list of
+  names, with a `-` in front of one to exclude it, so a tag can be reached without knowing
+  which of the twenty-six groups it was sorted into. Spelling and case do not matter — the
+  names are read the same way the picker folds `Body Swap/S` and `Bodyswap` together, and
+  a name the site does not carry is passed over rather than emptying the search (v1.0.24).
+
+### Changed
+
+- The genre, tag and upload-source lists are kept on disk for a day rather than only for
+  as long as one source instance. The tag list alone is eight thousand entries, and the
+  app builds a fresh instance freely, so the search form was fetching it again on nearly
+  every open (v1.0.24).
+
+- The last of Other Tags swept into the groups — the site's Indonesian lead descriptors to
+  Personality, the franchises to Adaptations, and trades, creatures, places, objects and
+  powers to theirs. Nineteen tags of eight thousand are unclaimed, down from half when the
+  grouping started (v1.0.24).
+
+### Changed
+
+- A last sweep of Other Tags from the picker — trades, creatures, crimes, sports, objects,
+  powers, historical figures and gender terms. Under a thirtieth of the list is unclaimed,
+  down from half when the grouping started (v1.0.23).
+
+### Changed
+
+- Another round through Other Tags: past lives and hidden identities to Spoilers, the
+  Japanese periods to Era, trades, creatures, places, ailments, objects and powers to
+  theirs. A twentieth of the list is unclaimed, down from half (v1.0.22).
+
+### Fixed
+
+- Gender & Sexuality, Business and Emotions were each written with a trailing word
+  boundary that stopped every partial word in them from ever matching, which is why
+  `Nightmares` was never an emotion (v1.0.22).
+
+### Changed
+
+- Spoilers holds what it should: endings of every kind, deaths and who dies, rebirths and
+  second lives, regressions and time rewinds, rises and falls in station, and the secrets
+  a story turns on. It went from four tags to fifty-nine, without taking murder, suicide
+  or assault away from the warnings (v1.0.21).
+- Another pass over Other Tags from the picker — trades, creatures, places, sports,
+  objects, powers and formats. Under a thirteenth of the list is unclaimed (v1.0.21).
+
+### Added
+
+- A BL & GL group and a Taboo group. Taboo runs ahead of the warnings and the sexual list
+  so incest, adultery, forbidden love, age gaps and step-family land there rather than
+  being scattered; BL & GL runs after them so Bara stays where it was asked to be
+  (v1.0.20).
+
+### Changed
+
+- The groups are named more plainly: Era, Adaptations, Personality, Character Roles,
+  Health, Creatures, Places, Activities, Objects, Worldbuilding, Storytelling, Format,
+  Demographic, Business, Emotions. Only the names changed — a hide-list is stored under
+  the group's id, so nothing already hidden is lost (v1.0.20).
+
+### Changed
+
+- A further pass over Other Tags, again working from the picker: body descriptions,
+  crimes, creatures, objects, trades and places that were still sitting there now sit in
+  their group. Under a tenth of the list is unclaimed (v1.0.19).
+
+### Changed
+
+- Another pass over what was left in Other Tags, working from the picker itself: creatures,
+  crimes, places, sports, clothing, time and gender tags that were sitting there now sit in
+  the group they belong to. Nine tags in ten land in a named group (v1.0.18).
+
+### Fixed
+
+- `ML` and `FL` are how the site abbreviates male and female lead, which the grouping did
+  not know — so `Capable ML`, `Cold ML` and `Scheming FL` were read as unnamed characters
+  rather than as the traits they describe. A kiss is also a relationship rather than a
+  pastime, which is what had `Drunken Kiss` filed under hobbies (v1.0.17).
+
+### Changed
+
+- Four more groups: Spoilers, Sexuality & Gender, Business & Industry, and Mind &
+  Emotions. With another pass over the site's vocabulary, seven tags in eight now land in
+  a named group where barely half did two releases ago (v1.0.17).
+- Uploader scores — `Score: 8` and the like — are dropped with the other scribbles. They
+  describe an upload rather than a title (v1.0.17).
+
+### Changed
+
+- Settings opens on Titles and Chapters. They are two short sections of toggles that were
+  sitting below the long tag hide-lists, which meant scrolling past everything to reach
+  them (v1.0.16).
+
+### Changed
+
+- Spellings of one tag now fold together even when they differ by their spaces, which is
+  how uploaders write them: `Age Gap` and `Agegap`, `Dark Romance` and `DarkRomance`,
+  `Body Swap/S` and `Bodyswap` are one entry each, labelled with the spelling that reads.
+  7,212 tags are offered where the site publishes 8,139 (v1.0.15).
+
+### Changed
+
+- The tag list is cleaned before it is shown. The site publishes 8,139 tags with several
+  spellings of the same thing — `Actor`, `Actor/S` and `Actors` are three entries with
+  three ids — so those are folded into one entry that still searches every id behind it,
+  the uploader hashtags and decorations are dropped, and `Character/S` and `Alzheimer'S`
+  are written the way they read. 7,259 tags are offered where 8,139 were (v1.0.14).
+- The groups were rebuilt against the site's real vocabulary rather than a guess at it:
+  Time Period, Derivative Work, Content Warnings, Sexual Content, Appearance, Character
+  Traits, Character Types, Relationships, Health & Conditions, Occupations, Species &
+  Creatures, Locations, Activities & Hobbies, Objects & Technology, Setting & World
+  Building, Themes, Narrative & Structure, Format & Presentation and Audience. Four in
+  five tags now land in a named group where barely half did (v1.0.14).
+
+### Fixed
+
+- A hide-list chosen in Settings never applied, because the store answers only for keys it
+  holds a default for and the per-group keys had none (v1.0.14).
+
+### Changed
+
+- The site's tags are split into groups — Sexual Content, Relationships, Character Types
+  and Traits, Occupations, Species, Setting, Themes, Narrative, Content Warnings, Format,
+  Audience — in the search form and again as separate hide-lists in Settings, rather than
+  one picker holding the site's whole list. The site publishes no grouping of its own, so
+  the groups are read from the tag names and anything unclaimed is offered under Other
+  Tags. A hide-list saved before this still applies (v1.0.13).
+
+### Fixed
+
+- Tapping a genre or tag on a title returned nothing and the site rejected the request.
+  A title's own page names its genres and tags without identifying them, while the search
+  they become is by id, so the name was being sent where an id belongs. The ids are now
+  looked up from the site's own lists, which the source already holds (v1.0.12).
+
+### Changed
+
+- The sorts no longer offer an ascending and a descending direction. The site answers both
+  with the same order, so only the one it actually applies is offered (v1.0.12).
+
+### Fixed
+
+- A challenge met while a request was in flight is retried instead of surfacing, and the
+  cooldown that left a later screen with no attempt at all is gone (v1.0.10).
+- The reader's integrity and access tokens are dropped when a challenge replaces the
+  session they were minted against, which is what previously left the reader stuck until
+  the source was closed and its cache cleared by hand (v1.0.9).
+
+## Kagane (v1.0.8)
+
+### Changed
+
+- The hero row carries fifty titles, the same as every other row, so the cap that existed
+  only to shorten it is gone.
+
+## Kagane (v1.0.7)
+
+### Fixed
+
+- The hero row ranked by averaged views, which reads as a monthly chart rather than an
+  all-time one. It counts total views again, as other clients for this site do, and shows
+  twenty titles instead of ten.
+
+### Changed
+
+- Identical requests already in flight share one response, so a refresh that fires every
+  row at once, or a retry after a challenge, no longer asks the server the same question
+  several times over.
+
+## Kagane (v1.0.6)
+
+### Fixed
+
+- Waiting out a challenge judged itself by the challenge markers disappearing, which a
+  blank or failed page also satisfies. It now waits for the site's own scripts to appear,
+  which is the only thing that proves the real page loaded.
+- A challenge that has asked for a person is handed over at once instead of being waited
+  out first, so the prompt arrives in under a second rather than after the full budget.
+
+## Kagane (v1.0.5)
+
+### Added
+
+- An `Exact Match` switch on the search form. The site supports it and it matches a title
+  as typed rather than loosely, which helps for short or common names.
+
+### Changed
+
+- Listings ask for fifty titles a page instead of thirty-five, the size the site's own rows
+  use, so scrolling reaches further before another request.
+
+## Kagane (v1.0.4)
+
+### Changed
+
+- Popular now ranks by average views rather than total views, which is what the site's own
+  all-time row does. Totals leave a long-running series parked at the top; averages let
+  something newer climb.
+- A search with no explicit order leaves the sort parameter off, as the site does, instead
+  of sending it empty.
+
+## Kagane (v1.0.3)
+
+### Fixed
+
+- A challenge was only cleared automatically on the home page. One failed attempt there
+  silenced the bypass for a full minute, so opening a title, a search or the reader in that
+  window went straight to the manual prompt without trying. The wait between attempts is
+  shorter now, and any request that succeeds clears it — so once a challenge is solved, by
+  hand or otherwise, the next one is answered automatically again.
+
+## Kagane (v1.0.2)
+
+### Fixed
+
+- Every row in Latest Updates reported the same age. A timestamp was read for its date and
+  its time of day thrown away, so each chapter was dated midnight rather than when it
+  landed. Chapters now show the age the site shows.
+
+## Kagane (v1.0.1)
+
+### Fixed
+
+- A Cloudflare challenge went straight to the manual prompt. The source now loads the site
+  in the auxiliary WebView and waits for the challenge to run itself out before retrying,
+  which takes fifteen to twenty seconds from cold. An earlier attempt at this treated the
+  challenge page finishing loading as the challenge being solved, and gave up after twelve
+  seconds; it now waits for the challenge markers to actually clear. A cooldown keeps a site
+  that challenges everything from spending that budget on every request.
+
+## Kagane (v1.0.0)
+
+First release. The numbering before this one covered a testing round inside the repository,
+before anyone else had installed the source, so it starts again from zero.
+
+Manga, manhwa, manhua and comics from kagane.to:
+
+- The site's own home rows — Popular, Trending This Month, This Week and Today, Latest
+  Updates and Recently Added.
+- The full search form: content rating, format, status, upload sources, and genre and tag
+  pickers with include and exclude, the long lists opening as sheets.
+- Settings for the upload source, content languages, title cleanup, and hide-lists for
+  genres and tags.
+- Chapters carry the volume, the number and the name in one label, with the publisher
+  beside them and a tick where the upload is official.
+- The integrity-token exchange the reader needs, with a refresh when a token goes stale.
+- Requests are narrowed to the content ratings the app says it will accept.
+
+## Mangago (current: v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## Mangago (v1.1.1)
+
+### Added
+
+- The source says which way a title should be read. The app opens at paged left-to-right
+  when a source says nothing, which is wrong for most of what these sites carry — a manhwa
+  is scrolled and a manga turns right to left. Where the site states a direction that is
+  used; failing that, a tag naming the format; failing that, what the title is. Nothing is
+  claimed where none of the three answers.
+
+## Mangago (v1.1.0)
+
+### Changed
+
+- Every source in the repository is renumbered to 1.1.0. The patch counts had drifted a long
+  way apart while the sources were still finding their quirks, and a shared number is a
+  cleaner place to carry on from. Nothing about the source itself changed with the number.
+
+## Mangago (v1.0.12)
+
+### Changed
+
+- The deobfuscated `chapter.js` is kept between launches rather than only for the session.
+  Every chapter of every title decodes through the same script, so this was a request and a
+  pass over a few hundred kilobytes on the first chapter opened after every start. It is
+  stored against the script's own versioned URL, so the site bumping its reader misses the
+  stored copy instead of being handed a stale one, and a stored value is checked for every
+  marker the decode needs before it is trusted.
+- The AES this source decrypts its page list with is `crypto-js` rather than a cipher
+  written out here. The hand-written one was correct — the two agree on 450 vectors across
+  every key length and padding mode — and was still a hundred and forty-five lines of S-box
+  and key schedule to own.
+
+## Mangago (v1.0.11)
+
+### Fixed
+
+- A switch turned off in Settings could turn itself back on. Home Sections are on by
+  default, and the store was answering "nothing saved" for a saved `false` — which is
+  indistinguishable from never having set it, so the default won and the row came back. The
+  saved value is now read as it actually is, before any accessor that might lose it.
+
+## Mangago (v1.0.10)
+
+### Fixed
+
+- A chapter numbered 0 was indexed past the end of the run rather than at its start, so
+  a prologue showed as the newest chapter and an unread title offered to open at
+  chapter 1. Zero was being read as "states no number" — the mark that sends a notice
+  past the end so it is never the resume point — when it is a stated number like any
+  other. A notice carrying no number still sits past the end.
+
+## Mangago (v1.0.9)
+
+### Fixed
+
+- The Featured carousel was slow every time the source was opened. It is cut out of the
+  site's front page, the heaviest thing this source reads, and the copy being held only
+  lasted as long as the instance that fetched it. The tiles it yields are kept for a
+  quarter of an hour instead, and a front page that arrives without a carousel is retried
+  rather than remembered as empty (v1.0.6).
+
+### Fixed
+
+- Cloudflare challenges were reported as plain network errors: without a status validator
+  the host threw on 403 before the check that classifies them could run (v1.0.5).
+
+## Mangago (v1.0.4)
+
+### Changed
+
+- Chapters are listed in the order the site uploaded them, which is what other clients for
+  this site show, instead of being re-sorted by number. Notices therefore sit where they
+  were posted rather than being gathered at either end. An unread title still starts at its
+  first numbered chapter.
+
+## Mangago (v1.0.3)
+
+### Changed
+
+- Unnumbered chapters are ordered among themselves the way the numbered run is — official
+  uploads first, then by uploader — rather than being left in page order.
+
+## Mangago (v1.0.2)
+
+### Fixed
+
+- Notices and unnumbered side stories sat above the newest chapter. Numbering them past the
+  end of the run kept them out of the resume position but put them at the top of the list;
+  they now sit beneath it, and an unread title still starts at its first real chapter.
+
+## Mangago (v1.0.1)
+
+### Changed
+
+- Helpers used only inside their own file are no longer exported, and two byte encoders
+  that no source still calls are gone.
+
+## Mangago (v1.0.0)
+
+First release, renumbered on the same basis as above.
+
+Manga, manhwa and doujinshi from mangago.me:
+
+- The site's Featured Manga slider, Popular Manga, the latest-update feed, and ten genre
+  Top 10 rows.
+- Search across the site's genres with include and exclude, plus status and sort.
+- Settings for content type, hidden genres, and which home rows appear.
+- Chapters keep the site's own wording, numbering included.
+- The AES-decrypted, tile-descrambled reader, including the mirror hosts.
+- A rating policy from the app is applied through the site's own genre exclusions, so pages
+  stay whole.
