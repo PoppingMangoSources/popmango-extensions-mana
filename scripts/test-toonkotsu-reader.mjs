@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import assert from "node:assert/strict";
-import { createCipheriv, createHash, createHmac, webcrypto } from "node:crypto";
+import { createCipheriv, createHash, createHmac } from "node:crypto";
 import fs from "node:fs";
 import vm from "node:vm";
 import { ManaStore } from "./harness/runtime.mjs";
@@ -17,9 +17,9 @@ const signingKey = Buffer.alloc(32, 0x73);
 const nonce = Buffer.from("00112233445566778899aabbccddeeff", "hex");
 const plain = Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), Buffer.alloc(800_001, 0x5a)]);
 
-function load({ native = false, signed = true, refresh = false, gate, invalidNonce = false } = {}) {
+function load({ hostCrypto = false, signed = true, refresh = false, gate, invalidNonce = false } = {}) {
   const bodies = new Map();
-  const stats = { keys: 0, signed: 0, nativeDecrypt: 0, requests: [] };
+  const stats = { keys: 0, signed: 0, requests: [] };
   let next = 0;
   const keep = (bytes) => {
     const bodyID = String(++next);
@@ -90,11 +90,8 @@ function load({ native = false, signed = true, refresh = false, gate, invalidNon
     __manaHTTPBridge: bridge, ObjectStore: new ManaStore(), SecureStore: new ManaStore(),
     console, setTimeout, clearTimeout,
     WebViewPage: { create() { throw new Error("Direct reads must not open a WebView"); } },
-    ...(native ? { crypto: { subtle: {
-      digest: webcrypto.subtle.digest.bind(webcrypto.subtle),
-      importKey: webcrypto.subtle.importKey.bind(webcrypto.subtle),
-      sign: webcrypto.subtle.sign.bind(webcrypto.subtle),
-      decrypt(...args) { stats.nativeDecrypt++; return webcrypto.subtle.decrypt(...args); },
+    ...(hostCrypto ? { crypto: { get subtle() {
+      throw new Error("Reader must not require WebCrypto");
     } } } : {}),
   };
   sandbox.self = sandbox;
@@ -103,9 +100,9 @@ function load({ native = false, signed = true, refresh = false, gate, invalidNon
   return { target: new context.Target(), stats };
 }
 
-for (const native of [false, true]) {
+for (const hostCrypto of [false, true]) {
   for (const signed of [false, true]) {
-    const { target, stats } = load({ native, signed, refresh: signed });
+    const { target, stats } = load({ hostCrypto, signed, refresh: signed });
     const chapter = await target.getChapterData("ktm04", "1487335");
     assert.equal(chapter.pages.length, 3);
     for (const page of chapter.pages) {
@@ -117,8 +114,7 @@ for (const native of [false, true]) {
     }
     await target.getChapterData("ktm04", "1487336");
     assert.equal(stats.keys, signed ? 2 : 0, "cache the refreshed signer between chapters");
-    assert.equal(stats.nativeDecrypt, native ? 3 : 0);
-    console.log(`PASS ${native ? "WebCrypto" : "bare runtime"}: ${signed ? "signed, wrapped, key refresh" : "unsigned"}; AES-128/192/256 page transports`);
+    console.log(`PASS ${hostCrypto ? "without accessing host crypto" : "bare runtime"}: ${signed ? "signed, wrapped, key refresh" : "unsigned"}; AES-128/192/256 page transports`);
   }
 }
 const concurrent = load();

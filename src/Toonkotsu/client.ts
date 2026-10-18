@@ -116,7 +116,7 @@ export class ToonkotsuApi {
         const blocked = refusal(key);
         if (blocked) return { refused: blocked };
         if (key.status < 200 || key.status >= 300) return {};
-        this.signer ??= ReaderSigner.from(key.body);
+        this.signer ??= Promise.resolve().then(() => ReaderSigner.from(key.body));
       }
       const pending = this.signer;
       let signer: ReaderSigner;
@@ -126,9 +126,9 @@ export class ToonkotsuApi {
         if (this.signer === pending) this.signer = undefined;
         throw error;
       }
-      answer = await this.get(url, { "x-sig": await signer.header(path) });
+      answer = await this.get(url, { "x-sig": signer.header(path) });
       if (answer.status >= 200 && answer.status < 300) {
-        return { body: await signer.unwrap(answer.body) };
+        return { body: signer.unwrap(answer.body) };
       }
       const limit = answer.body as SiteFailure["data"];
       if (answer.status === 401 || answer.status === 403 || limit?.resign) {

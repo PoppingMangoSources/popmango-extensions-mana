@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import { base64ToBytes, bytesToBase64Url, utf8ToBytes } from "../common/bytes.ts";
-import { digest, sign } from "./crypto.ts";
+import { hmacSha256, sha256 } from "../common/aes.ts";
 import { type SitePage } from "./model.ts";
 
 const READER_SECRET = "NO57DoQRq7oxY3MCO5_SNw4_3vFRsUq7";
@@ -25,26 +25,26 @@ export class ReaderSigner {
     private readonly offset: number,
   ) {}
 
-  static async from(value: unknown): Promise<ReaderSigner> {
+  static from(value: unknown): ReaderSigner {
     const response = value as Partial<ReaderKeyResponse> | undefined;
     if (typeof response?.key !== "string" || !Number.isFinite(response.now)) {
       throw new Error("Toonkotsu sent an invalid signing key.");
     }
-    const mask = await digest(utf8ToBytes(`sign:${READER_SECRET}`));
+    const mask = sha256(utf8ToBytes(`sign:${READER_SECRET}`));
     return new ReaderSigner(xor(decode(response.key), mask), response.now! - Date.now());
   }
 
-  async header(path: string): Promise<string> {
+  header(path: string): string {
     const time = String(Date.now() + this.offset);
     // The server accepts a nonce derived from the request, so this needs no host RNG.
-    const nonce = bytesToBase64Url((await digest(utf8ToBytes(`${time}.${path}`))).subarray(0, 12));
+    const nonce = bytesToBase64Url(sha256(utf8ToBytes(`${time}.${path}`)).subarray(0, 12));
     const signature = bytesToBase64Url(
-      await sign(this.key, utf8ToBytes(`${time}.${nonce}.${path}`)),
+      hmacSha256(this.key, utf8ToBytes(`${time}.${nonce}.${path}`)),
     );
     return `v1.${time}.${nonce}.${signature.slice(0, 32)}`;
   }
 
-  async unwrap(body: unknown): Promise<unknown> {
+  unwrap(body: unknown): unknown {
     const response = body as { wrap?: string; chapter?: { pages?: SitePage[] } } | undefined;
     if (!response?.wrap) return body;
     if (response.wrap !== "v1") {
@@ -57,16 +57,14 @@ export class ReaderSigner {
       wrap: undefined,
       chapter: {
         ...response.chapter,
-        pages: await Promise.all(
-          pages.map(async (page) => {
-            if (page.k == null && page.n == null) return page;
-            if (typeof page.k !== "string" || typeof page.n !== "string") {
-              throw new Error("Toonkotsu sent incomplete page keys.");
-            }
-            const mask = await sign(this.key, utf8ToBytes(`page.${page.n}`));
-            return { ...page, k: bytesToBase64Url(xor(decode(page.k), mask)) };
-          }),
-        ),
+        pages: pages.map((page) => {
+          if (page.k == null && page.n == null) return page;
+          if (typeof page.k !== "string" || typeof page.n !== "string") {
+            throw new Error("Toonkotsu sent incomplete page keys.");
+          }
+          const mask = hmacSha256(this.key, utf8ToBytes(`page.${page.n}`));
+          return { ...page, k: bytesToBase64Url(xor(decode(page.k), mask)) };
+        }),
       },
     };
   }
