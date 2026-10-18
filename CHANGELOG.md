@@ -106,7 +106,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.13)
+## Kagane (current: v1.1.14)
+
+### Changed
+
+- Bring back the grouped tag pickers in search — Era, Adaptations and the rest each open as their own sheet under Tags.
+
+## Kagane (v1.1.13)
 
 ### Changed
 

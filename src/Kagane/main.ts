@@ -105,13 +105,13 @@ import {
   matchesTagGroups,
   type SearchBodyOptions,
 } from "./search.ts";
-import { EXCLUDED_TAG_KEYS, groupTags, tagIdsOf } from "./tag-groups.ts";
+import { EXCLUDED_TAG_KEYS, groupTags, tagFilterId, tagIdsOf } from "./tag-groups.ts";
 import { buildSettingsSections } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.1.13",
+  version: "1.1.14",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -422,13 +422,15 @@ class KaganeSource
               SearchListSection({
                 header: "Tags",
                 children: [
-                  SearchExcludableMultiPickerSheet({
-                    id: FilterID.Tags,
-                    title: "Choose tags",
-                    options: groupTags(tags)
-                      .flatMap(({ options }) => options)
-                      .sort((left, right) => left.title.localeCompare(right.title)),
-                  }),
+                  // Thousands of tags as one list cannot be read, so each group opens as a
+                  // sheet of its own; a pick in any of them means the same to the search.
+                  ...groupTags(tags).map(({ group, options }) =>
+                    SearchExcludableMultiPickerSheet({
+                      id: tagFilterId(group.id),
+                      title: group.title,
+                      options,
+                    }),
+                  ),
                   SearchTextField({
                     id: FilterID.TagQuery,
                     title: "Tag names",
