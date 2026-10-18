@@ -7,6 +7,7 @@ import {
   base64BodyToBytes,
   base64ToBytes,
   bytesToBase64,
+  delay,
   resolveUrl,
   withDefaults,
 } from "../common/index.ts";
@@ -128,17 +129,49 @@ export function pageClient(url: string): HttpClient {
   const keys = keysOf(url) ?? keysOf(remembered.get(withoutFragment(url)) ?? "");
   if (!keys) return imageClient();
 
-  return withReferer(new HttpClient()).addResponseInterceptor(async (response, context) => {
+  return withReferer(new HttpClient()).addResponseInterceptor((response, context) => {
     if (context.origin !== RequestOrigin.Page || !response.ok) return response;
-    // Read as base64 and decoded here: `bytes()` decodes by searching the alphabet for every
-    // character, which is most of a page's time on a device with no JIT.
-    const image = aesCtrDecryptInPlace(
-      base64BodyToBytes(await response.base64()),
-      keys.key,
-      keys.nonce,
-    );
-    return handOver(response.withBody(image, { contentType: imageType(image) }), image);
+    return inTurn(async () => {
+      // Read as base64 and decoded here: `bytes()` decodes by searching the alphabet for
+      // every character, which is most of a page's time on a device with no JIT.
+      const image = base64BodyToBytes(await response.base64());
+      for (let at = 0; at < image.length; at += SLICE_BYTES) {
+        await delay(0);
+        aesCtrDecryptInPlace(image.subarray(at, at + SLICE_BYTES), keys.key, keys.nonce, at / 16);
+      }
+      await delay(0);
+      return handOver(response.withBody(image, { contentType: imageType(image) }), image);
+    });
   });
+}
+
+/**
+ * Bytes decrypted between pauses: a few hundredths of a second of work on a phone.
+ *
+ * A multiple of 16, so every slice starts on a block — and of 4, so it stays word-aligned.
+ */
+const SLICE_BYTES = 64 * 1024;
+
+/** The page being worked on, which the next one waits behind. */
+let working: Promise<unknown> = Promise.resolve();
+
+/**
+ * Runs one page's decoding, decryption and encoding as its turn, pausing between slices so
+ * everything else the runtime has queued is answered meanwhile.
+ *
+ * A long chapter has the reader asking for page after page while it scrolls, and a page done
+ * in one piece holds the runtime for a quarter of a second at a time with nothing else
+ * answered. Pages still take their turn whole and in the order they arrived: slices of every
+ * page interleaved would finish them all together, at the end, rather than the first first.
+ */
+function inTurn<T>(work: () => Promise<T>): Promise<T> {
+  const turn = working.then(work);
+  // The next page waits for this one's turn to end, however it ended.
+  working = turn.then(
+    () => undefined,
+    () => undefined,
+  );
+  return turn;
 }
 
 /** `BodyReader.Base64`, which the types package does not export. */

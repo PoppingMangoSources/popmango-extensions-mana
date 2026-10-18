@@ -11,6 +11,17 @@ export const PAGE_SIZE = 42;
 
 export const READER_TIMEOUT = 180;
 
+/**
+ * Distinct titles a page of Latest Updates is filled to.
+ *
+ * The feed lists every release, and a series uploaded whole fills a page of it with one
+ * title — which a feed showing each title once draws as a single row.
+ */
+export const LATEST_PAGE_TITLES = 12;
+
+/** The most of the site's own pages one page of Latest Updates reads to get there. */
+export const LATEST_PAGE_READS = 4;
+
 /** How often a read the site calls a momentary limit is asked again, as its own reader does. */
 export const TRANSIENT_RETRIES = 2;
 

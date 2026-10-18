@@ -98,11 +98,15 @@ function expandKey(key: Uint8Array, sbox: Uint8Array): Int32Array {
  * CTR is its own inverse, so this encrypts as well. The counter block is the first eight
  * bytes of `nonce` followed by a 64-bit block count starting at zero, which is the layout the
  * sites doing this use.
+ *
+ * `firstBlock` is where `data` starts in the stream, in 16-byte blocks, so a long stream can
+ * be decrypted a slice at a time — each slice handed in as a `subarray` of the whole.
  */
 export function aesCtrDecryptInPlace(
   data: Uint8Array,
   key: Uint8Array,
   nonce: Uint8Array,
+  firstBlock = 0,
 ): Uint8Array {
   if (nonce.length < 8) throw new Error(`Invalid nonce length ${nonce.length} (expected 8+)`);
 
@@ -151,9 +155,10 @@ export function aesCtrDecryptInPlace(
   let b1 = 0;
   let b2 = 0;
   let b3 = 0;
-  for (let block = 0, w = 0; block < blocks; block++, w += 4) {
+  for (let i = 0, w = 0; i < blocks; i++, w += 4) {
+    const block = firstBlock + i;
     const c3 = block ^ rk[3]!;
-    if ((block & 0xff) === 0) {
+    if (i === 0 || (block & 0xff) === 0) {
       // Everything but the counter's low byte holds for the next 256 blocks.
       const c2 = Math.floor(block / 0x100000000) ^ rk[2]!;
       r0 = a0 ^ m2[(c2 >>> 8) & 0xff]!;
@@ -220,8 +225,8 @@ export function aesCtrDecryptInPlace(
       tail[1] = o1;
       tail[2] = o2;
       tail[3] = o3;
-      const at = block * 16;
-      for (let i = 0; i < 16 && at + i < length; i++) data[at + i]! ^= tailBytes[i]!;
+      const at = i * 16;
+      for (let b = 0; b < 16 && at + b < length; b++) data[at + b]! ^= tailBytes[b]!;
     }
   }
 

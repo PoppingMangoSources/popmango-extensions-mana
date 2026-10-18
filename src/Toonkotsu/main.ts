@@ -68,6 +68,8 @@ import {
   FACETS_LIFETIME_MS,
   FilterID,
   HUMAN_CHECK_SECONDS,
+  LATEST_PAGE_READS,
+  LATEST_PAGE_TITLES,
   MATCH_MODE_OPTIONS,
   COUNTRY_OPTIONS,
   PAGE_SIZE,
@@ -109,7 +111,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.29",
+  version: "1.0.30",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -147,7 +149,9 @@ class ToonkotsuSource
     FACETS_LIFETIME_MS,
   );
   // Recently-read cursors for the uploads feed, which repeats a title across pages.
-  private readonly seenByPage = new Map<number, string[]>();
+  // Where each page of Latest Updates picks up: the site's page to read next, and the titles
+  // already drawn, since one page here can read several of the site's.
+  private readonly latestCursor = new Map<number, { sitePage: number; seen: string[] }>();
   private humanCheck: Promise<boolean> | undefined;
   private humanCheckPassedAt = 0;
 
@@ -329,25 +333,36 @@ class ToonkotsuSource
     const allowed = (series: Series) => ratings.includes(ratingIdOf(series));
 
     if (sectionId === SectionID.Latest) {
-      const data = await this.api.json<LatestResponse>(
-        catalogueUrl("cdn/v1/latest", { ...params, page, limit: PAGE_SIZE }),
-      );
-
       // The feed lists every new release, and the site shows a title once at its newest —
-      // so a later page has to know what the earlier ones already drew.
-      const seen = new Set(page > 1 ? (this.seenByPage.get(page) ?? []) : []);
-      const results = withCovers(
-        parseLatestHighlights(
-          (data.items ?? []).filter(({ series }) => allowed(series)),
-          seen,
-          {
-            detailed,
-          },
-        ),
-      );
-      this.seenByPage.set(page + 1, [...seen]);
+      // so a later page has to know what the earlier ones already drew, and a page of one
+      // title's releases is read past rather than drawn as one row.
+      const cursor = page > 1 ? this.latestCursor.get(page) : undefined;
+      const seen = new Set(cursor?.seen ?? []);
+      let sitePage = cursor?.sitePage ?? page;
+      let more = true;
+      const found: Highlight[] = [];
 
-      return { results, isLastPage: data.hasNextPage !== true || results.length === 0 };
+      for (
+        let reads = 0;
+        reads < LATEST_PAGE_READS && more && found.length < LATEST_PAGE_TITLES;
+        reads++
+      ) {
+        const data = await this.api.json<LatestResponse>(
+          catalogueUrl("cdn/v1/latest", { ...params, page: sitePage, limit: PAGE_SIZE }),
+        );
+        found.push(
+          ...parseLatestHighlights(
+            (data.items ?? []).filter(({ series }) => allowed(series)),
+            seen,
+            { detailed },
+          ),
+        );
+        more = data.hasNextPage === true;
+        sitePage++;
+      }
+      this.latestCursor.set(page + 1, { sitePage, seen: [...seen] });
+
+      return { results: withCovers(found), isLastPage: !more };
     }
 
     const data = await this.sectionData(sectionId, page, params);
