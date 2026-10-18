@@ -10,6 +10,7 @@ import {
 
 import { challengedUrl, isCloudflareChallenge, withDefaults } from "../common/index.ts";
 import { BASE_URL, type CatalogueParams, type ReaderResult, type SiteFailure } from "./model.ts";
+import { ReaderSigner } from "./signing.ts";
 
 /** The site skips an empty or false parameter and sends `true` as `1`. */
 export function catalogueUrl(path: string, params: CatalogueParams = {}): string {
@@ -31,6 +32,7 @@ export type ChapterAnswer = { body?: unknown; refused?: ReaderResult };
 
 export class ToonkotsuApi {
   private client: HttpClient | undefined;
+  private signer: Promise<ReaderSigner> | undefined;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
@@ -87,8 +89,8 @@ export class ToonkotsuApi {
    * A chapter's page list and keys, asked for without the site's loader.
    *
    * The site serves them to an unsigned request, unmasked, so no document is needed at all
-   * unless it refuses — and then only the refusal it words as a request for a signature is
-   * worth taking to the loader.
+   * unless it refuses. Signed reads use a cached key first; only a failure there needs the
+   * site's loader, which can recover after a change to its signing configuration.
    */
   async chapter(id: number): Promise<ChapterAnswer> {
     const url = `${BASE_URL}/api/manga/chapter/${id}`;
@@ -100,22 +102,47 @@ export class ToonkotsuApi {
       answer = await this.get(url);
     }
 
-    if (answer.status === 429) {
-      const data = (answer.body as SiteFailure["data"]) ?? undefined;
-      // A human check or a wait stands whichever way the chapter is asked for, so asking the
-      // loader the same thing again only costs another page.
-      if (data?.code === "manga-limit" && !data.resign) {
-        const gate = data.transient ? "transient" : data.reason || "verify";
-        return { refused: { gate, retryAfter: data.retryAfterSec } };
-      }
-      return {};
+    const direct = answer.body as { wrap?: string } | undefined;
+    if (answer.status >= 200 && answer.status < 300 && direct && !direct.wrap) {
+      return { body: answer.body };
     }
-    if (answer.status < 200 || answer.status >= 300) return {};
 
-    const body = answer.body as { wrap?: string } | undefined;
-    // Masked keys are unmasked with the signing key, which only the site's loader holds.
-    if (!body || body.wrap) return {};
-    return { body };
+    const path = `/api/manga/chapter/${id}`;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const refused = refusal(answer);
+      if (refused) return { refused };
+      if (!this.signer) {
+        const key = await this.share("reader-key", () => this.get(`${BASE_URL}/api/manga/key`));
+        const blocked = refusal(key);
+        if (blocked) return { refused: blocked };
+        if (key.status < 200 || key.status >= 300) return {};
+        this.signer ??= ReaderSigner.from(key.body);
+      }
+      const pending = this.signer;
+      let signer: ReaderSigner;
+      try {
+        signer = await pending;
+      } catch (error) {
+        if (this.signer === pending) this.signer = undefined;
+        throw error;
+      }
+      answer = await this.get(url, { "x-sig": await signer.header(path) });
+      if (answer.status >= 200 && answer.status < 300) {
+        return { body: await signer.unwrap(answer.body) };
+      }
+      const limit = answer.body as SiteFailure["data"];
+      if (answer.status === 401 || answer.status === 403 || limit?.resign) {
+        // Only discard the key this read used; a parallel read may have refreshed it already.
+        if (this.signer === pending) this.signer = undefined;
+        continue;
+      }
+      break;
+    }
+    return { refused: refusal(answer) };
+  }
+
+  resetReader(): void {
+    this.signer = undefined;
   }
 
   private share<T>(key: string, run: () => Promise<T>): Promise<T> {
@@ -143,4 +170,14 @@ async function parse(response: HttpResponse, url: string): Promise<unknown> {
     if (!response.ok) return undefined;
     throw new Error(`Toonkotsu returned a response that was not JSON: ${url}`);
   }
+}
+
+function refusal(answer: ApiResult): ReaderResult | undefined {
+  if (answer.status !== 429) return undefined;
+  const data = answer.body as SiteFailure["data"];
+  if (data?.code !== "manga-limit" || data.resign) return undefined;
+  return {
+    gate: data.transient ? "transient" : data.reason || "verify",
+    retryAfter: data.retryAfterSec,
+  };
 }

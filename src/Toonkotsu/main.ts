@@ -111,7 +111,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.31",
+  version: "1.0.32",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -677,7 +677,10 @@ class ToonkotsuSource
     }
     this.humanCheck ??= this.runHumanCheck(url)
       .then((passed) => {
-        if (passed) this.humanCheckPassedAt = Date.now();
+        if (passed) {
+          this.humanCheckPassedAt = Date.now();
+          this.api.resetReader();
+        }
         return passed;
       })
       .finally(() => {

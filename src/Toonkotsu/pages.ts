@@ -3,13 +3,13 @@
 import { HttpClient, RequestOrigin, type ChapterPage, type HttpResponse } from "@mana-app/types";
 
 import {
-  aesCtrDecryptInPlace,
   base64BodyToBytes,
   base64ToBytes,
   bytesToBase64,
   resolveUrl,
   withDefaults,
 } from "../common/index.ts";
+import { decryptPage } from "./crypto.ts";
 import { BASE_URL, type SitePage } from "./model.ts";
 
 type PageKeys = { key: Uint8Array; nonce: Uint8Array };
@@ -42,7 +42,13 @@ export function pagesIn(body: unknown): SitePage[] {
 export function chapterPage(page: SitePage): ChapterPage | undefined {
   if (!page.src) return undefined;
   const url = withoutFragment(resolveUrl(page.src, BASE_URL));
-  if (!page.k || !page.n) return { url };
+  if (page.k == null && page.n == null) return { url };
+  if (!page.k || !page.n) throw new Error("Toonkotsu sent incomplete page encryption metadata.");
+  const key = base64ToBytes(page.k, true);
+  const nonce = base64ToBytes(page.n, true);
+  if (![16, 24, 32].includes(key.length) || nonce.length < 8) {
+    throw new Error("Toonkotsu sent invalid page encryption metadata.");
+  }
 
   const keyed = `${url}#k=${encodeURIComponent(page.k)}&n=${encodeURIComponent(page.n)}`;
   remember(url, keyed);
@@ -136,7 +142,7 @@ export function pageClient(url: string): HttpClient {
     // Done in one piece, as soon as the page arrives. Pacing it in slices behind a queue was
     // tried and measured on a device: the runtime's timers are slow enough there that pages
     // took seconds each and the reader cancelled them before they were done.
-    const image = aesCtrDecryptInPlace(
+    const image = await decryptPage(
       base64BodyToBytes(await response.base64()),
       keys.key,
       keys.nonce,

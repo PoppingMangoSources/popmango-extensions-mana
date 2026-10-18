@@ -21,7 +21,8 @@
     "new-source": "node scripts/new-source.mjs",
     "readme": "node scripts/update-readme.mjs",
     "format": "oxfmt src/",
-    "format:check": "oxfmt --check src/"
+    "format:check": "oxfmt --check src/",
+    "test:toonkotsu": "node scripts/test-toonkotsu-reader.mjs"
   },
   "mana": {
     "src": "src/",
@@ -43,6 +44,10 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "crypto-js": "^4.2.0",
-    "fflate": "^0.8.3"
+    "fflate": "^0.8.3",
+    "webcrypto-liner": "^1.4.3"
+  },
+  "browser": {
+    "crypto": false
   }
 }
