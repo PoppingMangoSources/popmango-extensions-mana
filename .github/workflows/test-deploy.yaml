@@ -1,0 +1,46 @@
+name: Test Deploy
+
+# Publishes the branch that tracks the next Mana release to /test, beside the catalog under
+# /main, so a build of the app that is not out yet can be pointed at sources written for it
+# without anyone on the current app being moved onto them.
+
+on:
+  push:
+    branches:
+      - feat/mana-app-update
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Shares the deploy's group: two runs writing the gh-pages branch at once would race.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    name: Build and Deploy to /test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build Extensions
+        run: bun run build
+
+      - name: Deploy Catalog to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          destination_dir: test
+          keep_files: true
