@@ -5,7 +5,14 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.32)
+## Toonkotsu (current: v1.0.33)
+
+### Changed
+
+- Remove the WebCrypto dependency and restore the optimized in-place AES-CTR page decryptor. Use the existing bundled SHA-256/HMAC helpers for chapter signing.
+- Keep the new HTTP transports, base64 workaround, and signing-key refresh behavior.
+
+## Toonkotsu (v1.0.32)
 
 ### Changed
 
