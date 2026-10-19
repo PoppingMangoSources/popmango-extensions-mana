@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.34)
+## Toonkotsu (current: v1.0.35)
+
+### Fixed
+
+- Rank a typed search by Best Match by default, as the site does, rather than by Uploaded Date.
+
+## Toonkotsu (v1.0.34)
 
 ### Changed
 
