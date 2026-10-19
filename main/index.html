@@ -500,10 +500,21 @@ main {
     box-shadow 0.16s ease;
 }
 .source-card:hover,
-.source-card:focus-visible {
+.source-card:focus-within {
   transform: translateY(-2px);
   border-color: var(--pink);
   box-shadow: 0 9px 20px rgba(124, 75, 91, 0.11);
+}
+/* The card holds two links side by side — the site and the install — since one
+   link cannot sit inside another. */
+.source-card__link {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.72rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
 }
 .source-card img {
   flex: 0 0 auto;
@@ -536,12 +547,15 @@ main {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 1.8rem;
+  min-width: 2.9rem;
   height: 1.8rem;
-  border-radius: 50%;
+  padding: 0 0.7rem;
+  border-radius: 999px;
   background: #fff3dd;
   color: var(--mango-deep);
+  font-size: 0.74rem;
   font-weight: 900;
+  text-decoration: none;
 }
 .rating {
   padding: 0.05rem 0.42rem;
@@ -859,7 +873,7 @@ main {
   color: #d4568c;
 }
 .source-card:hover,
-.source-card:focus-visible {
+.source-card:focus-within {
   border-color: #ffb3d3;
 }
 
@@ -890,7 +904,7 @@ main {
     <h1>Manga days,<br><span>mango skies.</span></h1>
     <p class="hero__lede">Sources for novels, manga, manhwa and manhua—one repository, added in a couple of taps.</p>
     <div class="hero__actions">
-      <a class="button button--mango" href="#install">Add to Mana</a>
+      <a class="button button--mango" href="mana://add-repo?url=https%3A%2F%2Fpoppingmangosources.github.io%2Fpopmango-extensions-mana%2Fmain&amp;name=PoppingMango%20Sources">Add to Mana</a>
       <a class="button button--berry" href="#catalog">Browse the catalog</a>
     </div>
   </div>
@@ -912,11 +926,13 @@ main {
   <section class="compat install" id="install">
     <span class="compat__flower" aria-hidden="true">✿</span>
     <div class="install__body">
-      <p><b>Add the repository to Mana.</b> Copy the address, then open
+      <p><b>Add the repository to Mana.</b> On the device with Mana, tap <b>Add to Mana</b>,
+      or <b>Get</b> beside a single source. Anywhere else, copy the address, then open
       <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.</p>
       <div class="install__url">
         <code id="repo-url">https://poppingmangosources.github.io/popmango-extensions-mana/main</code>
-        <button class="button button--mango install__copy" type="button" id="copy-hero">Copy</button>
+        <a class="button button--mango install__copy" href="mana://add-repo?url=https%3A%2F%2Fpoppingmangosources.github.io%2Fpopmango-extensions-mana%2Fmain&amp;name=PoppingMango%20Sources">Add to Mana</a>
+        <button class="button button--berry install__copy" type="button" id="copy-hero">Copy</button>
       </div>
     </div>
   </section>
@@ -939,10 +955,10 @@ main {
   <span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="42" height="42" role="img" aria-label="PoppingMango"><defs><linearGradient id="mango-gradient-42" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd087"/><stop offset="1" stop-color="#ff9a61"/></linearGradient></defs><circle cx="24" cy="24" r="23" fill="#fff7dc"/><ellipse cx="23" cy="27" rx="13" ry="15" fill="url(#mango-gradient-42)"/><ellipse cx="18" cy="20" rx="3.5" ry="6" fill="#fff" opacity=".42"/><ellipse cx="31" cy="10" rx="7" ry="3.4" fill="#8fce8b" transform="rotate(24 31 10)"/><circle cx="34" cy="17" r="2.4" fill="#fff" opacity=".9"/></svg></span>
   <p><b>PoppingMango Mana Sources</b><br>Novels, manga, manhwa and manhua for the Mana app.</p>
   <p class="footer__links"><a href="https://github.com/PoppingMangoSources/popmango-extensions-mana">GitHub</a></p>
-  <p class="footer__built">Catalog built 2026-10-17</p>
+  <p class="footer__built">Catalog built 2026-10-19</p>
 </footer>
 
-<script id="repo-data" type="application/json">{"name":"PoppingMango Sources","url":"https://poppingmangosources.github.io/popmango-extensions-mana/main","github":"https://github.com/PoppingMangoSources/popmango-extensions-mana","note":"Novels, manga, manhwa and manhua, kept fresh for the Mana app.","sources":[{"id":"flamecomics","name":"FlameComics","version":"1.1.2","description":"Manhwa, manhua and manga from flamecomics.xyz.","website":"https://flamecomics.xyz","rating":0,"supportedLanguages":["en_US"],"thumbnail":"FlameComics.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"FlameComics","environment":"source","intents":6298633,"hash":"084162a5084162a5084162a5084162a5084162a5084162a5084162a5084162a5"},{"id":"kagane","name":"Kagane","version":"1.1.12","description":"Manga, manhwa, manhua and comics from kagane.org.","website":"https://kagane.org","rating":1,"supportedLanguages":["en_US","ko_KR","ja_JP","fr_FR","zh-CN","es_ES","pt_BR"],"thumbnail":"Kagane.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Kagane","environment":"source","intents":6298637,"hash":"1879b6581879b6581879b6581879b6581879b6581879b6581879b6581879b658"},{"id":"mangadex","name":"MangaDex","version":"1.1.3","description":"Scanlations in every language, from mangadex.org.","website":"https://mangadex.org","rating":1,"supportedLanguages":["en_US"],"thumbnail":"MangaDex.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"MangaDex","environment":"source","intents":6298633,"hash":"530a0d1e530a0d1e530a0d1e530a0d1e530a0d1e530a0d1e530a0d1e530a0d1e"},{"id":"mangafire","name":"MangaFire","version":"1.1.2","description":"Manga, manhwa and manhua from mangafire.to.","website":"https://mangafire.to","rating":1,"supportedLanguages":["en_US","es_ES","fr_FR","ja_JP","pt_BR"],"thumbnail":"MangaFire.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"MangaFire","environment":"source","intents":6298637,"hash":"194bc1b4194bc1b4194bc1b4194bc1b4194bc1b4194bc1b4194bc1b4194bc1b4"},{"id":"mangago","name":"Mangago","version":"1.1.1","description":"Manga, manhwa and doujinshi from mangago.me.","website":"https://www.mangago.me","rating":1,"supportedLanguages":["en_US"],"thumbnail":"Mangago.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Mangago","environment":"source","intents":6822921,"hash":"661b2fe9661b2fe9661b2fe9661b2fe9661b2fe9661b2fe9661b2fe9661b2fe9"},{"id":"mangaupdates","name":"MangaUpdates","version":"1.1.2","description":"Track your reading against mangaupdates.com.","website":"https://www.mangaupdates.com","rating":1,"supportedLanguages":["en_US"],"thumbnail":"MangaUpdates.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"MangaUpdates","environment":"tracker","intents":20978795,"hash":"11069d5d11069d5d11069d5d11069d5d11069d5d11069d5d11069d5d11069d5d"},{"id":"rinkocomics","name":"RinkoComics","version":"1.1.1","description":"Comics from rinkocomics.com.","website":"https://rinkocomics.com","rating":0,"supportedLanguages":["en_US"],"thumbnail":"RinkoComics.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"RinkoComics","environment":"source","intents":6298637,"hash":"3be9c89b3be9c89b3be9c89b3be9c89b3be9c89b3be9c89b3be9c89b3be9c89b"},{"id":"rokaricomics","name":"RokariComics","version":"1.1.1","description":"Comics from rokaricomics.com.","website":"https://rokaricomics.com","rating":0,"supportedLanguages":["en_US"],"thumbnail":"RokariComics.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"RokariComics","environment":"source","intents":6298637,"hash":"761db7da761db7da761db7da761db7da761db7da761db7da761db7da761db7da"},{"id":"stonescape","name":"StoneScape","version":"1.1.2","description":"Manhwa, manhua and manga from stonescape.xyz.","website":"https://stonescape.xyz","rating":1,"supportedLanguages":["en_US"],"thumbnail":"StoneScape.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"StoneScape","environment":"source","intents":6298637,"hash":"60fd332d60fd332d60fd332d60fd332d60fd332d60fd332d60fd332d60fd332d"},{"id":"toonkotsu","name":"Toonkotsu","version":"1.0.24","description":"Manga, manhwa and manhua from toonkotsu.com.","website":"https://toonkotsu.com","rating":1,"supportedLanguages":["en_US"],"thumbnail":"Toonkotsu.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Toonkotsu","environment":"source","intents":6298637,"hash":"222a3055222a3055222a3055222a3055222a3055222a3055222a3055222a3055"},{"id":"valirscans","name":"ValirScans","version":"1.1.3","description":"Comics from valirscans.org.","website":"https://valirscans.org","rating":1,"supportedLanguages":["en_US"],"thumbnail":"ValirScans.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"ValirScans","environment":"source","intents":6298925,"hash":"5681429e5681429e5681429e5681429e5681429e5681429e5681429e5681429e"},{"id":"xcomic","name":"XCOMIC","version":"1.2.3","description":"Manga, manhwa, manhua and comics from xcomic.me.","website":"https://xcomic.me","rating":2,"supportedLanguages":["en_US"],"thumbnail":"XCOMIC.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"XCOMIC","environment":"source","intents":6298633,"hash":"0ea9b67d0ea9b67d0ea9b67d0ea9b67d0ea9b67d0ea9b67d0ea9b67d0ea9b67d"}]}</script>
+<script id="repo-data" type="application/json">{"name":"PoppingMango Sources","url":"https://poppingmangosources.github.io/popmango-extensions-mana/main","addUrl":"mana://add-repo?url=https%3A%2F%2Fpoppingmangosources.github.io%2Fpopmango-extensions-mana%2Fmain&name=PoppingMango%20Sources","github":"https://github.com/PoppingMangoSources/popmango-extensions-mana","note":"Novels, manga, manhwa and manhua, kept fresh for the Mana app.","sources":[{"id":"flamecomics","name":"FlameComics","version":"1.2.0","description":"Manhwa, manhua and manga from flamecomics.xyz.","website":"https://flamecomics.xyz","rating":0,"supportedLanguages":["en_US"],"thumbnail":"FlameComics.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"FlameComics","environment":"source","intents":6298633,"hash":"45169b4345169b4345169b4345169b4345169b4345169b4345169b4345169b43"},{"id":"kagane","name":"Kagane","version":"1.2.0","description":"Manga, manhwa, manhua and comics from kagane.org.","website":"https://kagane.org","rating":1,"supportedLanguages":["en_US","ko_KR","ja_JP","fr_FR","zh-CN","es_ES","pt_BR"],"thumbnail":"Kagane.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Kagane","environment":"source","intents":106961929,"hash":"1dae635b1dae635b1dae635b1dae635b1dae635b1dae635b1dae635b1dae635b"},{"id":"mangadex","name":"MangaDex","version":"1.2.0","description":"Scanlations in every language, from mangadex.org.","website":"https://mangadex.org","rating":1,"supportedLanguages":["en_US"],"thumbnail":"MangaDex.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"MangaDex","environment":"source","intents":6298633,"hash":"106cf166106cf166106cf166106cf166106cf166106cf166106cf166106cf166"},{"id":"mangafire","name":"MangaFire","version":"1.2.0","description":"Manga, manhwa and manhua from mangafire.to.","website":"https://mangafire.to","rating":1,"supportedLanguages":["en_US","es_ES","fr_FR","ja_JP","pt_BR"],"thumbnail":"MangaFire.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"MangaFire","environment":"source","intents":106961929,"hash":"59e715a359e715a359e715a359e715a359e715a359e715a359e715a359e715a3"},{"id":"mangago","name":"Mangago","version":"1.2.0","description":"Manga, manhwa and doujinshi from mangago.me.","website":"https://www.mangago.me","rating":1,"supportedLanguages":["en_US"],"thumbnail":"Mangago.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Mangago","environment":"source","intents":6822921,"hash":"6e56b7716e56b7716e56b7716e56b7716e56b7716e56b7716e56b7716e56b771"},{"id":"mangaupdates","name":"MangaUpdates","version":"1.2.0","description":"Track your reading against mangaupdates.com.","website":"https://www.mangaupdates.com","rating":1,"supportedLanguages":["en_US"],"thumbnail":"MangaUpdates.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"MangaUpdates","environment":"tracker","intents":20978795,"hash":"0252c44d0252c44d0252c44d0252c44d0252c44d0252c44d0252c44d0252c44d"},{"id":"rinkocomics","name":"RinkoComics","version":"1.2.0","description":"Comics from rinkocomics.com.","website":"https://rinkocomics.com","rating":0,"supportedLanguages":["en_US"],"thumbnail":"RinkoComics.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"RinkoComics","environment":"source","intents":106961929,"hash":"1ab9ae311ab9ae311ab9ae311ab9ae311ab9ae311ab9ae311ab9ae311ab9ae31"},{"id":"rokaricomics","name":"RokariComics","version":"1.2.0","description":"Comics from rokaricomics.com.","website":"https://rokaricomics.com","rating":0,"supportedLanguages":["en_US"],"thumbnail":"RokariComics.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"RokariComics","environment":"source","intents":106961929,"hash":"409e0f91409e0f91409e0f91409e0f91409e0f91409e0f91409e0f91409e0f91"},{"id":"stonescape","name":"StoneScape","version":"1.2.0","description":"Manhwa, manhua and manga from stonescape.xyz.","website":"https://stonescape.xyz","rating":1,"supportedLanguages":["en_US"],"thumbnail":"StoneScape.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"StoneScape","environment":"source","intents":106961929,"hash":"2307a4a12307a4a12307a4a12307a4a12307a4a12307a4a12307a4a12307a4a1"},{"id":"toonkotsu","name":"Toonkotsu","version":"1.1.0","description":"Manga, manhwa and manhua from toonkotsu.com.","website":"https://toonkotsu.com","rating":1,"supportedLanguages":["en_US"],"thumbnail":"Toonkotsu.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"Toonkotsu","environment":"source","intents":106961929,"hash":"40d9b1a340d9b1a340d9b1a340d9b1a340d9b1a340d9b1a340d9b1a340d9b1a3"},{"id":"valirscans","name":"ValirScans","version":"1.2.0","description":"Comics from valirscans.org.","website":"https://valirscans.org","rating":1,"supportedLanguages":["en_US"],"thumbnail":"ValirScans.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"ValirScans","environment":"source","intents":106962217,"hash":"5df7120a5df7120a5df7120a5df7120a5df7120a5df7120a5df7120a5df7120a"},{"id":"xcomic","name":"XCOMIC","version":"1.3.0","description":"Manga, manhwa, manhua and comics from xcomic.me.","website":"https://xcomic.me","rating":2,"supportedLanguages":["en_US"],"thumbnail":"XCOMIC.png","developers":[{"name":"PoppingMango","github":"https://github.com/PoppingMangoSources"}],"path":"XCOMIC","environment":"source","intents":6298633,"hash":"764b8d0b764b8d0b764b8d0b764b8d0b764b8d0b764b8d0b764b8d0b764b8d0b"}]}</script>
 <script>
 
 (function () {
@@ -995,20 +1011,30 @@ main {
     }).filter(function (tag, index, all) { return all.indexOf(tag) === index; });
   }
 
+  // Mana shows the repository's own preview first when it has not been added yet,
+  // so this one link serves a visitor who has the repository and one who does not.
+  function installUrl(source) {
+    return "mana://install-source?repo=" + encodeURIComponent(repo.url) +
+      "&id=" + encodeURIComponent(source.id);
+  }
+
   function sourceCard(source) {
     var rating = ratingFor(source);
     var icon = iconUrl(source);
     var languages = languageTags(source);
     var href = source.website || repo.github;
 
-    return '<a class="source-card" href="' + esc(href) + '" target="_blank" rel="noopener"' +
+    return '<div class="source-card">' +
+      '<a class="source-card__link" href="' + esc(href) + '" target="_blank" rel="noopener"' +
       ' title="' + esc(source.description || source.name) + '">' +
       (icon ? '<img src="' + esc(icon) + '" alt="" width="54" height="54" loading="lazy">' : "") +
       '<span class="source-card__copy"><b>' + esc(source.name) + '</b>' +
       '<span><span>v' + esc(source.version) + '</span>' +
       '<i class="rating rating--' + rating.tone + '">' + esc(rating.label) + '</i>' +
       (languages.length ? '<span>' + esc(languages.join(" · ")) + '</span>' : "") +
-      '</span></span><span class="source-card__add" aria-hidden="true">↗</span></a>';
+      '</span></span></a>' +
+      '<a class="source-card__add" href="' + esc(installUrl(source)) + '"' +
+      ' aria-label="Get ' + esc(source.name) + ' in Mana">Get</a></div>';
   }
 
   function render() {
@@ -1037,7 +1063,8 @@ main {
       '<h3>' + esc(repo.name) + ' <span>' + list.length + ' sources</span></h3>' +
       '<p>' + esc(repo.note) + '</p></div>' +
       '<div class="repository__actions">' +
-      '<button class="button button--mango" type="button" id="copy-repo">Copy repository URL</button>' +
+      '<a class="button button--mango" href="' + esc(repo.addUrl) + '">Add to Mana</a>' +
+      '<button class="button button--berry" type="button" id="copy-repo">Copy repository URL</button>' +
       '<a class="button button--paper" href="' + esc(repo.github) + '">View on GitHub</a>' +
       '</div></div>' + body + '</section>';
 

@@ -5,7 +5,95 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.24)
+## Toonkotsu (current: v1.1.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## Toonkotsu (v1.0.35)
+
+### Fixed
+
+- Rank a typed search by Best Match by default, as the site does, rather than by Uploaded Date.
+
+## Toonkotsu (v1.0.34)
+
+### Changed
+
+- Hand each page's key to the app, which decrypts the page itself, so the image no longer passes through the source; one shared client serves every cover and page.
+- Read a chapter's pages from its own page list, so a short chapter is no longer mistaken for the series' list of groups.
+- Rebuild against @mana-app/types 0.1.1.
+
+## Toonkotsu (v1.0.33)
+
+### Changed
+
+- Remove the WebCrypto dependency and restore the optimized in-place AES-CTR page decryptor. Use the existing bundled SHA-256/HMAC helpers for chapter signing.
+- Keep the new HTTP transports, base64 workaround, and signing-key refresh behavior.
+
+## Toonkotsu (v1.0.32)
+
+### Changed
+
+- Bundle a WebCrypto dependency for SHA-256, HMAC signing, and AES-CTR page decryption; prefer native WebCrypto when available.
+- Try signed chapter requests before opening the site's loader, refresh rejected signing keys, and unmask each page's own key. Keep the unsigned fast path and human-check fallback.
+- Validate page keys and nonces before handing encrypted image URLs to the reader. Built with the 0.2.0 HTTP and image transport toolchain.
+
+## Toonkotsu (v1.0.31)
+
+### Fixed
+
+- Decrypt each page in one piece as soon as it arrives again; pacing pages in slices made them take seconds each on a device.
+
+## Toonkotsu (v1.0.30)
+
+### Fixed
+
+- Latest Updates reads on past a series uploaded whole, rather than showing it as the only row.
+
+### Changed
+
+- Work through pages in small slices and in the order they were asked for, so long chapters scroll more smoothly while they load.
+
+## Toonkotsu (v1.0.29)
+
+### Changed
+
+- Decrypt pages about five times faster, so pages loading together appear far sooner.
+
+## Toonkotsu (v1.0.28)
+
+### Changed
+
+- Give the site's human check a chance to pass on its own in the background again, with every chapter loading at once waiting on the same attempt.
+
+## Toonkotsu (v1.0.27)
+
+### Changed
+
+- Hand the site's human check straight to the reader again, rather than first trying it in the background.
+
+## Toonkotsu (v1.0.26)
+
+### Added
+
+- Add the site's Has Chapters filter to search.
+
+### Changed
+
+- Wait out a momentary reading limit and try again, as the site's own reader does, rather than asking for a human check.
+- Give the site's human check a chance to pass on its own before handing it to the reader.
+
+## Toonkotsu (v1.0.25)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Ask the API for a chapter's page keys directly, opening a WebView only when it refuses.
+- Decrypt each page as the reader reaches it rather than the whole chapter before it opens.
+
+## Toonkotsu (v1.0.24)
 
 ### Changed
 
@@ -34,7 +122,25 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.2.3)
+## XCOMIC (current: v1.3.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## XCOMIC (v1.2.5)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## XCOMIC (v1.2.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## XCOMIC (v1.2.3)
 
 ### Changed
 
@@ -46,7 +152,26 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.1.3)
+## ValirScans (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## ValirScans (v1.1.5)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## ValirScans (v1.1.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## ValirScans (v1.1.3)
 
 ### Fixed
 
@@ -62,7 +187,32 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.12)
+## Kagane (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## Kagane (v1.1.15)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## Kagane (v1.1.14)
+
+### Changed
+
+- Bring back the grouped tag pickers in search — Era, Adaptations and the rest each open as their own sheet under Tags.
+
+## Kagane (v1.1.13)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports, re-signing each page as it is asked for.
+
+## Kagane (v1.1.12)
 
 ### Added
 
@@ -479,7 +629,25 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.1.3)
+## MangaDex (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## MangaDex (v1.1.5)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## MangaDex (v1.1.4)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## MangaDex (v1.1.3)
 
 ### Changed
 
@@ -526,7 +694,26 @@ counted up from `1.0.0`.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.1.1)
+## RokariComics (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## RokariComics (v1.1.3)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## RokariComics (v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## RokariComics (v1.1.1)
 
 ### Added
 
@@ -764,7 +951,26 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.1.1)
+## RinkoComics (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## RinkoComics (v1.1.3)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## RinkoComics (v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## RinkoComics (v1.1.1)
 
 ### Added
 
@@ -903,7 +1109,26 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.1.2)
+## MangaFire (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## MangaFire (v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## MangaFire (v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## MangaFire (v1.1.2)
 
 ### Changed
 
@@ -1054,7 +1279,26 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.1.2)
+## StoneScape (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## StoneScape (v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## StoneScape (v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+- Load covers and pages through the new image transports.
+
+## StoneScape (v1.1.2)
 
 ### Changed
 
@@ -1299,7 +1543,25 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.1.2)
+## MangaUpdates (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## MangaUpdates (v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## MangaUpdates (v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client, which hands back the site's empty refusals as statuses.
+
+## MangaUpdates (v1.1.2)
 
 ### Changed
 
@@ -1986,7 +2248,25 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.1.2)
+## FlameComics (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## FlameComics (v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## FlameComics (v1.1.3)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## FlameComics (v1.1.2)
 
 ### Changed
 
@@ -2494,7 +2774,31 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.1.1)
+## Mangago (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## Mangago (v1.1.4)
+
+### Changed
+
+- Let the app decrypt the chapter's image list natively, which drops a bundled cipher library and makes the source about 80 KB smaller.
+
+## Mangago (v1.1.3)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## Mangago (v1.1.2)
+
+### Changed
+
+- Move requests onto the app's new HTTP client.
+
+## Mangago (v1.1.1)
 
 ### Added
 
