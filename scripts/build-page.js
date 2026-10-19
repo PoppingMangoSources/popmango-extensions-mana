@@ -179,7 +179,7 @@ function browserScript() {
       '<span><span>v' + esc(source.version) + '</span>' +
       '<i class="rating rating--' + rating.tone + '">' + esc(rating.label) + '</i>' +
       (languages.length ? '<span>' + esc(languages.join(" · ")) + '</span>' : "") +
-      '</span></span><span class="source-card__add" aria-hidden="true">+</span></a>';
+      '</span></span><span class="source-card__add" aria-hidden="true">Get</span></a>';
   }
 
   function render() {
