@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { aesCbcDecrypt } from "../common/aes.ts";
+import { Cipher, CipherPadding, Crypto } from "@mana-app/types";
+
 import { base64ToBytes, bytesToUtf8 } from "../common/bytes.ts";
 import { resolveUrl } from "../common/index.ts";
 import { DOMAIN, READER_MIRROR_HOSTS } from "./model.ts";
@@ -167,8 +168,21 @@ function unscrambleImageList(imageList: string, script: string): string {
   return chars.join("");
 }
 
-export function decodeImgsrcs(blob: string, crypto: ReaderCrypto, keepBlanks = false): string[] {
-  const plain = aesCbcDecrypt(base64ToBytes(blob), crypto.key, crypto.iv, "zero");
+/**
+ * The chapter's image list, which the reader page carries AES-CBC encrypted.
+ *
+ * The app decrypts it natively. The site pads with zero bytes rather than PKCS#7, which the
+ * default padding would reject as malformed.
+ */
+export async function decodeImgsrcs(
+  blob: string,
+  crypto: ReaderCrypto,
+  keepBlanks = false,
+): Promise<string[]> {
+  const plain = await Crypto.decrypt(
+    Cipher.aesCbc({ key: crypto.key, iv: crypto.iv, padding: CipherPadding.Zero }),
+    base64ToBytes(blob),
+  );
   const text = bytesToUtf8(plain).replace(/\0+$/g, "").replace(/,+$/g, "");
   const images = unscrambleImageList(text, crypto.script)
     .split(",")

@@ -115,7 +115,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.1.3",
+  version: "1.1.4",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -646,7 +646,7 @@ class MangagoSource
     if (!blob) throw new Error("Could not read the chapter's image list");
 
     const crypto = await this.loadCrypto(html, loadedUrl);
-    const first = decodeImgsrcs(blob, crypto, true);
+    const first = await decodeImgsrcs(blob, crypto, true);
     const totalPages = parseTotalPages(html);
 
     const complete =
@@ -674,7 +674,7 @@ class MangagoSource
       try {
         const pageHtml = await this.fetchHtml(buildTemplatePageUrl(template, loadedUrl, page));
         const pageBlob = parseImgsrcs(pageHtml);
-        if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
+        if (pageBlob) fill(await decodeImgsrcs(pageBlob, crypto, true));
       } catch (error) {
         if (error instanceof CloudflareError) throw error;
       }
@@ -685,7 +685,7 @@ class MangagoSource
       try {
         const pageHtml = await this.fetchHtml(buildTemplatePageUrl(template, loadedUrl, page));
         const pageBlob = parseImgsrcs(pageHtml);
-        if (pageBlob) fill(decodeImgsrcs(pageBlob, crypto, true));
+        if (pageBlob) fill(await decodeImgsrcs(pageBlob, crypto, true));
       } catch (error) {
         if (error instanceof CloudflareError) throw error;
       }

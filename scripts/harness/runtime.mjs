@@ -1,6 +1,8 @@
 // @ts-check
 "use strict";
 
+import { createDecipheriv } from "node:crypto";
+
 /**
  * Host shims for running a built `.mana` bundle outside the Mana app.
  *
@@ -22,9 +24,67 @@ const Operation = {
   Invalidate: 6,
   BeginOperation: 7,
   EndOperation: 8,
+  Decrypt: 9,
 };
 
+/** What a decrypted page is, from its first bytes, as the app names it. */
+function imageType(bytes) {
+  const at = (i) => bytes[i] ?? -1;
+  if (at(0) === 0xff && at(1) === 0xd8 && at(2) === 0xff) return "image/jpeg";
+  if (at(0) === 0x89 && at(1) === 0x50 && at(2) === 0x4e && at(3) === 0x47) return "image/png";
+  if (at(0) === 0x47 && at(1) === 0x49 && at(2) === 0x46) return "image/gif";
+  if (at(0) === 0x52 && at(1) === 0x49 && at(8) === 0x57 && at(9) === 0x45) return "image/webp";
+  return undefined;
+}
+
 const METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+
+/** `CryptoAlgorithm` and `CipherPadding`, in the order `@mana-app/types` declares them. */
+const Algorithm = { AesCtr: 0, AesCbc: 1, AesGcm: 2, Xor: 3 };
+const Padding = { Pkcs7: 0, Zero: 1, None: 2 };
+
+/**
+ * Runs a cipher the way the app does natively, so a source that hands its decryption to the
+ * host is verified through that path rather than refused as unsupported.
+ */
+function decryptNatively(specJson, data) {
+  const spec = JSON.parse(specJson);
+  const bytes = (field) => Buffer.from(spec[field] ?? "", "base64");
+  const key = bytes("key");
+  const bits = key.length * 8;
+
+  switch (spec.algorithm) {
+    case Algorithm.AesCtr: {
+      const decipher = createDecipheriv(`aes-${bits}-ctr`, key, bytes("counter"));
+      return Buffer.concat([decipher.update(data), decipher.final()]);
+    }
+    case Algorithm.AesCbc: {
+      const decipher = createDecipheriv(`aes-${bits}-cbc`, key, bytes("iv"));
+      decipher.setAutoPadding(spec.padding === Padding.Pkcs7);
+      let plain = Buffer.concat([decipher.update(data), decipher.final()]);
+      if (spec.padding === Padding.Zero) {
+        let end = plain.length;
+        while (end > 0 && plain[end - 1] === 0) end--;
+        plain = plain.subarray(0, end);
+      }
+      return plain;
+    }
+    case Algorithm.AesGcm: {
+      const decipher = createDecipheriv(`aes-${bits}-gcm`, key, bytes("iv"));
+      if (spec.additionalData) decipher.setAAD(bytes("additionalData"));
+      decipher.setAuthTag(data.subarray(data.length - 16));
+      return Buffer.concat([decipher.update(data.subarray(0, data.length - 16)), decipher.final()]);
+    }
+    case Algorithm.Xor: {
+      const plain = Buffer.from(data);
+      const end = spec.limit === undefined ? plain.length : Math.min(plain.length, spec.offset + spec.limit);
+      for (let i = spec.offset, k = 0; i < end; i++, k = (k + 1) % key.length) plain[i] ^= key[k];
+      return plain;
+    }
+    default:
+      throw new Error(`The harness cannot run cipher ${spec.algorithm}`);
+  }
+}
 
 /** `BodyReader.Base64`; anything else is read as text. */
 const BASE64_READER = 1;
@@ -91,6 +151,7 @@ export function createHttpBridge() {
 
   return {
     requiresOperation: false,
+    crypto: Object.values(Algorithm),
     now: () => Date.now(),
     async send(message) {
       switch (message.operation) {
@@ -113,6 +174,19 @@ export function createHttpBridge() {
           return {};
         case Operation.CreateBody:
           return keep(new Uint8Array(Buffer.from(message.value ?? "", "base64")));
+        case Operation.Decrypt: {
+          // A response body is decrypted where it is held; bytes the source already has
+          // arrive with the message.
+          const held = message.bodyID === undefined ? undefined : bodies.get(message.bodyID);
+          if (message.bodyID !== undefined && !held) {
+            throw new Error(`Response body ${message.bodyID} was already released`);
+          }
+          const plain = decryptNatively(message.spec, held ?? Buffer.from(message.value ?? "", "base64"));
+          if (!held) return { value: plain.toString("base64") };
+          const kept = keep(new Uint8Array(plain));
+          const type = imageType(plain);
+          return type ? { ...kept, contentType: type } : kept;
+        }
         default:
           return {};
       }

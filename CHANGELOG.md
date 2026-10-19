@@ -2708,7 +2708,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.1.3)
+## Mangago (current: v1.1.4)
+
+### Changed
+
+- Let the app decrypt the chapter's image list natively, which drops a bundled cipher library and makes the source about 80 KB smaller.
+
+## Mangago (v1.1.3)
 
 ### Changed
 
