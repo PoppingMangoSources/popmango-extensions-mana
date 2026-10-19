@@ -53,6 +53,9 @@ const HOMEPAGE = (pkg.homepage ?? "").replace(/\/+$/, "");
  */
 const REPO_URL = HOMEPAGE ? `${HOMEPAGE}/main` : "https://example.invalid/main";
 
+/** Opens Mana's preview card for the repository, which asks before adding anything. */
+const ADD_REPO_URL = `mana://add-repo?url=${encodeURIComponent(REPO_URL)}&name=${encodeURIComponent(REPO_NAME)}`;
+
 const sources = [...(manifest.sources ?? [])]
   .filter((source) => source && source.name !== "Template")
   .sort((a, b) => String(a.name).localeCompare(String(b.name)));
@@ -155,20 +158,30 @@ function browserScript() {
     }).filter(function (tag, index, all) { return all.indexOf(tag) === index; });
   }
 
+  // Mana shows the repository's own preview first when it has not been added yet,
+  // so this one link serves a visitor who has the repository and one who does not.
+  function installUrl(source) {
+    return "mana://install-source?repo=" + encodeURIComponent(repo.url) +
+      "&id=" + encodeURIComponent(source.id);
+  }
+
   function sourceCard(source) {
     var rating = ratingFor(source);
     var icon = iconUrl(source);
     var languages = languageTags(source);
     var href = source.website || repo.github;
 
-    return '<a class="source-card" href="' + esc(href) + '" target="_blank" rel="noopener"' +
+    return '<div class="source-card">' +
+      '<a class="source-card__link" href="' + esc(href) + '" target="_blank" rel="noopener"' +
       ' title="' + esc(source.description || source.name) + '">' +
       (icon ? '<img src="' + esc(icon) + '" alt="" width="54" height="54" loading="lazy">' : "") +
       '<span class="source-card__copy"><b>' + esc(source.name) + '</b>' +
       '<span><span>v' + esc(source.version) + '</span>' +
       '<i class="rating rating--' + rating.tone + '">' + esc(rating.label) + '</i>' +
       (languages.length ? '<span>' + esc(languages.join(" · ")) + '</span>' : "") +
-      '</span></span><span class="source-card__add" aria-hidden="true">↗</span></a>';
+      '</span></span></a>' +
+      '<a class="source-card__add" href="' + esc(installUrl(source)) + '"' +
+      ' aria-label="Get ' + esc(source.name) + ' in Mana">Get</a></div>';
   }
 
   function render() {
@@ -197,7 +210,8 @@ function browserScript() {
       '<h3>' + esc(repo.name) + ' <span>' + list.length + ' sources</span></h3>' +
       '<p>' + esc(repo.note) + '</p></div>' +
       '<div class="repository__actions">' +
-      '<button class="button button--mango" type="button" id="copy-repo">Copy repository URL</button>' +
+      '<a class="button button--mango" href="' + esc(repo.addUrl) + '">Add to Mana</a>' +
+      '<button class="button button--berry" type="button" id="copy-repo">Copy repository URL</button>' +
       '<a class="button button--paper" href="' + esc(repo.github) + '">View on GitHub</a>' +
       '</div></div>' + body + '</section>';
 
@@ -320,6 +334,7 @@ function browserScript() {
 const repo = {
   name: REPO_NAME,
   url: REPO_URL,
+  addUrl: ADD_REPO_URL,
   github: GITHUB,
   note: "Novels, manga, manhwa and manhua, kept fresh for the Mana app.",
   sources,
@@ -368,7 +383,7 @@ ${styles()}
     <h1>Manga days,<br><span>mango skies.</span></h1>
     <p class="hero__lede">Sources for novels, manga, manhwa and manhua—one repository, added in a couple of taps.</p>
     <div class="hero__actions">
-      <a class="button button--mango" href="#install">Add to Mana</a>
+      <a class="button button--mango" href="${escapeHtml(ADD_REPO_URL)}">Add to Mana</a>
       <a class="button button--berry" href="#catalog">Browse the catalog</a>
     </div>
   </div>
@@ -390,11 +405,13 @@ ${styles()}
   <section class="compat install" id="install">
     <span class="compat__flower" aria-hidden="true">✿</span>
     <div class="install__body">
-      <p><b>Add the repository to Mana.</b> Copy the address, then open
+      <p><b>Add the repository to Mana.</b> On the device with Mana, tap <b>Add to Mana</b>,
+      or <b>Get</b> beside a single source. Anywhere else, copy the address, then open
       <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.</p>
       <div class="install__url">
         <code id="repo-url">${escapeHtml(REPO_URL)}</code>
-        <button class="button button--mango install__copy" type="button" id="copy-hero">Copy</button>
+        <a class="button button--mango install__copy" href="${escapeHtml(ADD_REPO_URL)}">Add to Mana</a>
+        <button class="button button--berry install__copy" type="button" id="copy-hero">Copy</button>
       </div>
     </div>
   </section>

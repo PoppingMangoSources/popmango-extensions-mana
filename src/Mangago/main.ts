@@ -115,7 +115,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.1.4",
+  version: "1.2.0",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,

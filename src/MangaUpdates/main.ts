@@ -90,7 +90,7 @@ import {
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.1.4",
+  version: "1.2.0",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,

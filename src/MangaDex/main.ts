@@ -97,7 +97,7 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.1.5",
+  version: "1.2.0",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
