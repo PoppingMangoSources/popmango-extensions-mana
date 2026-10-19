@@ -91,7 +91,7 @@ import type { QueryParam } from "./vrf.ts";
 const info: SourceInfo = {
   id: "mangafire",
   name: "MangaFire",
-  version: "1.1.3",
+  version: "1.1.4",
   description: "Manga, manhwa and manhua from mangafire.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,

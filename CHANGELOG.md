@@ -5,7 +5,15 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.33)
+## Toonkotsu (current: v1.0.34)
+
+### Changed
+
+- Hand each page's key to the app, which decrypts the page itself, so the image no longer passes through the source; one shared client serves every cover and page.
+- Read a chapter's pages from its own page list, so a short chapter is no longer mistaken for the series' list of groups.
+- Rebuild against @mana-app/types 0.1.1.
+
+## Toonkotsu (v1.0.33)
 
 ### Changed
 
@@ -102,7 +110,13 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.2.4)
+## XCOMIC (current: v1.2.5)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## XCOMIC (v1.2.4)
 
 ### Changed
 
@@ -120,7 +134,13 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.1.4)
+## ValirScans (current: v1.1.5)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## ValirScans (v1.1.4)
 
 ### Changed
 
@@ -143,7 +163,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.14)
+## Kagane (current: v1.1.15)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## Kagane (v1.1.14)
 
 ### Changed
 
@@ -573,7 +599,13 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.1.4)
+## MangaDex (current: v1.1.5)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## MangaDex (v1.1.4)
 
 ### Changed
 
@@ -626,7 +658,13 @@ counted up from `1.0.0`.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.1.2)
+## RokariComics (current: v1.1.3)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## RokariComics (v1.1.2)
 
 ### Changed
 
@@ -871,7 +909,13 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.1.2)
+## RinkoComics (current: v1.1.3)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## RinkoComics (v1.1.2)
 
 ### Changed
 
@@ -1017,7 +1061,13 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.1.3)
+## MangaFire (current: v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## MangaFire (v1.1.3)
 
 ### Changed
 
@@ -1175,7 +1225,13 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.1.3)
+## StoneScape (current: v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## StoneScape (v1.1.3)
 
 ### Changed
 
@@ -1427,7 +1483,13 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.1.3)
+## MangaUpdates (current: v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## MangaUpdates (v1.1.3)
 
 ### Changed
 
@@ -2120,7 +2182,13 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.1.3)
+## FlameComics (current: v1.1.4)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## FlameComics (v1.1.3)
 
 ### Changed
 
@@ -2634,7 +2702,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.1.2)
+## Mangago (current: v1.1.3)
+
+### Changed
+
+- Rebuild against @mana-app/types 0.1.1.
+
+## Mangago (v1.1.2)
 
 ### Changed
 

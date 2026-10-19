@@ -17,9 +17,9 @@ const signingKey = Buffer.alloc(32, 0x73);
 const nonce = Buffer.from("00112233445566778899aabbccddeeff", "hex");
 const plain = Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), Buffer.alloc(800_001, 0x5a)]);
 
-function load({ hostCrypto = false, signed = true, refresh = false, gate, invalidNonce = false } = {}) {
+function load({ nativeCrypto = false, hostCrypto = false, signed = true, refresh = false, gate, invalidNonce = false, sizes = [16, 24, 32] } = {}) {
   const bodies = new Map();
-  const stats = { keys: 0, signed: 0, requests: [] };
+  const stats = { keys: 0, signed: 0, requests: [], decrypted: 0 };
   let next = 0;
   const keep = (bytes) => {
     const bodyID = String(++next);
@@ -32,6 +32,7 @@ function load({ hostCrypto = false, signed = true, refresh = false, gate, invali
   });
   const bridge = {
     requiresOperation: false,
+    ...(nativeCrypto ? { crypto: [0] } : {}), // CryptoAlgorithm.AesCtr
     now: () => Date.now(),
     async send(message) {
       if (message.operation === 0) {
@@ -58,7 +59,9 @@ function load({ hostCrypto = false, signed = true, refresh = false, gate, invali
           }
           return json(200, {
             ...(signed ? { wrap: "v1" } : {}),
-            chapter: { pages: [16, 24, 32].map((size) => {
+            // The site also lists the groups that uploaded the series, each with a short `src` id.
+            sources: ["sfe851abc10", "sa20bb4ff20", "s78d90bf2e2"].map((src, i) => ({ src, name: `Group ${i}` })),
+            chapter: { pages: sizes.map((size) => {
               const key = Buffer.alloc(size, size);
               const n = b64(invalidNonce ? Buffer.alloc(7) : nonce);
               return {
@@ -70,6 +73,7 @@ function load({ hostCrypto = false, signed = true, refresh = false, gate, invali
         }
         if (url.startsWith("https://images.test/")) {
           assert.ok(!url.includes("#"), "keys must not reach the image server");
+          assert.equal(headers.referer, "https://toonkotsu.com/", "the CDN serves images only to its own site");
           const size = Number(new URL(url).pathname.match(/\d+/)[0]);
           const counter = Buffer.alloc(16);
           nonce.copy(counter, 0, 0, 8);
@@ -83,6 +87,21 @@ function load({ hostCrypto = false, signed = true, refresh = false, gate, invali
         return { value: bodies.get(message.bodyID).toString(message.reader === 1 ? "base64" : "utf8") };
       }
       if (message.operation === 4) return keep(Buffer.from(message.value, "base64"));
+      if (message.operation === 9) {
+        // A native host: the page is decrypted where it is held and never read by the source.
+        assert.ok(nativeCrypto, "a host without native ciphers must not be asked to decrypt");
+        const spec = JSON.parse(message.spec);
+        assert.equal(spec.algorithm, 0, "CryptoAlgorithm.AesCtr");
+        assert.equal(spec.length, 64);
+        const key = Buffer.from(spec.key, "base64");
+        const decipher = createCipheriv(`aes-${key.length * 8}-ctr`, key, Buffer.from(spec.counter, "base64"));
+        const source = bodies.get(message.bodyID);
+        const plain = Buffer.concat([decipher.update(source), decipher.final()]);
+        stats.decrypted++;
+        // The native session names the type from the decrypted bytes.
+        const png = plain.subarray(0, 4).equals(Buffer.from("89504e47", "hex"));
+        return { ...keep(plain), ...(png ? { contentType: "image/png" } : {}) };
+      }
       return {};
     },
   };
@@ -100,23 +119,38 @@ function load({ hostCrypto = false, signed = true, refresh = false, gate, invali
   return { target: new context.Target(), stats };
 }
 
-for (const hostCrypto of [false, true]) {
+for (const [nativeCrypto, hostCrypto] of [[false, false], [false, true], [true, false]]) {
   for (const signed of [false, true]) {
-    const { target, stats } = load({ hostCrypto, signed, refresh: signed });
+    const { target, stats } = load({ nativeCrypto, hostCrypto, signed, refresh: signed });
     const chapter = await target.getChapterData("ktm04", "1487335");
     assert.equal(chapter.pages.length, 3);
+    const clients = new Set();
     for (const page of chapter.pages) {
       const request = { url: page.url, origin: 2 };
       const client = target.getPageTransport(request);
+      clients.add(client);
       const response = await client[Symbol.for("mana.http.image.v1")](request);
       assert.equal(response.headers.get("content-type"), "image/png");
       assert.deepEqual(Buffer.from(await response.bytes()), plain);
     }
+    assert.equal(clients.size, 1, "every page, whatever its keys, goes through one shared client");
     await target.getChapterData("ktm04", "1487336");
     assert.equal(stats.keys, signed ? 2 : 0, "cache the refreshed signer between chapters");
-    console.log(`PASS ${hostCrypto ? "without accessing host crypto" : "bare runtime"}: ${signed ? "signed, wrapped, key refresh" : "unsigned"}; AES-128/192/256 page transports`);
+    assert.equal(stats.decrypted, nativeCrypto ? 3 : 0, "every page decrypted natively when the host can");
+    const mode = nativeCrypto ? "native host decrypt" : hostCrypto ? "without accessing host crypto" : "bare runtime";
+    console.log(`PASS ${mode}: ${signed ? "signed, wrapped, key refresh" : "unsigned"}; AES-128/192/256 page transports`);
   }
 }
+// A chapter with fewer pages than the series has groups: its pages, not the group list.
+for (const sizes of [[32], [16, 24, 32]]) {
+  const { target } = load({ signed: false, sizes });
+  const chapter = await target.getChapterData("ktm04", "1487335");
+  assert.equal(chapter.pages.length, sizes.length, "the chapter's own pages, not its groups");
+  for (const page of chapter.pages) {
+    assert.ok(page.url.startsWith("https://images.test/"), `a page, not a group id: ${page.url}`);
+  }
+}
+console.log("PASS short chapters read their pages, not the series' group list");
 const concurrent = load();
 await Promise.all([1487335, 1487336, 1487337].map((id) => concurrent.target.getChapterData("ktm04", String(id))));
 assert.equal(concurrent.stats.keys, 1, "parallel chapter reads share the signing key request");
