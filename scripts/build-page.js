@@ -124,6 +124,8 @@ function browserScript() {
     it_IT: "IT", it: "IT", ru_RU: "RU", ru: "RU", UNIVERSAL: "ALL"
   };
 
+  var TICKER_SECONDS_PER_SOURCE = 2.25;
+
   var repo = JSON.parse(document.getElementById("repo-data").textContent);
   var sections = document.getElementById("repo-sections");
   var ticker = document.getElementById("ticker-track");
@@ -169,19 +171,15 @@ function browserScript() {
     var rating = ratingFor(source);
     var icon = iconUrl(source);
     var languages = languageTags(source);
-    var href = source.website || repo.github;
 
-    return '<div class="source-card">' +
-      '<a class="source-card__link" href="' + esc(href) + '" target="_blank" rel="noopener"' +
-      ' title="' + esc(source.description || source.name) + '">' +
+    return '<a class="source-card" href="' + esc(installUrl(source)) + '"' +
+      ' title="Install ' + esc(source.name) + '">' +
       (icon ? '<img src="' + esc(icon) + '" alt="" width="54" height="54" loading="lazy">' : "") +
       '<span class="source-card__copy"><b>' + esc(source.name) + '</b>' +
       '<span><span>v' + esc(source.version) + '</span>' +
       '<i class="rating rating--' + rating.tone + '">' + esc(rating.label) + '</i>' +
       (languages.length ? '<span>' + esc(languages.join(" · ")) + '</span>' : "") +
-      '</span></span></a>' +
-      '<a class="source-card__add" href="' + esc(installUrl(source)) + '"' +
-      ' aria-label="Get ' + esc(source.name) + ' in Mana">Get</a></div>';
+      '</span></span><span class="source-card__add" aria-hidden="true">+</span></a>';
   }
 
   function render() {
@@ -281,8 +279,8 @@ function browserScript() {
   function renderTicker() {
     var items = sortSources(repo.sources).map(function (source) {
       var icon = iconUrl(source);
-      return '<a class="ticker__item" href="' + esc(source.website || repo.github) + '"' +
-        ' target="_blank" rel="noopener">' +
+      return '<a class="ticker__item" href="' + esc(installUrl(source)) + '"' +
+        ' title="Install ' + esc(source.name) + '">' +
         (icon ? '<img src="' + esc(icon) + '" alt="" width="38" height="38">' : "") +
         '<span><b>' + esc(source.name) + '</b><small>v' + esc(source.version) + '</small></span></a>';
     });
@@ -297,6 +295,9 @@ function browserScript() {
       .replace('<div class="ticker__set">', '<div class="ticker__set" aria-hidden="true">')
       .replace(/<a class=/g, '<a tabindex="-1" class=');
     ticker.innerHTML = set + duplicate;
+    // One loop crosses the whole set, so a fixed duration would slow every card
+    // down as sources are added; this keeps each card moving at the same pace.
+    ticker.style.animationDuration = items.length * TICKER_SECONDS_PER_SOURCE + "s";
   }
 
   // A visitor may be looking at a cached page, so the catalog is re-read from
@@ -319,6 +320,13 @@ function browserScript() {
 
   var heroCopy = document.getElementById("copy-hero");
   if (heroCopy) bindCopy(heroCopy);
+
+  // Coming back from the app restores the page with the tapped card still
+  // focused, and a focused strip stands still.
+  window.addEventListener("pageshow", function () {
+    var active = document.activeElement;
+    if (active && ticker.contains(active)) active.blur();
+  });
 
   filterInput.addEventListener("input", render);
   window.addEventListener("resize", updateScrollbars);
@@ -406,7 +414,7 @@ ${styles()}
     <span class="compat__flower" aria-hidden="true">✿</span>
     <div class="install__body">
       <p><b>Add the repository to Mana.</b> On the device with Mana, tap <b>Add to Mana</b>,
-      or <b>Get</b> beside a single source. Anywhere else, copy the address, then open
+      or tap any source to install just that one. Anywhere else, copy the address, then open
       <b>Mana → Discover → Repositories → Add Repo</b> and paste it in.</p>
       <div class="install__url">
         <code id="repo-url">${escapeHtml(REPO_URL)}</code>
