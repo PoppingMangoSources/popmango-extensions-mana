@@ -454,9 +454,160 @@ ${browserScript()}
 `;
 
 fs.writeFileSync(path.join(DIST, "index.html"), html, "utf8");
+
+// ── open page ──────────────────────────────────────────────────────────────
+
+/**
+ * An https address that hands straight off to Mana.
+ *
+ * Chat apps only make http and https links tappable, so a `mana://` link
+ * shared there is dead text; this page is what gets shared instead.
+ * `open.html?source=<id>` installs one source rather than adding the whole
+ * repository.
+ */
+const OPEN_URL = `${REPO_URL}/open.html`;
+const ICON_URL = `${REPO_URL}/assets/Repository.png`;
+const sourceNames = Object.fromEntries(sources.map((source) => [source.id, source.name]));
+const openDescription = `${sources.length} sources: ${sources.map((source) => source.name).join(", ")}. Tap to open Mana and add the repository.`;
+const openTitle = `Add ${REPO_NAME} to Mana`;
+
+const openHtml = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(openTitle)}</title>
+<meta name="description" content="${escapeHtml(openDescription)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${escapeHtml(REPO_NAME)}">
+<meta property="og:title" content="${escapeHtml(openTitle)}">
+<meta property="og:description" content="${escapeHtml(openDescription)}">
+<meta property="og:url" content="${escapeHtml(OPEN_URL)}">
+<meta property="og:image" content="${escapeHtml(ICON_URL)}">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#ffb3d3">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(mangoMark(32))}">
+<noscript><meta http-equiv="refresh" content="0;url=${escapeHtml(ADD_REPO_URL)}"></noscript>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  font-family: ui-rounded, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #4a2f42;
+  background: linear-gradient(160deg, #eefaf6 0%, #fff6e8 55%, #ffe8f2 100%);
+}
+.card {
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 24px;
+  text-align: center;
+  border: 1px solid #f6dfe6;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 34px rgba(124, 75, 91, 0.12);
+}
+.icon { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; }
+h1 { margin: 16px 0 6px; font-size: 19px; }
+p { margin: 0; font-size: 13.5px; line-height: 1.5; color: #7d6274; }
+.button {
+  display: block;
+  margin: 20px 0 16px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ffd9ea, #ffb3d3);
+  color: #5c2742;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+}
+code {
+  display: block;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid #f2e6df;
+  border-radius: 12px;
+  background: #fffdf8;
+  color: #7d6274;
+  font: 12px ui-monospace, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+.back { display: inline-block; margin-top: 18px; font-size: 13px; font-weight: 700; color: #d4568c; }
+.spinner {
+  width: 24px;
+  height: 24px;
+  margin: 18px auto 0;
+  border-radius: 50%;
+  border: 3px solid #ffe4ef;
+  border-top-color: #f07fae;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* The way in by hand only shows once Mana has had its chance to open. */
+#fallback { display: none; }
+.failed #fallback { display: block; }
+.failed .spinner { display: none; }
+</style>
+</head>
+<body>
+<main class="card">
+  <img class="icon" src="assets/Repository.png" alt="" width="72" height="72">
+  <h1 id="title">${escapeHtml(openTitle)}</h1>
+  <p id="status">Opening Mana…</p>
+  <div class="spinner" aria-hidden="true"></div>
+  <div id="fallback">
+    <a class="button" id="open" href="${escapeHtml(ADD_REPO_URL)}">Open in Mana</a>
+    <p>Still nothing? Update Mana, or add the repository by hand under Discover → Repositories → Add Repo:</p>
+    <code>${escapeHtml(REPO_URL)}</code>
+    <a class="back" href="./">See every source</a>
+  </div>
+</main>
+<!-- Leaving for mana:// from the head would stop some browsers drawing the page
+     at all, leaving nothing to fall back on when Mana is missing. -->
+<script>
+(function () {
+  "use strict";
+  var repo = ${JSON.stringify(REPO_URL)};
+  var name = ${JSON.stringify(REPO_NAME)};
+  var sources = ${JSON.stringify(sourceNames).replace(/</g, "\\u003c")};
+  var match = /[?&]source=([^&#]*)/.exec(location.search);
+  var id = match ? decodeURIComponent(match[1]) : "";
+  var source = Object.prototype.hasOwnProperty.call(sources, id) ? sources[id] : "";
+  var link = source
+    ? "mana://install-source?repo=" + encodeURIComponent(repo) + "&id=" + encodeURIComponent(id)
+    : "mana://add-repo?url=" + encodeURIComponent(repo) + "&name=" + encodeURIComponent(name);
+
+  if (source) {
+    document.title = "Install " + source + " in Mana";
+    document.getElementById("title").textContent = document.title;
+  }
+  document.getElementById("open").href = link;
+  location.replace(link);
+
+  // Mana coming to the front hides this page; if it never does, nothing caught the link.
+  var timer = setTimeout(function () {
+    document.body.className = "failed";
+    document.getElementById("status").textContent = "Mana didn't open.";
+  }, 2500);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) clearTimeout(timer);
+  });
+})();
+</script>
+</body>
+</html>
+`;
+
+fs.writeFileSync(path.join(DIST, "open.html"), openHtml, "utf8");
 fs.writeFileSync(path.join(DIST, ".nojekyll"), "", "utf8");
 
 const changelog = path.join(ROOT, "CHANGELOG.md");
 if (fs.existsSync(changelog)) fs.copyFileSync(changelog, path.join(DIST, "CHANGELOG.md"));
 
-process.stdout.write(`[page] Generated dist/index.html with ${sources.length} source(s)\n`);
+process.stdout.write(
+  `[page] Generated dist/index.html and dist/open.html with ${sources.length} source(s)\n`,
+);
