@@ -125,9 +125,11 @@ export const SORT_OPTIONS: SortOption[] = [
     title: "Uploaded Date",
     isOrderable: true,
     defaultAscending: false,
-    isDefault: true,
   },
-  { id: SortID.Relevance, title: "Best Match" },
+  // The default, so a typed search is ranked by how well titles match it, as the site ranks
+  // one. With nothing typed there is nothing to match, and search falls back to the site's
+  // own Uploaded Date.
+  { id: SortID.Relevance, title: "Best Match", isDefault: true },
   { id: SortID.Title, title: "Title", isOrderable: true, defaultAscending: true },
   { id: SortID.Year, title: "Year", isOrderable: true, defaultAscending: false },
   { id: SortID.Rating, title: "Rating", isOrderable: true, defaultAscending: false },

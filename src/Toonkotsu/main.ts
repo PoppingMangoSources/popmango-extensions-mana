@@ -111,7 +111,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.0.34",
+  version: "1.0.35",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -488,7 +488,7 @@ class ToonkotsuSource
 
     // Best Match ranks against the typed word, so asking for it without one would order by
     // nothing; the site's own Uploaded Date stands in.
-    const asked = resolveSortId(SORT_OPTIONS, request, SortID.LastUploadedChapterAt);
+    const asked = resolveSortId(SORT_OPTIONS, request, SortID.Relevance);
     const sortId = asked === SortID.Relevance && !word ? SortID.LastUploadedChapterAt : asked;
     const { sort, order } = sortOrder(sortId, request.sort);
 
