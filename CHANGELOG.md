@@ -99,7 +99,13 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## Toonkotsu (current: v1.1.2)
+## Toonkotsu (current: v1.1.3)
+
+### Added
+
+- Rising Arrivals after New Additions on the home page.
+
+## Toonkotsu (v1.1.2)
 
 ### Added
 

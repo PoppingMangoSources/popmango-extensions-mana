@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.2",
+  version: "1.1.3",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -412,6 +412,11 @@ class ToonkotsuSource
       case SectionID.HiddenGems:
         return this.api.post(`${BASE_URL}/api/v1/rankings`, {
           params: { limit: PAGE_SIZE, ...params, discovery: "gems", metric: "gems", page },
+        });
+      // Named as its page is, /discover/rising, the way Hidden Gems is /discover/gems.
+      case SectionID.RisingArrivals:
+        return this.api.post(`${BASE_URL}/api/v1/rankings`, {
+          params: { limit: PAGE_SIZE, ...params, discovery: "rising", metric: "rising", page },
         });
       case SectionID.BingeWorthy:
         return this.browse({ ...params, discovery: "binge", sort: "score", page });
