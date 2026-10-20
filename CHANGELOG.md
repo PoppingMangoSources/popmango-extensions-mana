@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.7)
+## KaganeTest (current: v1.0.8)
+
+### Changed
+
+- Move Popular This Week below Latest Updates, and keep settings in memory between changes so pages and searches skip re-reading them.
+
+## KaganeTest (v1.0.7)
 
 ### Changed
 

@@ -158,7 +158,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.7",
+    version: "1.0.8",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -177,6 +177,8 @@ export class Target
   private readonly pageClient = this.imageTransport(RequestOrigin.Page);
   private settingsRevision = 0;
   private settingsKey = "";
+  // Read once and kept until a write; every operation and every page image asks for these.
+  private loaded?: Settings;
   private preferenceWrite: Promise<void> = Promise.resolve();
   private readonly searchPages = new Map<
     string,
@@ -187,6 +189,7 @@ export class Target
 
   private async settings(): Promise<Settings> {
     await this.preferenceWrite;
+    if (this.loaded) return this.loaded;
     const values = await Promise.all(SETTING_KEYS.map((key) => ObjectStore.get(`Kagane.${key}`)));
     const [
       contentRatings,
@@ -237,6 +240,7 @@ export class Target
       this.readerSessions.clear();
       this.api.invalidate();
     }
+    this.loaded = settings;
     return settings;
   }
 
@@ -246,7 +250,14 @@ export class Target
     this.readerImages.clear();
     this.readerSessions.clear();
     this.api.invalidate();
-    this.preferenceWrite = this.preferenceWrite.catch(() => undefined).then(task);
+    this.loaded = undefined;
+    // A read that raced the write may have kept the old values, so they are dropped again once it lands.
+    this.preferenceWrite = this.preferenceWrite
+      .catch(() => undefined)
+      .then(task)
+      .finally(() => {
+        this.loaded = undefined;
+      });
     await this.preferenceWrite;
   }
 

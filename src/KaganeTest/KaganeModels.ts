@@ -115,18 +115,18 @@ export const SECTIONS = [
     style: SectionStyle.SimpleSingleRow,
   },
   {
-    id: "trending_week",
-    title: "Popular This Week",
-    subtitle: "The most-read titles this week",
-    sort: "avg_views_week",
-    style: SectionStyle.SimpleSingleRow,
-  },
-  {
     id: "latest_updates",
     title: "Latest Updates",
     subtitle: "Fresh chapters as they arrive",
     sort: "updated_at",
     style: SectionStyle.DetailedVerticalListGrouped,
+  },
+  {
+    id: "trending_week",
+    title: "Popular This Week",
+    subtitle: "The most-read titles this week",
+    sort: "avg_views_week",
+    style: SectionStyle.SimpleSingleRow,
   },
   {
     id: "trending_today",
