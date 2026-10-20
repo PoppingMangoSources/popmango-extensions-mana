@@ -3,7 +3,6 @@
 import {
   AdditionalInfoType,
   CatalogRating,
-  DefinedLanguages,
   HttpClient,
   RequestOrigin,
   additionalInfo,
@@ -111,19 +110,11 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.0",
+  version: "1.2.1",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
-  supportedLanguages: [
-    DefinedLanguages.ENGLISH,
-    DefinedLanguages.KOREAN,
-    DefinedLanguages.JAPANESE,
-    DefinedLanguages.FRENCH,
-    DefinedLanguages.CHINESE,
-    DefinedLanguages.SPANISH,
-    DefinedLanguages.PORTUGUESE,
-  ],
+  // Left unlisted so the catalogue reads Multi: uploads span far more languages than any short list.
   thumbnail: "Kagane.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
