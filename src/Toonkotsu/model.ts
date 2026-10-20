@@ -159,28 +159,27 @@ export const SectionID = {
  * The home page, under the site's own names.
  *
  * Rising Arrivals leads as a hero and Trending draws its detailed rows; below Latest Updates,
- * School Life Spotlight draws detailed rows between strips of covers. Only a row whose name
- * does not say what it holds carries a subtitle, and no row carries a view-more arrow, so
- * each shows its first page and the headers stay plain.
+ * School Life Spotlight draws detailed rows between strips of covers. Only the two lists
+ * that change by the hour, Trending and Latest Updates, carry a subtitle, and no row carries
+ * a view-more arrow, so each shows its first page and the headers stay plain.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.RisingArrivals,
     title: "Rising Arrivals",
-    subtitle: "New series gaining readers fast",
     style: SectionStyle.SimpleHeroPaged,
     viewMore: false,
   },
   {
     id: SectionID.Trending,
     title: "Trending",
+    subtitle: "What is gaining momentum with readers",
     style: SectionStyle.DetailedDoubleRowPaged,
     viewMore: false,
   },
   {
     id: SectionID.HiddenGems,
     title: "Hidden Gems",
-    subtitle: "Highly rated finds with fewer readers",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
@@ -193,13 +192,13 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.Latest,
     title: "Latest Updates",
+    subtitle: "Fresh chapter uploads as they arrive",
     style: SectionStyle.DetailedVerticalListGrouped,
     viewMore: false,
   },
   {
     id: SectionID.BingeWorthy,
     title: "Binge-Worthy",
-    subtitle: "Long, well-rated runs to settle into",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
@@ -230,7 +229,6 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.ThisSeason,
     title: "This Season",
-    subtitle: "The catalogue's seasonal picks",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
