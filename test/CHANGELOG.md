@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.0)
+## KaganeTest (current: v1.0.1)
+
+### Changed
+
+- Show similar titles when a series has no other edition, stop genre, tag and source filters at 50, take typed year bounds, and make Popular This Month a single row.
+
+## KaganeTest (v1.0.0)
 
 ### Added
 
