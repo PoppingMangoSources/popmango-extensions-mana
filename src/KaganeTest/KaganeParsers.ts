@@ -499,7 +499,7 @@ export function content(
     typeof details.total_views === "number" &&
     Number.isFinite(details.total_views) &&
     details.total_views >= 0
-      ? `◉ ${String(details.total_views).replace(/^\d+/, (integer) => integer.replace(/\B(?=(\d{3})+(?!\d))/g, ","))} views`
+      ? `⏯︎ ${String(details.total_views).replace(/^\d+/, (integer) => integer.replace(/\B(?=(\d{3})+(?!\d))/g, ","))} views`
       : "",
   ]
     .filter(Boolean)

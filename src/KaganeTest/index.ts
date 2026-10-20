@@ -64,6 +64,7 @@ import {
   Rating,
   RATINGS,
   SECTIONS,
+  Series,
   setMirror,
   Settings,
   SORTS,
@@ -128,6 +129,25 @@ type ReaderPageContext = {
 };
 type SearchPage = { result: PagedSearchResult; next: number; seenIDs: string[] };
 
+/** The policy a chart or recommendation row needs, since neither passes through the catalogue search. */
+function visibleRow(
+  row: Series,
+  settings: Settings,
+  ratings: Rating[],
+  sources: UploadSource[],
+  context?: SourceContext,
+): boolean {
+  return (
+    !!strictUUID(row.series_id) &&
+    !!row.cover_image_id?.trim() &&
+    allowed(row, settings, ratings, context?.allowedContentRatings) &&
+    !hasHidden(row.genres, settings.excludedGenres) &&
+    !hasHidden(row.tags, settings.excludedTags) &&
+    !(settings.hideDisturbing && row.is_disturbing === true) &&
+    uploadAllowed(settings, sources, row.source_id)
+  );
+}
+
 export class Target
   implements
     ContentSource,
@@ -138,7 +158,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.6",
+    version: "1.0.7",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -760,14 +780,8 @@ export class Target
     const results = entries.filter(
       ({ hidden_by_filter: hidden, series }) =>
         !hidden &&
-        !!validId(series.series_id) &&
-        !!series.cover_image_id?.trim() &&
-        allowed(series, settings, ratings, context?.allowedContentRatings) &&
-        !hasHidden(series.genres, settings.excludedGenres) &&
-        !hasHidden(series.tags, settings.excludedTags) &&
-        !(settings.hideDisturbing && series.is_disturbing === true) &&
-        (!languages || languages.has(chapterLanguage(series.translated_language))) &&
-        uploadAllowed(settings, sources, series.source_id),
+        visibleRow(series, settings, ratings, sources, context) &&
+        (!languages || languages.has(chapterLanguage(series.translated_language))),
     );
     return {
       results: results.map((entry) => ({ ...chartHighlight(entry, settings, sources), context })),
@@ -828,7 +842,7 @@ export class Target
         ? undefined
         : (editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
           (await this.similar(contentId, settings, sources, context)));
-      if (editions) result.additionalInfo = [editions, ...(result.additionalInfo ?? [])];
+      if (editions) result.additionalInfo = [...(result.additionalInfo ?? []), editions];
       return result;
     });
   }
@@ -849,15 +863,9 @@ export class Target
     return similarSection(
       rows.filter((row) => {
         if (
-          !strictUUID(row.series_id) ||
           seen.has(row.series_id) ||
           row.hidden_by_filter ||
-          !row.cover_image_id?.trim() ||
-          !allowed(row, settings, ratings, context?.allowedContentRatings) ||
-          hasHidden(row.genres, settings.excludedGenres) ||
-          hasHidden(row.tags, settings.excludedTags) ||
-          (settings.hideDisturbing && row.is_disturbing === true) ||
-          !uploadAllowed(settings, sources, row.source_id)
+          !visibleRow(row, settings, ratings, sources, context)
         )
           return false;
         seen.add(row.series_id);

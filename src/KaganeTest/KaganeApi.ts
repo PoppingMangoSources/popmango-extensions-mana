@@ -10,7 +10,7 @@ import {
   JsonValue,
 } from "@mana-app/types";
 import {
-  AGE_RATINGS,
+  ageRatings,
   api,
   Book,
   Challenge,
@@ -27,6 +27,7 @@ import {
   TrendingEntry,
   trustedHost,
   UploadSource,
+  uploadTypes,
   validId,
 } from "./KaganeModels";
 
@@ -307,10 +308,9 @@ export class KaganeApi {
     languages: string[],
     hideDisturbing: boolean,
   ): Promise<TrendingEntry[]> {
-    const ages = [...new Set(ratings.map((rating) => AGE_RATINGS[rating]))];
     const query = [
       "limit=5",
-      `age_rating=${encodeURIComponent(ages.join(","))}`,
+      `age_rating=${encodeURIComponent(ageRatings(ratings).join(","))}`,
       // The chart accepts at most five languages; longer lists are matched locally.
       ...(languages.length && languages.length <= 5
         ? [`lang=${encodeURIComponent(languages.join(","))}`]
@@ -341,19 +341,16 @@ export class KaganeApi {
     uploadSource: string,
     hideDisturbing: boolean,
   ): Promise<Series[]> {
-    const ages = [...new Set(ratings.map((rating) => AGE_RATINGS[rating]))];
     const query = [
       "kind=similar",
       "limit=10",
-      `age_rating=${encodeURIComponent(ages.join(","))}`,
+      `age_rating=${encodeURIComponent(ageRatings(ratings).join(","))}`,
       `is_pornographic=${ratings.includes("Pornographic")}`,
       `is_disturbing=${!hideDisturbing}`,
       ...(languages.length ? [`lang=${encodeURIComponent(languages.join(","))}`] : []),
       ...(uploadSource === "all"
         ? []
-        : [
-            `source_type=${encodeURIComponent(uploadSource === "official" ? "Official" : "Unofficial,Mixed")}`,
-          ]),
+        : [`source_type=${encodeURIComponent(uploadTypes(uploadSource).join(","))}`]),
     ].join("&");
     return this.cached(`similar:${validId(seriesId)}:${query}`, 120_000, async () => {
       const result = await this.parse<SearchResponse>(

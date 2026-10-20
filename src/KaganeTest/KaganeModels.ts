@@ -147,12 +147,21 @@ export const SECTIONS = [
 export const isDetailed = (style?: SectionStyle): boolean =>
   style === SectionStyle.DetailedTripleRowPaged ||
   style === SectionStyle.DetailedVerticalListGrouped;
-export const AGE_RATINGS: Record<Rating, string> = {
+const AGE_RATINGS: Record<Rating, string> = {
   Safe: "Safe",
   Suggestive: "FifteenPlus",
   Erotica: "EighteenPlus",
   Pornographic: "EighteenPlus",
 };
+export const ageRatings = (ratings: readonly Rating[]): string[] => [
+  ...new Set(ratings.map((rating) => AGE_RATINGS[rating])),
+];
+export const uploadTypes = (choice: string): string[] =>
+  choice === "official"
+    ? ["Official"]
+    : choice === "scanlations"
+      ? ["Unofficial", "Mixed"]
+      : ["Official", "Unofficial", "Mixed"];
 // Field, lowest and highest accepted value, and for a stepper the value it starts at.
 export const RANGES: readonly (readonly [string, number, number, number?])[] = [
   ["current_books", 0, 2147483647, 0],

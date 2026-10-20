@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 import { ContentRating, JsonValue, Option, SearchRequest } from "@mana-app/types";
 import {
-  AGE_RATINGS,
+  ageRatings,
   CHAPTER_PRESETS,
   Filters,
   MAX_IDS,
@@ -12,6 +12,7 @@ import {
   Settings,
   SOURCE_TYPES,
   TagEntry,
+  uploadTypes,
 } from "./KaganeModels";
 import { manaRating } from "./KaganeParsers";
 import { assertRatingPolicy, ratingAllowed } from "./ContentRatingPolicy";
@@ -19,7 +20,7 @@ import { resolveTypedTags, TAG_GROUPS, tagFilterId, tagIdsOf } from "./tag-group
 
 type NumericRange = { min?: number; max?: number };
 
-/** Steppers and older saved text bounds, validated before any provider/taxonomy request.
+/** Stepper and typed bounds, validated before any provider/taxonomy request.
  * A stepper left at its floor was never set, so it asks for nothing.
  */
 export function readNumericRanges(filters: Filters | undefined): Record<string, NumericRange> {
@@ -233,13 +234,8 @@ export function searchBody(
   const body: Record<string, JsonValue> = {
     ...ranges,
     content_rating: ratings,
-    age_rating: [...new Set(ratings.map((rating) => AGE_RATINGS[rating]))],
-    source_type:
-      settings.uploadSource === "official"
-        ? ["Official"]
-        : settings.uploadSource === "scanlations"
-          ? ["Unofficial", "Mixed"]
-          : ["Official", "Unofficial", "Mixed"],
+    age_rating: ageRatings(ratings),
+    source_type: uploadTypes(settings.uploadSource),
   };
   if (!ratings.includes("Pornographic")) body.is_pornographic = false;
   else if (ratings.length === 1) body.is_pornographic = true;
