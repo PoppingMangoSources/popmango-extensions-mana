@@ -423,6 +423,12 @@ function dateLabel(date: Enrichment["startDate"]): string | undefined {
 const isWebUrl = (url: string | null | undefined): url is string =>
   typeof url === "string" && /^https?:\/\//i.test(url);
 
+/**
+ * The picture AniList gives anyone without a photo of their own, which reads "NO IMAGE".
+ * Leaving it out lets the app draw its own person icon instead.
+ */
+const PLACEHOLDER_PHOTO = /\/default\.(?:jpe?g|png|webp)(?:[?#]|$)/i;
+
 /** The staff, publisher links and shop searches the site's title page draws, in its order. */
 function enrichmentSections(enrichment: Enrichment | undefined): AdditionalInfoSection[] {
   if (!enrichment) return [];
@@ -436,7 +442,9 @@ function enrichmentSections(enrichment: Enrichment | undefined): AdditionalInfoS
         id: String(person.id ?? `${index}-${name}`),
         title: name,
         ...(person.role ? { subtitle: clean(person.role) } : {}),
-        ...(isWebUrl(person.image) ? { image: person.image } : {}),
+        ...(isWebUrl(person.image) && !PLACEHOLDER_PHOTO.test(person.image)
+          ? { image: person.image }
+          : {}),
       }),
     ];
   });
