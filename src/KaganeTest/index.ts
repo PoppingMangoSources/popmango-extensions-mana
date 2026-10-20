@@ -9,6 +9,7 @@ import {
   DeepLinkContext,
   Form,
   CoverRequestHandler,
+  HighlightsSection,
   HttpClient,
   ImageRequest,
   Option,
@@ -58,7 +59,6 @@ import {
   origin as siteOrigin,
   PAGE_SIZE,
   parseURL,
-  RANGES,
   Rating,
   RATINGS,
   SECTIONS,
@@ -69,6 +69,7 @@ import {
   strictUUID,
   trustedHost,
   UPLOADS,
+  UploadSource,
   validId,
 } from "./KaganeModels";
 import {
@@ -81,6 +82,7 @@ import {
   editionSection,
   highlight,
   readerExpiry,
+  similarSection,
   uploadAllowed,
   visibleDetailTags,
 } from "./KaganeParsers";
@@ -116,7 +118,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.0",
+    version: "1.0.1",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -287,7 +289,7 @@ export class Target
         UIListSection({
           header: "Catalog",
           footer:
-            "No languages selected means all languages. Upload filters and hidden tags apply globally.",
+            "No languages selected means all languages. Upload filters and hidden tags apply globally. Kagane allows at most 50 hidden genres and 50 hidden tags, and a grouped tag can stand for several.",
           children: [
             UIPicker({
               id: "uploadSource",
@@ -375,17 +377,28 @@ export class Target
         this.api.sources(),
         this.languageOptions(),
       ]);
-      const stepper = (field: (typeof RANGES)[number], title: string, step: number) =>
-        ["min", "max"].map((side) =>
+      const sides = [
+        ["min", "From"],
+        ["max", "To"],
+      ] as const;
+      const stepper = (field: string, title: string, upperBound: number, step: number) =>
+        sides.map(([side, label]) =>
           SearchStepper({
-            id: `${field[0]}_${side}`,
-            title: `${title} ${side === "min" ? "From" : "To"}`,
-            lowerBound: field[3],
-            upperBound: field[4],
+            id: `${field}_${side}`,
+            title: `${title} ${label}`,
+            lowerBound: 0,
+            upperBound,
             step,
           }),
         );
-      const [chapterRange, volumeRange, startRange, endRange] = RANGES;
+      const year = (field: string, title: string) =>
+        sides.map(([side, label]) =>
+          SearchTextField({
+            id: `${field}_${side}`,
+            title: `${title} ${label}`,
+            placeholder: label,
+          }),
+        );
       return {
         sections: [
           SearchListSection({
@@ -435,7 +448,7 @@ export class Target
           SearchListSection({
             header: "Advanced Search",
             footer:
-              "Chapter count means uploaded Kagane chapter entries, not the highest chapter number. A bound left at its lowest value is not applied, and Chapters From or To replaces the chapter count choice.",
+              "Chapter count means uploaded Kagane chapter entries, not the highest chapter number. A stepper left at 0 is not applied, and Chapters From or To replaces the chapter count choice. Leave a year blank to leave that end open.",
             children: [
               SearchGroup({
                 id: "chapters",
@@ -446,23 +459,23 @@ export class Target
                     title: "Chapter count",
                     options: CHAPTER_PRESETS,
                   }),
-                  ...stepper(chapterRange, "Chapters", 10),
+                  ...stepper("current_books", "Chapters", 5000, 10),
                 ],
               }),
               SearchGroup({
                 id: "volumes",
                 title: "Volumes",
-                children: stepper(volumeRange, "Volumes", 1),
+                children: stepper("current_volumes", "Volumes", 300, 1),
               }),
               SearchGroup({
                 id: "start_year",
                 title: "Year Started",
-                children: stepper(startRange, "Started", 1),
+                children: year("start_year", "Started"),
               }),
               SearchGroup({
                 id: "end_year",
                 title: "Year Ended",
-                children: stepper(endRange, "Ended", 1),
+                children: year("end_year", "Ended"),
               }),
             ],
           }),
@@ -774,10 +787,47 @@ export class Target
         visibleDetailTags(details, settings).length ? this.api.tags() : Promise.resolve([]),
       ]);
       const result = content(contentId, details, settings, sources, tags);
-      const editions = editionSection(rows, contentId, settings, context?.allowedContentRatings);
+      const editions =
+        editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
+        (await this.similar(contentId, settings, sources, context));
       if (editions) result.additionalInfo = [editions, ...(result.additionalInfo ?? [])];
       return result;
     });
+  }
+
+  /** The site's recommendations stand in when a series has no other edition to show. */
+  private async similar(
+    id: string,
+    settings: Settings,
+    sources: UploadSource[],
+    context?: SourceContext,
+  ): Promise<HighlightsSection | undefined> {
+    const ratings = selectedRatings({ page: 1, context }, settings);
+    if (!ratings.length) return undefined;
+    const rows = await this.api
+      .similar(id, ratings, settings.languages, settings.uploadSource, settings.hideDisturbing)
+      .catch(() => []);
+    const seen = new Set([id]);
+    return similarSection(
+      rows.filter((row) => {
+        if (
+          !strictUUID(row.series_id) ||
+          seen.has(row.series_id) ||
+          row.hidden_by_filter ||
+          !row.cover_image_id?.trim() ||
+          !allowed(row, settings, ratings, context?.allowedContentRatings) ||
+          hasHidden(row.genres, settings.excludedGenres) ||
+          hasHidden(row.tags, settings.excludedTags) ||
+          (settings.hideDisturbing && row.is_disturbing === true) ||
+          !uploadAllowed(settings, sources, row.source_id)
+        )
+          return false;
+        seen.add(row.series_id);
+        return true;
+      }),
+      settings,
+      sources,
+    );
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {

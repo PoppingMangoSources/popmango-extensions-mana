@@ -4,6 +4,7 @@ import {
   AGE_RATINGS,
   CHAPTER_PRESETS,
   Filters,
+  MAX_IDS,
   RANGES,
   RATINGS,
   Rating,
@@ -153,13 +154,21 @@ function validateTagIds(values: string[], tags: TagEntry[]): void {
   }
 }
 
+function limited(values: string[], label: string): string[] {
+  const unique = [...new Set(values)];
+  if (unique.length > MAX_IDS)
+    throw new Error(`Kagane allows at most ${MAX_IDS} ${label}, and ${unique.length} are picked.`);
+  return unique;
+}
+
 function compound(
   included: string[],
   excluded: string[],
   match: boolean,
+  label: string,
 ): Record<string, JsonValue> | undefined {
-  const values = [...new Set(included)];
-  const exclude = [...new Set(excluded)];
+  const values = limited(included, `included ${label}`);
+  const exclude = limited(excluded, `excluded ${label}`);
   return values.length || exclude.length
     ? {
         values,
@@ -262,13 +271,14 @@ export function searchBody(
     "translated_language",
   ]) {
     const values = selectedOptions(request.filters, id);
-    if (values.length) body[id] = values;
+    if (values.length) body[id] = id === "source_id" ? limited(values, "sources") : values;
   }
   const genres = selection(request.filters, "genres");
   const genreFilter = compound(
     genres.included,
     [...genres.excluded, ...settings.excludedGenres],
     request.filters?.match_all_genres === true,
+    "genres",
   );
   if (genreFilter) body.genres = genreFilter;
   const typed = resolveTypedTags(
@@ -286,6 +296,7 @@ export function searchBody(
     ],
     request.filters?.match_all_tags === true &&
       includedTagGroups(request.filters, tags).every((group) => group.length === 1),
+    "tags",
   );
   if (tagFilter) body.tags = tagFilter;
   return body;

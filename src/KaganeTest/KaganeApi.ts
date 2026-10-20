@@ -21,6 +21,7 @@ import {
   parseURL,
   Rating,
   SearchResponse,
+  Series,
   strictUUID,
   TagEntry,
   TrendingEntry,
@@ -329,6 +330,37 @@ export class KaganeApi {
       )
         throw new Error("Kagane trending chart is invalid");
       return result.items;
+    });
+  }
+
+  /** Recommendations take visibility toggles rather than the catalogue's exact-match flags. */
+  similar(
+    seriesId: string,
+    ratings: readonly Rating[],
+    languages: string[],
+    uploadSource: string,
+    hideDisturbing: boolean,
+  ): Promise<Series[]> {
+    const ages = [...new Set(ratings.map((rating) => AGE_RATINGS[rating]))];
+    const query = [
+      "kind=similar",
+      "limit=10",
+      `age_rating=${encodeURIComponent(ages.join(","))}`,
+      `is_pornographic=${ratings.includes("Pornographic")}`,
+      `is_disturbing=${!hideDisturbing}`,
+      ...(languages.length ? [`lang=${encodeURIComponent(languages.join(","))}`] : []),
+      ...(uploadSource === "all"
+        ? []
+        : [
+            `source_type=${encodeURIComponent(uploadSource === "official" ? "Official" : "Unofficial,Mixed")}`,
+          ]),
+    ].join("&");
+    return this.cached(`similar:${validId(seriesId)}:${query}`, 120_000, async () => {
+      const result = await this.parse<SearchResponse>(
+        await this.response(`${origin()}/api/v1/rec/series/${seriesId}/similar?${query}`),
+      );
+      if (!Array.isArray(result?.content)) throw new Error("Kagane recommendations are invalid");
+      return result.content;
     });
   }
 

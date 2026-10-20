@@ -107,7 +107,7 @@ export const SECTIONS = [
     title: "Popular This Month",
     subtitle: "The most-read titles this month",
     sort: "avg_views_month",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    style: SectionStyle.SimpleSingleRow,
   },
   {
     id: "trending_week",
@@ -140,7 +140,6 @@ export const SECTIONS = [
 ];
 // Detailed layouts draw info rows instead of the cover pill.
 export const isDetailed = (style?: SectionStyle): boolean =>
-  style === SectionStyle.DetailedDoubleRowPaged ||
   style === SectionStyle.DetailedTripleRowPaged ||
   style === SectionStyle.DetailedVerticalListGrouped;
 export const AGE_RATINGS: Record<Rating, string> = {
@@ -149,13 +148,15 @@ export const AGE_RATINGS: Record<Rating, string> = {
   Erotica: "EighteenPlus",
   Pornographic: "EighteenPlus",
 };
-// Field, lowest accepted value, highest accepted value, stepper floor and stepper ceiling.
-export const RANGES = [
-  ["current_books", 0, 2147483647, 0, 5000],
-  ["current_volumes", 0, 2147483647, 0, 300],
-  ["start_year", 1, 9999, 1900, new Date().getFullYear()],
-  ["end_year", 1, 9999, 1900, new Date().getFullYear()],
-] as const;
+// Field, lowest and highest accepted value, and for a stepper the value it starts at.
+export const RANGES: readonly (readonly [string, number, number, number?])[] = [
+  ["current_books", 0, 2147483647, 0],
+  ["current_volumes", 0, 2147483647, 0],
+  ["start_year", 1, 9999],
+  ["end_year", 1, 9999],
+];
+// The site accepts at most this many genres, tags or sources in one filter.
+export const MAX_IDS = 50;
 export const CHAPTER_PRESETS: Option[] = [
   { id: "1-20", title: "1–20" },
   { id: "21-100", title: "21–100" },
@@ -184,6 +185,7 @@ export type Series = Classification & {
   genres?: string[];
   tags?: string[];
   is_disturbing?: boolean | null;
+  hidden_by_filter?: boolean;
   latest_chapters?: {
     title?: string | null;
     chapter_no?: string | null;

@@ -625,6 +625,31 @@ export function editionSection(
     : undefined;
 }
 
+/** The site's recommendations for a series with no other edition, from rows the caller has already filtered. */
+export function similarSection(
+  rows: Series[],
+  settings: Settings,
+  sources: UploadSource[],
+): HighlightsSection | undefined {
+  const items = rows.slice(0, 10).map((row) => ({
+    type: AdditionalInfoType.Highlights as const,
+    id: row.series_id,
+    title: displayTitle(
+      preferredTitle(row.title, row.title_language),
+      settings,
+      sources,
+      row.source_id,
+      row.edition_info,
+    ),
+    cover: imageURL(row.cover_image_id),
+    webUrl: seriesURL(row.series_id),
+    contentRating: manaRating(row),
+  }));
+  return items.length
+    ? highlights.section({ id: "similar", title: "More like this", hasMore: false, items })
+    : undefined;
+}
+
 function date(value?: string | null): Date {
   if (!value) return new Date(0);
   const parsed = new Date(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value}Z`);
