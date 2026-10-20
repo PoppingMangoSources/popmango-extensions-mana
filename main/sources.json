@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "73f2c5cc73f2c5cc73f2c5cc73f2c5cc73f2c5cc73f2c5cc73f2c5cc73f2c5cc"
+      "hash": "7ca35b697ca35b697ca35b697ca35b697ca35b697ca35b697ca35b697ca35b69"
     },
     {
       "id": "kagane",
@@ -50,7 +50,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 106961929,
-      "hash": "294838e2294838e2294838e2294838e2294838e2294838e2294838e2294838e2"
+      "hash": "2097a3292097a3292097a3292097a3292097a3292097a3292097a3292097a329"
     },
     {
       "id": "mangadex",
@@ -72,12 +72,12 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5763904f5763904f5763904f5763904f5763904f5763904f5763904f5763904f"
+      "hash": "4eb2fb134eb2fb134eb2fb134eb2fb134eb2fb134eb2fb134eb2fb134eb2fb13"
     },
     {
       "id": "mangafire",
       "name": "MangaFire",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "description": "Manga, manhwa and manhua from mangafire.to.",
       "website": "https://mangafire.to",
       "rating": 1,
@@ -98,7 +98,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 106961929,
-      "hash": "5f22513a5f22513a5f22513a5f22513a5f22513a5f22513a5f22513a5f22513a"
+      "hash": "6daa92ce6daa92ce6daa92ce6daa92ce6daa92ce6daa92ce6daa92ce6daa92ce"
     },
     {
       "id": "mangaupdates",
@@ -120,12 +120,12 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "44a3d7fc44a3d7fc44a3d7fc44a3d7fc44a3d7fc44a3d7fc44a3d7fc44a3d7fc"
+      "hash": "3bf345603bf345603bf345603bf345603bf345603bf345603bf345603bf34560"
     },
     {
       "id": "mangago",
       "name": "Mangago",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "description": "Manga, manhwa and doujinshi from mangago.me.",
       "website": "https://www.mangago.me",
       "rating": 1,
@@ -142,7 +142,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "4ab2a9264ab2a9264ab2a9264ab2a9264ab2a9264ab2a9264ab2a9264ab2a926"
+      "hash": "036bd758036bd758036bd758036bd758036bd758036bd758036bd758036bd758"
     },
     {
       "id": "rinkocomics",
@@ -164,7 +164,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "61b04d9e61b04d9e61b04d9e61b04d9e61b04d9e61b04d9e61b04d9e61b04d9e"
+      "hash": "58ffb45f58ffb45f58ffb45f58ffb45f58ffb45f58ffb45f58ffb45f58ffb45f"
     },
     {
       "id": "rokaricomics",
@@ -186,7 +186,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "786b5106786b5106786b5106786b5106786b5106786b5106786b5106786b5106"
+      "hash": "7ee419bb7ee419bb7ee419bb7ee419bb7ee419bb7ee419bb7ee419bb7ee419bb"
     },
     {
       "id": "stonescape",
@@ -208,7 +208,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 106961929,
-      "hash": "23eef7a223eef7a223eef7a223eef7a223eef7a223eef7a223eef7a223eef7a2"
+      "hash": "1b3e61e41b3e61e41b3e61e41b3e61e41b3e61e41b3e61e41b3e61e41b3e61e4"
     },
     {
       "id": "toonkotsu",
@@ -230,7 +230,7 @@
       "path": "Toonkotsu",
       "environment": "source",
       "intents": 106961929,
-      "hash": "77413b0b77413b0b77413b0b77413b0b77413b0b77413b0b77413b0b77413b0b"
+      "hash": "6e90f6cc6e90f6cc6e90f6cc6e90f6cc6e90f6cc6e90f6cc6e90f6cc6e90f6cc"
     },
     {
       "id": "valirscans",
@@ -252,7 +252,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 106962217,
-      "hash": "5b124e645b124e645b124e645b124e645b124e645b124e645b124e645b124e64"
+      "hash": "63c2e74963c2e74963c2e74963c2e74963c2e74963c2e74963c2e74963c2e749"
     },
     {
       "id": "xcomic",
@@ -274,7 +274,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "2f553ee32f553ee32f553ee32f553ee32f553ee32f553ee32f553ee32f553ee3"
+      "hash": "3805866738058667380586673805866738058667380586673805866738058667"
     }
   ]
 }

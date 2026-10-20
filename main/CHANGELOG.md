@@ -1171,7 +1171,13 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.2.0)
+## MangaFire (current: v1.2.1)
+
+### Changed
+
+- Trending shows two rows of covers.
+
+## MangaFire (v1.2.0)
 
 ### Changed
 
@@ -2836,7 +2842,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.2.0)
+## Mangago (current: v1.2.1)
+
+### Changed
+
+- Featured Manga stays the carousel and every other home row, Latest Update included, is a plain strip of covers without a view-more arrow.
+
+## Mangago (v1.2.0)
 
 ### Changed
 
