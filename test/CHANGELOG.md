@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.13)
+## KaganeTest (current: v1.0.14)
+
+### Fixed
+
+- Reject image addresses with dot segments or encoded separators, and fill the Trending chart from a wider list when more than five reading languages are chosen.
+
+## KaganeTest (v1.0.13)
 
 ### Fixed
 
