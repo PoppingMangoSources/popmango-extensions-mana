@@ -17,10 +17,11 @@ export function parseURL(
   value: string,
 ): { origin: string; hostname: string; pathname: string } | undefined {
   const match = /^https:\/\/([a-z0-9.-]+)(?::443)?(\/[^?#]*)?(?:[?#].*)?$/i.exec(value);
-  const hostname = match?.[1]?.toLowerCase();
-  return hostname
-    ? { origin: `https://${hostname}`, hostname, pathname: match?.[2] ?? "/" }
-    : undefined;
+  const hostname = match?.[1]?.toLowerCase(),
+    pathname = match?.[2] ?? "/";
+  // A client would normalize dot segments and encoded separators after the path checks.
+  if (/(?:^|\/)\.{1,2}(?:\/|$)|\\|%(?:2e|2f|5c)/i.test(pathname)) return undefined;
+  return hostname ? { origin: `https://${hostname}`, hostname, pathname } : undefined;
 }
 // kstatic.to is the exact CDN published by Kagane's own reader challenge.
 export const trustedHost = (host: string): boolean =>

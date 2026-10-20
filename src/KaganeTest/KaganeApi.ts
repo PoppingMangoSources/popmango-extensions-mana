@@ -18,6 +18,7 @@ import {
   Genre,
   ManifestPage,
   origin,
+  PAGE_SIZE,
   parseURL,
   Rating,
   SearchResponse,
@@ -308,13 +309,12 @@ export class KaganeApi {
     languages: string[],
     hideDisturbing: boolean,
   ): Promise<TrendingEntry[]> {
+    // The chart takes at most five languages; longer lists are matched locally, from enough rows to fill it.
+    const local = languages.length > 5;
     const query = [
-      "limit=5",
+      `limit=${local ? PAGE_SIZE : 5}`,
       `age_rating=${encodeURIComponent(ageRatings(ratings).join(","))}`,
-      // The chart takes at most five languages; longer lists are matched locally.
-      ...(languages.length && languages.length <= 5
-        ? [`lang=${encodeURIComponent(languages.join(","))}`]
-        : []),
+      ...(languages.length && !local ? [`lang=${encodeURIComponent(languages.join(","))}`] : []),
       ...(!ratings.includes("Pornographic")
         ? ["is_pornographic=false"]
         : ratings.length === 1

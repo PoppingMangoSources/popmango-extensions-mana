@@ -125,7 +125,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.13",
+    version: "1.0.14",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -758,7 +758,9 @@ export class Target
         (!languages || languages.has(chapterLanguage(series.translated_language))),
     );
     return {
-      results: results.map((entry) => ({ ...chartHighlight(entry, settings, sources), context })),
+      results: results
+        .slice(0, 5)
+        .map((entry) => ({ ...chartHighlight(entry, settings, sources), context })),
       isLastPage: true,
     };
   }
