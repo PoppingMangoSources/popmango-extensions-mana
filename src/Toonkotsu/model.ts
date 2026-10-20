@@ -140,6 +140,7 @@ export const SORT_OPTIONS: SortOption[] = [
 ];
 
 export const SectionID = {
+  MostDiscussed: "most-discussed",
   MostRead: "most-read",
   Trending: "trending",
   HiddenGems: "hidden-gems",
@@ -151,20 +152,21 @@ export const SectionID = {
   NewAdditions: "new-additions",
   SchoolLife: "school-life",
   ShortReads: "short-reads",
+  MostSaved: "most-saved",
 } as const;
 
 /**
  * The home page, in the site's own order and under its own names.
  *
- * Most Read leads as a hero because the site ranks it and a rank wants the space; Trending
- * draws its detailed rows. Below Latest Updates the strips alternate with detailed rows and
+ * Most Discussed leads as a hero because the site ranks it and a rank wants the space;
+ * Trending draws its detailed rows. Below Latest Updates the strips alternate with detailed rows and
  * double strips, so a long run of rows does not read as one.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
-    id: SectionID.MostRead,
-    title: "Most Read",
-    subtitle: "The titles readers open most",
+    id: SectionID.MostDiscussed,
+    title: "Most Discussed",
+    subtitle: "The titles readers talk about most",
     style: SectionStyle.SimpleHeroPaged,
   },
   {
@@ -190,6 +192,12 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     title: "Latest Updates",
     subtitle: "Fresh chapter uploads as they arrive",
     style: SectionStyle.DetailedVerticalListGrouped,
+  },
+  {
+    id: SectionID.MostRead,
+    title: "Most Read",
+    subtitle: "The titles readers open most",
+    style: SectionStyle.SimpleSingleRow,
   },
   {
     id: SectionID.BingeWorthy,
@@ -226,6 +234,12 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     title: "Short Reads",
     subtitle: "Well-rated stories you can finish in a sitting",
     style: SectionStyle.SimpleDoubleRow,
+  },
+  {
+    id: SectionID.MostSaved,
+    title: "Most Saved",
+    subtitle: "The titles the most readers keep in their library",
+    style: SectionStyle.SimpleSingleRow,
   },
 ];
 

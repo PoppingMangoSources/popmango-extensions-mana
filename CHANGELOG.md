@@ -99,7 +99,13 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## Toonkotsu (current: v1.1.1)
+## Toonkotsu (current: v1.1.2)
+
+### Added
+
+- Most Discussed leads the home page as the carousel, Most Read moves to a ranked strip below Latest Updates, and Most Saved closes it; each ranking shows the count it is ranked by.
+
+## Toonkotsu (v1.1.1)
 
 ### Added
 

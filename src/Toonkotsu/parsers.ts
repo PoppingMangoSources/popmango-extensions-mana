@@ -135,12 +135,20 @@ export type HighlightOptions = {
   /** A detailed tile draws its info rows and no pill, so the two never both appear. */
   detailed?: boolean;
   card?: "trending";
+  /** What a ranking's `count` counts: chapter opens unless the ranking says otherwise. */
+  tally?: "reads" | "comments" | "saves";
 };
 
 export function parseHighlight(series: Series, options: HighlightOptions = {}): Highlight {
-  const { rank, latest, detailed = false } = options;
+  const { rank, latest, detailed = false, tally = "reads" } = options;
   const score = scoreOf(series);
   const reads = compactCount(series.count ?? 0);
+  const [countMark, countKey] =
+    tally === "comments"
+      ? [Mark.Comments, "Comments"]
+      : tally === "saves"
+        ? [Mark.Likes, "Saves"]
+        : [Mark.Views, "Reads"];
   const kind = titleCase(clean(series.type ?? ""));
   const state = titleCase(STATUS_NAMES[series.status ?? ""] ?? clean(series.status ?? ""));
 
@@ -157,7 +165,7 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
   // widely it is read, else what it is, else where it has got to.
   const taken = firstFilled(
     score === undefined ? "" : `${Mark.Rating} ${score.toFixed(1)}`,
-    reads ? `${Mark.Views} ${reads}` : "",
+    reads ? `${countMark} ${reads}` : "",
     typePill(kind),
     statusPill(state),
   );
@@ -185,7 +193,7 @@ export function parseHighlight(series: Series, options: HighlightOptions = {}): 
     );
     if (genre) info.push({ key: "Genre", value: clean(decodeEntities(genre)) });
   }
-  if (reads && options.card !== "trending") info.push({ key: "Reads", value: reads });
+  if (reads && options.card !== "trending") info.push({ key: countKey, value: reads });
 
   return {
     id: contentIdOf(series) ?? String(series.id),

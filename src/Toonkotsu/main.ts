@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.1",
+  version: "1.1.2",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -379,7 +379,7 @@ class ToonkotsuSource
             ? parseHighlights([series], {
                 detailed,
                 ...(sectionId === SectionID.Trending ? { card: "trending" as const } : {}),
-                ...(sectionId === SectionID.MostRead ? { rank: rankAt(index) } : {}),
+                ...(RANKED[sectionId] ? { rank: rankAt(index), tally: RANKED[sectionId] } : {}),
               })
             : [],
         ),
@@ -399,6 +399,12 @@ class ToonkotsuSource
       // query string, a discovery ranking posted as the browse parameters.
       case SectionID.MostRead:
         return this.api.json(catalogueUrl("api/v1/rankings", { ...params, metric: "views", page }));
+      case SectionID.MostDiscussed:
+        return this.api.json(
+          catalogueUrl("api/v1/rankings", { ...params, metric: "comments", page }),
+        );
+      case SectionID.MostSaved:
+        return this.api.json(catalogueUrl("api/v1/rankings", { ...params, metric: "saves", page }));
       case SectionID.Trending:
         return this.api.json(
           catalogueUrl("api/v1/rankings", { ...params, metric: "trending", page }),
@@ -822,6 +828,13 @@ function stepped(filters: FilterReader, id: string, param: string, unset: number
  * neither is taken as "probably more", since stopping early loses titles and asking once
  * too often only costs the one empty request.
  */
+/** The site's own rankings, numbered as it numbers them, and what each one counts. */
+const RANKED: Record<string, "reads" | "comments" | "saves"> = {
+  [SectionID.MostRead]: "reads",
+  [SectionID.MostDiscussed]: "comments",
+  [SectionID.MostSaved]: "saves",
+};
+
 function hasNextPage(data: SeriesListResponse, page: number): boolean {
   if (typeof data.hasNextPage === "boolean") return data.hasNextPage;
   const items = data.items ?? [];
