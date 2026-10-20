@@ -136,19 +136,14 @@ export type HighlightOptions = {
   detailed?: boolean;
   card?: "trending";
   /** What a ranking's `count` counts: chapter opens unless the ranking says otherwise. */
-  tally?: "reads" | "comments" | "saves";
+  tally?: "reads" | "saves" | "none";
 };
 
 export function parseHighlight(series: Series, options: HighlightOptions = {}): Highlight {
   const { rank, latest, detailed = false, tally = "reads" } = options;
   const score = scoreOf(series);
-  const reads = compactCount(series.count ?? 0);
-  const [countMark, countKey] =
-    tally === "comments"
-      ? [Mark.Comments, "Comments"]
-      : tally === "saves"
-        ? [Mark.Likes, "Saves"]
-        : [Mark.Views, "Reads"];
+  const reads = tally === "none" ? "" : compactCount(series.count ?? 0);
+  const [countMark, countKey] = tally === "saves" ? [Mark.Likes, "Saves"] : [Mark.Views, "Reads"];
   const kind = titleCase(clean(series.type ?? ""));
   const state = titleCase(STATUS_NAMES[series.status ?? ""] ?? clean(series.status ?? ""));
 

@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.3",
+  version: "1.1.4",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -420,14 +420,13 @@ class ToonkotsuSource
         });
       case SectionID.BingeWorthy:
         return this.browse({ ...params, discovery: "binge", sort: "score", page });
+      // The site's own New Additions; a catalogue sorted by date added gave the same titles.
       case SectionID.RecentlyAdded:
-        return this.browse({ ...params, sort: "new", order: "desc", page });
+        return this.browse({ ...params, discovery: "new", sort: "new", page });
       case SectionID.ThisSeason:
         return this.browse({ ...params, discovery: "seasonal", page });
       case SectionID.Completed:
         return this.browse({ ...params, discovery: "completed", page });
-      case SectionID.NewAdditions:
-        return this.browse({ ...params, discovery: "new", sort: "new", page });
       case SectionID.SchoolLife:
         return this.browse({
           ...params,
@@ -833,10 +832,13 @@ function stepped(filters: FilterReader, id: string, param: string, unset: number
  * neither is taken as "probably more", since stopping early loses titles and asking once
  * too often only costs the one empty request.
  */
-/** The site's own rankings, numbered as it numbers them, and what each one counts. */
-const RANKED: Record<string, "reads" | "comments" | "saves"> = {
+/**
+ * The site's own rankings, numbered as it numbers them, and what each one counts. Comment
+ * counts run to a handful, too few to be worth a pill, so Most Discussed shows none.
+ */
+const RANKED: Record<string, "reads" | "saves" | "none"> = {
   [SectionID.MostRead]: "reads",
-  [SectionID.MostDiscussed]: "comments",
+  [SectionID.MostDiscussed]: "none",
   [SectionID.MostSaved]: "saves",
 };
 

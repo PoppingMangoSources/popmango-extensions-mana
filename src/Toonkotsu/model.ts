@@ -149,7 +149,6 @@ export const SectionID = {
   RecentlyAdded: "recently-added",
   ThisSeason: "this-season",
   Completed: "completed",
-  NewAdditions: "new-additions",
   RisingArrivals: "rising-arrivals",
   SchoolLife: "school-life",
   ShortReads: "short-reads",
@@ -160,8 +159,8 @@ export const SectionID = {
  * The home page, in the site's own order and under its own names.
  *
  * Most Discussed leads as a hero because the site ranks it and a rank wants the space;
- * Trending draws its detailed rows. Below Latest Updates the strips alternate with detailed rows and
- * double strips, so a long run of rows does not read as one.
+ * Trending draws its detailed rows. Below Latest Updates the two rankings worth reading
+ * closely, Most Read and School Life Spotlight, draw detailed rows between strips of covers.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
@@ -198,37 +197,25 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.MostRead,
     title: "Most Read",
     subtitle: "The titles readers open most",
-    style: SectionStyle.SimpleSingleRow,
+    style: SectionStyle.DetailedTripleRowPaged,
   },
   {
     id: SectionID.BingeWorthy,
     title: "Binge-Worthy",
     subtitle: "Long, well-rated runs to settle into",
-    style: SectionStyle.DetailedTripleRowPaged,
-  },
-  {
-    id: SectionID.RecentlyAdded,
-    title: "Recently Added",
-    subtitle: "New arrivals in the catalogue",
-    style: SectionStyle.SimpleSingleRow,
-  },
-  {
-    id: SectionID.Completed,
-    title: "Completed",
-    subtitle: "Finished stories to read from start to end",
-    style: SectionStyle.SimpleDoubleRow,
-  },
-  {
-    id: SectionID.NewAdditions,
-    title: "New Additions",
-    subtitle: "The newest titles the site has picked up",
     style: SectionStyle.SimpleSingleRow,
   },
   {
     id: SectionID.RisingArrivals,
     title: "Rising Arrivals",
     subtitle: "New series gaining readers fast",
-    style: SectionStyle.SimpleDoubleRow,
+    style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.RecentlyAdded,
+    title: "Recently Added",
+    subtitle: "The newest titles the site has picked up",
+    style: SectionStyle.SimpleSingleRow,
   },
   {
     id: SectionID.SchoolLife,
@@ -237,15 +224,21 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.DetailedTripleRowPaged,
   },
   {
-    id: SectionID.ShortReads,
-    title: "Short Reads",
-    subtitle: "Well-rated stories you can finish in a sitting",
-    style: SectionStyle.SimpleDoubleRow,
-  },
-  {
     id: SectionID.MostSaved,
     title: "Most Saved",
     subtitle: "The titles the most readers keep in their library",
+    style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.ShortReads,
+    title: "Short Reads",
+    subtitle: "Well-rated stories you can finish in a sitting",
+    style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.Completed,
+    title: "Completed",
+    subtitle: "Finished stories to read from start to end",
     style: SectionStyle.SimpleSingleRow,
   },
 ];
