@@ -4,7 +4,7 @@ import { Option, SectionStyle, SortOption } from "@mana-app/types";
 export const DOMAIN = "https://kagane.org";
 export const MIRRORS = ["kagane.org", "kagane.cx", "kagane.si", "kagane.moe", "kagane.net"];
 let site = DOMAIN;
-// Every URL is built from the chosen mirror when it is needed, so a changed setting reaches all of them.
+// Read at call time so a mirror change reaches every URL.
 export const origin = (): string => site;
 export const api = (): string => `${site}/api/v2`;
 export function setMirror(host: unknown): string {
@@ -12,7 +12,7 @@ export function setMirror(host: unknown): string {
   site = `https://${chosen}`;
   return chosen;
 }
-/** The app's runtime has no URL global; only HTTPS on the default port, without credentials, is read. */
+// Mana's runtime has no URL global.
 export function parseURL(
   value: string,
 ): { origin: string; hostname: string; pathname: string } | undefined {
@@ -99,7 +99,7 @@ export const SECTIONS = [
     sort: "avg_views",
     style: SectionStyle.SimpleHeroPaged,
   },
-  // The chart keeps its own order.
+  // The chart has its own order.
   {
     id: CHART,
     title: "Trending This Week",
@@ -143,7 +143,7 @@ export const SECTIONS = [
     style: SectionStyle.SimpleSingleRow,
   },
 ];
-// Detailed layouts draw info rows instead of the cover pill.
+// These layouts draw info rows and no cover pill.
 export const isDetailed = (style?: SectionStyle): boolean =>
   style === SectionStyle.DetailedTripleRowPaged ||
   style === SectionStyle.DetailedVerticalListGrouped;
@@ -162,14 +162,14 @@ export const uploadTypes = (choice: string): string[] =>
     : choice === "scanlations"
       ? ["Unofficial", "Mixed"]
       : ["Official", "Unofficial", "Mixed"];
-// Field, lowest and highest accepted value, and for a stepper the value it starts at.
+// [field, min, max, stepper floor]
 export const RANGES: readonly (readonly [string, number, number, number?])[] = [
   ["current_books", 0, 2147483647, 0],
   ["current_volumes", 0, 2147483647, 0],
   ["start_year", 1, 9999],
   ["end_year", 1, 9999],
 ];
-// The site accepts at most this many genres, tags or sources in one filter.
+// Site limit per genre, tag or source filter.
 export const MAX_IDS = 50;
 export const CHAPTER_PRESETS: Option[] = [
   { id: "1-20", title: "1–20" },

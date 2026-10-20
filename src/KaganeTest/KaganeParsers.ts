@@ -133,13 +133,12 @@ export function displayTitle(
   return result;
 }
 
-/** The pill takes score, then format, then status; detailed layouts show all three as rows instead. */
 export function highlight(
   series: Series,
   settings: Settings,
   sources: UploadSource[],
   detailed = false,
-  updates = false,
+  showUpdated = false,
 ): Highlight {
   const latest = series.latest_chapters?.[0];
   const score =
@@ -163,7 +162,7 @@ export function highlight(
     .filter(Boolean)
     .join(" • ");
   const updated =
-    updates && latest ? relativeTime(date(latest.available_at ?? latest.created_at)) : "";
+    showUpdated && latest ? relativeTime(date(latest.available_at ?? latest.created_at)) : "";
   return {
     id: series.series_id,
     title: displayTitle(
@@ -178,7 +177,7 @@ export function highlight(
     contentRating: manaRating(series),
     subtitle: subtitle || undefined,
     badge: !detailed && pill ? { text: pill } : undefined,
-    // A detailed row grows past about four lines, so the rest is dropped.
+    // A row past four lines stretches the whole tile.
     info: [
       ...(updated ? [{ key: "Updated", value: updated }] : []),
       ...(score ? [{ key: "Rating", value: score }] : []),
@@ -203,7 +202,7 @@ export function highlight(
   };
 }
 
-/** The chart's own rank, movement and growth, which carry no review score. */
+// Chart rows carry no review score.
 export function chartHighlight(
   entry: TrendingEntry,
   settings: Settings,
@@ -645,7 +644,6 @@ export function editionSection(
     : undefined;
 }
 
-/** The site's recommendations for a series with no other edition, from rows the caller has already filtered. */
 export function similarSection(
   rows: Series[],
   settings: Settings,
@@ -685,7 +683,6 @@ const UNITS: [number, string][] = [
   [60_000, "minute"],
 ];
 
-/** "3 hours ago", or nothing for a date the site left out or set in the future. */
 function relativeTime(when: Date): string {
   const elapsed = Date.now() - when.getTime();
   if (!when.getTime() || elapsed < 0) return "";

@@ -20,9 +20,7 @@ import { resolveTypedTags, TAG_GROUPS, tagFilterId, tagIdsOf } from "./tag-group
 
 type NumericRange = { min?: number; max?: number };
 
-/** Stepper and typed bounds, validated before any provider/taxonomy request.
- * A stepper left at its floor was never set, so it asks for nothing.
- */
+/** Validated before any provider request; a stepper left at its floor is unset. */
 export function readNumericRanges(filters: Filters | undefined): Record<string, NumericRange> {
   if (filters === undefined) return {};
   if (!filters || typeof filters !== "object" || Array.isArray(filters))
@@ -156,7 +154,7 @@ function validateTagIds(values: string[], tags: TagEntry[]): void {
   }
 }
 
-function limited(values: string[], label: string): string[] {
+function withinLimit(values: string[], label: string): string[] {
   const unique = [...new Set(values)];
   if (unique.length > MAX_IDS)
     throw new Error(`Kagane allows at most ${MAX_IDS} ${label}, and ${unique.length} are picked.`);
@@ -169,8 +167,8 @@ function compound(
   match: boolean,
   label: string,
 ): Record<string, JsonValue> | undefined {
-  const values = limited(included, `included ${label}`);
-  const exclude = limited(excluded, `excluded ${label}`);
+  const values = withinLimit(included, `included ${label}`);
+  const exclude = withinLimit(excluded, `excluded ${label}`);
   return values.length || exclude.length
     ? {
         values,
@@ -250,12 +248,12 @@ export function searchBody(
     delete body.age_rating;
     delete body.is_pornographic;
   }
-  // A source type picked for this search replaces the saved upload choice.
+  // Overrides the saved upload choice.
   const types = selectedOptions(request.filters, "source_type").filter((type) =>
     SOURCE_TYPES.some((option) => option.id === type),
   );
   if (types.length) body.source_type = types;
-  // A reading language picked for this search replaces the saved ones.
+  // Overrides the saved languages.
   const languages = selectedOptions(request.filters, "content_lang");
   if (languages.length || settings.languages.length)
     body.content_lang = languages.length ? languages : settings.languages;
@@ -273,7 +271,7 @@ export function searchBody(
     "translated_language",
   ]) {
     const values = selectedOptions(request.filters, id);
-    if (values.length) body[id] = id === "source_id" ? limited(values, "sources") : values;
+    if (values.length) body[id] = id === "source_id" ? withinLimit(values, "sources") : values;
   }
   const genres = selection(request.filters, "genres");
   const genreFilter = compound(

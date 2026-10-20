@@ -129,7 +129,7 @@ type ReaderPageContext = {
 };
 type SearchPage = { result: PagedSearchResult; next: number; seenIDs: string[] };
 
-/** The policy a chart or recommendation row needs, since neither passes through the catalogue search. */
+// Chart and recommendation rows skip the catalogue search, so its policy is applied here.
 function visibleRow(
   row: Series,
   settings: Settings,
@@ -158,7 +158,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.8",
+    version: "1.0.9",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -177,7 +177,7 @@ export class Target
   private readonly pageClient = this.imageTransport(RequestOrigin.Page);
   private settingsRevision = 0;
   private settingsKey = "";
-  // Read once and kept until a write; every operation and every page image asks for these.
+  // Every operation and page image reads these.
   private loaded?: Settings;
   private preferenceWrite: Promise<void> = Promise.resolve();
   private readonly searchPages = new Map<
@@ -251,7 +251,7 @@ export class Target
     this.readerSessions.clear();
     this.api.invalidate();
     this.loaded = undefined;
-    // A read that raced the write may have kept the old values, so they are dropped again once it lands.
+    // Drop anything a read racing the write cached.
     this.preferenceWrite = this.preferenceWrite
       .catch(() => undefined)
       .then(task)
@@ -286,7 +286,7 @@ export class Target
     const [genres, tags, languages] = await Promise.all([
       this.api.genres().catch(() => []),
       this.api.tags().catch(() => []),
-      this.languageOptions(),
+      this.languageOptions().catch(() => LANGUAGES),
     ]);
     return {
       sections: [
@@ -443,7 +443,7 @@ export class Target
         ["min", "From"],
         ["max", "To"],
       ] as const;
-      const stepper = (field: string, title: string, upperBound: number, step: number) =>
+      const stepperFields = (field: string, title: string, upperBound: number, step: number) =>
         sides.map(([side, label]) =>
           SearchStepper({
             id: `${field}_${side}`,
@@ -453,7 +453,7 @@ export class Target
             step,
           }),
         );
-      const year = (field: string, title: string) =>
+      const yearFields = (field: string, title: string) =>
         sides.map(([side, label]) =>
           SearchTextField({
             id: `${field}_${side}`,
@@ -522,23 +522,23 @@ export class Target
                     title: "Chapter count",
                     options: CHAPTER_PRESETS,
                   }),
-                  ...stepper("current_books", "Chapters", 5000, 10),
+                  ...stepperFields("current_books", "Chapters", 5000, 10),
                 ],
               }),
               SearchGroup({
                 id: "volumes",
                 title: "Volumes",
-                children: stepper("current_volumes", "Volumes", 300, 1),
+                children: stepperFields("current_volumes", "Volumes", 300, 1),
               }),
               SearchGroup({
                 id: "start_year",
                 title: "Year Started",
-                children: year("start_year", "Started"),
+                children: yearFields("start_year", "Started"),
               }),
               SearchGroup({
                 id: "end_year",
                 title: "Year Ended",
-                children: year("end_year", "Ended"),
+                children: yearFields("end_year", "Ended"),
               }),
             ],
           }),
@@ -606,18 +606,15 @@ export class Target
     });
   }
 
-  /** Facet languages keep the site menu's names where they overlap. */
+  // Keeps the site menu's names where facet codes overlap.
   private async languageOptions(): Promise<Option[]> {
-    const codes = await this.api.languages().catch(() => []);
-    return codes.length
-      ? codes.map(
-          (code) =>
-            LANGUAGES.find((option) => option.id.toLowerCase() === code.toLowerCase()) ?? {
-              id: code,
-              title: code,
-            },
-        )
-      : LANGUAGES;
+    return (await this.api.languages()).map(
+      (code) =>
+        LANGUAGES.find((option) => option.id.toLowerCase() === code.toLowerCase()) ?? {
+          id: code,
+          title: code,
+        },
+    );
   }
 
   async getSortOptions(): Promise<SortOption[]> {
@@ -680,12 +677,12 @@ export class Target
         for (const kind of ["staff", "groups"] as const) {
           const value = request.filters?.[kind];
           const name = typeof value === "string" ? value.trim() : "";
-          if (name) body[kind] = { values: [await this.api.person(kind, name)] };
+          if (name) body[kind] = { values: [await this.api.resolvePerson(kind, name)] };
         }
       }
       const exact = request.filters?.exact_match === true;
       const detailed = isDetailed(section?.style);
-      const updates = section?.id === "latest_updates";
+      const showUpdated = section?.id === "latest_updates";
       const key = `${JSON.stringify(settings)}:${JSON.stringify(body)}:${sortParameter}:${exact}:${section?.id ?? ""}:${JSON.stringify(conceptualTags)}:${request.filters?.match_all_tags === true}:${hostRatingKey(request.context?.allowedContentRatings)}`;
       let cached = this.searchPages.get(key);
       if (!cached || Date.now() - cached.at > 30_000) {
@@ -744,7 +741,7 @@ export class Target
               return {
                 result: {
                   results: visible.map((item) =>
-                    highlight(item, settings, sources, detailed, updates),
+                    highlight(item, settings, sources, detailed, showUpdated),
                   ),
                   isLastPage: response.last,
                 },
@@ -773,7 +770,6 @@ export class Target
     });
   }
 
-  /** The weekly chart is one ranked page, so the rest of the policy is applied to its rows here. */
   private async chart(
     settings: Settings,
     ratings: Rating[],
@@ -785,7 +781,6 @@ export class Target
         ? this.api.sources()
         : Promise.resolve([]),
     ]);
-    // Up to five languages are filtered by the chart itself.
     const languages =
       settings.languages.length > 5 ? new Set(settings.languages.map(chapterLanguage)) : undefined;
     const results = entries.filter(
@@ -839,7 +834,7 @@ export class Target
     return this.withSettings(async (settings) => {
       const details = await this.requireAllowed(contentId, settings, context);
       const tracker = strictUUID(details.tracker_id);
-      // A migration only matches metadata, so it skips the editions and recommendations.
+      // A migration only needs metadata.
       const migrating = context?.origin === SourceContextOrigin.MIGRATION;
       const [sources, rows, tags] = await Promise.all([
         this.api.sources(),
@@ -858,7 +853,6 @@ export class Target
     });
   }
 
-  /** The site's recommendations stand in when a series has no other edition to show. */
   private async similar(
     id: string,
     settings: Settings,

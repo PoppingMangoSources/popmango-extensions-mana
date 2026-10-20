@@ -256,7 +256,7 @@ export class KaganeApi {
     });
   }
 
-  /** The compact index carries every chapter's metadata in one request, as columns named by `fields`. */
+  // One request for the whole list; each row is a column array named by `fields`.
   books(seriesId: string): Promise<Book[]> {
     return this.cached(`books:${validId(seriesId)}`, 120_000, async () => {
       const index = await this.json<{
@@ -273,7 +273,7 @@ export class KaganeApi {
       )
         throw new Error("Kagane chapter index is invalid");
       const seen = new Set<string>();
-      const time = (value: unknown): unknown =>
+      const isoTime = (value: unknown): unknown =>
         typeof value === "number" ? new Date(value * 1000).toISOString() : value;
       return index.books.map((row) => {
         if (!Array.isArray(row) || row.length !== index.fields.length)
@@ -296,14 +296,14 @@ export class KaganeApi {
         return {
           ...book,
           groups,
-          released_at: time(book.released_at),
-          available_at: time(book.available_at),
+          released_at: isoTime(book.released_at),
+          available_at: isoTime(book.available_at),
         } as Book;
       });
     });
   }
 
-  trending(
+  async trending(
     ratings: readonly Rating[],
     languages: string[],
     hideDisturbing: boolean,
@@ -311,7 +311,7 @@ export class KaganeApi {
     const query = [
       "limit=5",
       `age_rating=${encodeURIComponent(ageRatings(ratings).join(","))}`,
-      // The chart accepts at most five languages; longer lists are matched locally.
+      // The chart takes at most five languages; longer lists are matched locally.
       ...(languages.length && languages.length <= 5
         ? [`lang=${encodeURIComponent(languages.join(","))}`]
         : []),
@@ -322,19 +322,17 @@ export class KaganeApi {
           : []),
       ...(hideDisturbing ? ["is_disturbing=false"] : []),
     ].join("&");
-    return this.cached(`trending:${query}`, 30_000, async () => {
-      const result = await this.json<{ items: TrendingEntry[] }>(`/series/trending?${query}`);
-      if (
-        !Array.isArray(result?.items) ||
-        result.items.some((entry) => !entry?.series || typeof entry.series.series_id !== "string")
-      )
-        throw new Error("Kagane trending chart is invalid");
-      return result.items;
-    });
+    const result = await this.json<{ items: TrendingEntry[] }>(`/series/trending?${query}`);
+    if (
+      !Array.isArray(result?.items) ||
+      result.items.some((entry) => !entry?.series || typeof entry.series.series_id !== "string")
+    )
+      throw new Error("Kagane trending chart is invalid");
+    return result.items;
   }
 
-  /** Recommendations take visibility toggles rather than the catalogue's exact-match flags. */
-  similar(
+  // Recommendations take visibility toggles, not the catalogue's exact-match flags.
+  async similar(
     seriesId: string,
     ratings: readonly Rating[],
     languages: string[],
@@ -352,16 +350,14 @@ export class KaganeApi {
         ? []
         : [`source_type=${encodeURIComponent(uploadTypes(uploadSource).join(","))}`]),
     ].join("&");
-    return this.cached(`similar:${validId(seriesId)}:${query}`, 120_000, async () => {
-      const result = await this.parse<SearchResponse>(
-        await this.response(`${origin()}/api/v1/rec/series/${seriesId}/similar?${query}`),
-      );
-      if (!Array.isArray(result?.content)) throw new Error("Kagane recommendations are invalid");
-      return result.content;
-    });
+    const result = await this.parse<SearchResponse>(
+      await this.response(`${origin()}/api/v1/rec/series/${validId(seriesId)}/similar?${query}`),
+    );
+    if (!Array.isArray(result?.content)) throw new Error("Kagane recommendations are invalid");
+    return result.content;
   }
 
-  /** Reading languages as the catalogue reports them, beyond the site's shorter menu. */
+  // Facets include uploader languages the site's own menu leaves out.
   languages(): Promise<string[]> {
     return this.taxonomy("languages", async () => {
       const result = await this.json<SearchResponse>(
@@ -380,8 +376,7 @@ export class KaganeApi {
     });
   }
 
-  /** One staff member or group by exact name, or by ID; anything ambiguous is an error. */
-  person(kind: "staff" | "groups", name: string): Promise<string> {
+  resolvePerson(kind: "staff" | "groups", name: string): Promise<string> {
     const id = strictUUID(name);
     if (id) return Promise.resolve(id);
     return this.cached(`${kind}:${name.toLowerCase()}`, 120_000, async () => {
