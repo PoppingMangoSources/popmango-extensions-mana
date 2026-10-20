@@ -5,7 +5,19 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.0.35)
+## KaganeTest (current: v1.0.0)
+
+### Added
+
+- A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
+
+## Toonkotsu (current: v1.1.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## Toonkotsu (v1.0.35)
 
 ### Fixed
 
@@ -116,7 +128,13 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.2.5)
+## XCOMIC (current: v1.3.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## XCOMIC (v1.2.5)
 
 ### Changed
 
@@ -140,7 +158,13 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.1.5)
+## ValirScans (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## ValirScans (v1.1.5)
 
 ### Changed
 
@@ -169,7 +193,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.1.15)
+## Kagane (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## Kagane (v1.1.15)
 
 ### Changed
 
@@ -605,7 +635,13 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.1.5)
+## MangaDex (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## MangaDex (v1.1.5)
 
 ### Changed
 
@@ -664,7 +700,13 @@ counted up from `1.0.0`.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.1.3)
+## RokariComics (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## RokariComics (v1.1.3)
 
 ### Changed
 
@@ -915,7 +957,13 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.1.3)
+## RinkoComics (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## RinkoComics (v1.1.3)
 
 ### Changed
 
@@ -1067,7 +1115,13 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.1.4)
+## MangaFire (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## MangaFire (v1.1.4)
 
 ### Changed
 
@@ -1231,7 +1285,13 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.1.4)
+## StoneScape (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## StoneScape (v1.1.4)
 
 ### Changed
 
@@ -1489,7 +1549,13 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.1.4)
+## MangaUpdates (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## MangaUpdates (v1.1.4)
 
 ### Changed
 
@@ -2188,7 +2254,13 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.1.4)
+## FlameComics (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## FlameComics (v1.1.4)
 
 ### Changed
 
@@ -2708,7 +2780,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.1.4)
+## Mangago (current: v1.2.0)
+
+### Changed
+
+- Release the move to the app's new HTTP client and image transports to the current Mana app.
+
+## Mangago (v1.1.4)
 
 ### Changed
 
