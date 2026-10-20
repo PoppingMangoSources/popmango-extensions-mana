@@ -180,7 +180,7 @@ export function highlight(
     badge: !detailed && pill ? { text: pill } : undefined,
     // A detailed row grows past about four lines, so the rest is dropped.
     info: [
-      ...(updated && chapter ? [{ key: chapter, value: updated }] : []),
+      ...(updated ? [{ key: "Updated", value: updated }] : []),
       ...(score ? [{ key: "Rating", value: score }] : []),
       ...(format ? [{ key: "Type", value: `♤ ${format}` }] : []),
       ...(status ? [{ key: "Status", value: `◌ ${status}` }] : []),
