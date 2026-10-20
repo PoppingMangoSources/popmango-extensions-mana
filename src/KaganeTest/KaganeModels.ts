@@ -238,6 +238,7 @@ export type Detail = Classification & {
   series_staff?: { name: string; role: string }[];
   genres?: { genre_id?: string; genre_name: string; is_spoiler?: boolean }[];
   tags?: { tag_id?: string; tag_name: string; is_spoiler?: boolean; spoiler?: boolean }[];
+  is_disturbing?: boolean | null;
   tracker_id?: string | null;
   series_alternate_titles?: AlternateTitle[];
   average_rating?: number | null;

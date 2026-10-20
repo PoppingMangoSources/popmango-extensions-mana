@@ -75,6 +75,7 @@ import {
   trustedHost,
   UPLOADS,
   UploadSource,
+  uploadTypes,
   validId,
 } from "./KaganeModels";
 import {
@@ -124,7 +125,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.12",
+    version: "1.0.13",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -438,17 +439,30 @@ export class Target
                 title: "Upload Status",
                 options: STATUSES,
               }),
-              SearchMenuPicker({
-                id: "is_disturbing",
-                title: "Disturbing content",
-                subtitle: `None uses your setting: ${settings.hideDisturbing ? "Leave out" : "Include"}`,
-                options: DISTURBING_OPTIONS,
+              // Saved settings bound what a search can show, since titles outside them cannot be opened.
+              ...(settings.hideDisturbing
+                ? []
+                : [
+                    SearchMenuPicker({
+                      id: "is_disturbing",
+                      title: "Disturbing content",
+                      subtitle: "None uses your setting: Include",
+                      options: DISTURBING_OPTIONS,
+                    }),
+                  ]),
+              SearchMultiPicker({
+                id: "source_type",
+                title: "Source type",
+                options: SOURCE_TYPES.filter((type) =>
+                  uploadTypes(settings.uploadSource).includes(type.id),
+                ),
               }),
-              SearchMultiPicker({ id: "source_type", title: "Source type", options: SOURCE_TYPES }),
               SearchMultiPickerSheet({
                 id: "source_id",
                 title: "Upload sources",
-                options: sources.map((source) => ({ id: source.source_id, title: source.title })),
+                options: sources
+                  .filter((source) => uploadAllowed(settings, [source], source.source_id))
+                  .map((source) => ({ id: source.source_id, title: source.title })),
               }),
               SearchToggle({ id: "exact_match", title: "Exact title match" }),
               SearchExcludableMultiPickerSheet({
@@ -767,7 +781,8 @@ export class Target
       hasHidden(
         details.tags?.map((tag) => tag.tag_id ?? ""),
         settings.excludedTags,
-      )
+      ) ||
+      (settings.hideDisturbing && details.is_disturbing === true)
     )
       throw new Error(
         "This title is excluded by Kagane content settings or its rating cannot be verified",

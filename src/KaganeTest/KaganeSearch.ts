@@ -9,7 +9,6 @@ import {
   Selection,
   Series,
   Settings,
-  SOURCE_TYPES,
   strictUUID,
   TagEntry,
   UploadSource,
@@ -254,9 +253,9 @@ export function searchBody(
     delete body.age_rating;
     delete body.is_pornographic;
   }
-  // Overrides the saved upload choice.
+  // Narrows the saved upload choice; titles outside it cannot be opened.
   const types = selectedOptions(request.filters, "source_type").filter((type) =>
-    SOURCE_TYPES.some((option) => option.id === type),
+    uploadTypes(settings.uploadSource).includes(type),
   );
   if (types.length) body.source_type = types;
   // Overrides the saved languages.
@@ -264,8 +263,7 @@ export function searchBody(
   if (languages.length || settings.languages.length)
     body.content_lang = languages.length ? languages : settings.languages;
   const disturbing = selectedOption(request.filters, "is_disturbing");
-  if (disturbing === "exclude" || (disturbing !== "any" && settings.hideDisturbing))
-    body.is_disturbing = false;
+  if (disturbing === "exclude" || settings.hideDisturbing) body.is_disturbing = false;
   const query = request.query?.trim();
   if (query) body.title = query;
   for (const id of [
