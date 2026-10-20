@@ -605,7 +605,8 @@ export function editionSection(
       return [];
     if (
       !["Manga", "Manhwa", "Manhua", "Comic", "Other"].includes(row.format as string) ||
-      typeof row.is_disturbing !== "boolean"
+      typeof row.is_disturbing !== "boolean" ||
+      (settings.hideDisturbing && row.is_disturbing)
     )
       return [];
     const language = chapterLanguage(row.translated_language);

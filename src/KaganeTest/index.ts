@@ -124,7 +124,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.11",
+    version: "1.0.12",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -143,8 +143,6 @@ export class Target
   private readonly pageClient = this.imageTransport(RequestOrigin.Page);
   private settingsRevision = 0;
   private settingsKey = "";
-  // Every operation and page image reads these.
-  private loaded?: Settings;
   private preferenceWrite: Promise<void> = Promise.resolve();
   private readonly searchPages = new Map<
     string,
@@ -155,7 +153,6 @@ export class Target
 
   private async settings(): Promise<Settings> {
     await this.preferenceWrite;
-    if (this.loaded) return this.loaded;
     const values = await Promise.all(SETTING_KEYS.map((key) => ObjectStore.get(`Kagane.${key}`)));
     const [
       contentRatings,
@@ -206,7 +203,6 @@ export class Target
       this.readerSessions.clear();
       this.api.invalidate();
     }
-    this.loaded = settings;
     return settings;
   }
 
@@ -216,14 +212,7 @@ export class Target
     this.readerImages.clear();
     this.readerSessions.clear();
     this.api.invalidate();
-    this.loaded = undefined;
-    // Drop anything a read racing the write cached.
-    this.preferenceWrite = this.preferenceWrite
-      .catch(() => undefined)
-      .then(task)
-      .finally(() => {
-        this.loaded = undefined;
-      });
+    this.preferenceWrite = this.preferenceWrite.catch(() => undefined).then(task);
     await this.preferenceWrite;
   }
 
@@ -459,9 +448,7 @@ export class Target
               SearchMultiPickerSheet({
                 id: "source_id",
                 title: "Upload sources",
-                options: sources
-                  .filter((source) => uploadAllowed(settings, [source], source.source_id))
-                  .map((source) => ({ id: source.source_id, title: source.title })),
+                options: sources.map((source) => ({ id: source.source_id, title: source.title })),
               }),
               SearchToggle({ id: "exact_match", title: "Exact title match" }),
               SearchExcludableMultiPickerSheet({

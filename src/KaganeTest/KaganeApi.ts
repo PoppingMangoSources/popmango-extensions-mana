@@ -332,7 +332,7 @@ export class KaganeApi {
   }
 
   // Recommendations take visibility toggles, not the catalogue's exact-match flags.
-  async similar(
+  similar(
     seriesId: string,
     ratings: readonly Rating[],
     languages: string[],
@@ -350,11 +350,13 @@ export class KaganeApi {
         ? []
         : [`source_type=${encodeURIComponent(uploadTypes(uploadSource).join(","))}`]),
     ].join("&");
-    const result = await this.parse<SearchResponse>(
-      await this.response(`${origin()}/api/v1/rec/series/${validId(seriesId)}/similar?${query}`),
-    );
-    if (!Array.isArray(result?.content)) throw new Error("Kagane recommendations are invalid");
-    return result.content;
+    return this.cached(`similar:${validId(seriesId)}:${query}`, 30_000, async () => {
+      const result = await this.parse<SearchResponse>(
+        await this.response(`${origin()}/api/v1/rec/series/${seriesId}/similar?${query}`),
+      );
+      if (!Array.isArray(result?.content)) throw new Error("Kagane recommendations are invalid");
+      return result.content;
+    });
   }
 
   // Facets include uploader languages the site's own menu leaves out.
