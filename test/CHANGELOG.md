@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.9)
+## KaganeTest (current: v1.0.10)
+
+### Changed
+
+- Share one builder for edition and similar-title cards and keep settings keys and options with the other constants; no change in behaviour.
+
+## KaganeTest (v1.0.9)
 
 ### Changed
 
