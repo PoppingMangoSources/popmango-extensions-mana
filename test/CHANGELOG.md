@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.12)
+## KaganeTest (current: v1.0.13)
+
+### Fixed
+
+- Hide disturbing content now also blocks opening and reading a disturbing title, and a search can only narrow the saved upload and disturbing settings, so every result it shows can be opened.
+
+## KaganeTest (v1.0.12)
 
 ### Fixed
 
