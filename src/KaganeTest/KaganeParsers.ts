@@ -150,7 +150,8 @@ export function highlight(
       : undefined;
   const format = series.format && series.format !== "Other" ? series.format : undefined;
   const status = statusLabel(series.publication_status);
-  const pill = score ?? format ?? status;
+  // A thin ring vanishes over cover art, so the pill takes a filled mark for status.
+  const pill = score ?? format ?? (status ? `🔗 ${status}` : undefined);
   const chapter =
     (latest?.chapter_no
       ? `Ch. ${latest.chapter_no}`
@@ -158,7 +159,7 @@ export function highlight(
         ? `Vol. ${latest.volume_no}`
         : latest?.title?.trim()) ||
     (typeof series.current_books === "number" ? `${series.current_books} Chapters` : undefined);
-  const subtitle = [chapter, detailed || pill === status ? undefined : status]
+  const subtitle = [chapter, detailed || (!score && !format) ? undefined : status]
     .filter(Boolean)
     .join(" • ");
   return {
@@ -175,11 +176,27 @@ export function highlight(
     contentRating: manaRating(series),
     subtitle: subtitle || undefined,
     badge: !detailed && pill ? { text: pill } : undefined,
+    // A detailed row grows past about four lines, so the rest is dropped.
     info: [
       ...(score ? [{ key: "Rating", value: score }] : []),
-      ...(format ? [{ key: "Type", value: format }] : []),
-      ...(status ? [{ key: "Status", value: status }] : []),
-    ],
+      ...(format ? [{ key: "Type", value: `♤ ${format}` }] : []),
+      ...(status ? [{ key: "Status", value: `◌ ${status}` }] : []),
+      ...(typeof series.current_books === "number" && series.current_books > 0
+        ? [{ key: "Chapters", value: String(series.current_books) }]
+        : []),
+      ...(series.start_year ? [{ key: "Year", value: String(series.start_year) }] : []),
+      ...(series.genre_list?.length
+        ? [
+            {
+              key: "Genres",
+              value: series.genre_list
+                .slice(0, 2)
+                .map((genre) => genre.name)
+                .join(", "),
+            },
+          ]
+        : []),
+    ].slice(0, 4),
   };
 }
 
@@ -631,20 +648,22 @@ export function similarSection(
   settings: Settings,
   sources: UploadSource[],
 ): HighlightsSection | undefined {
-  const items = rows.slice(0, 10).map((row) => ({
-    type: AdditionalInfoType.Highlights as const,
-    id: row.series_id,
-    title: displayTitle(
-      preferredTitle(row.title, row.title_language),
-      settings,
-      sources,
-      row.source_id,
-      row.edition_info,
-    ),
-    cover: imageURL(row.cover_image_id),
-    webUrl: seriesURL(row.series_id),
-    contentRating: manaRating(row),
-  }));
+  const items = rows
+    .slice(0, 10)
+    .map((row) => ({
+      type: AdditionalInfoType.Highlights as const,
+      id: row.series_id,
+      title: displayTitle(
+        preferredTitle(row.title, row.title_language),
+        settings,
+        sources,
+        row.source_id,
+        row.edition_info,
+      ),
+      cover: imageURL(row.cover_image_id),
+      webUrl: seriesURL(row.series_id),
+      contentRating: manaRating(row),
+    }));
   return items.length
     ? highlights.section({ id: "similar", title: "More like this", hasMore: false, items })
     : undefined;

@@ -186,6 +186,7 @@ export type Series = Classification & {
   tags?: string[];
   is_disturbing?: boolean | null;
   hidden_by_filter?: boolean;
+  genre_list?: { id: string; name: string }[];
   latest_chapters?: {
     title?: string | null;
     chapter_no?: string | null;
