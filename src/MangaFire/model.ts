@@ -45,7 +45,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.Trending,
     title: "Trending",
     subtitle: "Climbing today",
-    style: SectionStyle.DetailedDoubleRowPaged,
+    style: SectionStyle.SimpleDoubleRow,
     // The trending endpoint answers with one fixed run and takes no page, so there is no
     // longer list for a "view more" to open.
     viewMore: false,

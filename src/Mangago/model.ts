@@ -130,6 +130,7 @@ export type DiscoverSection = {
   subtitle?: string;
   style: SectionStyle;
   limit?: number;
+  viewMore?: boolean;
 };
 
 export const DISCOVER_SECTIONS: DiscoverSection[] = [
@@ -139,18 +140,21 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     subtitle: "The site's own hand-picked slider",
     style: SectionStyle.SimpleHeroPaged,
     limit: 20,
+    viewMore: false,
   },
   {
     id: "popular_manga",
     title: "Popular Manga",
     subtitle: "The most talked-about titles on the site",
-    style: SectionStyle.DetailedSingleRowPaged,
+    style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
     id: "new_chapters",
     title: "Latest Update",
     subtitle: "Your daily dose of the latest updates",
-    style: SectionStyle.DetailedVerticalListGrouped,
+    style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   ...(
     [
@@ -170,6 +174,7 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: `${genre} Manga Top 10`,
     style: SectionStyle.SimpleSingleRow,
     limit: 10,
+    viewMore: false,
   })),
 ];
 
