@@ -5,7 +5,17 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.11)
+## KaganeTest (current: v1.0.12)
+
+### Fixed
+
+- Leave disturbing titles out of Other Editions when they are hidden, list every upload source whatever the saved upload choice, and keep settings out of memory so a change always applies.
+
+### Changed
+
+- Reuse recommendations for 30 seconds like other editions.
+
+## KaganeTest (v1.0.11)
 
 ### Changed
 
