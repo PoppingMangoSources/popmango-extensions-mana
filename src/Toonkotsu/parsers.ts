@@ -567,22 +567,6 @@ function chapterTitle(
 }
 
 /**
- * Nothing left to tell two releases apart by: the same chapter, the same team, the same
- * wording and the same download.
- *
- * The site lists some uploads twice under one team with every one of those the same, and
- * two rows a reader cannot choose between are not a choice. Where the download differs
- * both are kept, because that one is a choice — a bigger scan against a smaller one.
- */
-function sameUpload(
-  [volume, number]: readonly [number, number],
-  group: string,
-  label: string,
-): string {
-  return `${volume}|${number}|${group.toLowerCase()}|${label.toLowerCase()}`;
-}
-
-/**
  * The download the site quotes for an upload, which is what one team's two uploads differ by.
  *
  * Written as the site writes it: megabytes however large it gets — a whole volume runs to
@@ -656,8 +640,7 @@ export function parseChapters(
   // A chapter's own release sometimes appears in its `alts` as well, and the site draws
   // that upload once — so the id decides, not the position it was listed in.
   const seen = new Set<number>();
-  const uploads = new Set<string>();
-  const groups = new Map<string, number>();
+  const slots = new Map<string, number>();
   const kept: {
     rank: [number, number];
     release: ChapterRelease;
@@ -668,6 +651,9 @@ export function parseChapters(
 
   for (const entry of chapters ?? []) {
     const rank = rankOf(entry);
+    // Unnumbered entries may be different extras, so only their own alternates compete.
+    const number = rank[1] === UNFILED ? `entry:${entry.id}` : rank[1];
+    const chapterKey = `${rank[0]}|${number}`;
     // A hidden team's upload gives way to the next team's, so deduplicating keeps the chapter.
     const visible = [entry, ...(entry.alts ?? [])].filter(
       (release) => !hidden.has(parseLabel(release, entry.n).group?.toLowerCase() ?? ""),
@@ -698,21 +684,22 @@ export function parseChapters(
         },
       };
 
-      if (options.bestPerGroup !== false && options.mainOnly !== true && group) {
-        // Unnumbered entries may be different extras, so only their own alternates compete.
-        const number = rank[1] === UNFILED ? `entry:${entry.id}` : rank[1];
-        const slot = `${rank[0]}|${number}|${group.toLowerCase()}`;
-        const position = groups.get(slot);
+      const slot =
+        options.mainOnly === true
+          ? chapterKey
+          : options.bestPerGroup !== false && group
+            ? `${chapterKey}|${group.toLowerCase()}`
+            : undefined;
+      if (slot !== undefined) {
+        const position = slots.get(slot);
         const current = position === undefined ? undefined : kept[position];
         if (current && position !== undefined) {
-          if (isBetterUpload(release, current.release)) kept[position] = item;
+          if (options.mainOnly !== true && isBetterUpload(release, current.release)) {
+            kept[position] = item;
+          }
           continue;
         }
-        groups.set(slot, kept.length);
-      } else {
-        const upload = sameUpload(rank, group ?? "", label);
-        if (uploads.has(upload)) continue;
-        uploads.add(upload);
+        slots.set(slot, kept.length);
       }
       kept.push(item);
     }

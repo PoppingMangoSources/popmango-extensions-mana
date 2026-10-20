@@ -287,3 +287,63 @@ const firstOnly = await chapterList([{
 }], { "deduplicate-chapters": true });
 assert.equal(firstOnly[0].chapterId, "20", "one overall upload preserves the site's first choice");
 console.log("PASS complete, wider, then larger uploads win per group without merging chapters or volumes");
+
+const selectionEntries = [
+  {
+    id: 30, n: 4, vol: "1", label: "Chapter 4", w: 800, mb: 10, group: { name: "Team" },
+    alts: [
+      { id: 30, label: "Chapter 4", w: 800, mb: 10, group: { name: "Team" } },
+      { id: 31, label: "Chapter 4", w: 1200, mb: 20, group: { name: "Team" } },
+      { id: 32, label: "Chapter 4", w: 800, mb: 8, group: { name: "Other" } },
+    ],
+  },
+  { id: 33, n: 4, vol: "1", label: "Chapter 4", w: 1600, mb: 30, group: { name: "Team" } },
+  { id: 34, n: 4, vol: "1", label: "Chapter 4", w: 1800, mb: 40, group: { name: "Other" } },
+  { id: 35, n: 4, vol: "2", label: "Chapter 4", w: 1200, mb: 20, group: { name: "Team" } },
+  { id: 36, n: 5, vol: "1", label: "Chapter 5", w: 1200, mb: 20, group: { name: "Team" } },
+];
+for (const mainOnly of [false, true]) {
+  for (const bestPerGroup of [false, true]) {
+    for (const showSize of [false, true]) {
+      const chapters = await chapterList(selectionEntries, {
+        "deduplicate-chapters": mainOnly,
+        "best-upload-per-group": bestPerGroup,
+        "show-upload-size": showSize,
+      });
+      const selected = mainOnly ? ["30"] : bestPerGroup ? ["33", "34"] : ["30", "31", "32", "33", "34"];
+      assert.deepEqual(chapters.map((chapter) => chapter.chapterId), ["35", "36", ...selected]);
+      assert.deepEqual(chapters.map((chapter) => chapter.number), [4, 5, ...selected.map(() => 4)]);
+      assert.deepEqual(chapters.map((chapter) => chapter.volume), [2, 1, ...selected.map(() => 1)]);
+      assert.ok(chapters.every((chapter) => chapter.title.includes(" MB)") === showSize));
+      assert.deepEqual(
+        chapters.map((chapter) => chapter.index).sort((a, b) => a - b),
+        Array.from({ length: chapters.length }, (_, index) => index),
+      );
+    }
+  }
+}
+const firstVisible = await chapterList(selectionEntries, {
+  "deduplicate-chapters": true,
+  "hidden-groups": "Team",
+});
+assert.deepEqual(firstVisible.map((chapter) => chapter.chapterId), ["32"]);
+const laterVisible = await chapterList([
+  { id: 40, n: 6, label: "Chapter 6", group: { name: "Hidden" } },
+  { id: 41, n: 6, label: "Chapter 6", group: { name: "Visible" } },
+], { "deduplicate-chapters": true, "hidden-groups": "Hidden" });
+assert.deepEqual(laterVisible.map((chapter) => chapter.chapterId), ["41"]);
+for (const mainOnly of [false, true]) {
+  const extras = await chapterList([
+    { id: 50, n: null, vol: "1", label: "Extra A", group: { name: "Team" } },
+    { id: 51, n: null, vol: "1", label: "Extra B", group: { name: "Team" } },
+    { id: 52, n: 0, vol: "1", label: "Chapter 0", group: { name: "Team" } },
+    { id: 53, n: 0, vol: "1", label: "Chapter 0", group: { name: "Other" } },
+  ], { "deduplicate-chapters": mainOnly });
+  assert.deepEqual(extras.map((chapter) => chapter.chapterId), mainOnly ? ["50", "51", "52"] : ["50", "51", "52", "53"]);
+}
+const unnamed = await chapterList([{
+  id: 60, n: 7, label: "Chapter 7",
+  alts: [{ id: 61, label: "Chapter 7" }, { id: 60, label: "Chapter 7" }],
+}], { "show-upload-size": false });
+assert.deepEqual(unnamed.map((chapter) => chapter.chapterId), ["60", "61"]);
+console.log("PASS all chapter-selection toggle combinations, hidden fallbacks, extras, and upload identities");

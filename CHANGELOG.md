@@ -11,6 +11,11 @@ counted up from `1.0.0`.
 
 - Keep Best Upload per Group selects one upload per chapter and team while preserving its download size. This setting and Upload Size default to on.
 
+### Fixed
+
+- Deduplicate Chapters keeps the first visible upload across separate entries of the same chapter and volume.
+- Upload Size only changes labels; disabling best-upload selection preserves distinct upload IDs.
+
 ## Toonkotsu (v1.1.12)
 
 ### Fixed
