@@ -96,7 +96,7 @@ export const SECTIONS = [
     id: "popular",
     title: "Popular",
     subtitle: "The most-read titles across all time",
-    sort: "total_views",
+    sort: "avg_views",
     style: SectionStyle.SimpleHeroPaged,
   },
   // The chart keeps its own order.
