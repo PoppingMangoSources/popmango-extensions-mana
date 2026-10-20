@@ -692,7 +692,6 @@ export function parseChapters(
   // Both sorts start from the order the releases were built in and both are stable, so two
   // teams' takes on one chapter stay in the order the site listed them either way round —
   // which is the order the app draws them in once its own sort finds them equal.
-  const volumes = volumesIn(kept);
   const indices = new Map(
     [...kept]
       .sort(
@@ -710,7 +709,8 @@ export function parseChapters(
 
   return ordered.map(({ rank, chapter }) => ({
     ...chapter,
-    number: sortNumber(rank, ordered, volumes),
+    // Trackers consume this as chapter progress; volume ordering stays in rank and index.
+    number: rank[1] === UNFILED ? highestIn(ordered, rank[0]) + 1 : rank[1],
     index: indices.get(chapter.chapterId) ?? 0,
   }));
 }
@@ -722,46 +722,4 @@ function highestIn(entries: readonly { rank: [number, number] }[], volume: numbe
     if (rank[0] === volume && rank[1] !== UNFILED && rank[1] > highest) highest = rank[1];
   }
   return highest;
-}
-
-/** Whether this title is filed into volumes at all, and how far they run. */
-function volumesIn(entries: readonly { rank: [number, number] }[]): {
-  used: boolean;
-  highest: number;
-} {
-  let highest = 0;
-  for (const { rank } of entries) {
-    if (rank[0] !== UNFILED && rank[0] > highest) highest = rank[0];
-  }
-  return { used: highest > 0, highest };
-}
-
-/**
- * No volume ever holds this many chapters, so a chapter cannot carry into the next volume.
- */
-const CHAPTERS_PER_VOLUME = 10_000;
-
-/**
- * The one number the app orders the list by.
- *
- * It sorts on this before anything else, so a volume carried only in `volume` never
- * reaches the sort — and the teams publishing by volume restart their numbering inside
- * each one, which is what files every volume's chapter one together instead of running
- * the volumes in order. Where a title uses volumes the number carries the volume in its
- * whole part and the chapter in its fraction, which is the site's own order written as a
- * single scalar; a title with no volumes keeps the number the site gave it.
- */
-function sortNumber(
-  [volume, number]: readonly [number, number],
-  entries: readonly { rank: [number, number] }[],
-  volumes: { used: boolean; highest: number },
-): number {
-  // A release with no number of its own is a whole volume, which the site lists after the
-  // chapters it collects rather than ahead of chapter one.
-  const chapter = number === UNFILED ? highestIn(entries, volume) + 1 : number;
-  if (!volumes.used) return chapter;
-
-  // Not yet filed into a volume, which on this site means newer than every volume it has.
-  const place = volume === UNFILED ? volumes.highest + 1 : volume;
-  return place + chapter / CHAPTERS_PER_VOLUME;
 }
