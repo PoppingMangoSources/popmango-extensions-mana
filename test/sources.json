@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "030adc3d030adc3d030adc3d030adc3d030adc3d030adc3d030adc3d030adc3d"
+      "hash": "7b4f54257b4f54257b4f54257b4f54257b4f54257b4f54257b4f54257b4f5425"
     },
     {
       "id": "kagane",
@@ -50,11 +50,11 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 106961929,
-      "hash": "5fba27b35fba27b35fba27b35fba27b35fba27b35fba27b35fba27b35fba27b3"
+      "hash": "21ebaaeb21ebaaeb21ebaaeb21ebaaeb21ebaaeb21ebaaeb21ebaaeb21ebaaeb"
     },
     {
       "id": "kagane-test",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "name": "KaganeTest",
       "description": "Kagane with current API support, grouped tags and global four-category content settings.",
       "thumbnail": "Kagane.png",
@@ -79,7 +79,7 @@
       "path": "KaganeTest",
       "environment": "source",
       "intents": 106961929,
-      "hash": "054056dc054056dc054056dc054056dc054056dc054056dc054056dc054056dc"
+      "hash": "60f1aa6560f1aa6560f1aa6560f1aa6560f1aa6560f1aa6560f1aa6560f1aa65"
     },
     {
       "id": "mangadex",
@@ -101,7 +101,7 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "319ec985319ec985319ec985319ec985319ec985319ec985319ec985319ec985"
+      "hash": "5007051b5007051b5007051b5007051b5007051b5007051b5007051b5007051b"
     },
     {
       "id": "mangafire",
@@ -127,7 +127,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 106961929,
-      "hash": "17db583517db583517db583517db583517db583517db583517db583517db5835"
+      "hash": "667edceb667edceb667edceb667edceb667edceb667edceb667edceb667edceb"
     },
     {
       "id": "mangaupdates",
@@ -149,7 +149,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "445e7e97445e7e97445e7e97445e7e97445e7e97445e7e97445e7e97445e7e97"
+      "hash": "3d474c873d474c873d474c873d474c873d474c873d474c873d474c873d474c87"
     },
     {
       "id": "mangago",
@@ -171,7 +171,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "2c4afd2a2c4afd2a2c4afd2a2c4afd2a2c4afd2a2c4afd2a2c4afd2a2c4afd2a"
+      "hash": "520f3777520f3777520f3777520f3777520f3777520f3777520f3777520f3777"
     },
     {
       "id": "rinkocomics",
@@ -193,7 +193,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "27520c9627520c9627520c9627520c9627520c9627520c9627520c9627520c96"
+      "hash": "5a53be8e5a53be8e5a53be8e5a53be8e5a53be8e5a53be8e5a53be8e5a53be8e"
     },
     {
       "id": "rokaricomics",
@@ -215,7 +215,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "016daa43016daa43016daa43016daa43016daa43016daa43016daa43016daa43"
+      "hash": "7fc7df5f7fc7df5f7fc7df5f7fc7df5f7fc7df5f7fc7df5f7fc7df5f7fc7df5f"
     },
     {
       "id": "stonescape",
@@ -237,7 +237,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 106961929,
-      "hash": "651361b2651361b2651361b2651361b2651361b2651361b2651361b2651361b2"
+      "hash": "1c92690f1c92690f1c92690f1c92690f1c92690f1c92690f1c92690f1c92690f"
     },
     {
       "id": "toonkotsu",
@@ -259,7 +259,7 @@
       "path": "Toonkotsu",
       "environment": "source",
       "intents": 106961929,
-      "hash": "013208c8013208c8013208c8013208c8013208c8013208c8013208c8013208c8"
+      "hash": "7f8c3dc17f8c3dc17f8c3dc17f8c3dc17f8c3dc17f8c3dc17f8c3dc17f8c3dc1"
     },
     {
       "id": "valirscans",
@@ -281,7 +281,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 106962217,
-      "hash": "1beb57c21beb57c21beb57c21beb57c21beb57c21beb57c21beb57c21beb57c2"
+      "hash": "626edd21626edd21626edd21626edd21626edd21626edd21626edd21626edd21"
     },
     {
       "id": "xcomic",
@@ -303,7 +303,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "47a8b5fd47a8b5fd47a8b5fd47a8b5fd47a8b5fd47a8b5fd47a8b5fd47a8b5fd"
+      "hash": "36b17ec136b17ec136b17ec136b17ec136b17ec136b17ec136b17ec136b17ec1"
     }
   ]
 }
