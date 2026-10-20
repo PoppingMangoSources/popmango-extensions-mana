@@ -223,7 +223,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.MostSaved,
     title: "Most Saved",
-    style: SectionStyle.SimpleSingleRow,
+    style: SectionStyle.SimpleDoubleRow,
     viewMore: false,
   },
   {
@@ -235,7 +235,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.ShortReads,
     title: "Short Reads",
-    style: SectionStyle.SimpleSingleRow,
+    style: SectionStyle.SimpleTripleRow,
     viewMore: false,
   },
   {
