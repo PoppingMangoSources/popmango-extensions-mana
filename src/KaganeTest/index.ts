@@ -49,6 +49,8 @@ import {
   Challenge,
   CHAPTER_PRESETS,
   CHART,
+  CONTENT_KEYS,
+  DISTURBING_OPTIONS,
   Detail,
   DOMAIN,
   Filters,
@@ -66,6 +68,7 @@ import {
   SECTIONS,
   Series,
   setMirror,
+  SETTING_KEYS,
   Settings,
   SORTS,
   SOURCE_TYPES,
@@ -102,23 +105,6 @@ import {
   selectedRatings,
 } from "./KaganeSearch";
 import { groupTags, tagFilterId } from "./tag-groups";
-
-const SETTING_KEYS = [
-  "contentRatings",
-  "showSource",
-  "showEdition",
-  "cleanTitle",
-  "showSpoilers",
-  "dataSaver",
-  "uploadSource",
-  "languages",
-  "excludedGenres",
-  "excludedTags",
-  "chapterTitle",
-  "hideDisturbing",
-  "mirror",
-];
-const CONTENT_KEYS = ["contentRatings", "excludedGenres", "excludedTags", "hideDisturbing"];
 
 type ReaderSession = { challenge: Challenge; expiry: number };
 type ReaderPageContext = {
@@ -158,7 +144,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.9",
+    version: "1.0.10",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -486,10 +472,7 @@ export class Target
                 id: "is_disturbing",
                 title: "Disturbing content",
                 subtitle: `None uses your setting: ${settings.hideDisturbing ? "Leave out" : "Include"}`,
-                options: [
-                  { id: "any", title: "Include" },
-                  { id: "exclude", title: "Leave out" },
-                ],
+                options: DISTURBING_OPTIONS,
               }),
               SearchMultiPicker({ id: "source_type", title: "Source type", options: SOURCE_TYPES }),
               SearchMultiPickerSheet({

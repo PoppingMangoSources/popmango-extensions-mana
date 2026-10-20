@@ -550,6 +550,20 @@ export function content(
   };
 }
 
+const relatedItem = (
+  id: string,
+  title: string,
+  cover: string | null | undefined,
+  rating: Classification,
+) => ({
+  type: AdditionalInfoType.Highlights as const,
+  id,
+  title,
+  cover: imageURL(cover),
+  webUrl: seriesURL(id),
+  contentRating: manaRating(rating),
+});
+
 /** This endpoint lacks genre/tag metadata, so exclusions prohibit the request. */
 export function editionSection(
   rows: unknown[],
@@ -618,20 +632,18 @@ export function editionSection(
       return [];
     seen.add(id);
     return [
-      {
-        type: AdditionalInfoType.Highlights as const,
+      relatedItem(
         id,
-        title: displayTitle(
+        displayTitle(
           row.title,
           settings,
           [{ source_id: sourceId, title: source.title, source_type: source.source_type as string }],
           sourceId,
           row.edition_info as string | null | undefined,
         ),
-        cover: imageURL(cover),
-        webUrl: seriesURL(id),
-        contentRating: manaRating(classification),
-      },
+        cover,
+        classification,
+      ),
     ];
   });
   return items.length
@@ -649,20 +661,22 @@ export function similarSection(
   settings: Settings,
   sources: UploadSource[],
 ): HighlightsSection | undefined {
-  const items = rows.slice(0, 10).map((row) => ({
-    type: AdditionalInfoType.Highlights as const,
-    id: row.series_id,
-    title: displayTitle(
-      preferredTitle(row.title, row.title_language),
-      settings,
-      sources,
-      row.source_id,
-      row.edition_info,
-    ),
-    cover: imageURL(row.cover_image_id),
-    webUrl: seriesURL(row.series_id),
-    contentRating: manaRating(row),
-  }));
+  const items = rows
+    .slice(0, 10)
+    .map((row) =>
+      relatedItem(
+        row.series_id,
+        displayTitle(
+          preferredTitle(row.title, row.title_language),
+          settings,
+          sources,
+          row.source_id,
+          row.edition_info,
+        ),
+        row.cover_image_id,
+        row,
+      ),
+    );
   return items.length
     ? highlights.section({ id: "similar", title: "More like this", hasMore: false, items })
     : undefined;

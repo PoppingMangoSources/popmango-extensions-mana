@@ -41,6 +41,26 @@ export const SOURCE_TYPES: Option[] = [
   { id: "Unofficial", title: "Fan translation" },
   { id: "Mixed", title: "Mixed" },
 ];
+export const DISTURBING_OPTIONS: Option[] = [
+  { id: "any", title: "Include" },
+  { id: "exclude", title: "Leave out" },
+];
+export const SETTING_KEYS = [
+  "contentRatings",
+  "showSource",
+  "showEdition",
+  "cleanTitle",
+  "showSpoilers",
+  "dataSaver",
+  "uploadSource",
+  "languages",
+  "excludedGenres",
+  "excludedTags",
+  "chapterTitle",
+  "hideDisturbing",
+  "mirror",
+];
+export const CONTENT_KEYS = ["contentRatings", "excludedGenres", "excludedTags", "hideDisturbing"];
 export const UPLOADS: Option[] = [
   { id: "all", title: "All uploads" },
   { id: "official", title: "Official only" },
