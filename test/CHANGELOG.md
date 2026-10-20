@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.3)
+## KaganeTest (current: v1.0.4)
+
+### Changed
+
+- Show when the newest chapter landed in Latest Updates, skip editions and recommendations during a migration, add reset buttons and a per-search source type filter, and drop the mark from a status pill.
+
+## KaganeTest (v1.0.3)
 
 ### Changed
 
