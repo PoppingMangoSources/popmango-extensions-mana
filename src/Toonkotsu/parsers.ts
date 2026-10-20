@@ -42,6 +42,7 @@ import {
   type ChapterEntry,
   type ChapterRelease,
   type ContentRatingId,
+  type Enrichment,
   type FacetsResponse,
   type LatestResponse,
   type Series,
@@ -291,6 +292,7 @@ export function parseContent(
   { series, recs }: SeriesResponse,
   contentId: string,
   facets: FacetsResponse,
+  enrichment?: Enrichment,
 ): Content {
   const title = clean(decodeEntities(series.title));
   const spoilers = new Set(series.spoilerTags ?? []);
@@ -319,6 +321,8 @@ export function parseContent(
     info.push({ key: "Rating", value: `${Mark.Rating} ${score.toFixed(1)}` });
   if (series.chapters) info.push({ key: "Chapters", value: String(series.chapters) });
   if (series.year) info.push({ key: "Year", value: String(series.year) });
+  const started = dateLabel(enrichment?.startDate);
+  if (started) info.push({ key: "Serialization", value: started });
 
   // The flat list above is what the app filters and navigates on; this is the same tags
   // again under the headings the site itself files them beneath, which is the only place
@@ -358,6 +362,7 @@ export function parseContent(
       items: group.names.map((name) => additionalInfo.tags.item({ id: name, title: name })),
     }),
   );
+  sections.push(...enrichmentSections(enrichment));
   const related = parseHighlights(recs ?? []).slice(0, 10);
   if (related.length > 0) {
     sections.push(
@@ -392,10 +397,88 @@ export function parseContent(
     contentRating: contentRatingOf(series),
     ...(creators.length > 0 ? { creators } : {}),
     ...(info.length > 0 ? { info } : {}),
-    trackerInfo: trackers(series.externalIds ?? {}),
+    trackerInfo: trackers({
+      ...(enrichment?.anilistId ? { anilist: String(enrichment.anilistId) } : {}),
+      ...(enrichment?.myanimelistId ? { myanimelist: String(enrichment.myanimelistId) } : {}),
+      ...(series.externalIds ?? {}),
+    }),
     ...(sections.length > 0 ? { additionalInfo: sections } : {}),
     webUrl: seriesUrl(contentId, series.slug),
   };
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Written as the site writes it, to whatever precision the trackers know the date. */
+function dateLabel(date: Enrichment["startDate"]): string | undefined {
+  if (!date?.year) return undefined;
+  const month = date.month ? MONTHS[date.month - 1] : undefined;
+  if (!month) return String(date.year);
+  return date.day ? `${month} ${date.day}, ${date.year}` : `${month} ${date.year}`;
+}
+
+const isWebUrl = (url: string | null | undefined): url is string =>
+  typeof url === "string" && /^https?:\/\//i.test(url);
+
+/** The staff, publisher links and shop searches the site's title page draws, in its order. */
+function enrichmentSections(enrichment: Enrichment | undefined): AdditionalInfoSection[] {
+  if (!enrichment) return [];
+  const sections: AdditionalInfoSection[] = [];
+
+  const people = (enrichment.staff ?? []).flatMap((person, index) => {
+    const name = clean(decodeEntities(person.name ?? ""));
+    if (!name) return [];
+    return [
+      additionalInfo.staff.item({
+        id: String(person.id ?? `${index}-${name}`),
+        title: name,
+        ...(person.role ? { subtitle: clean(person.role) } : {}),
+        ...(isWebUrl(person.image) ? { image: person.image } : {}),
+      }),
+    ];
+  });
+  if (people.length > 0) {
+    sections.push(
+      additionalInfo.staff.section({
+        id: "staff",
+        title: "Staff",
+        hasMore: false,
+        items: people.slice(0, 10),
+      }),
+    );
+  }
+
+  const official = (enrichment.officialLinks ?? []).flatMap((link) =>
+    isWebUrl(link.url) && link.site
+      ? [
+          additionalInfo.links.item({
+            id: link.url,
+            title: link.language
+              ? `${clean(link.site)} · ${clean(link.language)}`
+              : clean(link.site),
+            url: link.url,
+          }),
+        ]
+      : [],
+  );
+  if (official.length > 0) {
+    sections.push(
+      additionalInfo.links.section({ id: "links", title: "Links", items: official.slice(0, 10) }),
+    );
+  }
+
+  const shops = (enrichment.searchLinks ?? []).flatMap((link) =>
+    isWebUrl(link.url) && link.label
+      ? [additionalInfo.links.item({ id: link.url, title: clean(link.label), url: link.url })]
+      : [],
+  );
+  if (shops.length > 0) {
+    sections.push(
+      additionalInfo.links.section({ id: "buy", title: "Buy", items: shops.slice(0, 10) }),
+    );
+  }
+
+  return sections;
 }
 
 function trackers(ids: Record<string, string | null>): Record<string, string> {
@@ -521,6 +604,8 @@ export type ChapterOptions = {
    * nothing left to choose between them, only one of them is listed.
    */
   showSize?: boolean;
+  /** Teams whose uploads are left out, matched on their name whatever its case. */
+  hiddenGroups?: readonly string[];
 };
 
 /**
@@ -551,9 +636,15 @@ export function parseChapters(
     chapter: Omit<Chapter, "index" | "number">;
   }[] = [];
 
+  const hidden = new Set((options.hiddenGroups ?? []).map((name) => name.toLowerCase()));
+
   for (const entry of chapters ?? []) {
     const rank = rankOf(entry);
-    const releases = options.mainOnly === true ? [entry] : [entry, ...(entry.alts ?? [])];
+    // A hidden team's upload gives way to the next team's, so deduplicating keeps the chapter.
+    const visible = [entry, ...(entry.alts ?? [])].filter(
+      (release) => !hidden.has(parseLabel(release, entry.n).group?.toLowerCase() ?? ""),
+    );
+    const releases = options.mainOnly === true ? visible.slice(0, 1) : visible;
 
     for (const release of releases) {
       if (!release.id || seen.has(release.id)) continue;

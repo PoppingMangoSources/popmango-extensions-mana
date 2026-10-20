@@ -69,6 +69,7 @@ export const PreferenceID = {
   ContentRatings: "content-ratings",
   Types: "types",
   HiddenTags: "hidden-tags",
+  HiddenGroups: "hidden-groups",
   DeduplicateChapters: "deduplicate-chapters",
   ShowUploadSize: "show-upload-size",
   SectionPrefix: "section",
@@ -143,16 +144,21 @@ export const SectionID = {
   Trending: "trending",
   HiddenGems: "hidden-gems",
   Latest: "latest",
+  BingeWorthy: "binge-worthy",
   RecentlyAdded: "recently-added",
   ThisSeason: "this-season",
   Completed: "completed",
+  NewAdditions: "new-additions",
+  SchoolLife: "school-life",
+  ShortReads: "short-reads",
 } as const;
 
 /**
  * The home page, in the site's own order and under its own names.
  *
  * Most Read leads as a hero because the site ranks it and a rank wants the space; Trending
- * draws its detailed rows. The rest are strips of covers.
+ * draws its detailed rows. Below Latest Updates the strips alternate with detailed rows and
+ * double strips, so a long run of rows does not read as one.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
@@ -186,6 +192,12 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     style: SectionStyle.DetailedVerticalListGrouped,
   },
   {
+    id: SectionID.BingeWorthy,
+    title: "Binge-Worthy",
+    subtitle: "Long, well-rated runs to settle into",
+    style: SectionStyle.DetailedTripleRowPaged,
+  },
+  {
     id: SectionID.RecentlyAdded,
     title: "Recently Added",
     subtitle: "New arrivals in the catalogue",
@@ -195,7 +207,25 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.Completed,
     title: "Completed",
     subtitle: "Finished stories to read from start to end",
+    style: SectionStyle.SimpleDoubleRow,
+  },
+  {
+    id: SectionID.NewAdditions,
+    title: "New Additions",
+    subtitle: "The newest titles the site has picked up",
     style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.SchoolLife,
+    title: "School Life Spotlight",
+    subtitle: "The best-rated school stories",
+    style: SectionStyle.DetailedTripleRowPaged,
+  },
+  {
+    id: SectionID.ShortReads,
+    title: "Short Reads",
+    subtitle: "Well-rated stories you can finish in a sitting",
+    style: SectionStyle.SimpleDoubleRow,
   },
 ];
 
@@ -296,6 +326,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.ContentRatings]: DEFAULT_CONTENT_RATINGS,
   [PreferenceID.Types]: TYPE_OPTIONS.map((option) => option.id),
   [PreferenceID.HiddenTags]: [] as string[],
+  [PreferenceID.HiddenGroups]: "",
   [PreferenceID.DeduplicateChapters]: false,
   [PreferenceID.ShowUploadSize]: true,
   ...Object.fromEntries(
@@ -384,6 +415,18 @@ export type SeriesResponse = {
 export type Facet = { name: string; category?: string | null; isAdult?: boolean | null };
 
 export type FacetsResponse = { genres?: Facet[] | null };
+
+/** What the site's title page draws beneath the description, gathered from the trackers. */
+export type Enrichment = {
+  anilistId?: number | null;
+  myanimelistId?: number | null;
+  startDate?: { year?: number | null; month?: number | null; day?: number | null } | null;
+  staff?:
+    | { id?: number | null; name?: string | null; role?: string | null; image?: string | null }[]
+    | null;
+  officialLinks?: { url?: string | null; site?: string | null; language?: string | null }[] | null;
+  searchLinks?: { kind?: string | null; label?: string | null; url?: string | null }[] | null;
+};
 
 export type ReaderResult = {
   /** The chapter as the site answered it, whose page list is found by `pagesIn`. */
