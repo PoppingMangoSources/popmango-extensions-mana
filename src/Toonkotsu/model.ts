@@ -150,6 +150,7 @@ export const SectionID = {
   ThisSeason: "this-season",
   Completed: "completed",
   NewAdditions: "new-additions",
+  RisingArrivals: "rising-arrivals",
   SchoolLife: "school-life",
   ShortReads: "short-reads",
   MostSaved: "most-saved",
@@ -222,6 +223,12 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     title: "New Additions",
     subtitle: "The newest titles the site has picked up",
     style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.RisingArrivals,
+    title: "Rising Arrivals",
+    subtitle: "New series gaining readers fast",
+    style: SectionStyle.SimpleDoubleRow,
   },
   {
     id: SectionID.SchoolLife,
