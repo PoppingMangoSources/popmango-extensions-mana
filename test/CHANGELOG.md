@@ -229,7 +229,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.0)
+## Kagane (current: v1.2.1)
+
+### Changed
+
+- List no fixed languages, so the catalogue shows the source as Multi beside its Suggestive rating.
+
+## Kagane (v1.2.0)
 
 ### Changed
 
