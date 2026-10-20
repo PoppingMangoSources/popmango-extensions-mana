@@ -87,6 +87,7 @@ import {
   TYPE_OPTIONS,
   latestYear,
   type CatalogueParams,
+  type Enrichment,
   type FacetsResponse,
   type LatestResponse,
   type ReaderResult,
@@ -111,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.0",
+  version: "1.1.1",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -406,12 +407,26 @@ class ToonkotsuSource
         return this.api.post(`${BASE_URL}/api/v1/rankings`, {
           params: { limit: PAGE_SIZE, ...params, discovery: "gems", metric: "gems", page },
         });
+      case SectionID.BingeWorthy:
+        return this.browse({ ...params, discovery: "binge", sort: "score", page });
       case SectionID.RecentlyAdded:
         return this.browse({ ...params, sort: "new", order: "desc", page });
       case SectionID.ThisSeason:
         return this.browse({ ...params, discovery: "seasonal", page });
       case SectionID.Completed:
         return this.browse({ ...params, discovery: "completed", page });
+      case SectionID.NewAdditions:
+        return this.browse({ ...params, discovery: "new", sort: "new", page });
+      case SectionID.SchoolLife:
+        return this.browse({
+          ...params,
+          genres: "School Life",
+          sort: "score",
+          order: "desc",
+          page,
+        });
+      case SectionID.ShortReads:
+        return this.browse({ ...params, discovery: "short", sort: "score", page });
       default:
         return Promise.resolve({ items: [] });
     }
@@ -562,19 +577,51 @@ class ToonkotsuSource
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     const series = await this.loadSeries(contentId);
 
-    // A migration reads the title's name and nothing else, so the tag list it would be
-    // grouped under is not worth a second request per title.
-    const facets = isMigration(context) ? {} : await this.facets();
-    return parseContent(series, contentId, facets);
+    // A migration reads the title's name and nothing else, so the tag list, the tracker
+    // details and the recommendations are not worth three more requests per title.
+    if (isMigration(context)) return parseContent(series, contentId, {});
+
+    const ratings = await this.contentRatings(context);
+    const allowed = (entry: Series) => ratings.includes(ratingIdOf(entry));
+    // Either extra is only decoration, so one the site refuses leaves the title as it was.
+    const [facets, enrichment, recommended] = await Promise.all([
+      this.facets(),
+      this.api
+        .json<Enrichment>(catalogueUrl(`cdn/v1/series/${encodeURIComponent(contentId)}/enrichment`))
+        .catch(() => undefined),
+      // The series answer carries recommendations for some titles only; the site's own
+      // title page asks for the rest separately.
+      series.recs?.some(allowed)
+        ? Promise.resolve(series.recs)
+        : this.api
+            .json<SeriesListResponse>(
+              catalogueUrl("cdn/v1/recommendations", { limit: 18, seriesId: contentId }),
+            )
+            .then(
+              (data) => data.items ?? [],
+              () => [],
+            ),
+    ]);
+    return parseContent(
+      { ...series, recs: (recommended ?? []).filter(allowed) },
+      contentId,
+      facets,
+      enrichment,
+    );
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [series, mainOnly, showSize] = await Promise.all([
+    const [series, mainOnly, showSize, hidden] = await Promise.all([
       this.loadSeries(contentId),
       this.preferences.flag(PreferenceID.DeduplicateChapters),
       this.preferences.flag(PreferenceID.ShowUploadSize),
+      this.preferences.text(PreferenceID.HiddenGroups, ""),
     ]);
-    return parseChapters(series, { mainOnly, showSize });
+    const hiddenGroups = hidden
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean);
+    return parseChapters(series, { mainOnly, showSize, hiddenGroups });
   }
 
   private loadSeries(contentId: string): Promise<SeriesResponse> {

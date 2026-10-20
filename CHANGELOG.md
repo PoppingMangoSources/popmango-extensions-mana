@@ -99,7 +99,15 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## Toonkotsu (current: v1.1.0)
+## Toonkotsu (current: v1.1.1)
+
+### Added
+
+- Binge-Worthy, New Additions, School Life Spotlight and Short Reads on the home page, with the rows below Latest Updates mixing strips, double strips and detailed rows.
+- Staff, publisher links, shop searches and the serialization date on a title's page, and recommendations from the site when the title carries none of its own.
+- A Hidden Groups setting that leaves out the named teams' uploads.
+
+## Toonkotsu (v1.1.0)
 
 ### Changed
 
