@@ -235,7 +235,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.ShortReads,
     title: "Short Reads",
-    style: SectionStyle.SimpleTripleRow,
+    style: SectionStyle.SimpleDoubleRow,
     viewMore: false,
   },
   {
