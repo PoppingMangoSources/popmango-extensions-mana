@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.11)
+## Toonkotsu (current: v1.1.12)
+
+### Fixed
+
+- Preserve actual chapter numbers for tracker progress, including alternate uploads, without encoding volume order into the chapter number.
+
+## Toonkotsu (v1.1.11)
 
 ### Changed
 

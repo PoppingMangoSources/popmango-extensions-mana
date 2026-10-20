@@ -398,6 +398,11 @@ this.
 at 0 and be contiguous** — the first available chapter is index 0. `date` must be a valid
 `Date`; use `new Date(0)` when the site publishes none rather than an invalid date.
 
+`number` also reaches trackers as chapter progress. Preserve the site's actual chapter
+number, including decimals, for every alternate upload. Never encode volume or list
+position into it to force sorting; carry volume separately and assign the reading order
+through `index`.
+
 **`title` is printed verbatim; the app does not compose a label from the fields.**
 A chapter row shows `title` exactly as given, and falls back to `Chapter <number>` only
 when there is no title at all. `volume` and `number` order the list and drive resume — they

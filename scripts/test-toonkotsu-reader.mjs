@@ -160,3 +160,78 @@ assert.equal(limited.stats.keys, 0, "do not bypass a wait gate by asking for ano
 const malformed = load({ signed: false, invalidNonce: true });
 await assert.rejects(() => malformed.target.getChapterData("ktm04", "1487335"), /invalid page encryption/);
 console.log("PASS parallel key sharing, wait gates, and malformed nonce rejection");
+
+// Chapter progress must retain the API number even when the list also contains volumes.
+async function chapterList(entries, preferences = {}) {
+  const { target } = load({ signed: false });
+  for (const [key, value] of Object.entries(preferences)) {
+    await target.preferences.set(key, value);
+  }
+  target.api.json = async (url) => {
+    assert.equal(url, "https://toonkotsu.com/cdn/v1/series/jq4hs");
+    return {
+      series: { id: 26930, hid: "jq4hs", title: "Now That We Draw" },
+      chapters: entries,
+    };
+  };
+  return Array.from(await target.getChapters("jq4hs"));
+}
+
+const chapter65 = {
+  id: 4736992, label: "Plot 65", n: 65, vol: null, mb: 6.7,
+  group: { name: "WeebCentral" },
+  alts: [
+    { id: 4736661, label: "Chapter 65: Accident", mb: 30.6, group: { name: "Idk Either" } },
+    { id: 4736854, label: "Chapter 65", mb: 14.1, group: { name: "Idk Either" } },
+  ],
+};
+const inventory = [
+  chapter65,
+  { id: 3092917, label: "Plot 64", n: 64, vol: null },
+  { id: 700, label: "Volume 7", n: null, vol: "7" },
+];
+const versions = new Set(["4736992", "4736661", "4736854"]);
+const progressChapters = await chapterList(inventory);
+const releases65 = progressChapters.filter((chapter) => versions.has(chapter.chapterId));
+assert.equal(releases65.length, 3);
+assert.deepEqual(releases65.map((chapter) => chapter.number), [65, 65, 65]);
+assert.ok(releases65.every((chapter) => chapter.volume === undefined));
+assert.equal(progressChapters.find((chapter) => chapter.chapterId === "3092917").number, 64);
+assert.ok(releases65.every((chapter) => chapter.number > 64), "progress 64 must not include chapter 65");
+assert.deepEqual(
+  progressChapters.map((chapter) => chapter.index).sort((a, b) => a - b),
+  [0, 1, 2, 3, 4],
+);
+console.log("PASS chapter 65 and every alternate retain real tracker numbers alongside volumes");
+
+for (const [preferences, expected] of [
+  [{ "deduplicate-chapters": true }, ["4736992"]],
+  [{ "hidden-groups": "WeebCentral" }, ["4736661", "4736854"]],
+  [{ "hidden-groups": "WeebCentral", "deduplicate-chapters": true }, ["4736661"]],
+  [{ "show-upload-size": false }, ["4736992", "4736661", "4736854"]],
+  [{ "hidden-groups": "WeebCentral, Idk Either" }, []],
+]) {
+  const chapters = await chapterList(inventory, preferences);
+  const visible = chapters.filter((chapter) => versions.has(chapter.chapterId));
+  assert.deepEqual(visible.map((chapter) => chapter.chapterId), expected);
+  assert.ok(visible.every((chapter) => chapter.number === 65));
+  assert.deepEqual(
+    chapters.map((chapter) => chapter.index).sort((a, b) => a - b),
+    Array.from({ length: chapters.length }, (_, index) => index),
+  );
+}
+console.log("PASS deduplication, hidden groups, and size settings preserve numbers and contiguous indices");
+
+const orderedChapters = await chapterList([
+  { id: 1, label: "Chapter 0", n: 0, vol: "1" },
+  { id: 2, label: "Chapter 19.1", n: 19.1, vol: "1" },
+  { id: 3, label: "Chapter 1", n: 1, vol: "2" },
+  { id: 4, label: "Chapter 65", n: 65, vol: null },
+  { id: 5, label: "Volume 2", n: null, vol: "2" },
+]);
+assert.deepEqual(orderedChapters.map((chapter) => chapter.chapterId), ["4", "5", "3", "2", "1"]);
+assert.deepEqual(orderedChapters.map((chapter) => chapter.index), [4, 3, 2, 1, 0]);
+assert.deepEqual(orderedChapters.map((chapter) => chapter.number), [65, 2, 1, 19.1, 0]);
+assert.deepEqual(orderedChapters.map((chapter) => chapter.volume), [undefined, 2, 2, 1, 1]);
+assert.deepEqual(await chapterList([]), []);
+console.log("PASS source volume order, decimal chapters, chapter zero, and unnumbered fallback");
