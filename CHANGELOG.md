@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.4)
+## Toonkotsu (current: v1.1.5)
+
+### Changed
+
+- Rising Arrivals leads the home page as the carousel, Most Discussed takes This Season's place, This Season moves below Most Read, Binge-Worthy sits above Most Read, and Most Read is one detailed row at a time; rows no longer show a view-more arrow.
+
+## Toonkotsu (v1.1.4)
 
 ### Changed
 

@@ -156,90 +156,103 @@ export const SectionID = {
 } as const;
 
 /**
- * The home page, in the site's own order and under its own names.
+ * The home page, under the site's own names.
  *
- * Most Discussed leads as a hero because the site ranks it and a rank wants the space;
- * Trending draws its detailed rows. Below Latest Updates the two rankings worth reading
- * closely, Most Read and School Life Spotlight, draw detailed rows between strips of covers.
+ * Rising Arrivals leads as a hero and Trending draws its detailed rows; below Latest Updates,
+ * Most Read and School Life Spotlight draw detailed rows between strips of covers. No row
+ * carries a view-more arrow, so each shows its first page and the headers stay plain.
  */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
-    id: SectionID.MostDiscussed,
-    title: "Most Discussed",
-    subtitle: "The titles readers talk about most",
+    id: SectionID.RisingArrivals,
+    title: "Rising Arrivals",
+    subtitle: "New series gaining readers fast",
     style: SectionStyle.SimpleHeroPaged,
+    viewMore: false,
   },
   {
     id: SectionID.Trending,
     title: "Trending",
     subtitle: "What is gaining momentum with readers",
     style: SectionStyle.DetailedDoubleRowPaged,
+    viewMore: false,
   },
   {
     id: SectionID.HiddenGems,
     title: "Hidden Gems",
     subtitle: "Highly rated finds with fewer readers",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
-    id: SectionID.ThisSeason,
-    title: "This Season",
-    subtitle: "The catalogue's seasonal picks",
+    id: SectionID.MostDiscussed,
+    title: "Most Discussed",
+    subtitle: "The titles readers talk about most",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
     id: SectionID.Latest,
     title: "Latest Updates",
     subtitle: "Fresh chapter uploads as they arrive",
     style: SectionStyle.DetailedVerticalListGrouped,
-  },
-  {
-    id: SectionID.MostRead,
-    title: "Most Read",
-    subtitle: "The titles readers open most",
-    style: SectionStyle.DetailedTripleRowPaged,
+    viewMore: false,
   },
   {
     id: SectionID.BingeWorthy,
     title: "Binge-Worthy",
     subtitle: "Long, well-rated runs to settle into",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
-    id: SectionID.RisingArrivals,
-    title: "Rising Arrivals",
-    subtitle: "New series gaining readers fast",
+    id: SectionID.MostRead,
+    title: "Most Read",
+    subtitle: "The titles readers open most",
+    style: SectionStyle.DetailedSingleRowPaged,
+    viewMore: false,
+  },
+  {
+    id: SectionID.ThisSeason,
+    title: "This Season",
+    subtitle: "The catalogue's seasonal picks",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
     id: SectionID.RecentlyAdded,
     title: "Recently Added",
     subtitle: "The newest titles the site has picked up",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
     id: SectionID.SchoolLife,
     title: "School Life Spotlight",
     subtitle: "The best-rated school stories",
     style: SectionStyle.DetailedTripleRowPaged,
+    viewMore: false,
   },
   {
     id: SectionID.MostSaved,
     title: "Most Saved",
     subtitle: "The titles the most readers keep in their library",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
     id: SectionID.ShortReads,
     title: "Short Reads",
     subtitle: "Well-rated stories you can finish in a sitting",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
   {
     id: SectionID.Completed,
     title: "Completed",
     subtitle: "Finished stories to read from start to end",
     style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
   },
 ];
 
