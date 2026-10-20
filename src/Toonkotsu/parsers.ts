@@ -594,6 +594,19 @@ function sizeLabel(mb: number | null | undefined): string {
   return `${mb >= 100 ? Math.round(mb) : Number(mb.toFixed(1))} MB`;
 }
 
+/** Equal candidates keep the site's first upload rather than changing the chosen version. */
+function isBetterUpload(candidate: ChapterRelease, current: ChapterRelease): boolean {
+  if ((candidate.partial === true) !== (current.partial === true)) return current.partial === true;
+  const width = (release: ChapterRelease) =>
+    typeof release.w === "number" && Number.isFinite(release.w) && release.w > 0 ? release.w : 0;
+  const size = (release: ChapterRelease) =>
+    typeof release.mb === "number" && Number.isFinite(release.mb) && release.mb > 0 ? release.mb : 0;
+  return (
+    width(candidate) > width(current) ||
+    (width(candidate) === width(current) && size(candidate) > size(current))
+  );
+}
+
 /**
  * The team, and nothing else.
  *
@@ -608,11 +621,12 @@ function providerOf(group: string | undefined): { id: string; name: string } | u
 export type ChapterOptions = {
   /** Keep only the upload the site shows first for each chapter, as its own list does. */
   mainOnly?: boolean;
+  /** Keep the preferred upload for each named group, independently of its size label. */
+  bestPerGroup?: boolean;
   /**
    * Close each chapter's name with the download it is offering.
    *
-   * Turning it off is what makes a team's two uploads of one chapter the same row: with
-   * nothing left to choose between them, only one of them is listed.
+   * This label is independent of selecting the preferred upload for each group.
    */
   showSize?: boolean;
   /** Teams whose uploads are left out, matched on their name whatever its case. */
@@ -630,9 +644,8 @@ export type ChapterOptions = {
  * `alts`; each becomes a chapter of its own so the app can offer them as versions of one
  * another. `index` numbers the run from its oldest, counted over the order below.
  *
- * Every upload a team has made of a chapter is kept and each carries its own download, so
- * the reader decides between a bigger scan and a smaller one — a judgement this cannot
- * make for them. Only an upload with nothing at all to tell it from another is dropped.
+ * By default each team keeps its preferred upload. Disabling that choice retains the
+ * distinct uploads, including their size labels, so the reader can choose between them.
  */
 export function parseChapters(
   { chapters }: SeriesResponse,
@@ -642,8 +655,10 @@ export function parseChapters(
   // that upload once — so the id decides, not the position it was listed in.
   const seen = new Set<number>();
   const uploads = new Set<string>();
+  const groups = new Map<string, number>();
   const kept: {
     rank: [number, number];
+    release: ChapterRelease;
     chapter: Omit<Chapter, "index" | "number">;
   }[] = [];
 
@@ -666,15 +681,10 @@ export function parseChapters(
       const size = options.showSize === false ? "" : sizeLabel(release.mb);
       const label = chapterTitle(entry, release, title, rank, size);
 
-      // The label already carries the download, so two uploads that differ by one differ
-      // here too, and only a row with nothing at all to tell it from another is dropped.
-      const upload = sameUpload(rank, group ?? "", label);
-      if (uploads.has(upload)) continue;
-      uploads.add(upload);
-
       const provider = providerOf(group);
-      kept.push({
+      const item = {
         rank,
+        release,
         chapter: {
           chapterId: String(release.id),
           title: label,
@@ -684,7 +694,25 @@ export function parseChapters(
           webUrl: chapterUrl(String(release.id)),
           ...(provider ? { provider } : {}),
         },
-      });
+      };
+
+      if (options.bestPerGroup !== false && options.mainOnly !== true && group) {
+        // Unnumbered entries may be different extras, so only their own alternates compete.
+        const number = rank[1] === UNFILED ? `entry:${entry.id}` : rank[1];
+        const slot = `${rank[0]}|${number}|${group.toLowerCase()}`;
+        const position = groups.get(slot);
+        const current = position === undefined ? undefined : kept[position];
+        if (current && position !== undefined) {
+          if (isBetterUpload(release, current.release)) kept[position] = item;
+          continue;
+        }
+        groups.set(slot, kept.length);
+      } else {
+        const upload = sameUpload(rank, group ?? "", label);
+        if (uploads.has(upload)) continue;
+        uploads.add(upload);
+      }
+      kept.push(item);
     }
   }
 

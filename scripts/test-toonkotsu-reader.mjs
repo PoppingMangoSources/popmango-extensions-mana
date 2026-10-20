@@ -191,7 +191,7 @@ const inventory = [
   { id: 700, label: "Volume 7", n: null, vol: "7" },
 ];
 const versions = new Set(["4736992", "4736661", "4736854"]);
-const progressChapters = await chapterList(inventory);
+const progressChapters = await chapterList(inventory, { "best-upload-per-group": false });
 const releases65 = progressChapters.filter((chapter) => versions.has(chapter.chapterId));
 assert.equal(releases65.length, 3);
 assert.deepEqual(releases65.map((chapter) => chapter.number), [65, 65, 65]);
@@ -211,7 +211,7 @@ for (const [preferences, expected] of [
   [{ "show-upload-size": false }, ["4736992", "4736661", "4736854"]],
   [{ "hidden-groups": "WeebCentral, Idk Either" }, []],
 ]) {
-  const chapters = await chapterList(inventory, preferences);
+  const chapters = await chapterList(inventory, { "best-upload-per-group": false, ...preferences });
   const visible = chapters.filter((chapter) => versions.has(chapter.chapterId));
   assert.deepEqual(visible.map((chapter) => chapter.chapterId), expected);
   assert.ok(visible.every((chapter) => chapter.number === 65));
@@ -235,3 +235,55 @@ assert.deepEqual(orderedChapters.map((chapter) => chapter.number), [65, 2, 1, 19
 assert.deepEqual(orderedChapters.map((chapter) => chapter.volume), [undefined, 2, 2, 1, 1]);
 assert.deepEqual(await chapterList([]), []);
 console.log("PASS source volume order, decimal chapters, chapter zero, and unnumbered fallback");
+
+const defaults = await chapterList(inventory);
+const defaultVersions = defaults.filter((chapter) => versions.has(chapter.chapterId));
+assert.deepEqual(defaultVersions.map((chapter) => chapter.chapterId), ["4736992", "4736661"]);
+assert.deepEqual(defaultVersions.map((chapter) => chapter.number), [65, 65]);
+assert.ok(defaultVersions[0].title.endsWith("(6.7 MB)"));
+assert.ok(defaultVersions[1].title.endsWith("(30.6 MB)"));
+const hiddenBest = await chapterList(inventory, { "hidden-groups": "WeebCentral" });
+assert.deepEqual(
+  hiddenBest.filter((chapter) => versions.has(chapter.chapterId)).map((chapter) => chapter.chapterId),
+  ["4736661"],
+);
+const allUploads = await chapterList(inventory, { "best-upload-per-group": false });
+assert.equal(allUploads.filter((chapter) => versions.has(chapter.chapterId)).length, 3);
+assert.ok(allUploads.find((chapter) => chapter.chapterId === "4736854").title.endsWith("(14.1 MB)"));
+const withoutSizes = await chapterList(inventory, { "show-upload-size": false });
+assert.deepEqual(
+  withoutSizes.filter((chapter) => versions.has(chapter.chapterId)).map((chapter) => chapter.chapterId),
+  ["4736992", "4736661"],
+);
+assert.ok(withoutSizes.every((chapter) => !chapter.title.includes(" MB)")));
+console.log("PASS default best upload per group retains MB labels, and both toggles remain independent");
+
+const preferredUploads = await chapterList([
+  {
+    id: 10, n: 1, vol: "1", label: "Chapter 1", w: 800, mb: 40,
+    group: { name: "Team" },
+    alts: [
+      { id: 11, label: "Chapter 1: Wider", w: 1200, mb: 10, group: { name: "team" } },
+      { id: 12, label: "Chapter 1: Partial", w: 2000, mb: 80, partial: true, group: { name: "Team" } },
+      { id: 13, label: "Chapter 1: Another team", w: 600, mb: 5, group: { name: "Other" } },
+    ],
+  },
+  { id: 14, n: 1, vol: "1", label: "Chapter 1: Larger", w: 1200, mb: 20, group: { name: "Team" } },
+  { id: 15, n: 1, vol: "1", label: "Chapter 1: Tie", w: 1200, mb: 20, group: { name: "Team" } },
+  { id: 16, n: 1, vol: "2", label: "Chapter 1", w: 1200, mb: 20, group: { name: "Team" } },
+  { id: 17, n: 2, vol: "1", label: "Chapter 2", w: 1200, mb: 20, group: { name: "Team" } },
+]);
+assert.deepEqual(preferredUploads.map((chapter) => chapter.chapterId), ["16", "17", "14", "13"]);
+assert.deepEqual(preferredUploads.map((chapter) => chapter.number), [1, 2, 1, 1]);
+assert.deepEqual(preferredUploads.map((chapter) => chapter.volume), [2, 1, 1, 1]);
+assert.deepEqual(
+  preferredUploads.map((chapter) => chapter.index).sort((a, b) => a - b),
+  [0, 1, 2, 3],
+);
+assert.ok(preferredUploads.find((chapter) => chapter.chapterId === "14").title.endsWith("(20 MB)"));
+const firstOnly = await chapterList([{
+  id: 20, n: 3, label: "Chapter 3", w: 800, mb: 10, group: { name: "Team" },
+  alts: [{ id: 21, label: "Chapter 3", w: 1200, mb: 20, group: { name: "Team" } }],
+}], { "deduplicate-chapters": true });
+assert.equal(firstOnly[0].chapterId, "20", "one overall upload preserves the site's first choice");
+console.log("PASS complete, wider, then larger uploads win per group without merging chapters or volumes");

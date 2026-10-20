@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.12)
+## Toonkotsu (current: v1.1.13)
+
+### Added
+
+- Keep Best Upload per Group selects one upload per chapter and team while preserving its download size. This setting and Upload Size default to on.
+
+## Toonkotsu (v1.1.12)
 
 ### Fixed
 
