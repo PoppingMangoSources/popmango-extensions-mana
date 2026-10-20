@@ -600,7 +600,9 @@ function isBetterUpload(candidate: ChapterRelease, current: ChapterRelease): boo
   const width = (release: ChapterRelease) =>
     typeof release.w === "number" && Number.isFinite(release.w) && release.w > 0 ? release.w : 0;
   const size = (release: ChapterRelease) =>
-    typeof release.mb === "number" && Number.isFinite(release.mb) && release.mb > 0 ? release.mb : 0;
+    typeof release.mb === "number" && Number.isFinite(release.mb) && release.mb > 0
+      ? release.mb
+      : 0;
   return (
     width(candidate) > width(current) ||
     (width(candidate) === width(current) && size(candidate) > size(current))
