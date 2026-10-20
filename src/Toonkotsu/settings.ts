@@ -46,8 +46,7 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
         "Deduplicate Chapters lists only the upload the site shows first for each chapter, " +
         "rather than one from every team. Upload Size closes a chapter's name with the " +
         "download it is offering, which is how one team's two uploads of it differ — with " +
-        "it off they are the same row, and only one is listed. Hidden Groups leaves out " +
-        "those teams' uploads, matching the site's own setting.",
+        "it off they are the same row, and only one is listed.",
       fields: [
         {
           type: "toggle" as const,
@@ -59,11 +58,20 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
           key: PreferenceID.ShowUploadSize,
           title: "Upload Size",
         },
+      ],
+    },
+    {
+      // The app draws a text field's placeholder but not its title, so the section names it.
+      header: "Hidden Groups",
+      footer:
+        "Leaves out uploads from these scanlation groups, as the site's own setting does. " +
+        "Upper and lower case don't matter.",
+      fields: [
         {
           type: "text" as const,
           key: PreferenceID.HiddenGroups,
           title: "Hidden Groups",
-          placeholder: "Names, comma separated",
+          placeholder: "Group names, comma separated",
         },
       ],
     },
