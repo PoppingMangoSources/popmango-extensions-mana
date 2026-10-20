@@ -60,7 +60,6 @@ export const SETTING_KEYS = [
   "hideDisturbing",
   "mirror",
 ];
-export const CONTENT_KEYS = ["contentRatings", "excludedGenres", "excludedTags", "hideDisturbing"];
 export const UPLOADS: Option[] = [
   { id: "all", title: "All uploads" },
   { id: "official", title: "Official only" },
@@ -163,10 +162,6 @@ export const SECTIONS = [
     style: SectionStyle.SimpleSingleRow,
   },
 ];
-// These layouts draw info rows and no cover pill.
-export const isDetailed = (style?: SectionStyle): boolean =>
-  style === SectionStyle.DetailedTripleRowPaged ||
-  style === SectionStyle.DetailedVerticalListGrouped;
 const AGE_RATINGS: Record<Rating, string> = {
   Safe: "Safe",
   Suggestive: "FifteenPlus",
@@ -182,15 +177,6 @@ export const uploadTypes = (choice: string): string[] =>
     : choice === "scanlations"
       ? ["Unofficial", "Mixed"]
       : ["Official", "Unofficial", "Mixed"];
-// [field, min, max, stepper floor]
-export const RANGES: readonly (readonly [string, number, number, number?])[] = [
-  ["current_books", 0, 2147483647, 0],
-  ["current_volumes", 0, 2147483647, 0],
-  ["start_year", 1, 9999],
-  ["end_year", 1, 9999],
-];
-// Site limit per genre, tag or source filter.
-export const MAX_IDS = 50;
 export const CHAPTER_PRESETS: Option[] = [
   { id: "1-20", title: "1–20" },
   { id: "21-100", title: "21–100" },

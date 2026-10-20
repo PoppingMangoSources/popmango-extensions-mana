@@ -32,6 +32,7 @@ import {
   SearchStepper,
   SearchTextField,
   SearchToggle,
+  SectionStyle,
   SortOption,
   SourceContext,
   SourceContextOrigin,
@@ -49,13 +50,11 @@ import {
   Challenge,
   CHAPTER_PRESETS,
   CHART,
-  CONTENT_KEYS,
   DISTURBING_OPTIONS,
   Detail,
   DOMAIN,
   Filters,
   FORMATS,
-  isDetailed,
   LANGUAGES,
   ManifestPage,
   MIRRORS,
@@ -66,7 +65,6 @@ import {
   Rating,
   RATINGS,
   SECTIONS,
-  Series,
   setMirror,
   SETTING_KEYS,
   Settings,
@@ -103,6 +101,7 @@ import {
   selectedOptions,
   searchBody,
   selectedRatings,
+  visibleRow,
 } from "./KaganeSearch";
 import { groupTags, tagFilterId } from "./tag-groups";
 
@@ -115,25 +114,6 @@ type ReaderPageContext = {
 };
 type SearchPage = { result: PagedSearchResult; next: number; seenIDs: string[] };
 
-// Chart and recommendation rows skip the catalogue search, so its policy is applied here.
-function visibleRow(
-  row: Series,
-  settings: Settings,
-  ratings: Rating[],
-  sources: UploadSource[],
-  context?: SourceContext,
-): boolean {
-  return (
-    !!strictUUID(row.series_id) &&
-    !!row.cover_image_id?.trim() &&
-    allowed(row, settings, ratings, context?.allowedContentRatings) &&
-    !hasHidden(row.genres, settings.excludedGenres) &&
-    !hasHidden(row.tags, settings.excludedTags) &&
-    !(settings.hideDisturbing && row.is_disturbing === true) &&
-    uploadAllowed(settings, sources, row.source_id)
-  );
-}
-
 export class Target
   implements
     ContentSource,
@@ -144,7 +124,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.10",
+    version: "1.0.11",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -403,7 +383,8 @@ export class Target
               id: "resetContentFilters",
               title: "Reset Content Filters",
               isDestructive: true,
-              action: () => this.reset(CONTENT_KEYS),
+              action: () =>
+                this.reset(["contentRatings", "excludedGenres", "excludedTags", "hideDisturbing"]),
             }),
             UIButton({
               id: "resetAll",
@@ -664,7 +645,10 @@ export class Target
         }
       }
       const exact = request.filters?.exact_match === true;
-      const detailed = isDetailed(section?.style);
+      // These layouts draw info rows and no cover pill.
+      const detailed =
+        section?.style === SectionStyle.DetailedTripleRowPaged ||
+        section?.style === SectionStyle.DetailedVerticalListGrouped;
       const showUpdated = section?.id === "latest_updates";
       const key = `${JSON.stringify(settings)}:${JSON.stringify(body)}:${sortParameter}:${exact}:${section?.id ?? ""}:${JSON.stringify(conceptualTags)}:${request.filters?.match_all_tags === true}:${hostRatingKey(request.context?.allowedContentRatings)}`;
       let cached = this.searchPages.get(key);
@@ -831,8 +815,9 @@ export class Target
         ? undefined
         : (editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
           (await this.similar(contentId, settings, sources, context)));
-      if (editions) result.additionalInfo = [...(result.additionalInfo ?? []), editions];
-      return result;
+      return editions
+        ? { ...result, additionalInfo: [...(result.additionalInfo ?? []), editions] }
+        : result;
     });
   }
 

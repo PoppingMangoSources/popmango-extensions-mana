@@ -688,19 +688,19 @@ function date(value?: string | null): Date {
   return Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
 
-const UNITS: [number, string][] = [
-  [31_536_000_000, "year"],
-  [2_592_000_000, "month"],
-  [604_800_000, "week"],
-  [86_400_000, "day"],
-  [3_600_000, "hour"],
-  [60_000, "minute"],
-];
-
 function relativeTime(when: Date): string {
   const elapsed = Date.now() - when.getTime();
   if (!when.getTime() || elapsed < 0) return "";
-  const unit = UNITS.find(([size]) => elapsed >= size);
+  const unit = (
+    [
+      [31_536_000_000, "year"],
+      [2_592_000_000, "month"],
+      [604_800_000, "week"],
+      [86_400_000, "day"],
+      [3_600_000, "hour"],
+      [60_000, "minute"],
+    ] as const
+  ).find(([size]) => elapsed >= size);
   if (!unit) return "just now";
   const count = Math.floor(elapsed / unit[0]);
   return `${count} ${unit[1]}${count === 1 ? "" : "s"} ago`;

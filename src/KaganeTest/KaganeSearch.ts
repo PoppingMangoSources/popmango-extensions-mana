@@ -1,20 +1,21 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
-import { ContentRating, JsonValue, Option, SearchRequest } from "@mana-app/types";
+import { ContentRating, JsonValue, Option, SearchRequest, SourceContext } from "@mana-app/types";
 import {
   ageRatings,
   CHAPTER_PRESETS,
   Filters,
-  MAX_IDS,
-  RANGES,
   RATINGS,
   Rating,
   Selection,
+  Series,
   Settings,
   SOURCE_TYPES,
+  strictUUID,
   TagEntry,
+  UploadSource,
   uploadTypes,
 } from "./KaganeModels";
-import { manaRating } from "./KaganeParsers";
+import { allowed, manaRating, uploadAllowed } from "./KaganeParsers";
 import { assertRatingPolicy, ratingAllowed } from "./ContentRatingPolicy";
 import { resolveTypedTags, TAG_GROUPS, tagFilterId, tagIdsOf } from "./tag-groups";
 
@@ -26,7 +27,12 @@ export function readNumericRanges(filters: Filters | undefined): Record<string, 
   if (!filters || typeof filters !== "object" || Array.isArray(filters))
     throw invalidNumericRange();
   const body: Record<string, NumericRange> = {};
-  for (const [field, lowest, highest, floor] of RANGES) {
+  for (const [field, lowest, highest, floor] of [
+    ["current_books", 0, 2147483647, 0],
+    ["current_volumes", 0, 2147483647, 0],
+    ["start_year", 1, 9999],
+    ["end_year", 1, 9999],
+  ] as const) {
     const range: NumericRange = {};
     for (const side of ["min", "max"] as const) {
       const id = `${field}_${side}`;
@@ -156,8 +162,8 @@ function validateTagIds(values: string[], tags: TagEntry[]): void {
 
 function withinLimit(values: string[], label: string): string[] {
   const unique = [...new Set(values)];
-  if (unique.length > MAX_IDS)
-    throw new Error(`Kagane allows at most ${MAX_IDS} ${label}, and ${unique.length} are picked.`);
+  if (unique.length > 50)
+    throw new Error(`Kagane allows at most 50 ${label}, and ${unique.length} are picked.`);
   return unique;
 }
 
@@ -308,6 +314,25 @@ export function hasHidden(
 ): boolean {
   const hidden = new Set(excluded.flatMap(tagIdsOf));
   return (ids ?? []).some((id) => hidden.has(id));
+}
+
+// Chart and recommendation rows skip the catalogue search, so its policy is applied here.
+export function visibleRow(
+  row: Series,
+  settings: Settings,
+  ratings: Rating[],
+  sources: UploadSource[],
+  context?: SourceContext,
+): boolean {
+  return (
+    !!strictUUID(row.series_id) &&
+    !!row.cover_image_id?.trim() &&
+    allowed(row, settings, ratings, context?.allowedContentRatings) &&
+    !hasHidden(row.genres, settings.excludedGenres) &&
+    !hasHidden(row.tags, settings.excludedTags) &&
+    !(settings.hideDisturbing && row.is_disturbing === true) &&
+    uploadAllowed(settings, sources, row.source_id)
+  );
 }
 
 export function hostRatingKey(host: readonly ContentRating[] | undefined): string {

@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.10)
+## KaganeTest (current: v1.0.11)
+
+### Changed
+
+- Inline single-use constants and helpers, move the shared row check beside the other search filters, and build title details without mutating them; no change in behaviour.
+
+## KaganeTest (v1.0.10)
 
 ### Changed
 
