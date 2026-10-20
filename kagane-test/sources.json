@@ -1,0 +1,35 @@
+{
+  "repositoryName": "Kagane Test",
+  "thumbnail": "https://poppingmangosources.github.io/popmango-extensions-mana/main/assets/Repository.png",
+  "sources": [
+    {
+      "id": "Kagane",
+      "version": "0.0.1-alpha.20",
+      "name": "Kagane",
+      "description": "Kagane with current API support, grouped tags and global four-category content settings.",
+      "thumbnail": "Kagane.png",
+      "rating": 1,
+      "website": "https://kagane.org",
+      "badges": [
+        "Manga",
+        "Manhwa",
+        "Manhua",
+        "Comic"
+      ],
+      "developers": [
+        {
+          "name": "Lucifers Circle",
+          "github": "https://github.com/LucifersCircle"
+        },
+        {
+          "name": "PoppingMango Sources",
+          "github": "https://github.com/PoppingMangoSources"
+        }
+      ],
+      "path": "Kagane",
+      "environment": "source",
+      "intents": 106961929,
+      "hash": "6c1361686c1361686c1361686c1361686c1361686c1361686c1361686c136168"
+    }
+  ]
+}
