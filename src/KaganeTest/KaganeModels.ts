@@ -36,6 +36,11 @@ export const STATUSES: Option[] = [
   ...options(["Ongoing", "Completed", "Hiatus"]),
   { id: "Abandoned", title: "Cancelled" },
 ];
+export const SOURCE_TYPES: Option[] = [
+  { id: "Official", title: "Official" },
+  { id: "Unofficial", title: "Fan translation" },
+  { id: "Mixed", title: "Mixed" },
+];
 export const UPLOADS: Option[] = [
   { id: "all", title: "All uploads" },
   { id: "official", title: "Official only" },

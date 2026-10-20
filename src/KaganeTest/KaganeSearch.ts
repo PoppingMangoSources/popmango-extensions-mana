@@ -10,6 +10,7 @@ import {
   Rating,
   Selection,
   Settings,
+  SOURCE_TYPES,
   TagEntry,
 } from "./KaganeModels";
 import { manaRating } from "./KaganeParsers";
@@ -253,6 +254,11 @@ export function searchBody(
     delete body.age_rating;
     delete body.is_pornographic;
   }
+  // A source type picked for this search replaces the saved upload choice.
+  const types = selectedOptions(request.filters, "source_type").filter((type) =>
+    SOURCE_TYPES.some((option) => option.id === type),
+  );
+  if (types.length) body.source_type = types;
   // A reading language picked for this search replaces the saved ones.
   const languages = selectedOptions(request.filters, "content_lang");
   if (languages.length || settings.languages.length)

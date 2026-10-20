@@ -34,8 +34,10 @@ import {
   SearchToggle,
   SortOption,
   SourceContext,
+  SourceContextOrigin,
   SourceInfo,
   SourcePreferenceProvider,
+  UIButton,
   UIListSection,
   UIMultiPicker,
   UIPicker,
@@ -65,6 +67,7 @@ import {
   setMirror,
   Settings,
   SORTS,
+  SOURCE_TYPES,
   STATUSES,
   strictUUID,
   trustedHost,
@@ -99,6 +102,23 @@ import {
 } from "./KaganeSearch";
 import { groupTags, tagFilterId } from "./tag-groups";
 
+const SETTING_KEYS = [
+  "contentRatings",
+  "showSource",
+  "showEdition",
+  "cleanTitle",
+  "showSpoilers",
+  "dataSaver",
+  "uploadSource",
+  "languages",
+  "excludedGenres",
+  "excludedTags",
+  "chapterTitle",
+  "hideDisturbing",
+  "mirror",
+];
+const CONTENT_KEYS = ["contentRatings", "excludedGenres", "excludedTags", "hideDisturbing"];
+
 type ReaderSession = { challenge: Challenge; expiry: number };
 type ReaderPageContext = {
   seriesId: string;
@@ -118,7 +138,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.3",
+    version: "1.0.4",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -147,22 +167,7 @@ export class Target
 
   private async settings(): Promise<Settings> {
     await this.preferenceWrite;
-    const keys = [
-      "contentRatings",
-      "showSource",
-      "showEdition",
-      "cleanTitle",
-      "showSpoilers",
-      "dataSaver",
-      "uploadSource",
-      "languages",
-      "excludedGenres",
-      "excludedTags",
-      "chapterTitle",
-      "hideDisturbing",
-      "mirror",
-    ];
-    const values = await Promise.all(keys.map((key) => ObjectStore.get(`Kagane.${key}`)));
+    const values = await Promise.all(SETTING_KEYS.map((key) => ObjectStore.get(`Kagane.${key}`)));
     const [
       contentRatings,
       showSource,
@@ -215,16 +220,24 @@ export class Target
     return settings;
   }
 
-  private async save(key: string, value: boolean | string | string[]): Promise<void> {
+  private async write(task: () => Promise<void>): Promise<void> {
     this.settingsRevision += 1;
     this.searchPages.clear();
     this.readerImages.clear();
     this.readerSessions.clear();
     this.api.invalidate();
-    this.preferenceWrite = this.preferenceWrite
-      .catch(() => undefined)
-      .then(() => ObjectStore.set(`Kagane.${key}`, value));
+    this.preferenceWrite = this.preferenceWrite.catch(() => undefined).then(task);
     await this.preferenceWrite;
+  }
+
+  private save(key: string, value: boolean | string | string[]): Promise<void> {
+    return this.write(() => ObjectStore.set(`Kagane.${key}`, value));
+  }
+
+  private reset(keys: readonly string[]): Promise<void> {
+    return this.write(async () => {
+      for (const key of keys) await ObjectStore.remove(`Kagane.${key}`);
+    });
   }
 
   private async withSettings<T>(operation: (settings: Settings) => Promise<T>): Promise<T> {
@@ -365,6 +378,24 @@ export class Target
             }),
           ],
         }),
+        UIListSection({
+          footer:
+            "Reset returns the content settings and hidden lists, or every setting, to their defaults.",
+          children: [
+            UIButton({
+              id: "resetContentFilters",
+              title: "Reset Content Filters",
+              isDestructive: true,
+              action: () => this.reset(CONTENT_KEYS),
+            }),
+            UIButton({
+              id: "resetAll",
+              title: "Reset All Settings",
+              isDestructive: true,
+              action: () => this.reset(SETTING_KEYS),
+            }),
+          ],
+        }),
       ],
     };
   }
@@ -429,6 +460,7 @@ export class Target
                   { id: "exclude", title: "Leave out" },
                 ],
               }),
+              SearchMultiPicker({ id: "source_type", title: "Source type", options: SOURCE_TYPES }),
               SearchMultiPickerSheet({
                 id: "source_id",
                 title: "Upload sources",
@@ -622,7 +654,8 @@ export class Target
       }
       const exact = request.filters?.exact_match === true;
       const detailed = isDetailed(section?.style);
-      const key = `${JSON.stringify(settings)}:${JSON.stringify(body)}:${sortParameter}:${exact}:${detailed}:${JSON.stringify(conceptualTags)}:${request.filters?.match_all_tags === true}:${hostRatingKey(request.context?.allowedContentRatings)}`;
+      const updates = section?.id === "latest_updates";
+      const key = `${JSON.stringify(settings)}:${JSON.stringify(body)}:${sortParameter}:${exact}:${section?.id ?? ""}:${JSON.stringify(conceptualTags)}:${request.filters?.match_all_tags === true}:${hostRatingKey(request.context?.allowedContentRatings)}`;
       let cached = this.searchPages.get(key);
       if (!cached || Date.now() - cached.at > 30_000) {
         if (this.searchPages.size >= 25)
@@ -679,7 +712,9 @@ export class Target
               const sources = settings.showSource ? await this.api.sources() : [];
               return {
                 result: {
-                  results: visible.map((item) => highlight(item, settings, sources, detailed)),
+                  results: visible.map((item) =>
+                    highlight(item, settings, sources, detailed, updates),
+                  ),
                   isLastPage: response.last,
                 },
                 next: rawPage + 1,
@@ -779,17 +814,20 @@ export class Target
     return this.withSettings(async (settings) => {
       const details = await this.requireAllowed(contentId, settings, context);
       const tracker = strictUUID(details.tracker_id);
+      // A migration only matches metadata, so it skips the editions and recommendations.
+      const migrating = context?.origin === SourceContextOrigin.MIGRATION;
       const [sources, rows, tags] = await Promise.all([
         this.api.sources(),
-        tracker && !settings.excludedGenres.length && !settings.excludedTags.length
+        tracker && !migrating && !settings.excludedGenres.length && !settings.excludedTags.length
           ? this.api.trackerSeries(tracker)
           : Promise.resolve([]),
         visibleDetailTags(details, settings).length ? this.api.tags() : Promise.resolve([]),
       ]);
       const result = content(contentId, details, settings, sources, tags);
-      const editions =
-        editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
-        (await this.similar(contentId, settings, sources, context));
+      const editions = migrating
+        ? undefined
+        : (editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
+          (await this.similar(contentId, settings, sources, context)));
       if (editions) result.additionalInfo = [editions, ...(result.additionalInfo ?? [])];
       return result;
     });

@@ -139,6 +139,7 @@ export function highlight(
   settings: Settings,
   sources: UploadSource[],
   detailed = false,
+  updates = false,
 ): Highlight {
   const latest = series.latest_chapters?.[0];
   const score =
@@ -150,8 +151,7 @@ export function highlight(
       : undefined;
   const format = series.format && series.format !== "Other" ? series.format : undefined;
   const status = statusLabel(series.publication_status);
-  // A thin ring vanishes over cover art, so the pill takes a filled mark for status.
-  const pill = score ?? format ?? (status ? `🔗 ${status}` : undefined);
+  const pill = score ?? format ?? status;
   const chapter =
     (latest?.chapter_no
       ? `Ch. ${latest.chapter_no}`
@@ -162,6 +162,8 @@ export function highlight(
   const subtitle = [chapter, detailed || (!score && !format) ? undefined : status]
     .filter(Boolean)
     .join(" • ");
+  const updated =
+    updates && latest ? relativeTime(date(latest.available_at ?? latest.created_at)) : "";
   return {
     id: series.series_id,
     title: displayTitle(
@@ -178,6 +180,7 @@ export function highlight(
     badge: !detailed && pill ? { text: pill } : undefined,
     // A detailed row grows past about four lines, so the rest is dropped.
     info: [
+      ...(updated && chapter ? [{ key: chapter, value: updated }] : []),
       ...(score ? [{ key: "Rating", value: score }] : []),
       ...(format ? [{ key: "Type", value: `♤ ${format}` }] : []),
       ...(status ? [{ key: "Status", value: `◌ ${status}` }] : []),
@@ -671,6 +674,25 @@ function date(value?: string | null): Date {
   if (!value) return new Date(0);
   const parsed = new Date(/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value}Z`);
   return Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
+}
+
+const UNITS: [number, string][] = [
+  [31_536_000_000, "year"],
+  [2_592_000_000, "month"],
+  [604_800_000, "week"],
+  [86_400_000, "day"],
+  [3_600_000, "hour"],
+  [60_000, "minute"],
+];
+
+/** "3 hours ago", or nothing for a date the site left out or set in the future. */
+function relativeTime(when: Date): string {
+  const elapsed = Date.now() - when.getTime();
+  if (!when.getTime() || elapsed < 0) return "";
+  const unit = UNITS.find(([size]) => elapsed >= size);
+  if (!unit) return "just now";
+  const count = Math.floor(elapsed / unit[0]);
+  return `${count} ${unit[1]}${count === 1 ? "" : "s"} ago`;
 }
 
 export function available(book: Book): boolean {
