@@ -5,7 +5,15 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.14)
+## Toonkotsu (current: v1.1.15)
+
+### Changed
+
+- Restore subtitles on every home section, including Mahou Shoujo Spotlight.
+- The hero carousel shows Most Viewed from the catalogue's View Count browse order.
+- Move Most Read directly below Most Discussed as one scrolling row without a view-more link.
+
+## Toonkotsu (v1.1.14)
 
 ### Added
 

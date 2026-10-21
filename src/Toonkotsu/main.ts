@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.14",
+  version: "1.1.15",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -394,6 +394,8 @@ class ToonkotsuSource
     params: CatalogueParams,
   ): Promise<SeriesListResponse> {
     switch (sectionId) {
+      case SectionID.MostViewed:
+        return this.browse({ ...params, sort: "popular", page });
       // Rankings built from this site's own readers are served by the site rather than the
       // catalogue, and the two halves of it are asked differently: a reading count with a
       // query string, a discovery ranking posted as the browse parameters.
@@ -412,11 +414,6 @@ class ToonkotsuSource
       case SectionID.HiddenGems:
         return this.api.post(`${BASE_URL}/api/v1/rankings`, {
           params: { limit: PAGE_SIZE, ...params, discovery: "gems", metric: "gems", page },
-        });
-      // Named as its page is, /discover/rising, the way Hidden Gems is /discover/gems.
-      case SectionID.RisingArrivals:
-        return this.api.post(`${BASE_URL}/api/v1/rankings`, {
-          params: { limit: PAGE_SIZE, ...params, discovery: "rising", metric: "rising", page },
         });
       case SectionID.BingeWorthy:
         return this.browse({ ...params, discovery: "binge", sort: "score", page });
