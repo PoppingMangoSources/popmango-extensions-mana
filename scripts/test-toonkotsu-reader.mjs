@@ -7,7 +7,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 import { ManaStore } from "./harness/runtime.mjs";
 
-const bundle = fs.readFileSync(new URL("../dist/sources/Toonkotsu.mana", import.meta.url), "utf8");
+const bundle = fs.readFileSync(new URL("../dist/sources/ToonkotsuTest.mana", import.meta.url), "utf8");
 const secret = "NO57DoQRq7oxY3MCO5_SNw4_3vFRsUq7";
 const b64 = (bytes) => Buffer.from(bytes).toString("base64url");
 const xor = (bytes, mask) => Buffer.from(bytes.map((byte, i) => byte ^ mask[i % mask.length]));
@@ -118,6 +118,10 @@ function load({ nativeCrypto = false, hostCrypto = false, signed = true, refresh
   vm.runInContext(bundle, context);
   return { target: new context.Target(), stats };
 }
+
+const { target: testingSource } = load({ signed: false });
+assert.equal(testingSource.info.id, "toonkotsu-test");
+assert.equal(testingSource.info.name, "ToonkotsuTest");
 
 for (const [nativeCrypto, hostCrypto] of [[false, false], [false, true], [true, false]]) {
   for (const signed of [false, true]) {

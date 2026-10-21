@@ -110,10 +110,10 @@ import { readChapterInPage, waitForUnlock } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
-  id: "toonkotsu",
-  name: "Toonkotsu",
-  version: "1.1.4",
-  description: "Manga, manhwa and manhua from toonkotsu.com.",
+  id: "toonkotsu-test",
+  name: "ToonkotsuTest",
+  version: "1.0.0",
+  description: "Testing build of Toonkotsu, installed separately from the main source.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
   supportedLanguages: [DefinedLanguages.ENGLISH],
@@ -146,7 +146,7 @@ class ToonkotsuSource
   // Every filter form and every home row needs the tag list, and the site changes it
   // rarely, so it is kept on disk rather than fetched per screen.
   private readonly facetsCache = new TimedCache<FacetsResponse>(
-    "toonkotsu.facets",
+    `${info.id}.facets`,
     FACETS_LIFETIME_MS,
   );
   // Recently-read cursors for the uploads feed, which repeats a title across pages.

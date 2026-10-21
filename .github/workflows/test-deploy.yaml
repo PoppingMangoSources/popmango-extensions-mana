@@ -35,6 +35,8 @@ jobs:
         run: bun install
 
       - name: Build Extensions
+        env:
+          MANA_REPO_URL: https://poppingmangosources.github.io/popmango-extensions-mana/test
         run: bun run build
 
       - name: Deploy Catalog to GitHub Pages

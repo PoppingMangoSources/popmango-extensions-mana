@@ -99,7 +99,13 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## Toonkotsu (current: v1.1.4)
+## ToonkotsuTest (current: v1.0.0)
+
+### Added
+
+- A separate testing source with its own identity and settings, installable alongside Toonkotsu.
+
+## Toonkotsu (v1.1.4)
 
 ### Fixed
 

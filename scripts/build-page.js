@@ -48,10 +48,12 @@ const HOMEPAGE = (pkg.homepage ?? "").replace(/\/+$/, "");
 /**
  * The URL a reader pastes into Mana.
  *
- * The deploy publishes `dist/` into the `main` folder of the Pages branch, so
- * the manifest the app fetches sits one level below the site root.
+ * The main catalog is the default; the testing deploy supplies its own address so
+ * installing a testing source does not send the reader back to the main catalog.
  */
-const REPO_URL = HOMEPAGE ? `${HOMEPAGE}/main` : "https://example.invalid/main";
+const REPO_URL =
+  process.env.MANA_REPO_URL ??
+  (HOMEPAGE ? `${HOMEPAGE}/main` : "https://example.invalid/main");
 
 /** Opens Mana's preview card for the repository, which asks before adding anything. */
 const ADD_REPO_URL = `mana://add-repo?url=${encodeURIComponent(REPO_URL)}&name=${encodeURIComponent(REPO_NAME)}`;
