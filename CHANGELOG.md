@@ -11,7 +11,7 @@ counted up from `1.0.0`.
 
 - Restore subtitles on every home section, including Mahou Shoujo Spotlight.
 - The hero carousel shows Most Viewed from the catalogue's View Count browse order.
-- Move Most Read directly below Most Discussed as one scrolling row without a view-more link.
+- Keep Rising Arrivals directly above Most Discussed as one scrolling row with its subtitle and a view-more link.
 
 ## Toonkotsu (v1.1.14)
 

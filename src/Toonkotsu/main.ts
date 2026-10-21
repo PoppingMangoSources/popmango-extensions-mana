@@ -415,6 +415,10 @@ class ToonkotsuSource
         return this.api.post(`${BASE_URL}/api/v1/rankings`, {
           params: { limit: PAGE_SIZE, ...params, discovery: "gems", metric: "gems", page },
         });
+      case SectionID.RisingArrivals:
+        return this.api.post(`${BASE_URL}/api/v1/rankings`, {
+          params: { limit: PAGE_SIZE, ...params, discovery: "rising", metric: "rising", page },
+        });
       case SectionID.BingeWorthy:
         return this.browse({ ...params, discovery: "binge", sort: "score", page });
       // The site's own New Additions; a catalogue sorted by date added gave the same titles.
