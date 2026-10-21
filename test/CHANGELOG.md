@@ -99,7 +99,13 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## Toonkotsu (current: v1.1.3)
+## Toonkotsu (current: v1.1.4)
+
+### Fixed
+
+- Preserve actual chapter numbers for tracker progress and use chapter indices for volume order.
+
+## Toonkotsu (v1.1.3)
 
 ### Added
 
