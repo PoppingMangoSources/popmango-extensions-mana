@@ -72,6 +72,7 @@ export const PreferenceID = {
   HiddenGroups: "hidden-groups",
   DeduplicateChapters: "deduplicate-chapters",
   ShowUploadSize: "show-upload-size",
+  BestUploadPerGroup: "best-upload-per-group",
   SectionPrefix: "section",
 } as const;
 
@@ -346,6 +347,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.HiddenGroups]: "",
   [PreferenceID.DeduplicateChapters]: false,
   [PreferenceID.ShowUploadSize]: true,
+  [PreferenceID.BestUploadPerGroup]: true,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),
@@ -400,6 +402,8 @@ export type ChapterRelease = {
   group?: ChapterGroup | null;
   /** Download size in megabytes, which is how one team's two uploads of a chapter differ. */
   mb?: number | null;
+  w?: number | null;
+  partial?: boolean;
 };
 
 export type ChapterEntry = ChapterRelease & {

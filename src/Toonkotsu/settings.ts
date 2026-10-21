@@ -43,10 +43,10 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
     {
       header: "Chapters",
       footer:
-        "Deduplicate Chapters lists only the upload the site shows first for each chapter, " +
-        "rather than one from every team. Upload Size closes a chapter's name with the " +
-        "download it is offering, which is how one team's two uploads of it differ — with " +
-        "it off they are the same row, and only one is listed.",
+        "Keep Best Upload per Group keeps one upload per chapter and team, preferring " +
+        "complete uploads, then wider scans and larger files. Upload Size shows the " +
+        "chosen upload's download size. Deduplicate Chapters keeps only the site's first " +
+        "visible upload for each chapter.",
       fields: [
         {
           type: "toggle" as const,
@@ -57,6 +57,11 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
           type: "toggle" as const,
           key: PreferenceID.ShowUploadSize,
           title: "Upload Size",
+        },
+        {
+          type: "toggle" as const,
+          key: PreferenceID.BestUploadPerGroup,
+          title: "Keep Best Upload per Group",
         },
       ],
     },
