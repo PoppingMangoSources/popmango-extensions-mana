@@ -5,7 +5,18 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.13)
+## Toonkotsu (current: v1.1.14)
+
+### Added
+
+- Mahou Shoujo Spotlight uses the same detailed layout as School Life Spotlight and browses popular Mahou Shoujo titles.
+
+### Changed
+
+- Restore view-more links for Trending, Hidden Gems, Latest Updates, Binge-Worthy, School Life Spotlight, Short Reads and Completed.
+- The final home sections are Short Reads, Mahou Shoujo Spotlight, This Season and Completed.
+
+## Toonkotsu (v1.1.13)
 
 ### Added
 

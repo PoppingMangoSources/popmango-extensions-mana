@@ -152,18 +152,11 @@ export const SectionID = {
   Completed: "completed",
   RisingArrivals: "rising-arrivals",
   SchoolLife: "school-life",
+  MahouShoujo: "mahou-shoujo",
   ShortReads: "short-reads",
   MostSaved: "most-saved",
 } as const;
 
-/**
- * The home page, under the site's own names.
- *
- * Rising Arrivals leads as a hero and Trending draws its detailed rows; below Latest Updates,
- * School Life Spotlight draws detailed rows between strips of covers. Only the two lists
- * that change by the hour, Trending and Latest Updates, carry a subtitle, and no row carries
- * a view-more arrow, so each shows its first page and the headers stay plain.
- */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.RisingArrivals,
@@ -176,13 +169,13 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     title: "Trending",
     subtitle: "What is gaining momentum with readers",
     style: SectionStyle.DetailedDoubleRowPaged,
-    viewMore: false,
+    viewMore: true,
   },
   {
     id: SectionID.HiddenGems,
     title: "Hidden Gems",
     style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
+    viewMore: true,
   },
   {
     id: SectionID.MostDiscussed,
@@ -195,13 +188,13 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     title: "Latest Updates",
     subtitle: "Fresh chapter uploads as they arrive",
     style: SectionStyle.DetailedVerticalListGrouped,
-    viewMore: false,
+    viewMore: true,
   },
   {
     id: SectionID.BingeWorthy,
     title: "Binge-Worthy",
     style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
+    viewMore: true,
   },
   {
     id: SectionID.MostRead,
@@ -219,7 +212,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     id: SectionID.SchoolLife,
     title: "School Life Spotlight",
     style: SectionStyle.DetailedTripleRowPaged,
-    viewMore: false,
+    viewMore: true,
   },
   {
     id: SectionID.MostSaved,
@@ -228,22 +221,28 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     viewMore: false,
   },
   {
+    id: SectionID.ShortReads,
+    title: "Short Reads",
+    style: SectionStyle.SimpleDoubleRow,
+    viewMore: true,
+  },
+  {
+    id: SectionID.MahouShoujo,
+    title: "Mahou Shoujo Spotlight",
+    style: SectionStyle.DetailedTripleRowPaged,
+    viewMore: true,
+  },
+  {
     id: SectionID.ThisSeason,
     title: "This Season",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
   {
-    id: SectionID.ShortReads,
-    title: "Short Reads",
-    style: SectionStyle.SimpleDoubleRow,
-    viewMore: false,
-  },
-  {
     id: SectionID.Completed,
     title: "Completed",
     style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
+    viewMore: true,
   },
 ];
 

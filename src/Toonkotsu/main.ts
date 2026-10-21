@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.13",
+  version: "1.1.14",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -435,6 +435,8 @@ class ToonkotsuSource
           order: "desc",
           page,
         });
+      case SectionID.MahouShoujo:
+        return this.browse({ ...params, genres: "Mahou Shoujo", sort: "popular", page });
       case SectionID.ShortReads:
         return this.browse({ ...params, discovery: "short", sort: "score", page });
       default:
