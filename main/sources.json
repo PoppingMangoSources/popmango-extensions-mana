@@ -22,14 +22,14 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "5a31d4115a31d4115a31d4115a31d4115a31d4115a31d4115a31d4115a31d411"
+      "hash": "4e6b80b74e6b80b74e6b80b74e6b80b74e6b80b74e6b80b74e6b80b74e6b80b7"
     },
     {
       "id": "kagane",
       "name": "Kagane",
-      "version": "1.2.1",
-      "description": "Manga, manhwa, manhua and comics from kagane.org.",
-      "website": "https://kagane.org",
+      "version": "1.2.2",
+      "description": "Manga, manhwa, manhua and comics from kagane.cx.",
+      "website": "https://kagane.cx",
       "rating": 1,
       "supportedLanguages": [
         "en_US",
@@ -50,7 +50,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 106961929,
-      "hash": "0989522809895228098952280989522809895228098952280989522809895228"
+      "hash": "1d0d94c41d0d94c41d0d94c41d0d94c41d0d94c41d0d94c41d0d94c41d0d94c4"
     },
     {
       "id": "mangadex",
@@ -72,7 +72,7 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "1bdf94061bdf94061bdf94061bdf94061bdf94061bdf94061bdf94061bdf9406"
+      "hash": "27a5e74927a5e74927a5e74927a5e74927a5e74927a5e74927a5e74927a5e749"
     },
     {
       "id": "mangafire",
@@ -98,7 +98,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 106961929,
-      "hash": "447fc233447fc233447fc233447fc233447fc233447fc233447fc233447fc233"
+      "hash": "38b971d238b971d238b971d238b971d238b971d238b971d238b971d238b971d2"
     },
     {
       "id": "mangaupdates",
@@ -120,7 +120,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "12c8720112c8720112c8720112c8720112c8720112c8720112c8720112c87201"
+      "hash": "0702214907022149070221490702214907022149070221490702214907022149"
     },
     {
       "id": "mangago",
@@ -142,7 +142,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "311023df311023df311023df311023df311023df311023df311023df311023df"
+      "hash": "2549d3052549d3052549d3052549d3052549d3052549d3052549d3052549d305"
     },
     {
       "id": "rinkocomics",
@@ -164,7 +164,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "2fd4e7632fd4e7632fd4e7632fd4e7632fd4e7632fd4e7632fd4e7632fd4e763"
+      "hash": "240e9348240e9348240e9348240e9348240e9348240e9348240e9348240e9348"
     },
     {
       "id": "rokaricomics",
@@ -186,7 +186,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "55b9497955b9497955b9497955b9497955b9497955b9497955b9497955b94979"
+      "hash": "49f2f56049f2f56049f2f56049f2f56049f2f56049f2f56049f2f56049f2f560"
     },
     {
       "id": "stonescape",
@@ -208,7 +208,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 106961929,
-      "hash": "0dec6e200dec6e200dec6e200dec6e200dec6e200dec6e200dec6e200dec6e20"
+      "hash": "19b2bf3119b2bf3119b2bf3119b2bf3119b2bf3119b2bf3119b2bf3119b2bf31"
     },
     {
       "id": "toonkotsu",
@@ -230,7 +230,7 @@
       "path": "Toonkotsu",
       "environment": "source",
       "intents": 106961929,
-      "hash": "250d3c90250d3c90250d3c90250d3c90250d3c90250d3c90250d3c90250d3c90"
+      "hash": "30d390ad30d390ad30d390ad30d390ad30d390ad30d390ad30d390ad30d390ad"
     },
     {
       "id": "valirscans",
@@ -252,7 +252,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 106962217,
-      "hash": "73124bd573124bd573124bd573124bd573124bd573124bd573124bd573124bd5"
+      "hash": "674bf7ba674bf7ba674bf7ba674bf7ba674bf7ba674bf7ba674bf7ba674bf7ba"
     },
     {
       "id": "xcomic",
@@ -274,7 +274,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "6130532761305327613053276130532761305327613053276130532761305327"
+      "hash": "6cf6a77e6cf6a77e6cf6a77e6cf6a77e6cf6a77e6cf6a77e6cf6a77e6cf6a77e"
     }
   ]
 }
