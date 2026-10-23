@@ -115,7 +115,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.2.3",
+  version: "1.2.4",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -480,6 +480,9 @@ class MangagoSource
           if (tiles.length === 0) throw new Error("the front page carried no carousel");
           return tiles;
         })
+        // Featured has never failed on its own. Passing a Cloudflare challenge on from here
+        // is what put one in front of the reader and broke the home page in 1.2.2, so a
+        // failure stays an empty row.
         .catch(() => []);
       return {
         results: limit === undefined ? featured : featured.slice(0, limit),

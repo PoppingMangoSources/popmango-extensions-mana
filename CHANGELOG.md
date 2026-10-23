@@ -2948,7 +2948,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.2.3)
+## Mangago (current: v1.2.4)
+
+### Changed
+
+- Notes in the source that Featured Manga keeps its empty-row fallback; nothing changes in the app.
+
+## Mangago (v1.2.3)
 
 ### Fixed
 
