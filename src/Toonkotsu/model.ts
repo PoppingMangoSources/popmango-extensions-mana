@@ -220,7 +220,7 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     title: "Recently Added",
     subtitle: "The newest titles the site has picked up",
     style: SectionStyle.SimpleSingleRow,
-    viewMore: false,
+    viewMore: true,
   },
   {
     id: SectionID.SchoolLife,
