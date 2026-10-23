@@ -47,12 +47,12 @@ const READER_SESSION_LIMIT = 40;
 
 /**
  * `url` moved onto the reader's chosen mirror. Only the default address is rewritten: the
- * mirrors share one API, so a URL built for kagane.org is answered the same on any of them,
+ * mirrors share one API, so a URL built for kagane.cx is answered the same on any of them,
  * and a host that is not the site's — the image CDN — is left where it is.
  */
 export function onMirror(url: string, mirror: string): string {
   if (mirror === MIRRORS[0] || !MIRRORS.includes(mirror)) return url;
-  return url.replace(/^https:\/\/(?:www\.)?kagane\.org(?=[/?#]|$)/i, `https://${mirror}`);
+  return url.replace(/^https:\/\/(?:www\.)?kagane\.cx(?=[/?#]|$)/i, `https://${mirror}`);
 }
 
 /** A `cache_url` the reader token may be sent to, or the site itself when it is not one. */
