@@ -22,7 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "4a6376144a6376144a6376144a6376144a6376144a6376144a6376144a637614"
+      "hash": "58ddc39c58ddc39c58ddc39c58ddc39c58ddc39c58ddc39c58ddc39c58ddc39c"
     },
     {
       "id": "kagane",
@@ -31,6 +31,15 @@
       "description": "Manga, manhwa, manhua and comics from kagane.org.",
       "website": "https://kagane.org",
       "rating": 1,
+      "supportedLanguages": [
+        "en_US",
+        "ko_KR",
+        "ja_JP",
+        "fr_FR",
+        "zh-CN",
+        "es_ES",
+        "pt_BR"
+      ],
       "thumbnail": "Kagane.png",
       "developers": [
         {
@@ -41,7 +50,7 @@
       "path": "Kagane",
       "environment": "source",
       "intents": 106961929,
-      "hash": "788ed9b0788ed9b0788ed9b0788ed9b0788ed9b0788ed9b0788ed9b0788ed9b0"
+      "hash": "0835413008354130083541300835413008354130083541300835413008354130"
     },
     {
       "id": "kagane-test",
@@ -70,7 +79,7 @@
       "path": "KaganeTest",
       "environment": "source",
       "intents": 106961929,
-      "hash": "6282df0c6282df0c6282df0c6282df0c6282df0c6282df0c6282df0c6282df0c"
+      "hash": "70fd283e70fd283e70fd283e70fd283e70fd283e70fd283e70fd283e70fd283e"
     },
     {
       "id": "mangadex",
@@ -92,7 +101,7 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "15b9cbb415b9cbb415b9cbb415b9cbb415b9cbb415b9cbb415b9cbb415b9cbb4"
+      "hash": "243415da243415da243415da243415da243415da243415da243415da243415da"
     },
     {
       "id": "mangafire",
@@ -118,7 +127,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 106961929,
-      "hash": "5f33ed2f5f33ed2f5f33ed2f5f33ed2f5f33ed2f5f33ed2f5f33ed2f5f33ed2f"
+      "hash": "6dae36d56dae36d56dae36d56dae36d56dae36d56dae36d56dae36d56dae36d5"
     },
     {
       "id": "mangaupdates",
@@ -140,7 +149,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "02fa166602fa166602fa166602fa166602fa166602fa166602fa166602fa1666"
+      "hash": "1174600b1174600b1174600b1174600b1174600b1174600b1174600b1174600b"
     },
     {
       "id": "mangago",
@@ -162,7 +171,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "73a3950d73a3950d73a3950d73a3950d73a3950d73a3950d73a3950d73a3950d"
+      "hash": "7de223fa7de223fa7de223fa7de223fa7de223fa7de223fa7de223fa7de223fa"
     },
     {
       "id": "rinkocomics",
@@ -184,7 +193,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "200688c1200688c1200688c1200688c1200688c1200688c1200688c1200688c1"
+      "hash": "2e80d6c92e80d6c92e80d6c92e80d6c92e80d6c92e80d6c92e80d6c92e80d6c9"
     },
     {
       "id": "rokaricomics",
@@ -206,7 +215,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "45eaeabb45eaeabb45eaeabb45eaeabb45eaeabb45eaeabb45eaeabb45eaeabb"
+      "hash": "546538bd546538bd546538bd546538bd546538bd546538bd546538bd546538bd"
     },
     {
       "id": "stonescape",
@@ -228,7 +237,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 106961929,
-      "hash": "1dbaccb71dbaccb71dbaccb71dbaccb71dbaccb71dbaccb71dbaccb71dbaccb7"
+      "hash": "0f407c080f407c080f407c080f407c080f407c080f407c080f407c080f407c08"
     },
     {
       "id": "toonkotsu-test",
@@ -250,7 +259,7 @@
       "path": "ToonkotsuTest",
       "environment": "source",
       "intents": 106961929,
-      "hash": "6c4a42826c4a42826c4a42826c4a42826c4a42826c4a42826c4a42826c4a4282"
+      "hash": "5dcff4a25dcff4a25dcff4a25dcff4a25dcff4a25dcff4a25dcff4a25dcff4a2"
     },
     {
       "id": "valirscans",
@@ -272,7 +281,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 106962217,
-      "hash": "6343ecfd6343ecfd6343ecfd6343ecfd6343ecfd6343ecfd6343ecfd6343ecfd"
+      "hash": "71be3b2071be3b2071be3b2071be3b2071be3b2071be3b2071be3b2071be3b20"
     },
     {
       "id": "xcomic",
@@ -294,7 +303,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "70feb25d70feb25d70feb25d70feb25d70feb25d70feb25d70feb25d70feb25d"
+      "hash": "6284679962846799628467996284679962846799628467996284679962846799"
     }
   ]
 }

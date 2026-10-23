@@ -315,9 +315,25 @@ counted up from `1.0.0`.
 
 ## Kagane (current: v1.2.1)
 
+### Added
+
+- A Mirror setting for kagane.org, kagane.cx, kagane.si, kagane.moe and kagane.net, and links from every mirror open in the source.
+- Genres and tags in Settings can be required as well as hidden: tap once to require, again to hide.
+- More like this shows below Related Editions whenever the site has recommendations.
+
 ### Changed
 
-- List no fixed languages, so the catalogue shows the source as Multi beside its Suggestive rating.
+- Related Editions and More like this sit above the title's other sections.
+- The chapter list loads at the same time as the title details.
+
+### Fixed
+
+- A prologue or side story without a number keeps its place instead of being numbered after the latest chapter.
+- Picking upload sources in a search no longer clashes with the Upload Source setting.
+- Related Editions follow the source's content rating and disturbing-content settings.
+- Returning to a tag-filtered search no longer re-reads every earlier page.
+- Reset All Settings also clears the per-group tag lists.
+- A chapter delivered with missing pages says so, page tokens go only to the site's own image hosts, and errors no longer show request addresses.
 
 ## Kagane (v1.2.0)
 
