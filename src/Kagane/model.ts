@@ -2,13 +2,13 @@
 
 import { SectionStyle, type JsonValue, type Option, type SortOption } from "@mana-app/types";
 
-export const BASE_URL = "https://kagane.org";
+export const BASE_URL = "https://kagane.cx";
 export const API_URL = `${BASE_URL}/api/v2`;
 
 export const DEFAULT_CACHE_URL = BASE_URL;
 
 /** Every address the site answers on; each serves the same library and the same API. */
-export const MIRRORS = ["kagane.org", "kagane.cx", "kagane.si", "kagane.moe", "kagane.net"];
+export const MIRRORS = ["kagane.cx", "kagane.org", "kagane.si", "kagane.moe", "kagane.net"];
 
 export const MIRROR_OPTIONS: Option[] = MIRRORS.map((host) => ({ id: host, title: host }));
 
@@ -261,7 +261,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.ExcludedGenres]: [] as string[],
   [PreferenceID.IncludedGenres]: [] as string[],
   [PreferenceID.ExcludedTags]: [] as string[],
-  [PreferenceID.Mirror]: "kagane.org",
+  [PreferenceID.Mirror]: "kagane.cx",
   [PreferenceID.UploadSource]: "all",
   [PreferenceID.ShowSourceInTitle]: false,
   [PreferenceID.ShowEditionInTitle]: false,

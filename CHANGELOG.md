@@ -313,7 +313,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.1)
+## Kagane (current: v1.2.2)
+
+### Changed
+
+- kagane.cx is the default mirror; kagane.org stays available in Settings.
+
+## Kagane (v1.2.1)
 
 ### Added
 
