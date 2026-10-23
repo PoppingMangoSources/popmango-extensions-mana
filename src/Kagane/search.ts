@@ -19,6 +19,9 @@ export type SearchBodyOptions = {
   includedGenreIds?: string[];
   /** Tags the settings require: one group of site ids per tag, any of which will do. */
   includedTagGroups?: string[][];
+  /** Source groups the settings require, and the ones they hide. */
+  includedSourceIds?: string[];
+  excludedSourceIds?: string[];
   allowedRatings?: readonly ContentRating[];
   hideDisturbing: boolean;
   /** The site's `{ id: name }` tag list, needed only when a tag was typed rather than picked. */
@@ -103,29 +106,49 @@ export function readTagSelection(
       .map((group) => [...new Set(group.map((id) => id.toLowerCase()))])
       .filter((group) => group.length > 0),
     excluded: [...picks.flatMap((pick) => pick.excluded.flatMap(tagIdsOf)), ...typed.excluded],
+    // Off unless switched on; a search saved under the old picker still says "all".
     matchAll:
-      !filters.has(FilterID.MatchAllTags) ||
-      filters.option(FilterID.MatchAllTags) === "all" ||
-      filters.toggle(FilterID.MatchAllTags),
+      filters.option(FilterID.MatchAllTags) === "all" || filters.toggle(FilterID.MatchAllTags),
   };
 }
 
 /**
- * The tags a search asks for, with the ones the settings require added when it is a
- * browse rather than a search by name. A required tag the form excludes is left out, so
- * one search can still look past it.
+ * The tags a search asks for: its own picks when it has any, otherwise the ones the
+ * settings require, all of them, when it is a browse rather than a search by name.
+ *
+ * The two are not combined. A search may ask for any of its tags, and the settings for
+ * all of theirs, and one request to the site can only say one of those; so a search that
+ * picks tags of its own looks past the required ones, as a pick already looks past the
+ * hide-list.
  */
 export function withRequiredTags(
   selection: TagSelection,
   options: SearchBodyOptions,
   browsing: boolean,
 ): TagSelection {
-  if (!browsing || !options.includedTagGroups?.length) return selection;
+  if (!browsing || !options.includedTagGroups?.length || selection.included.length > 0)
+    return selection;
   const excluded = new Set(selection.excluded.map((id) => id.toLowerCase()));
   const required = options.includedTagGroups.filter((group) =>
     group.some((id) => !excluded.has(id)),
   );
-  return { ...selection, included: [...selection.included, ...required] };
+  return { ...selection, included: required, matchAll: true };
+}
+
+/**
+ * Whether a title's source group may be shown. The site takes a list of groups to ask for
+ * but none to leave out, so the hidden ones are checked on the rows that come back; a group
+ * the search itself picked is shown whatever the settings say.
+ */
+export function sourceAllowed(
+  sourceId: string | null | undefined,
+  options: SearchBodyOptions,
+  picked: readonly string[] = [],
+): boolean {
+  const id = (sourceId ?? "").toLowerCase();
+  if (!id || !options.excludedSourceIds?.length) return true;
+  if (picked.some((entry) => entry.toLowerCase() === id)) return true;
+  return !options.excludedSourceIds.some((entry) => entry.toLowerCase() === id);
 }
 
 /** Whether a search over these groups has to be checked locally, alias by alias. */
@@ -228,7 +251,17 @@ export function buildSearchBody(
   const hiddenTagIds = browsing ? options.excludedTagIds : [];
   const requiredGenreIds = browsing ? (options.includedGenreIds ?? []) : [];
 
+  const requiredSources = browsing ? (options.includedSourceIds ?? []) : [];
+  const applyRequiredSources = (): void => {
+    if (!requiredSources.length) return;
+    body["source_id"] = checkedValues(requiredSources, "source groups");
+    // Groups picked by name stand in for the Upload Source setting, which could only
+    // contradict them.
+    delete body["source_type"];
+  };
+
   if (!filters) {
+    applyRequiredSources();
     const genres = buildIncludeExclude(requiredGenreIds, hiddenGenreIds, true, "genres");
     if (genres) body["genres"] = genres;
 
@@ -257,23 +290,24 @@ export function buildSearchBody(
 
   const sources = filters.options(FilterID.Sources);
   if (sources.length > 0) {
-    body["source_id"] = checkedValues(sources, "sources");
-    // Picked sources stand in for the Upload Source setting for this search; sending both
+    body["source_id"] = checkedValues(sources, "source groups");
+    // Picked groups stand in for the Upload Source setting for this search; sending both
     // asks for an official upload from a scanlation group and finds nothing.
     delete body["source_type"];
-  }
+  } else applyRequiredSources();
 
+  // The search's own genre picks replace the required ones, as its tag picks do.
   const genreSelection = filters.excludable(FilterID.Genres);
   const formExcludedGenres = new Set(genreSelection.excluded.map((id) => id.toLowerCase()));
+  const ownGenres = genreSelection.included.length > 0;
   const genres = buildIncludeExclude(
-    [
-      ...genreSelection.included,
-      ...requiredGenreIds.filter((id) => !formExcludedGenres.has(id.toLowerCase())),
-    ],
+    ownGenres
+      ? genreSelection.included
+      : requiredGenreIds.filter((id) => !formExcludedGenres.has(id.toLowerCase())),
     [...new Set([...genreSelection.excluded, ...hiddenGenreIds])],
-    !filters.has(FilterID.MatchAllGenres) ||
-      filters.option(FilterID.MatchAllGenres) === "all" ||
-      filters.toggle(FilterID.MatchAllGenres),
+    ownGenres
+      ? filters.option(FilterID.MatchAllGenres) === "all" || filters.toggle(FilterID.MatchAllGenres)
+      : true,
     "genres",
   );
   if (genres) body["genres"] = genres;
@@ -301,8 +335,14 @@ export function buildSearchBody(
       body[id] = id === FilterID.SourceType ? selected : checkedValues(selected, "languages");
   }
   for (const { id, title } of RANGE_FIELDS) {
-    const lower = filters.text(`${id}_min`).trim();
-    const upper = filters.text(`${id}_max`).trim();
+    // A stepper cannot be left empty, so its resting 0 means "not set".
+    const stepped = id === FilterID.Chapters || id === FilterID.Volumes;
+    const read = (side: string): string => {
+      const value = filters.text(`${id}_${side}`).trim();
+      return stepped && value === "0" ? "" : value;
+    };
+    const lower = read("min");
+    const upper = read("max");
     if (lower || upper) {
       const bounds: { min?: number; max?: number } = {};
       for (const [key, raw] of [

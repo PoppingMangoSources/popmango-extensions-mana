@@ -72,6 +72,8 @@ export const PreferenceID = {
   IncludedGenres: "included-genres",
   ExcludedTags: "excluded-tags",
   IncludedTags: "included-tags",
+  IncludedSources: "included-sources",
+  ExcludedSources: "excluded-sources",
   Mirror: "mirror",
   UploadSource: "upload-source",
   ShowSourceInTitle: "show-source-in-title",
@@ -135,6 +137,27 @@ export const STATUS_OPTIONS: Option[] = [
   { id: "Hiatus", title: "Hiatus" },
   { id: "Abandoned", title: "Abandoned" },
 ];
+
+/** The search form's status labels, which name an abandoned series the way the site does. */
+export const SEARCH_STATUS_OPTIONS: Option[] = [
+  { id: "Ongoing", title: "Ongoing" },
+  { id: "Completed", title: "Completed" },
+  { id: "Hiatus", title: "Hiatus" },
+  { id: "Abandoned", title: "Cancelled" },
+];
+
+export const SOURCE_TYPE_OPTIONS: Option[] = [
+  { id: "Official", title: "Official" },
+  { id: "Unofficial", title: "Fan translation" },
+  { id: "Mixed", title: "Mixed" },
+];
+
+/** The upload kinds the Upload Source setting lets through. */
+export function uploadTypes(setting: string): string[] {
+  if (setting === "official") return ["Official"];
+  if (setting === "scanlations") return ["Unofficial", "Mixed"];
+  return SOURCE_TYPE_OPTIONS.map((option) => option.id);
+}
 
 export const UPLOAD_SOURCE_OPTIONS: Option[] = [
   { id: "all", title: "All uploads" },
@@ -262,6 +285,8 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.IncludedGenres]: [] as string[],
   [PreferenceID.ExcludedTags]: [] as string[],
   [PreferenceID.Mirror]: "kagane.cx",
+  [PreferenceID.IncludedSources]: [] as string[],
+  [PreferenceID.ExcludedSources]: [] as string[],
   [PreferenceID.UploadSource]: "all",
   [PreferenceID.ShowSourceInTitle]: false,
   [PreferenceID.ShowEditionInTitle]: false,

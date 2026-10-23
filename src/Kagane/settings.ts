@@ -31,6 +31,7 @@ async function groupedTagFields(tags: () => Promise<Option[]>): Promise<Preferen
 export type SettingsHooks = {
   genres: () => Promise<Option[]>;
   tags: () => Promise<Option[]>;
+  sources: () => Promise<Option[]>;
   languages: () => Promise<Option[]>;
   resetContentFilters: () => Promise<void>;
   resetAll: () => Promise<void>;
@@ -138,13 +139,20 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Browsing",
       footer:
-        "Upload Source selects uploads for catalogue browsing and search; a single search can override it with the Sources filter.",
+        "Upload Source selects uploads for catalogue browsing and search. Source Groups: tap once to show only those groups, again to hide one; required groups replace Upload Source. Both apply to browsing and More like this, and a search can pick its own groups instead.",
       fields: [
         {
           type: "select",
           key: PreferenceID.UploadSource,
           title: "Upload Source",
           options: UPLOAD_SOURCE_OPTIONS,
+        },
+        {
+          type: "excludable",
+          includeKey: PreferenceID.IncludedSources,
+          excludeKey: PreferenceID.ExcludedSources,
+          title: "Source Groups",
+          options: hooks.sources,
         },
       ],
     },
