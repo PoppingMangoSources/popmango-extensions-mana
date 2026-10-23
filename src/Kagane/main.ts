@@ -123,7 +123,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.3",
+  version: "1.2.4",
   description: "Manga, manhwa, manhua and comics from kagane.cx.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -634,10 +634,13 @@ class KaganeSource
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     if (context?.allowedContentRatings?.length === 0)
       throw new Error("This title is excluded by Mana’s content-rating settings.");
-    const [details, titleOptions, showSpoilerTags] = await Promise.all([
+    // The tag list is what the sections are grouped from; it is kept on the device for a
+    // day, and a migration needs none of it.
+    const [details, titleOptions, showSpoilerTags, taxonomy] = await Promise.all([
       this.fetchDetails(contentId),
       this.titleOptions(),
       this.preferences.flag(PreferenceID.ShowSpoilerTags),
+      isMigration(context) ? Promise.resolve([]) : this.tagOptions(),
     ]);
 
     const content = parseContent(
@@ -645,6 +648,7 @@ class KaganeSource
       details,
       { ...titleOptions, showSpoilerTags },
       (imageId) => this.api.imageUrl(imageId),
+      taxonomy,
     );
 
     if (

@@ -313,7 +313,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.3)
+## Kagane (current: v1.2.4)
+
+### Changed
+
+- A title's tags are grouped into sections such as Era, Adaptations and Content Warnings, below Related Editions and More like this; the chips under the title are its genres.
+
+## Kagane (v1.2.3)
 
 ### Added
 
