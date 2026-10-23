@@ -97,7 +97,7 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.2.0",
+  version: "1.2.1",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -265,9 +265,11 @@ class MangaDexSource
   }
 
   private async sectionEnabled(sectionId: string): Promise<boolean> {
-    const stored = await ObjectStore.boolean(this.preferences.keyFor(this.sectionKey(sectionId)));
+    // `ObjectStore.boolean` answers null for a stored `false`, which would read a row the
+    // reader switched off as untouched and turn it back on.
+    const stored = await ObjectStore.get(this.preferences.keyFor(this.sectionKey(sectionId)));
     // A row nobody has touched is on: the home page ships as the site's own.
-    return stored ?? true;
+    return typeof stored === "boolean" ? stored : true;
   }
 
   // ----- the shared request shape -----

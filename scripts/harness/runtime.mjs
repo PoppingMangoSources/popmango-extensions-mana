@@ -216,23 +216,25 @@ export class ManaStore {
     this.values.delete(k);
   }
 
+  // The host's typed reads answer null for a falsy value — `false`, `0`, `""` — as well as a
+  // missing one, so a source that reads a stored `false` this way gets its default back.
   async string(k) {
     const value = this.values.get(k);
-    if (value === undefined) return null;
+    if (!value) return null;
     if (typeof value !== "string") throw new Error(`${k} is not a string`);
     return value;
   }
 
   async boolean(k) {
     const value = this.values.get(k);
-    if (value === undefined) return null;
+    if (!value) return null;
     if (typeof value !== "boolean") throw new Error(`${k} is not a boolean`);
     return value;
   }
 
   async number(k) {
     const value = this.values.get(k);
-    if (value === undefined) return null;
+    if (!value) return null;
     if (typeof value !== "number") throw new Error(`${k} is not a number`);
     return value;
   }
