@@ -374,6 +374,16 @@ export function excludedTagsKey(groupId: string): string {
   return `${PreferenceID.ExcludedTags}:${groupId}`;
 }
 
+/** The setting a group's required tags are stored under. */
+export function includedTagsKey(groupId: string): string {
+  return `${PreferenceID.IncludedTags}:${groupId}`;
+}
+
+/** Every key a required tag may live under. */
+export const INCLUDED_TAG_KEYS: readonly string[] = TAG_GROUPS.map((group) =>
+  includedTagsKey(group.id),
+);
+
 /** Every key a hidden tag may live under, the ungrouped one this replaced included. */
 export const EXCLUDED_TAG_KEYS: readonly string[] = [
   PreferenceID.ExcludedTags,

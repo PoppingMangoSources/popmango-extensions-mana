@@ -1,5 +1,6 @@
 import {
   UIButton,
+  UIExcludableMultiPickerSheet,
   UIListSection,
   UIMultiPicker,
   UIPicker,
@@ -173,6 +174,18 @@ export type PreferenceField =
       minSelectionCount?: number;
       maxSelectionCount?: number;
     }
+  /**
+   * One picker over two stored lists — what to require and what to hide — tapped once to
+   * include and again to exclude, the way a site's own tag filter works. Each half keeps
+   * its own key, so a hide-list saved before the picker had two states reads as before.
+   */
+  | {
+      type: "excludable";
+      includeKey: string;
+      excludeKey: string;
+      title: string;
+      options: PreferenceOptions;
+    }
   | {
       type: "stepper";
       key: string;
@@ -278,6 +291,30 @@ async function buildElement(
       });
     }
 
+    case "excludable": {
+      const options = await resolveOptions(field.options);
+      if (options.length === 0) return null;
+      const known = new Set(options.map((option) => option.id));
+      const read = async (key: string): Promise<string[]> => {
+        const stored = await store.get(key);
+        return Array.isArray(stored) ? stored.filter((entry) => known.has(entry)) : [];
+      };
+      const [included, excluded] = await Promise.all([
+        read(field.includeKey),
+        read(field.excludeKey),
+      ]);
+      return UIExcludableMultiPickerSheet({
+        id,
+        title: field.title,
+        options,
+        value: { included, excluded: excluded.filter((entry) => !included.includes(entry)) },
+        didChange: async (value: { included: string[]; excluded: string[] }) => {
+          await store.set(field.includeKey, value.included);
+          await store.set(field.excludeKey, value.excluded);
+        },
+      });
+    }
+
     case "stepper":
       return UIStepper({
         id,
@@ -309,7 +346,10 @@ export async function buildPreferenceMenu(
       const element =
         field.type === "button"
           ? await buildElement(field, store.keyFor(field.id), undefined, store)
-          : await buildElement(field, store.keyFor(field.key), await store.get(field.key), store);
+          : field.type === "excludable"
+            ? // Its own id: the hide-list's picker had a different shape under the old one.
+              await buildElement(field, `${store.keyFor(field.excludeKey)}.both`, undefined, store)
+            : await buildElement(field, store.keyFor(field.key), await store.get(field.key), store);
 
       if (element) children.push(element);
       else unavailable.push(field.title);

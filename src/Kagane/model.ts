@@ -7,6 +7,24 @@ export const API_URL = `${BASE_URL}/api/v2`;
 
 export const DEFAULT_CACHE_URL = BASE_URL;
 
+/** Every address the site answers on; each serves the same library and the same API. */
+export const MIRRORS = ["kagane.org", "kagane.cx", "kagane.si", "kagane.moe", "kagane.net"];
+
+export const MIRROR_OPTIONS: Option[] = MIRRORS.map((host) => ({ id: host, title: host }));
+
+/**
+ * Whether a host may be sent a reader token: one of the mirrors, a subdomain of one, or
+ * the image CDN they share. A `cache_url` naming anything else is not followed.
+ */
+export function isTrustedHost(host: string): boolean {
+  const name = host.toLowerCase();
+  return (
+    name === "kstatic.to" ||
+    name.endsWith(".kstatic.to") ||
+    MIRRORS.some((mirror) => name === mirror || name.endsWith(`.${mirror}`))
+  );
+}
+
 /** A request body, which the API is sent as JSON. */
 export type JsonObject = { [key: string]: JsonValue };
 
@@ -51,7 +69,10 @@ export const PreferenceID = {
   AgeRating: "age-rating",
   ShowPornographic: "show-pornographic",
   ExcludedGenres: "excluded-genres",
+  IncludedGenres: "included-genres",
   ExcludedTags: "excluded-tags",
+  IncludedTags: "included-tags",
+  Mirror: "mirror",
   UploadSource: "upload-source",
   ShowSourceInTitle: "show-source-in-title",
   ShowEditionInTitle: "show-edition-in-title",
@@ -238,7 +259,9 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.AgeRating]: [] as string[],
   [PreferenceID.ShowPornographic]: true,
   [PreferenceID.ExcludedGenres]: [] as string[],
+  [PreferenceID.IncludedGenres]: [] as string[],
   [PreferenceID.ExcludedTags]: [] as string[],
+  [PreferenceID.Mirror]: "kagane.org",
   [PreferenceID.UploadSource]: "all",
   [PreferenceID.ShowSourceInTitle]: false,
   [PreferenceID.ShowEditionInTitle]: false,
@@ -379,6 +402,7 @@ export type TrackedSeries = {
   age_rating?: string | null;
   content_rating?: string | null;
   is_pornographic?: boolean;
+  is_disturbing?: boolean;
 };
 
 export type SimilarOptions = {

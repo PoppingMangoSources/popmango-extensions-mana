@@ -15,6 +15,10 @@ export type SearchBodyOptions = {
   translatedLanguages?: string[];
   excludedGenreIds: string[];
   excludedTagIds: string[];
+  /** Genres the settings require, applied wherever the hide-lists are. */
+  includedGenreIds?: string[];
+  /** Tags the settings require: one group of site ids per tag, any of which will do. */
+  includedTagGroups?: string[][];
   allowedRatings?: readonly ContentRating[];
   hideDisturbing: boolean;
   /** The site's `{ id: name }` tag list, needed only when a tag was typed rather than picked. */
@@ -106,10 +110,39 @@ export function readTagSelection(
   };
 }
 
+/**
+ * The tags a search asks for, with the ones the settings require added when it is a
+ * browse rather than a search by name. A required tag the form excludes is left out, so
+ * one search can still look past it.
+ */
+export function withRequiredTags(
+  selection: TagSelection,
+  options: SearchBodyOptions,
+  browsing: boolean,
+): TagSelection {
+  if (!browsing || !options.includedTagGroups?.length) return selection;
+  const excluded = new Set(selection.excluded.map((id) => id.toLowerCase()));
+  const required = options.includedTagGroups.filter((group) =>
+    group.some((id) => !excluded.has(id)),
+  );
+  return { ...selection, included: [...selection.included, ...required] };
+}
+
+/** Whether a search over these groups has to be checked locally, alias by alias. */
+export function needsGroupCheck(selection: TagSelection): boolean {
+  return (
+    selection.matchAll &&
+    selection.included.length > 1 &&
+    selection.included.some((group) => group.length > 1)
+  );
+}
+
 export function matchesTagGroups(ids: string[] | undefined, groups: string[][]): boolean {
   const present = new Set((ids ?? []).map((id) => id.toLowerCase()));
   return groups.every((group) => group.some((id) => present.has(id)));
 }
+
+const EMPTY_SELECTION: TagSelection = { included: [], excluded: [], matchAll: true };
 
 type IncludeExclude = { match_all?: boolean; values: string[]; exclude?: string[] };
 
@@ -193,12 +226,19 @@ export function buildSearchBody(
 
   const hiddenGenreIds = browsing ? options.excludedGenreIds : [];
   const hiddenTagIds = browsing ? options.excludedTagIds : [];
+  const requiredGenreIds = browsing ? (options.includedGenreIds ?? []) : [];
 
   if (!filters) {
-    const genres = buildIncludeExclude([], hiddenGenreIds, false, "genres");
+    const genres = buildIncludeExclude(requiredGenreIds, hiddenGenreIds, true, "genres");
     if (genres) body["genres"] = genres;
 
-    const tags = buildIncludeExclude([], hiddenTagIds.flatMap(tagIdsOf), false, "tags");
+    const required = selection ?? withRequiredTags(EMPTY_SELECTION, options, browsing);
+    const tags = buildIncludeExclude(
+      required.included.flat(),
+      hiddenTagIds.flatMap(tagIdsOf),
+      required.included.every((group) => group.length === 1),
+      "tags",
+    );
     if (tags) body["tags"] = tags;
     return body;
   }
@@ -216,11 +256,20 @@ export function buildSearchBody(
     body["is_disturbing"] = disturbing === "only";
 
   const sources = filters.options(FilterID.Sources);
-  if (sources.length > 0) body["source_id"] = checkedValues(sources, "sources");
+  if (sources.length > 0) {
+    body["source_id"] = checkedValues(sources, "sources");
+    // Picked sources stand in for the Upload Source setting for this search; sending both
+    // asks for an official upload from a scanlation group and finds nothing.
+    delete body["source_type"];
+  }
 
   const genreSelection = filters.excludable(FilterID.Genres);
+  const formExcludedGenres = new Set(genreSelection.excluded.map((id) => id.toLowerCase()));
   const genres = buildIncludeExclude(
-    genreSelection.included,
+    [
+      ...genreSelection.included,
+      ...requiredGenreIds.filter((id) => !formExcludedGenres.has(id.toLowerCase())),
+    ],
     [...new Set([...genreSelection.excluded, ...hiddenGenreIds])],
     !filters.has(FilterID.MatchAllGenres) ||
       filters.option(FilterID.MatchAllGenres) === "all" ||
@@ -229,7 +278,8 @@ export function buildSearchBody(
   );
   if (genres) body["genres"] = genres;
 
-  const pickedTags = selection ?? readTagSelection(filters, options.tagNames);
+  const pickedTags =
+    selection ?? withRequiredTags(readTagSelection(filters, options.tagNames), options, browsing);
   // A flat API list cannot express (alias A OR alias B) AND another tag.
   // Request their union and check the conceptual groups on the returned bulk rows.
   const tags = buildIncludeExclude(

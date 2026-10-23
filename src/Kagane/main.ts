@@ -3,6 +3,7 @@
 import {
   AdditionalInfoType,
   CatalogRating,
+  DefinedLanguages,
   HttpClient,
   RequestOrigin,
   additionalInfo,
@@ -56,9 +57,10 @@ import {
   isMigration,
   withDefaults,
 } from "../common/index.ts";
-import { KaganeApi } from "./client.ts";
+import { KaganeApi, onMirror } from "./client.ts";
 import {
   BASE_URL,
+  MIRRORS,
   type JsonObject,
   CONTENT_RATING_OPTIONS,
   CONTENT_RATINGS,
@@ -80,6 +82,7 @@ import {
   type SeriesSummary,
   type SearchResponse,
   type DetailsResponse,
+  type TrackedSeries,
 } from "./model.ts";
 import {
   formatDescriptor,
@@ -102,9 +105,17 @@ import {
   ratingsForAges,
   readTagSelection,
   matchesTagGroups,
+  needsGroupCheck,
+  withRequiredTags,
   type SearchBodyOptions,
 } from "./search.ts";
-import { EXCLUDED_TAG_KEYS, groupTags, tagFilterId, tagIdsOf } from "./tag-groups.ts";
+import {
+  EXCLUDED_TAG_KEYS,
+  INCLUDED_TAG_KEYS,
+  groupTags,
+  tagFilterId,
+  tagIdsOf,
+} from "./tag-groups.ts";
 import { buildSettingsSections } from "./settings.ts";
 
 const info: SourceInfo = {
@@ -114,7 +125,15 @@ const info: SourceInfo = {
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
-  // Left unlisted so the catalogue reads Multi: uploads span far more languages than any short list.
+  supportedLanguages: [
+    DefinedLanguages.ENGLISH,
+    DefinedLanguages.KOREAN,
+    DefinedLanguages.JAPANESE,
+    DefinedLanguages.FRENCH,
+    DefinedLanguages.CHINESE,
+    DefinedLanguages.SPANISH,
+    DefinedLanguages.PORTUGUESE,
+  ],
   thumbnail: "Kagane.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
@@ -122,7 +141,7 @@ const info: SourceInfo = {
 const config: SourceConfig = {
   disableUpdateChecks: false,
   cloudflareResolutionURL: BASE_URL,
-  owningLinks: ["kagane.org"],
+  owningLinks: MIRRORS,
 };
 
 const DETAIL_CACHE_MS = 60_000;
@@ -140,7 +159,9 @@ class KaganeSource
   readonly info = info;
   readonly config = config;
 
-  private readonly api = new KaganeApi();
+  private readonly api = new KaganeApi(() =>
+    this.preferences.text(PreferenceID.Mirror, MIRRORS[0]!),
+  );
   // A page's token outlives neither its reader session nor a quality switch, so each page
   // is re-signed as it is asked for — here, because the transport hooks cannot wait.
   private readonly images = new HttpClient().addRequestInterceptor(async (request, context) => {
@@ -149,14 +170,18 @@ class KaganeSource
       const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
       request.url = await this.api.refreshPageUrl(request.url, dataSaver);
     }
-    withDefaults(request.headers, { referer: `${BASE_URL}/`, origin: BASE_URL });
+    const site = await this.api.siteUrl();
+    request.url = onMirror(request.url, site.slice("https://".length));
+    withDefaults(request.headers, { referer: `${site}/`, origin: site });
     return request;
   });
-  // The store answers only for keys it has a default for, and the hide-lists are one key
-  // per tag group, so those are declared here alongside the fixed ones.
+  // The store answers only for keys it has a default for, and the hide-lists and required
+  // lists are one key per tag group, so those are declared here alongside the fixed ones.
   private readonly preferences = new PreferenceStore(info.id, {
     ...(PREFERENCE_DEFAULTS as Record<string, PreferenceValue>),
-    ...Object.fromEntries(EXCLUDED_TAG_KEYS.map((key) => [key, [] as string[]])),
+    ...Object.fromEntries(
+      [...EXCLUDED_TAG_KEYS, ...INCLUDED_TAG_KEYS].map((key) => [key, [] as string[]]),
+    ),
   });
 
   private readonly tagSearchPages = new Map<
@@ -164,6 +189,9 @@ class KaganeSource
     {
       at: number;
       pages: Map<number, Promise<TagSearchPage>>;
+      // Where each page starts in the site's own paging. It outlives the cached pages, so
+      // coming back to page 6 asks only for page 6 rather than walking pages 1 to 5 again.
+      starts: Map<number, number>;
     }
   >();
 
@@ -178,6 +206,8 @@ class KaganeSource
       contentLanguages,
       excludedGenreIds,
       excludedTagIds,
+      includedGenreIds,
+      includedTagGroups,
       originalLanguages,
       translatedLanguages,
     ] = await Promise.all([
@@ -186,6 +216,8 @@ class KaganeSource
       this.preferences.strings(PreferenceID.ContentLanguages),
       this.preferences.strings(PreferenceID.ExcludedGenres),
       this.hiddenTags(),
+      this.preferences.strings(PreferenceID.IncludedGenres),
+      this.requiredTagGroups(),
       this.preferences.strings(PreferenceID.OriginalLanguages),
       this.preferences.strings(PreferenceID.TranslatedLanguages),
     ]);
@@ -199,6 +231,8 @@ class KaganeSource
       translatedLanguages,
       excludedGenreIds,
       excludedTagIds,
+      includedGenreIds,
+      includedTagGroups,
       hideDisturbing: await this.preferences.flag(PreferenceID.HideDisturbing),
       ...(context?.allowedContentRatings === undefined
         ? {}
@@ -227,6 +261,19 @@ class KaganeSource
   private async hiddenTags(): Promise<string[]> {
     const lists = await Promise.all(EXCLUDED_TAG_KEYS.map((key) => this.preferences.strings(key)));
     return [...new Set(lists.flat())];
+  }
+
+  /** Every tag the settings require, each as the group of site ids it stands for. */
+  private async requiredTagGroups(): Promise<string[][]> {
+    const lists = await Promise.all(INCLUDED_TAG_KEYS.map((key) => this.preferences.strings(key)));
+    const seen = new Set<string>();
+    return lists.flat().flatMap((value) => {
+      const group = [...new Set(tagIdsOf(value).map((id) => id.toLowerCase()))];
+      const key = group.join(",");
+      if (!group.length || seen.has(key)) return [];
+      seen.add(key);
+      return [group];
+    });
   }
 
   private async titleOptions(): Promise<TitleOptions> {
@@ -471,14 +518,20 @@ class KaganeSource
         languages: () => this.languageOptions(),
         resetContentFilters: async () => {
           await this.preferences.reset(PreferenceID.ExcludedGenres);
-          for (const key of EXCLUDED_TAG_KEYS) await this.preferences.reset(key);
+          await this.preferences.reset(PreferenceID.IncludedGenres);
+          for (const key of [...EXCLUDED_TAG_KEYS, ...INCLUDED_TAG_KEYS])
+            await this.preferences.reset(key);
           await this.preferences.reset(PreferenceID.NormalizedRatings);
           await this.preferences.reset(PreferenceID.ContentRating);
           await this.preferences.reset(PreferenceID.AgeRating);
           await this.preferences.reset(PreferenceID.ShowPornographic);
         },
         resetAll: async () => {
-          for (const key of Object.keys(PREFERENCE_DEFAULTS)) {
+          for (const key of [
+            ...Object.keys(PREFERENCE_DEFAULTS),
+            ...EXCLUDED_TAG_KEYS,
+            ...INCLUDED_TAG_KEYS,
+          ]) {
             await this.preferences.reset(key);
           }
         },
@@ -513,7 +566,11 @@ class KaganeSource
     const searchOptions = filters.text(FilterID.TagQuery)
       ? { ...options, tagNames: await this.api.fetchTagNames() }
       : options;
-    const tags = readTagSelection(filters, searchOptions.tagNames);
+    const tags = withRequiredTags(
+      readTagSelection(filters, searchOptions.tagNames),
+      searchOptions,
+      !request.query?.trim(),
+    );
     const body = buildSearchBody(searchOptions, filters, tags);
 
     for (const [id, kind] of [
@@ -542,9 +599,7 @@ class KaganeSource
       filters.toggle(FilterID.ExactMatch),
       selectedContentRatings(options, filters),
       request.context,
-      tags.matchAll && tags.included.length > 1 && tags.included.some((group) => group.length > 1)
-        ? tags.included
-        : undefined,
+      needsGroupCheck(tags) ? tags.included : undefined,
     );
   }
 
@@ -574,95 +629,105 @@ class KaganeSource
     // A migration needs only matching metadata, not the enrichment requests below.
     if (isMigration(context)) return content;
 
-    const related = details.tracker_id
-      ? await this.api
-          .fetchRelated(details.tracker_id)
-          .then((response) => response.book_series ?? [])
-          .catch(() => [])
-      : [];
+    const options = await this.bodyOptions(undefined, context);
+    const ratings = selectedContentRatings(options);
+    // Both rows are asked for together: the editions of this work first, then what the
+    // site recommends beside them, each held to the same rating and disturbing settings.
+    const [related, similar] = await Promise.all([
+      details.tracker_id
+        ? this.api
+            .fetchRelated(details.tracker_id)
+            .then((response) => response.book_series ?? [])
+            .catch(() => [])
+        : Promise.resolve([]),
+      ratings.length
+        ? this.api
+            .fetchSimilar(contentId, {
+              ratings,
+              languages: options.contentLanguages,
+              uploadSource: options.uploadSource,
+              hideDisturbing: options.hideDisturbing,
+            })
+            .then((response) => response.content ?? [])
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]);
 
-    let others = related
+    const editions = related
       .filter(
         (entry) =>
           entry.id !== contentId &&
           !!entry.cover_image_id?.trim() &&
-          (context?.allowedContentRatings === undefined ||
-            context.allowedContentRatings.includes(parseContentRating(entry)!)),
+          ratings.includes(contentRatingId(entry) ?? "Erotica") &&
+          !(options.hideDisturbing && entry.is_disturbing),
       )
       .slice(0, 10);
-    const similar = others.length === 0;
-    if (similar) {
-      const options = await this.bodyOptions(undefined, context);
-      const ratings = selectedContentRatings(options);
-      if (!ratings.length) return content;
-      const response = await this.api
-        .fetchSimilar(contentId, {
-          ratings,
-          languages: options.contentLanguages,
-          uploadSource: options.uploadSource,
-          hideDisturbing: options.hideDisturbing,
-        })
-        .catch(() => ({ content: [] }));
-      const hiddenGenres = new Set(options.excludedGenreIds);
-      const hiddenTags = new Set(options.excludedTagIds.flatMap(tagIdsOf));
-      const languages = new Set(options.contentLanguages.map((language) => language.toLowerCase()));
-      const seen = new Set([contentId]);
-      others = (response.content ?? [])
-        .filter((entry) => {
-          if (
-            seen.has(entry.series_id) ||
-            !entry.cover_image_id?.trim() ||
-            entry.hidden_by_filter ||
-            !ratings.includes(contentRatingId(entry) ?? "Erotica") ||
-            (options.hideDisturbing && entry.is_disturbing) ||
-            (languages.size && !languages.has(entry.translated_language?.toLowerCase() ?? "")) ||
-            entry.genres?.some((id) => hiddenGenres.has(id)) ||
-            entry.tags?.some((id) => hiddenTags.has(id))
-          )
-            return false;
-          seen.add(entry.series_id);
-          return true;
-        })
-        .map((entry) => ({ ...entry, id: entry.series_id }));
-    }
-    if (others.length === 0) return content;
+
+    const hiddenGenres = new Set(options.excludedGenreIds);
+    const hiddenTags = new Set(options.excludedTagIds.flatMap(tagIdsOf));
+    const requiredGenres = options.includedGenreIds ?? [];
+    const requiredTags = options.includedTagGroups ?? [];
+    const languages = new Set(options.contentLanguages.map((language) => language.toLowerCase()));
+    const seen = new Set([contentId, ...editions.map((entry) => entry.id)]);
+    const recommended = similar
+      .filter((entry) => {
+        if (
+          seen.has(entry.series_id) ||
+          !entry.cover_image_id?.trim() ||
+          entry.hidden_by_filter ||
+          !ratings.includes(contentRatingId(entry) ?? "Erotica") ||
+          (options.hideDisturbing && entry.is_disturbing) ||
+          (languages.size && !languages.has(entry.translated_language?.toLowerCase() ?? "")) ||
+          entry.genres?.some((id) => hiddenGenres.has(id)) ||
+          entry.tags?.some((id) => hiddenTags.has(id)) ||
+          !requiredGenres.every((id) => entry.genres?.includes(id)) ||
+          !matchesTagGroups(entry.tags, requiredTags)
+        )
+          return false;
+        seen.add(entry.series_id);
+        return true;
+      })
+      .map((entry) => ({ ...entry, id: entry.series_id }));
+
+    const row = (id: string, title: string, entries: TrackedSeries[]) =>
+      additionalInfo.highlights.section({
+        id,
+        title,
+        hasMore: false,
+        items: entries.map((entry) =>
+          additionalInfo.highlights.item({
+            type: AdditionalInfoType.Highlights,
+            id: entry.id,
+            title: formatTitle(entry.title, titleOptions, entry.source_id),
+            cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
+            // An edition carries its own rating, which need not be the one being read.
+            contentRating: parseContentRating(entry),
+            webUrl: seriesUrl(entry.id),
+          }),
+        ),
+      });
 
     return {
       ...content,
       additionalInfo: [
+        ...(editions.length ? [row("related", "Related Editions", editions)] : []),
+        ...(recommended.length ? [row("similar", "More like this", recommended)] : []),
         ...(content.additionalInfo ?? []),
-        additionalInfo.highlights.section({
-          id: similar ? "similar" : "related",
-          title: similar ? "More like this" : "Related Editions",
-          hasMore: false,
-          items: others.map((entry) =>
-            additionalInfo.highlights.item({
-              type: AdditionalInfoType.Highlights,
-              id: entry.id,
-              title: formatTitle(entry.title, titleOptions, entry.source_id),
-              cover: entry.cover_image_id ? this.api.imageUrl(entry.cover_image_id) : "",
-              // An edition carries its own rating, which need not be the one being read.
-              contentRating: parseContentRating(entry),
-              webUrl: seriesUrl(entry.id),
-            }),
-          ),
-        }),
       ],
     };
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [details, sources, chapterTitle] = await Promise.all([
+    const [details, sources, chapterTitle, books] = await Promise.all([
       this.fetchDetails(contentId),
       this.api.fetchUploadSources(),
       this.preferences.text(PreferenceID.ChapterTitle, "auto"),
+      this.api.fetchBooks(contentId),
     ]);
 
     const source = details.source_id
       ? sources.find((entry) => entry.source_id === details.source_id)
       : undefined;
-
-    const books = await this.api.fetchBooks(contentId);
 
     return parseChapters(
       contentId,
@@ -676,12 +741,22 @@ class KaganeSource
     );
   }
 
-  async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
+  async getChapterData(contentId: string, chapterId: string): Promise<ChapterData> {
     const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
     const challenge = await this.api.fetchChallenge(chapterId, dataSaver);
 
     const manifest = challenge.manifest?.pages ?? [];
-    if (manifest.length === 0) throw new Error(`Kagane returned no pages for chapter ${chapterId}`);
+    if (manifest.length === 0) throw new Error("Kagane returned no pages for this chapter.");
+
+    // Checked only against a chapter list already in hand: fetching one here would cost a
+    // request on every chapter opened to catch something that rarely happens.
+    const expected = this.api
+      .recentBooks(contentId)
+      ?.find((book) => book.book_id === chapterId)?.page_count;
+    if (expected !== undefined && manifest.length < expected)
+      throw new Error(
+        `Kagane returned ${manifest.length} of this chapter's ${expected} pages. Try again in a moment.`,
+      );
 
     const cacheUrl = challenge.cache_url || BASE_URL;
 
@@ -710,7 +785,7 @@ class KaganeSource
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
     const seriesId =
-      /^https?:\/\/(?:www\.)?kagane\.org\/series\/(?:[^/?#]*-)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i.exec(
+      /^https?:\/\/(?:www\.)?kagane\.(?:org|cx|si|moe|net)\/series\/(?:[^/?#]*-)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i.exec(
         url,
       )?.[1];
     if (!seriesId) return null;
@@ -759,7 +834,12 @@ class KaganeSource
         ? { results: [], isLastPage: true }
         : this.loadTrending(options, ratings, size, context);
     }
-    const body = buildSearchBody(options);
+    const required = withRequiredTags(
+      { included: [], excluded: [], matchAll: true },
+      options,
+      true,
+    );
+    const body = buildSearchBody(options, undefined, required);
     return this.runSearch(
       body,
       page,
@@ -769,6 +849,7 @@ class KaganeSource
       false,
       ratings,
       context,
+      needsGroupCheck(required) ? required.included : undefined,
     );
   }
 
@@ -784,6 +865,8 @@ class KaganeSource
       uploadSource: "all",
       excludedGenreIds: [],
       excludedTagIds: [],
+      includedGenreIds: [],
+      includedTagGroups: [],
     });
     const [chart, titleOptions] = await Promise.all([
       this.api.fetchTrending(body, limit),
@@ -870,28 +953,36 @@ class KaganeSource
   ): Promise<SearchResponse> {
     const key = JSON.stringify([body, size, sort, exactMatch, groups]);
     let cached = this.tagSearchPages.get(key);
-    if (!cached || Date.now() - cached.at > 30_000) {
+    if (!cached) {
       if (this.tagSearchPages.size >= 25)
         this.tagSearchPages.delete(this.tagSearchPages.keys().next().value!);
-      cached = { at: Date.now(), pages: new Map() };
+      cached = { at: Date.now(), pages: new Map(), starts: new Map() };
       this.tagSearchPages.set(key, cached);
+    } else if (Date.now() - cached.at > 30_000) {
+      cached.at = Date.now();
+      cached.pages.clear();
     }
-    const pages = cached.pages;
+    const { pages, starts } = cached;
     const load = (logicalPage: number): Promise<TagSearchPage> => {
       const existing = pages.get(logicalPage);
       if (existing) return existing;
       const request = (async (): Promise<TagSearchPage> => {
-        const previous = logicalPage > 1 ? await load(logicalPage - 1) : undefined;
-        if (previous?.response.last === true)
-          return { response: { content: [], last: true }, nextPage: previous.nextPage };
-        let rawPage = previous?.nextPage ?? 1;
+        let rawPage = starts.get(logicalPage);
+        if (rawPage === undefined) {
+          const previous = logicalPage > 1 ? await load(logicalPage - 1) : undefined;
+          if (previous?.response.last === true)
+            return { response: { content: [], last: true }, nextPage: previous.nextPage };
+          rawPage = previous?.nextPage ?? 1;
+        }
         for (let attempt = 0; attempt < 20; attempt++, rawPage++) {
           const response = await this.api.fetchSearch(body, rawPage, size, sort, exactMatch);
           const content = (response.content ?? []).filter((book) =>
             matchesTagGroups(book.tags, groups),
           );
-          if (content.length || response.last !== false)
+          if (content.length || response.last !== false) {
+            if (response.last === false) starts.set(logicalPage + 1, rawPage + 1);
             return { response: { ...response, content }, nextPage: rawPage + 1 };
+          }
         }
         throw new Error(
           "Too many Kagane pages did not match all selected tags. Narrow your search.",
