@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.16)
+## Toonkotsu (current: v1.1.17)
+
+### Fixed
+
+- Search filters open even when the tag list cannot be loaded.
+
+## Toonkotsu (v1.1.16)
 
 ### Changed
 
@@ -2896,7 +2902,13 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.2.1)
+## Mangago (current: v1.2.2)
+
+### Fixed
+
+- Featured Manga asks for the Cloudflare check instead of showing an empty row.
+
+## Mangago (v1.2.1)
 
 ### Changed
 
