@@ -5,9 +5,11 @@ import {
   additionalInfo,
   ContentType,
   PublicationStatus,
+  type AdditionalInfoSection,
   type Chapter,
   type Content,
   type Highlight,
+  type Option,
   type Pair,
   type Tag,
 } from "@mana-app/types";
@@ -34,12 +36,14 @@ import {
   CHAPTER_NUMBER_PREFIX_REGEX,
   CHAPTER_TRAILING_GROUP_REGEX,
   CHAPTER_VOLUME_SUFFIX_REGEX,
+  FilterID,
   TITLE_BRACKET_REGEX,
   type ChapterBook,
   type BookIndexResponse,
   type DetailsResponse,
   type SeriesSummary,
 } from "./model.ts";
+import { groupTags, tagFilterId, tagIdsOf } from "./tag-groups.ts";
 
 export type TitleOptions = {
   cleanTitle: boolean;
@@ -256,11 +260,70 @@ export function parseHighlight(
   };
 }
 
+/** The most items the app keeps in one profile section. */
+const SECTION_LIMIT = 10;
+
+/**
+ * A title's tags as sections, one per tag group, the way the search form groups them.
+ *
+ * The groups are cut from the site's whole tag list rather than this title's, so an entry
+ * carries the same id — every alias of the tag — as the search form's picker, and the
+ * section carries that picker's id: a tapped tag searches for exactly what the form would.
+ * Past the app's ten items a section's remainder is named in the summary instead, and a tag
+ * the list does not know goes in a plain Tags section.
+ */
+function tagSections(
+  tags: { tag_id: string; tag_name: string }[],
+  taxonomy: Option[],
+): { sections: AdditionalInfoSection[]; overflow: string[] } {
+  const present = new Set(tags.map((tag) => tag.tag_id.toLowerCase()));
+  const represented = new Set<string>();
+  const sections: AdditionalInfoSection[] = [];
+  const overflow: string[] = [];
+
+  const section = (id: string, title: string, entries: Option[]): void => {
+    if (entries.length > SECTION_LIMIT)
+      overflow.push(
+        `More ${title} tags: ${entries
+          .slice(SECTION_LIMIT)
+          .map((entry) => entry.title)
+          .join(", ")}`,
+      );
+    sections.push(
+      additionalInfo.tags.section({
+        id,
+        title,
+        items: entries
+          .slice(0, SECTION_LIMIT)
+          .map((entry) => additionalInfo.tags.item({ id: entry.id, title: entry.title })),
+      }),
+    );
+  };
+
+  for (const { group, options } of groupTags(taxonomy)) {
+    const matched = options.filter((option) =>
+      tagIdsOf(option.id).some((id) => present.has(id.toLowerCase())),
+    );
+    if (!matched.length) continue;
+    for (const option of matched)
+      for (const id of tagIdsOf(option.id)) represented.add(id.toLowerCase());
+    section(tagFilterId(group.id), group.title, matched);
+  }
+
+  const rest = tags
+    .filter((tag) => !represented.has(tag.tag_id.toLowerCase()))
+    .map((tag) => ({ id: tag.tag_id, title: tag.tag_name }));
+  if (rest.length) section(FilterID.Tags, "Tags", rest);
+
+  return { sections, overflow };
+}
+
 export function parseContent(
   seriesId: string,
   details: DetailsResponse,
   options: TitleOptions & { showSpoilerTags: boolean },
   coverFor: (imageId: string) => string,
+  taxonomy: Option[] = [],
 ): Content {
   const sourceName = details.source_id ? options.sources[details.source_id] : undefined;
 
@@ -275,26 +338,26 @@ export function parseContent(
     .map((entry) => entry.title.trim())
     .filter(Boolean);
 
-  const tags: Tag[] = [
-    ...(details.genres ?? [])
-      .filter((genre) => options.showSpoilerTags || !genre.is_spoiler)
-      .map((genre) => ({
-        id: genre.genre_id,
-        title: genre.genre_name,
-      })),
-    ...(details.tags ?? [])
-      .filter((tag) => options.showSpoilerTags || !tag.is_spoiler)
-      .map((tag) => ({
-        id: tag.tag_id,
-        title: tag.tag_name,
-      })),
-  ];
+  // The chips under the title are the genres; the tags follow in sections of their own.
+  const tags: Tag[] = (details.genres ?? [])
+    .filter((genre) => options.showSpoilerTags || !genre.is_spoiler)
+    .map((genre) => ({
+      id: genre.genre_id,
+      title: genre.genre_name,
+    }));
+  const visibleTags = (details.tags ?? []).filter(
+    (tag) => options.showSpoilerTags || !tag.is_spoiler,
+  );
+  const grouped = tagSections(visibleTags, taxonomy);
 
-  const summary = buildSummary(details, sourceName);
+  const summary = [buildSummary(details, sourceName), ...grouped.overflow].join("\n\n");
   const status = parseStatus(details.publication_status ?? details.upload_status);
   const contentType = parseContentType(details.format);
 
-  const panel = panelMode({ type: contentType, tags: tags.map((tag) => tag.title) });
+  const panel = panelMode({
+    type: contentType,
+    tags: [...tags, ...visibleTags.map((tag) => ({ title: tag.tag_name }))].map((tag) => tag.title),
+  });
 
   return {
     title: formatTitle(details.title, options, details.source_id, details.edition_info),
@@ -316,6 +379,7 @@ export function parseContent(
     ...(status === undefined ? {} : { status }),
     webUrl: seriesUrl(seriesId),
     additionalInfo: [
+      ...grouped.sections,
       ...(contentRatingId(details) === undefined
         ? [
             additionalInfo.tags.section({
