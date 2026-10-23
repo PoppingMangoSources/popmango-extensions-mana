@@ -14,6 +14,7 @@ import {
 
 import {
   Mark,
+  compactCount,
   decodeEntities,
   panelMode,
   firstFilled,
@@ -167,7 +168,7 @@ export function highlightBadge(book: SeriesSummary): string {
   const kind = formatKind(book);
   const status = formatStatus(book) ?? "";
   return firstFilled(
-    book.rating ? `★ ${(book.rating / 10).toFixed(1)}` : "",
+    book.rating ? `${Mark.Rating} ${(book.rating / 10).toFixed(1)}` : "",
     typePill(kind),
     statusPill(status),
   );
@@ -214,7 +215,8 @@ export function parseLatestChapterDate(book: SeriesSummary): Date | undefined {
  */
 export function buildInfoRows(book: SeriesSummary): Pair[] {
   const rows: Pair[] = [];
-  if (book.rating) rows.push({ key: "Rating", value: `★ ${(book.rating / 10).toFixed(1)}` });
+  if (book.rating)
+    rows.push({ key: "Rating", value: `${Mark.Rating} ${(book.rating / 10).toFixed(1)}` });
 
   const kind = formatKind(book);
   if (kind) rows.push({ key: "Type", value: `${Mark.Type} ${kind}` });
@@ -386,18 +388,12 @@ function formatRating(details: DetailsResponse): string | undefined {
         ? details.bayesian_rating
         : undefined;
 
-  return percent === undefined ? undefined : `★ ${(percent / 10).toFixed(1)}`;
+  return percent === undefined ? undefined : `${Mark.Rating} ${(percent / 10).toFixed(1)}`;
 }
 
-/**
- * The house mark for a view count, beside the star the rating already carries. It is the
- * text-presentation form: the bare codepoint would draw in colour next to a filled star.
- */
 function formatViews(views: number | null | undefined): string | undefined {
-  if (typeof views !== "number" || views <= 0) return undefined;
-  if (views >= 1_000_000) return `⏯︎ ${(views / 1_000_000).toFixed(1)}M`;
-  if (views >= 1_000) return `⏯︎ ${(views / 1_000).toFixed(1)}K`;
-  return `⏯︎ ${views}`;
+  const count = compactCount(views);
+  return count ? `${Mark.Views} ${count}` : undefined;
 }
 
 function buildSummary(details: DetailsResponse, sourceName: string | undefined): string {
@@ -523,7 +519,8 @@ export function parseBookIndex(index: BookIndexResponse): ChapterBook[] {
     const value: Record<string, unknown> = Object.fromEntries(
       index.fields.map((field, column) => [field, row[column]]),
     );
-    const { book_id, title, sort_no, chapter_no, volume_no, released_at, group_ix } = value;
+    const { book_id, title, sort_no, chapter_no, volume_no, released_at, group_ix, page_count } =
+      value;
     if (
       typeof book_id !== "string" ||
       !book_id ||
@@ -558,6 +555,9 @@ export function parseBookIndex(index: BookIndexResponse): ChapterBook[] {
       groups,
       chapter_no: chapter_no as string | null | undefined,
       volume_no: volume_no as string | null | undefined,
+      ...(typeof page_count === "number" && Number.isSafeInteger(page_count) && page_count > 0
+        ? { page_count }
+        : {}),
       ...(date ? { became_visible_at: date.toISOString() } : {}),
     };
   });
@@ -609,12 +609,14 @@ export function parseChapters(
     };
   });
 
-  let highest = Math.max(
-    0,
-    ...chapters.filter((chapter) => chapter.numbered).map((chapter) => chapter.number),
-  );
+  placeUnnumbered(chapters);
   for (const chapter of chapters) {
-    if (!chapter.numbered) chapter.number = ++highest;
+    // A number given to an unnumbered chapter only places it; it is never printed as if the
+    // site had said it, so a Prologue stays "Prologue" rather than becoming "Ch.0".
+    if (!chapter.numbered && options.chapterTitle !== "original") {
+      chapter.title = chapter.name || chapter.originalTitle;
+      continue;
+    }
     switch (options.chapterTitle ?? "auto") {
       case "original":
         chapter.title = chapter.originalTitle;
@@ -651,6 +653,40 @@ export function parseChapters(
       }),
     )
     .reverse();
+}
+
+/**
+ * Numbers for chapters the site left unnumbered, from where they sit in reading order: a
+ * run before the first numbered chapter counts up from 0, one between two numbered chapters
+ * falls between them, and one after the last follows it. Numbering them past the end
+ * instead put a Prologue at Ch.101 of a 100-chapter series, and reading it marked the whole
+ * series read for trackers and progress.
+ */
+function placeUnnumbered(chapters: { number: number; numbered: boolean }[]): void {
+  let start = 0;
+  while (start < chapters.length) {
+    if (chapters[start]!.numbered) {
+      start++;
+      continue;
+    }
+    let end = start;
+    while (end < chapters.length && !chapters[end]!.numbered) end++;
+    const before = start > 0 ? chapters[start - 1]!.number : undefined;
+    const after = end < chapters.length ? chapters[end]!.number : undefined;
+    const count = end - start;
+    for (let offset = 0; offset < count; offset++) {
+      let number: number;
+      if (before === undefined) {
+        const step = after === undefined ? 1 : Math.min(0.1, after / count);
+        number = after === undefined ? offset + 1 : offset * step;
+      } else {
+        const step = after === undefined ? 0.1 : Math.min(0.1, (after - before) / (count + 1));
+        number = before + step * (offset + 1);
+      }
+      chapters[start + offset]!.number = Math.round(number * 1000) / 1000;
+    }
+    start = end;
+  }
 }
 
 export function readerExpiry(token: string): number {

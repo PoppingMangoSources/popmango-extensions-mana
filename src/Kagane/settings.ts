@@ -6,10 +6,11 @@ import type { PreferenceField, PreferenceSection } from "../common/index.ts";
 import {
   CONTENT_RATING_OPTIONS,
   LANGUAGE_OPTIONS,
+  MIRROR_OPTIONS,
   PreferenceID,
   UPLOAD_SOURCE_OPTIONS,
 } from "./model.ts";
-import { excludedTagsKey, groupTags } from "./tag-groups.ts";
+import { excludedTagsKey, groupTags, includedTagsKey } from "./tag-groups.ts";
 
 /**
  * The tag list is read once and split, so a group with nothing in it is not offered.
@@ -19,9 +20,10 @@ async function groupedTagFields(tags: () => Promise<Option[]>): Promise<Preferen
   const grouped = groupTags(await tags().catch(() => []));
 
   return grouped.map(({ group, options }) => ({
-    type: "multiselect",
-    key: excludedTagsKey(group.id),
-    title: `Hide ${group.title}`,
+    type: "excludable",
+    includeKey: includedTagsKey(group.id),
+    excludeKey: excludedTagsKey(group.id),
+    title: group.title,
     options: async () => options,
   }));
 }
@@ -85,7 +87,7 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
     {
       header: "Content",
       footer:
-        "Hide-lists apply to catalogue browsing and More like this, but not a search by name or the Trending chart. Kagane allows 50 excluded genre IDs and 50 excluded tag IDs across all groups; a grouped tag can contain several IDs.",
+        "Tap a genre or tag once to require it and again to hide it. Both apply to catalogue browsing and More like this, but not a search by name or the Trending chart. Kagane allows 50 genre IDs and 50 tag IDs each way across all groups; a grouped tag can contain several IDs.",
       fields: [
         {
           type: "multiselect",
@@ -96,12 +98,13 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
         },
         { type: "toggle", key: PreferenceID.HideDisturbing, title: "Hide Disturbing Content" },
         {
-          type: "multiselect",
-          key: PreferenceID.ExcludedGenres,
-          title: "Hide Genres",
+          type: "excludable",
+          includeKey: PreferenceID.IncludedGenres,
+          excludeKey: PreferenceID.ExcludedGenres,
+          title: "Genres",
           options: hooks.genres,
         },
-        // One hide-list per tag group, for the same reason the search form splits them:
+        // One picker per tag group, for the same reason the search form splits them:
         // the site's tag list is far too long to work through in a single picker.
         ...(await groupedTagFields(hooks.tags)),
       ],
@@ -146,7 +149,19 @@ export async function buildSettingsSections(hooks: SettingsHooks): Promise<Prefe
       ],
     },
     {
-      footer: "Reset returns the hide-lists, or every setting, to their defaults.",
+      header: "Site",
+      footer: "Every mirror serves the same library. Switch if the one in use will not load.",
+      fields: [
+        {
+          type: "select",
+          key: PreferenceID.Mirror,
+          title: "Mirror",
+          options: MIRROR_OPTIONS,
+        },
+      ],
+    },
+    {
+      footer: "Reset returns the content settings, or every setting, to their defaults.",
       fields: [
         {
           type: "button",

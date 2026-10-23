@@ -14,6 +14,8 @@ import {
   API_URL,
   BASE_URL,
   DEFAULT_CACHE_URL,
+  MIRRORS,
+  isTrustedHost,
   type JsonObject,
   type ChallengeResponse,
   type BookIndexResponse,
@@ -21,6 +23,7 @@ import {
   type DetailsResponse,
   type GenreEntry,
   type IntegrityResponse,
+  type ManifestPage,
   type SearchResponse,
   type UploadSource,
   type SourcesResponse,
@@ -38,6 +41,37 @@ import { parseBookIndex, readerExpiry } from "./parsers.ts";
 const STALE_TOKEN_STATUSES = new Set([401, 403, 507]);
 
 const LIST_TTL_MS = 24 * 60 * 60 * 1000;
+const MIRROR_TTL_MS = 5_000;
+const BOOK_INDEX_TTL_MS = 2 * 60 * 1000;
+const READER_SESSION_LIMIT = 40;
+
+/**
+ * `url` moved onto the reader's chosen mirror. Only the default address is rewritten: the
+ * mirrors share one API, so a URL built for kagane.org is answered the same on any of them,
+ * and a host that is not the site's — the image CDN — is left where it is.
+ */
+export function onMirror(url: string, mirror: string): string {
+  if (mirror === MIRRORS[0] || !MIRRORS.includes(mirror)) return url;
+  return url.replace(/^https:\/\/(?:www\.)?kagane\.org(?=[/?#]|$)/i, `https://${mirror}`);
+}
+
+/** A `cache_url` the reader token may be sent to, or the site itself when it is not one. */
+function trustedCacheUrl(value: string | null | undefined): string {
+  const host = /^https:\/\/([^/?#:]+)(?::443)?(?:[/?#]|$)/i.exec(value ?? "")?.[1];
+  return value && host && !hasControlCharacter(value) && isTrustedHost(host)
+    ? value
+    : DEFAULT_CACHE_URL;
+}
+
+// A control character can survive the host check and be normalised away by the network
+// stack afterwards, so a URL carrying one is not trusted at all.
+function hasControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code < 32 || code === 127) return true;
+  }
+  return false;
+}
 
 // A JSON 403/503 is an expired token or a rate limit, not a challenge; only a real
 // fingerprint counts, or every row prompts for a WebView that cannot help.
@@ -60,6 +94,24 @@ async function isChallenged(response: HttpResponse): Promise<boolean> {
 export class KaganeApi {
   private client: HttpClient | undefined;
 
+  constructor(private readonly mirrorSetting: () => Promise<string>) {}
+
+  private mirror = { host: MIRRORS[0]!, at: 0 };
+
+  /** The chosen mirror's front page — where a challenge has to be passed to clear it. */
+  async siteUrl(): Promise<string> {
+    return `https://${await this.mirrorHost()}`;
+  }
+
+  /** The mirror every request goes to, re-read every few seconds rather than per request. */
+  async mirrorHost(): Promise<string> {
+    if (Date.now() - this.mirror.at > MIRROR_TTL_MS) {
+      const chosen = await this.mirrorSetting().catch(() => MIRRORS[0]!);
+      this.mirror = { host: MIRRORS.includes(chosen) ? chosen : MIRRORS[0]!, at: Date.now() };
+    }
+    return this.mirror.host;
+  }
+
   private integrityToken = "";
   private integrityExpiry = 0;
   private integrityRequest: Promise<string> | undefined;
@@ -81,18 +133,23 @@ export class KaganeApi {
   >();
   private readonly readerRequests = new Map<string, Promise<ChallengeResponse>>();
   private readonly chapterLists = new Map<string, Promise<ChapterBook[]>>();
+  // Kept briefly so a chapter opened from the list can be checked against the page count
+  // the list gave for it, without asking for the list a second time.
+  private readonly bookIndexes = new Map<string, { at: number; books: ChapterBook[] }>();
 
   private get http(): HttpClient {
     this.client ??= new HttpClient()
       .setRateLimit(3, 1000)
-      .addRequestInterceptor((request) => {
+      .addRequestInterceptor(async (request) => {
+        const mirror = await this.mirrorHost();
+        request.url = onMirror(request.url, mirror);
         withDefaults(request.headers, {
           // No user-agent: the app's own matches the connection it makes, and a
           // hand-written one is inconsistent enough to get challenged.
           accept: "application/json",
           "content-type": "application/json",
-          origin: BASE_URL,
-          referer: `${BASE_URL}/`,
+          origin: `https://${mirror}`,
+          referer: `https://${mirror}/`,
         });
         return request;
       })
@@ -108,9 +165,9 @@ export class KaganeApi {
   }
 
   private async fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
-    return withChallengeRetry(BASE_URL, async () => {
+    return withChallengeRetry(await this.siteUrl(), async () => {
       const response = await this.http.get(url, headers ? { headers } : undefined);
-      return parseJson<T>(response, url);
+      return parseJson<T>(response);
     });
   }
 
@@ -119,13 +176,13 @@ export class KaganeApi {
     body: JsonObject | undefined,
     headers?: Record<string, string>,
   ): Promise<T> {
-    return withChallengeRetry(BASE_URL, async () => {
+    return withChallengeRetry(await this.siteUrl(), async () => {
       const response = await this.http.post(
         url,
         body === undefined ? undefined : Body.json(body),
         headers ? { headers } : undefined,
       );
-      return parseJson<T>(response, url);
+      return parseJson<T>(response);
     });
   }
 
@@ -180,7 +237,13 @@ export class KaganeApi {
         .setQueryItem("fields", "List")
         .build(),
     )
-      .then(parseBookIndex)
+      .then((books) => {
+        const index = parseBookIndex(books);
+        this.bookIndexes.set(seriesId, { at: Date.now(), books: index });
+        if (this.bookIndexes.size > 20)
+          this.bookIndexes.delete(this.bookIndexes.keys().next().value!);
+        return index;
+      })
       .finally(() => this.chapterLists.delete(seriesId));
     this.chapterLists.set(seriesId, request);
     return request;
@@ -273,6 +336,12 @@ export class KaganeApi {
     return this.fetchJson<SearchResponse>(url.build());
   }
 
+  /** The chapter list fetched in the last few minutes, if there was one; never fetches. */
+  recentBooks(seriesId: string): ChapterBook[] | undefined {
+    const entry = this.bookIndexes.get(seriesId);
+    return entry && Date.now() - entry.at < BOOK_INDEX_TTL_MS ? entry.books : undefined;
+  }
+
   imageUrl(imageId: string): string {
     return new UrlBuilder(API_URL).addPathComponent("image").addPathComponent(imageId).build();
   }
@@ -360,6 +429,20 @@ export class KaganeApi {
     }
   }
 
+  /** Expired sessions go first; past the limit, the oldest goes too. */
+  private rememberSession(
+    key: string,
+    session: { challenge: ChallengeResponse; expiry: number },
+  ): void {
+    const now = Date.now();
+    for (const [entry, { expiry }] of this.readerSessions)
+      if (expiry <= now) this.readerSessions.delete(entry);
+    this.readerSessions.delete(key);
+    this.readerSessions.set(key, session);
+    while (this.readerSessions.size > READER_SESSION_LIMIT)
+      this.readerSessions.delete(this.readerSessions.keys().next().value!);
+  }
+
   private forgetTokens(): void {
     this.integrityToken = "";
     this.integrityExpiry = 0;
@@ -386,7 +469,7 @@ export class KaganeApi {
 
     for (const force of [false, true]) {
       const token = await this.fetchIntegrityToken(force);
-      const response = await withChallengeRetry(BASE_URL, () =>
+      const response = await withChallengeRetry(await this.siteUrl(), () =>
         this.http.post(url, Body.json({}), { headers: { "x-integrity-token": token } }),
       ).catch((error: unknown) => {
         // A challenge here replaces the session both tokens were minted against, so
@@ -400,14 +483,16 @@ export class KaganeApi {
         throw new Error("Kagane rejected the reader token. Try again in a moment.");
       }
 
-      const challenge = await parseJson<ChallengeResponse>(response, url);
+      const challenge = await parseJson<ChallengeResponse>(response);
       if (!challenge.access_token || !challenge.manifest?.pages?.length)
         throw new Error("Kagane returned an incomplete reader session. Reopen the chapter.");
-      this.readerSessions.set(`${chapterId}:${dataSaver}`, {
-        challenge,
+      checkManifest(challenge.manifest.pages);
+      const session = {
+        challenge: { ...challenge, cache_url: trustedCacheUrl(challenge.cache_url) },
         expiry: readerExpiry(challenge.access_token),
-      });
-      return challenge;
+      };
+      this.rememberSession(`${chapterId}:${dataSaver}`, session);
+      return session.challenge;
     }
 
     throw new Error("Could not obtain a reader token for this chapter");
@@ -420,7 +505,7 @@ export class KaganeApi {
     token: string,
     dataSaver: boolean,
   ): string {
-    const builder = new UrlBuilder(cacheUrl || DEFAULT_CACHE_URL)
+    const builder = new UrlBuilder(trustedCacheUrl(cacheUrl))
       .addPathComponent("api")
       .addPathComponent("v2")
       .addPathComponent("books")
@@ -466,18 +551,44 @@ export class KaganeApi {
 }
 
 // Every status reaches here, so the stale-token retry above can see one and the API's own
-// error message is the one reported.
-async function parseJson<T>(response: HttpResponse, url: string): Promise<T> {
+// error message is the one reported. The URL stays out of it: the reader sees this message,
+// and a request URL can carry a token.
+async function parseJson<T>(response: HttpResponse): Promise<T> {
   const body = await response.text();
   if (response.status >= 400) {
-    throw new Error(`${errorMessage(body)} (HTTP ${response.status} for ${url})`);
+    throw new Error(`${errorMessage(body)} (HTTP ${response.status})`);
   }
 
   try {
     return JSON.parse(body) as T;
   } catch {
-    throw new Error(`Kagane returned a response that was not JSON (${url})`);
+    throw new Error("Kagane returned a response that could not be read.");
   }
+}
+
+/**
+ * Page ids and extensions go into the page URL, so anything but plain characters is
+ * refused; and a run of page numbers with a gap or a repeat is a chapter half delivered.
+ */
+function checkManifest(pages: readonly ManifestPage[]): void {
+  const ids = new Set<string>();
+  const numbers: number[] = [];
+  for (const page of pages) {
+    if (
+      !Number.isInteger(page.page_no) ||
+      typeof page.page_id !== "string" ||
+      !/^[A-Za-z0-9_-]+$/.test(page.page_id) ||
+      (page.ext != null && !/^[A-Za-z0-9]+$/.test(page.ext)) ||
+      ids.has(page.page_id)
+    )
+      throw new Error("Kagane returned an invalid page list. Reopen the chapter.");
+    ids.add(page.page_id);
+    numbers.push(page.page_no);
+  }
+  numbers.sort((left, right) => left - right);
+  const first = numbers[0] ?? 0;
+  if (numbers.some((number, position) => number !== first + position))
+    throw new Error("Kagane returned an incomplete chapter. Try again in a moment.");
 }
 
 function errorMessage(body: string): string {

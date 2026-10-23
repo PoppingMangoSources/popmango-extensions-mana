@@ -182,7 +182,8 @@ The failures this repo has actually shipped, each silent:
       them is a global any more
 - [ ] No hand-written `user-agent` on a client fronting Cloudflare
 - [ ] A JSON API's 403/503 not reported as a challenge without a real fingerprint
-- [ ] Unnumbered chapters renumbered above the main run, not left at `0`
+- [ ] Unnumbered chapters renumbered above the main run, not left at `0` — unless the site
+      gives a reading order, in which case each is numbered where it sits in it (Kagane)
 - [ ] Chapter `title` carries the whole label — the app prints it verbatim and never
       joins `volume`/`number` onto it
 - [ ] `WebViewPage` navigated before `evaluate`, bounded by a timer, closed in `finally`
