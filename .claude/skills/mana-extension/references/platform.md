@@ -64,6 +64,8 @@ password sign-in has to be the source's own settings form calling its own code.
   cancelled, its requests are cancelled and their bodies released — read every body before
   returning. Parsed values and copied bytes stay valid.
 - `onEnvironmentLoaded` is not awaited. Build anything required lazily.
+- `Chapter.index` is reading order: `0` is the first chapter to read. If every chapter has
+  `index: 0`, the app orders by `number` instead.
 - A thrown `Error`'s message is shown to the user. `console` goes to the app's log.
 
 ## Networking
@@ -73,8 +75,9 @@ password sign-in has to be the source's own settings form calling its own code.
 - Keep one client (or one shared `RateLimiter`) for the source's lifetime. A client per call
   has no rate limit. `setRateLimit(n, ms)` and `setRateLimiter(RateLimit.spaced(…))` are
   the same thing; `RateLimit.tokenBucket` allows bursts.
-- Default retries: `GET`/`HEAD` only, on network errors and 429/502/503/504, honouring
-  `Retry-After`. Request interceptors run on every attempt, response interceptors once.
+- Default retries: `GET`/`HEAD` only, on network errors (not timeouts or cancellation) and
+  429/502/503/504, honouring `Retry-After`, else backing off from 250 ms to at most 5 s.
+  Request interceptors run on every attempt, response interceptors once.
 - Every status is a response. `requireOk()` throws `HttpStatusError` for non-2xx.
 - `HttpHeaders` supports property access (`headers.location`, assignable), case-sensitive;
   methods ignore case. Outgoing names are sent lowercase.
@@ -107,12 +110,13 @@ password sign-in has to be the source's own settings form calling its own code.
 | :--- | :--- | :--- |
 | `Cipher.aesCtr` | `key`, `counter`, `length?` | `counter` is the full first 16-byte block; `length` (1–128, default 64) low bits count |
 | `Cipher.aesCbc` | `key`, `iv`, `padding?` | `CipherPadding.Pkcs7` (default), `Zero`, `None` |
-| `Cipher.aesGcm` | `key`, `iv`, `additionalData?` | Ciphertext followed by its 16-byte tag; a bad key rejects with `OperationError` |
+| `Cipher.aesGcm` | `key`, `iv`, `additionalData?` | `iv` 12 bytes or more; ciphertext followed by its 16-byte tag; a bad key rejects with `OperationError` |
 | `Cipher.xor` | `key`, `offset?`, `limit?` | Repeating key; skip `offset` bytes, XOR at most `limit` |
 | `Key.fromPassphrase(pass, salt, { keySize? })` | → `{ key, iv }` | OpenSSL `EVP_BytesToKey`, MD5, one round — `CryptoJS.AES.decrypt(text, pass)` |
 | `Key.pbkdf2({ password, salt, iterations, hash, length })` | → `Uint8Array` | `KeyHash.Sha1`/`Sha256`/`Sha512` |
 | `parseSalted(data)` | → `{ salt, ciphertext }` | Splits `Salted__` data |
 
+- AES keys are 16, 24 or 32 bytes; CBC and CTR IVs are 16 bytes; everything is a `Uint8Array`.
 - `response.decrypt(cipher, { contentType? })` decrypts a body natively, strips
   `content-encoding`/`content-length`, and detects JPEG, PNG, GIF, WebP, AVIF, HEIC and
   JPEG XL when no type is given. `Crypto.decrypt(cipher, bytes)` is for bytes you hold.
