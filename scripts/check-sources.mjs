@@ -4,7 +4,7 @@
 /**
  * The repository's own rules, made enforceable.
  *
- * CLAUDE.md, `.claude/skills/mana-extension/SKILL.md` and its references describe how a
+ * AGENTS.md, `.claude/skills/mana-extension/SKILL.md` and its references describe how a
  * source has to be shaped. Every rule they list is one that has already shipped broken at
  * least once, and every one of those failures was silent: the bundler strips types without
  * checking them, a missing icon draws a placeholder without an error, and an intent that is
@@ -143,7 +143,7 @@ function versionAt(ref, file) {
 
 /**
  * Versions only ever bump the patch digit. A minor or major bump is not a worse release,
- * it is an inconsistent history — CLAUDE.md rules it out whatever the release contains.
+ * it is an inconsistent history — AGENTS.md rules it out whatever the release contains.
  */
 function checkVersionBump(name, before, after, where) {
   if (!before || before === after) return;
@@ -283,12 +283,13 @@ function checkSource(source, catalog, changelog, base) {
     check(name, at === undefined, `uses ${description}`, at);
   }
 
-  // --- Runtime globals the bare V8 context does not have.
+  // --- Globals the runtime lacks, and the polyfills mana-dev prepends that src/common already
+  // answers — one source should read like the next.
   for (const [pattern, description] of [
-    [/\bnew URL\s*\(/, "`new URL` — the runtime has none; use UrlBuilder or resolveUrl"],
+    [/\bnew URL\s*\(/, "`new URL` — use UrlBuilder or resolveUrl"],
     [/\bnew URLSearchParams\s*\(/, "`URLSearchParams` — use withQuery"],
     // Explicit browser-scope properties are used inside serialized WebView functions.
-    [/(?<![.\w])crypto\.subtle\b/, "`crypto.subtle` — use src/common/aes.ts"],
+    [/(?<![.\w])crypto\.subtle\b/, "`crypto.subtle` — use Cipher and Crypto from @mana-app/types"],
     [/\bnew TextDecoder\s*\(/, "`TextDecoder` — the runtime has none"],
     [/[^.\w]fetch\s*\(/, "`fetch` — use HttpClient"],
   ]) {

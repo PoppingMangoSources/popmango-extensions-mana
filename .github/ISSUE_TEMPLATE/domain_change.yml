@@ -1,0 +1,39 @@
+name: Domain change
+description: A source's site has moved to a new address.
+title: "[Domain] "
+labels: ["bug", "domain change"]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: Which source is affected?
+      placeholder: Cocomic
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Source version
+      description: Shown next to the source in Mana's extension list.
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: new-url
+    attributes:
+      label: New address
+      description: The front page of the site where it lives now.
+      placeholder: https://example.org
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: How do you know it moved?
+      description: An announcement, a redirect from the old address, or the site's own social links.
+    validations:
+      required: false

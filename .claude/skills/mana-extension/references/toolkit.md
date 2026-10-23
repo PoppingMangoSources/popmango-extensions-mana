@@ -171,8 +171,8 @@ new UrlBuilder(DOMAIN).addPathComponent("genre").addPathComponent(page).setQuery
 `resolveUrl(href, base)` absolutises a link: protocol-relative `//host`, root-relative
 `/path`, plain relative, and the `\/`-escaped URLs that come out of inline JSON.
 `hostOf(target)` gives a URL's host, lowercased and without a port, and copes with a
-protocol-relative `//host`. There is no `URL` global in the runtime, so everything goes
-through these.
+protocol-relative `//host`. `mana-dev` prepends a minimal `URL` polyfill, but `bun run check`
+holds sources to these so one reads like the next.
 
 ## `src/common/network.ts` — the network client
 
@@ -250,12 +250,12 @@ follows.
 
 What the other Mana repositories do, and why this is shaped the way it is:
 
-- **Neither reference source treats a WebView as a way to beat Cloudflare.** karrot's
-  Batcave throws `CloudflareError(resolutionUrl)` on 403/503 and leaves it to the app.
-  Seyden's Comix opens a WebView for its own reasons and *aborts* the moment it sees a
+- **Neither reference source treats a WebView as a way to beat Cloudflare.** One
+  throws `CloudflareError(resolutionUrl)` on 403/503 and leaves it to the app.
+  The other opens a WebView for its own reasons and *aborts* the moment it sees a
   challenge. The app's own handler is what solves them.
 - **Judge success by the site loading, never by markers going away.** A blank page, a
-  network failure and a solved challenge all have no challenge markers. Comix waits for
+  network failure and a solved challenge all have no challenge markers. The second waits for
   the site's own bundle — `script[type=module][src*="/dist/main-"]` — and our probe looks
   for `/_next/`, `/dist/` or `/static/` scripts. Absence of evidence is not the signal.
 - **Split the markers by whether a person is needed.** `#challenge-error-title`,
@@ -306,8 +306,9 @@ Never hand back an invalid `Date` — it fails the contract test and renders bro
 
 ## `src/common/aes.ts` — decryption
 
-The runtime has **no `crypto.subtle`**, so sites that AES-encrypt their image lists need
-this: `aesCbcDecrypt(ciphertext, key, iv, padding)` with `"zero"`, `"pkcs7"` or `"none"`
+Reach for the host's native ciphers first — `Cipher`, `Crypto.decrypt` and
+`response.decrypt` from `@mana-app/types` (see `platform.md`). An app that predates them
+rejects AES-CBC with `NotSupportedError`, and that is what this file is still for: `aesCbcDecrypt(ciphertext, key, iv, padding)` with `"zero"`, `"pkcs7"` or `"none"`
 padding, plus `decodeHex`, `base64ToBytes` and `bytesToUtf8`.
 Verified against the FIPS-197 and SP 800-38A vectors, and differentially against both
 Node's own AES-CBC and `crypto-js` over 180 random vectors across all three key lengths.

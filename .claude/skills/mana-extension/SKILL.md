@@ -89,9 +89,13 @@ A directory becomes a source when one of its files exports `class Target`. That 
 
 ## Phase 3 — Implement
 
-Read `references/api.md` for the type surface and the intent rules, and
+Read `references/api.md` for the type surface and the intent rules,
+`references/platform.md` for what the app actually calls and what each choice costs, and
 `references/toolkit.md` for what `src/common/` already does. Search forms, filter reading,
 home sections, preferences and query strings are all there — do not hand-roll them.
+
+Porting from another app? Load the `mana-port` skill. Images that need headers, keys or
+descrambling? Load `mana-images`.
 
 Three rules that are not obvious and cause silent breakage:
 
@@ -99,9 +103,10 @@ Three rules that are not obvious and cause silent breakage:
   `getSortOptions` is what makes sorting appear; `getSectionsForPage` *and*
   `resolvePageSection` are both required for a home page. Do not define a method you
   cannot back with real data — an empty sort list is worse than no sort list.
-- **Read filters through `FilterReader`.** A `SELECT` filter hands back an `Option`
-  object, not a string. `filters[id] as string` yields `undefined` and the filter
-  silently does nothing.
+- **Read filters through `FilterReader`.** Pickers send option **ids** today, but an older
+  app sent the `Option` object, and an excludable picker sends `{ included, excluded }`.
+  `filters[id] as string` gets one of those wrong and the filter silently does nothing;
+  `FilterReader` reads all three.
 - **Never assign the network client in `onEnvironmentLoaded`.** It is not awaited before
   the first method call. Use a lazy `private get http()` getter.
 
@@ -120,7 +125,7 @@ bun run lint && bun run format:check && bun run typecheck && bun run build
 Then confirm the app will actually see the intents you intended:
 
 ```bash
-node -e "const d=require('./dist/sources.json');for(const s of d.sources)console.log(s.name,s.intents.toString(2).padStart(25,'0'))"
+node -e "const d=require('./dist/sources.json');for(const s of d.sources)console.log(s.name,s.intents.toString(2).padStart(27,'0'))"
 ```
 
 Then run the contract test against the live site:
@@ -214,6 +219,13 @@ The failures this repo has actually shipped, each silent:
       being absent — and one wanting a person handed over at once
 - [ ] Identical requests in flight share one promise, so a refresh does not ask twice
 - [ ] No cap on a section that already matches the default page size
+- [ ] No method the app does not call yet (`references/platform.md`) — it adds an intent and
+      changes nothing a reader sees
+- [ ] `getCoverTransport` only when covers fail without it — with it, every cover in the
+      library starts the source
+- [ ] Decryption through `response.decrypt` / `Crypto.decrypt`, not bytes read into
+      JavaScript, wherever a native cipher fits
+- [ ] A form field's `optional` is `true` or left out — nothing else counts
 - [ ] A new source starts at `1.0.0`; **every** push that changes one bumps its **patch**
       digit, whatever changed — never batch pushes under a number, and move the minor digit
       only when it is asked for by name

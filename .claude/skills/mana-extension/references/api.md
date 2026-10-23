@@ -1,7 +1,9 @@
 # The `@mana-app/types` surface and the runtime that consumes it
 
-Verified against `@mana-app/types@0.1.0` and `@mana-app/dev@0.2.0` by reading the
-type declarations and the runtime embedded in `mana-dev`.
+Verified against `@mana-app/types@0.1.1` and `@mana-app/dev@0.2.0` by reading the
+type declarations and the runtime embedded in `mana-dev`. `platform.md` beside this file
+condenses the official documentation and release notes: what the app calls today, what it
+ignores, and what each image path costs.
 
 ## How the app decides what your source can do
 
@@ -59,11 +61,17 @@ Two traps worth calling out:
 
 The source runs in a bare V8 / JavaScriptCore context, not Node and not a browser.
 
-- **No `fetch`, `URL`, `URLSearchParams`, `TextEncoder`/`TextDecoder`, `DOMParser`.** Build
-  query strings yourself — `withQuery` in `src/common/query.ts` does it. `Buffer` exists only as a
-  bundler-injected shim.
-- **`console` may not exist.** Do not rely on logging. A thrown `Error` message is the only
-  diagnostic channel guaranteed to reach the user, so put real detail in it.
+- **No `fetch`, DOM, `DOMParser`, `TextEncoder`/`TextDecoder` or `crypto.subtle`.** `mana-dev`
+  prepends `Buffer`, `URL`, `URLSearchParams` and `atob` to every bundle, but query strings go
+  through `withQuery` and URLs through `src/common/urls.ts` here, and `bun run check` holds
+  sources to that.
+- **`console` goes to Mana's log**, tagged with the source id, and streams to the terminal
+  under `bun run dev`. The user sees only a thrown `Error`'s message, so make that readable
+  and put the detail in the log.
+- **Timers exist** (`setTimeout`, `AbortController`), and so does a global `moment`.
+- **Calls overlap.** The app runs several of a source's methods at once on the one
+  instance — two by default, configurable from one to twenty — so per-call state lives in
+  locals, and a shared refresh is guarded by a stored promise.
 - **Every status is a response.** `HttpClient` throws only for a transfer that never
   completed (`NetworkError`, `TimeoutError`, `AbortError`) or a challenge the runtime
   recognised (`CloudflareError`, which it checks before any response interceptor runs).
@@ -109,10 +117,17 @@ it. An image nobody reads stays native. The fragment of a URL is stripped before
 interceptor sees the request, but `getPageTransport` is handed the URL as the source wrote
 it — so a per-page secret can travel there and pick the client.
 
-**No `crypto.subtle`.** A site that AES-encrypts its image list needs `src/common/aes.ts`.
-For a primitive that file does not carry, `crypto-js` is a dependency here and bundles into
-the source intact — it needs no `Buffer`, `process`, `require` or host `crypto`, and has been
-run in a bare V8 context to confirm it. See `toolkit.md` for the size it costs.
+**Decryption is native.** `response.decrypt(cipher)` decrypts a body where the app holds
+it and names the image type from the result; `Crypto.decrypt(cipher, bytes)` handles bytes
+the source already has. `Cipher.aesCtr`/`aesCbc`/`aesGcm`/`xor`, `Key.fromPassphrase`,
+`Key.pbkdf2` and `parseSalted` cover the usual site schemes — `platform.md` has the table.
+An app that predates native crypto runs AES-CTR and XOR in JavaScript and rejects the rest
+with `NotSupportedError`; `src/common/aes.ts` stays for that case and for hashing, which the
+host does not offer. See `toolkit.md` for what `crypto-js` costs.
+
+Image transports are not counted against the per-source concurrency limit: only the
+client's own rate limiter paces them. Images are cached by URL in their final, decrypted
+form, so a URL that can produce two different images needs the difference in the URL.
 
 ### `WebViewPage`
 
@@ -134,8 +149,8 @@ try {
 }
 ```
 
-Both `WebViewPage` and `setTimeout` are host-provided and may be absent in an older build,
-so feature-detect each off `globalThis` and skip the path rather than throwing. Anything a
+`WebViewPage` is host-provided and may be absent in an older build, so feature-detect it
+off `globalThis` and skip the path rather than throwing. Anything a
 WebView is only *enhancing* — a descrambling key, an optional token — belongs in a
 `try`/`catch` that degrades, never in the path that decides whether a chapter opens.
 
