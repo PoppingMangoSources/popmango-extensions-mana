@@ -739,7 +739,13 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.2.0)
+## MangaDex (current: v1.2.1)
+
+### Fixed
+
+- A home section switched off in Settings stays off.
+
+## MangaDex (v1.2.0)
 
 ### Changed
 
