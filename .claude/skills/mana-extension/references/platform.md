@@ -52,7 +52,9 @@ Partly used: `onChapterRead` and `onPageRead` arrive from the book reader (EPUB,
 only, and only when `onChaptersMarked` also exists — define it as a no-op if you need the
 other two.
 
-The only sign-in the app offers itself is OAuth. A web login built on
+The only sign-in the app offers itself is OAuth. A source with more than one style is
+offered only the first, in the order password, web, OAuth — so a source that keeps a
+password method beside OAuth hides its OAuth sign-in. A web login built on
 `getWebAuthRequestURL` never appears — ValirScans has one, and readers never see it. A
 password sign-in has to be the source's own settings form calling its own code.
 
@@ -67,6 +69,27 @@ password sign-in has to be the source's own settings form calling its own code.
 - `Chapter.index` is reading order: `0` is the first chapter to read. If every chapter has
   `index: 0`, the app orders by `number` instead.
 - A thrown `Error`'s message is shown to the user. `console` goes to the app's log.
+
+## Pages
+
+- A section returned from `getSectionsForPage` with its `items` already filled is resolved
+  and costs no `resolvePageSection` call — the cheap way to show a fixed row such as genres.
+- `willResolveSectionsForPage` runs once before the sections resolve, for one shared
+  response several rows read from.
+- A `Highlight` without `link` opens the title; `noninteractive: true` opens nothing.
+- `Content.trackerInfo` keys must match a tracker's link keys — its `info.id` unless its
+  `trackerConfig.linkKeys` says otherwise (`anilist`, `mal`).
+
+## WebView
+
+- One page per source at a time: a second `WebViewPage.create` waits until the first closes,
+  so close in `finally`. It does not block the source's other methods.
+- One action at a time on a page: a second `goto`/`evaluate` before the first finishes
+  throws `WebViewPageActionInProgress`.
+- `timeout` (default 30 s) bounds each action; `idleTimeout` (default 30 s) closes an idle
+  page, after which any use throws `WebViewPageClosed`.
+- Arguments and results are JSON: functions are rejected, `Date`s become strings,
+  `undefined` is dropped. Only `http`/`https` URLs can be opened.
 
 ## Networking
 
