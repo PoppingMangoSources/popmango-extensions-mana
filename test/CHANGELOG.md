@@ -313,7 +313,19 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.2)
+## Kagane (current: v1.2.3)
+
+### Added
+
+- Source Groups in Settings: tap a group once to show only those groups, again to hide it.
+
+### Changed
+
+- The search form is laid out as Filters, Advanced Search, Languages, Authors, Artists & Groups, and Tags, with steppers for chapter and volume counts and toggles for matching all genres or all tags.
+- The Upload sources picker is named Source Groups.
+- A search that picks its own genres, tags or source groups uses those in place of the ones required in Settings.
+
+## Kagane (v1.2.2)
 
 ### Changed
 
