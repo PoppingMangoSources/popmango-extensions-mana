@@ -304,14 +304,18 @@ It returns `undefined` rather than guessing, so the call site can `?? new Date(0
 
 Never hand back an invalid `Date` — it fails the contract test and renders broken.
 
-## `src/common/aes.ts` — decryption
+## `src/common/aes.ts` — hashing
 
-Reach for the host's native ciphers first — `Cipher`, `Crypto.decrypt` and
-`response.decrypt` from `@mana-app/types` (see `platform.md`). An app that predates them
-rejects AES-CBC with `NotSupportedError`, and that is what this file is still for: `aesCbcDecrypt(ciphertext, key, iv, padding)` with `"zero"`, `"pkcs7"` or `"none"`
-padding, plus `decodeHex`, `base64ToBytes` and `bytesToUtf8`.
-Verified against the FIPS-197 and SP 800-38A vectors, and differentially against both
-Node's own AES-CBC and `crypto-js` over 180 random vectors across all three key lengths.
+The host decrypts natively but does not hash, so this file carries `sha256(data)` and
+`hmacSha256(key, message)` on `crypto-js` — Toonkotsu signs its requests with them.
+
+Decryption belongs to the host's ciphers (`Cipher`, `Crypto.decrypt`, `response.decrypt`;
+see `platform.md`). The `aesCbcDecrypt(ciphertext, key, iv, padding)` here predates them,
+no source uses it, and `Cipher.aesCbc` replaces it. It was verified against the FIPS-197
+and SP 800-38A vectors and differentially against Node's AES-CBC and `crypto-js`.
+
+The byte helpers that go with any of this — `decodeHex`, `base64ToBytes`, `bytesToUtf8`,
+`utf8ToBytes`, `bytesToBase64Url` — are in `src/common/bytes.ts`, through the barrel.
 
 ### What is bundled, and what it weighs
 
@@ -343,8 +347,9 @@ it, which import nothing, go through the barrel.
 `crypto-js` is a dependency of this repo and **bundles and runs in the source runtime** —
 verified in a bare V8 context with no `Buffer`, `process`, `require` or `crypto` present:
 AES-CBC round-trips and `MD5("abc")`/`SHA256("abc")` give their known answers. It is the
-right answer for a site needing a primitive `aes.ts` does not carry — a hash, HMAC,
-RC4, AES-ECB, PBKDF2 — rather than writing a second cipher by hand.
+right answer for a primitive neither the host nor `aes.ts` carries — MD5, SHA-1,
+SHA-512, RC4, AES-ECB — rather than writing one by hand. SHA-256 and HMAC-SHA256 are
+already in `aes.ts`; PBKDF2 and the CryptoJS passphrase derivation are native (`Key`).
 
 ```ts
 import CryptoJS from "crypto-js";

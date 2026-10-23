@@ -105,7 +105,8 @@ maps one to one.
 | `PageImageProcessor::process_page_image` | A response interceptor on the page transport — `response.decrypt` when a native cipher fits |
 | `DeepLinkHandler::handle_deep_link` | `handleURL` with `config.owningLinks` |
 | `BaseUrlProvider` | A preference read in the client's request interceptor |
-| `BasicLoginHandler`, `WebLoginHandler` | Not offered by Mana yet — see `references/platform.md` |
+| `BasicLoginHandler` | A settings form whose button calls the source's own sign-in — the app has no login screen for it; see [platform.md](../.claude/skills/mana-extension/references/platform.md) |
+| `WebLoginHandler` | Nothing — a web login never appears in the app |
 | `NotificationHandler` | `didChange` on the form field |
 | `MigrationHandler` | A stable `info.id`; `context.origin === MIGRATION` in `getContent` |
 | `source.json` `languages`, `contentRating` | `info.supportedLanguages`, `info.rating` |
@@ -166,7 +167,9 @@ These have no equivalent in most references. Use them where the site supports th
 
 ## What a port loses
 
-- **Sign-in by password or web login.** The types carry both; the app offers only OAuth.
+- **Web login, and the app's own password screen.** The types carry both and the app shows
+  neither. A password sign-in survives only as the source's own settings form, and that
+  screen does not redraw after signing in until it is reopened.
 - **Library and progress sync.** `syncUserLibrary`, `getProgressState`, library events and
   `getLibraryPageLinks` are declared and never called.
 - **A pre-request hook inside a WebView.** No page-started callback, no HTML injection. A

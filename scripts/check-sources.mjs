@@ -291,6 +291,9 @@ function checkSource(source, catalog, changelog, base) {
     // Explicit browser-scope properties are used inside serialized WebView functions.
     [/(?<![.\w])crypto\.subtle\b/, "`crypto.subtle` — use Cipher and Crypto from @mana-app/types"],
     [/\bnew TextDecoder\s*\(/, "`TextDecoder` — the runtime has none"],
+    [/\bnew TextEncoder\s*\(/, "`TextEncoder` — the runtime has none; use utf8ToBytes"],
+    [/(?<![.\w])atob\s*\(/, "`atob` — use base64ToBytes"],
+    [/(?<![.\w])Buffer\./, "`Buffer` — use the helpers in src/common/bytes.ts"],
     [/[^.\w]fetch\s*\(/, "`fetch` — use HttpClient"],
   ]) {
     const at = findInFiles(files, new RegExp(pattern.source, pattern.flags));

@@ -63,8 +63,8 @@ where a source meets its site.
 - No WebView, so `evaluate` traps are found by reading the code.
 - No redraw, so `redrawImageWithSize` is unchecked.
 - The app's per-source concurrency is not reproduced; the client's own limiter is.
-- Decryption runs through Node's ciphers in place of the host's; a cipher the host would
-  reject with `NotSupportedError` on an older app passes here.
+- Decryption runs through Node's ciphers in place of the host's, so a pass proves the
+  parameters, not the app.
 
 ## 3. The device
 

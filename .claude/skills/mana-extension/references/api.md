@@ -69,9 +69,8 @@ The source runs in a bare V8 / JavaScriptCore context, not Node and not a browse
   under `bun run dev`. The user sees only a thrown `Error`'s message, so make that readable
   and put the detail in the log.
 - **Timers exist** (`setTimeout`, `AbortController`), and so does a global `moment`.
-- **Calls overlap.** The app runs several of a source's methods at once on the one
-  instance — two by default, configurable from one to twenty — so per-call state lives in
-  locals, and a shared refresh is guarded by a stored promise.
+- **Calls overlap** on the one instance, so per-call state lives in locals and a shared
+  refresh is guarded by a stored promise. `platform.md` has the limits.
 - **Every status is a response.** `HttpClient` throws only for a transfer that never
   completed (`NetworkError`, `TimeoutError`, `AbortError`) or a challenge the runtime
   recognised (`CloudflareError`, which it checks before any response interceptor runs).
@@ -117,17 +116,9 @@ it. An image nobody reads stays native. The fragment of a URL is stripped before
 interceptor sees the request, but `getPageTransport` is handed the URL as the source wrote
 it — so a per-page secret can travel there and pick the client.
 
-**Decryption is native.** `response.decrypt(cipher)` decrypts a body where the app holds
-it and names the image type from the result; `Crypto.decrypt(cipher, bytes)` handles bytes
-the source already has. `Cipher.aesCtr`/`aesCbc`/`aesGcm`/`xor`, `Key.fromPassphrase`,
-`Key.pbkdf2` and `parseSalted` cover the usual site schemes — `platform.md` has the table.
-An app that predates native crypto runs AES-CTR and XOR in JavaScript and rejects the rest
-with `NotSupportedError`; `src/common/aes.ts` stays for that case and for hashing, which the
-host does not offer. See `toolkit.md` for what `crypto-js` costs.
-
-Image transports are not counted against the per-source concurrency limit: only the
-client's own rate limiter paces them. Images are cached by URL in their final, decrypted
-form, so a URL that can produce two different images needs the difference in the URL.
+**Decryption is native** — `response.decrypt` for a body, `Crypto.decrypt` for held bytes.
+The ciphers, what each image path costs, how transports are paced and how images are
+cached are in `platform.md`; the `mana-images` skill walks through choosing a path.
 
 ### `WebViewPage`
 
@@ -149,9 +140,7 @@ try {
 }
 ```
 
-`WebViewPage` is host-provided and may be absent in an older build, so feature-detect it
-off `globalThis` and skip the path rather than throwing. Anything a
-WebView is only *enhancing* — a descrambling key, an optional token — belongs in a
+Anything a WebView is only *enhancing* — a descrambling key, an optional token — belongs in a
 `try`/`catch` that degrades, never in the path that decides whether a chapter opens.
 
 A `Function`-constructed program that is self-contained runs in-process and is far cheaper

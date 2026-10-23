@@ -2,8 +2,15 @@
 
 Condensed from the official source documentation (<https://mana-ios.github.io/overview>)
 and the host's release notes, checked against `@mana-app/types@0.1.1` and the runtime in
-`mana-dev@0.2.0`. Where the documentation and the toolchain disagree, the toolchain is
-what decides, and the disagreement is noted.
+`mana-dev@0.2.0`, and corrected where the app itself has been seen to do otherwise. Where
+the documentation and the toolchain disagree, the toolchain is what decides, and the
+disagreement is noted.
+
+This file is the one place these facts are kept. The other references and skills point
+here rather than restating them, so a platform change is corrected once.
+
+Only the current app is supported. Nobody runs a build without native crypto, timers or
+the current forms, so nothing here guards against one.
 
 ## Features are opt-in
 
@@ -23,8 +30,13 @@ The build detects methods on the instance; rebuild after adding or removing one.
 
 ## Not called yet
 
-Declared in the types, detected by the build, and ignored by the app. Implementing one adds
-an intent and changes nothing a reader sees — don't build them.
+Declared in the types and detected by the build, but the app never calls them itself:
+no screen, no button, no event leads to them. Don't add one expecting the app to use it.
+
+A source may still call one of these from its own code, and some here do — MangaUpdates
+signs in from a settings button whose `action` calls its own `handleBasicAuth`. That path
+works because the source drives it. So **never remove an existing one** on the strength of
+this table: find what calls it first, and test the sign-in on a device.
 
 | Area | Methods |
 | :--- | :--- |
@@ -38,7 +50,11 @@ an intent and changes nothing a reader sees — don't build them.
 
 Partly used: `onChapterRead` and `onPageRead` arrive from the book reader (EPUB, PDF, text)
 only, and only when `onChaptersMarked` also exists — define it as a no-op if you need the
-other two. Only one sign-in style is offered per source: OAuth.
+other two.
+
+The only sign-in the app offers itself is OAuth. A web login built on
+`getWebAuthRequestURL` never appears — ValirScans has one, and readers never see it. A
+password sign-in has to be the source's own settings form calling its own code.
 
 ## Calls
 
@@ -100,10 +116,8 @@ other two. Only one sign-in style is offered per source: OAuth.
 - `response.decrypt(cipher, { contentType? })` decrypts a body natively, strips
   `content-encoding`/`content-length`, and detects JPEG, PNG, GIF, WebP, AVIF, HEIC and
   JPEG XL when no type is given. `Crypto.decrypt(cipher, bytes)` is for bytes you hold.
-- Errors use WebCrypto names: `DataError` (bad parameters), `OperationError` (does not
-  decrypt), `NotSupportedError` (this app version lacks it).
-- An app without native crypto runs AES-CTR and XOR in JavaScript and rejects the rest.
-  `HttpBridge.crypto` lists what the running app supports.
+- Errors use WebCrypto names: `DataError` (bad parameters — key or IV length, padding,
+  range) and `OperationError` (the data does not decrypt: wrong key, wrong mode, tampered).
 - There is no hashing. `src/common/aes.ts` carries SHA-256 and HMAC on `crypto-js`.
 
 ## Documents
@@ -144,6 +158,10 @@ for settings).
   stable. Errors thrown from `didChange` are logged, not shown.
 - A text field draws its placeholder, not its title — put the meaning in the placeholder or
   the section header.
+- A settings screen does not redraw after a `Button`'s `action` or a `didChange`. The form
+  is rebuilt only when it is opened again, so a sign-in button leaves the screen showing
+  the signed-out state until the reader backs out and returns. Say so in the section's
+  footer; a thrown message from `action` reaches only the log.
 
 ## Storage
 
@@ -152,7 +170,9 @@ iCloud Keychain), both scoped per source. Values outlive updates and uninstalls.
 
 The typed reads (`boolean`, `number`, `string`, `stringArray`) return `null` for falsy values
 — `false`, `0`, `""` — and throw on a type mismatch. A setting that can be `false` or `0` is
-read with `get(key) ?? default`.
+read with `get(key)` and a type check — `typeof stored === "boolean" ? stored : default` —
+or through `PreferenceStore`, which does that already. The harness models the same rule, so
+`verify` with a probe whose `settings` store `false` reproduces the mistake.
 
 ## Repositories
 

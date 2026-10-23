@@ -34,29 +34,25 @@ Covers and pages often differ. Decide each on its own.
 | Shuffled tiles, order from the URL or a seed | Response interceptor rebuilding the bytes | Reads bytes into JavaScript; last resort |
 | The chapter is a ZIP/CBZ | `{ document: response }` from `getChapterData` | One download per chapter, opened natively |
 
-`mana-extension/references/platform.md` has every cipher's parameters and what each path
-costs.
-
 ## 3. Rules that bite
 
-- **Return a long-lived client** from a transport. A client built per call has no rate limit.
-- **Transports are paced only by the client's limiter**, not the per-source concurrency cap.
-  If the API limiter is tight, give pages their own client:
+`mana-extension/references/platform.md` holds the facts these rest on — what each path
+costs, how transports are paced, how images are cached, every cipher's parameters. What
+they mean in practice:
+
+- **Return a long-lived client** from a transport, never one built in the call.
+- **Give pages their own client** when the API limiter is tight, since that limiter is the
+  only thing pacing them:
   `getPageTransport(r) { return r.url.includes(CDN) ? this.cdn : this.http; }`.
-- **Guard interceptors by origin.** A response interceptor that decrypts must return
+- **Guard interceptors by origin.** A response interceptor that decrypts returns
   `RequestOrigin.General` responses untouched, or the API breaks.
-- **Images are cached by URL in their final form.** A URL that can yield two images needs the
-  difference in its query or fragment.
-- **The fragment is never sent**, so a key in it does not leak to the CDN and does not change
-  the request — only the cache key.
-- **Read nothing you do not have to.** `response.bytes()` copies the image into JavaScript;
-  `withBody` copies it back. Native `decrypt` does neither.
-- **Older apps.** Without native crypto, AES-CTR and XOR fall back to JavaScript; AES-CBC,
-  AES-GCM and key derivation reject with `NotSupportedError`. Where an older app must keep
-  working, catch that and fall back to `src/common/aes.ts`.
-- **Errors carry WebCrypto names**: `DataError` is a wrong key or IV length, `OperationError` a
-  wrong key or tampered data. A page that decrypts to garbage without either is the wrong
-  mode or counter, not a wrong key.
+- **Put a per-image key in the fragment.** It is never sent, so it leaks to no CDN, and it
+  keeps two images apart in a cache keyed by URL.
+- **Read nothing you do not have to.** `response.bytes()` and `withBody` copy the image in
+  and out of JavaScript; native `decrypt` does neither.
+- **Read the error's name.** `DataError` is a wrong key or IV length; `OperationError` a
+  wrong key, wrong mode or tampered data. A page that decrypts to garbage without either is
+  the wrong mode or counter, not a wrong key.
 
 ## 4. Prove it
 

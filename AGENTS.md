@@ -105,8 +105,9 @@ them alone unless that work was asked for.
 - A home row keeps the site's own name for it. Rename nothing the site already titled.
 - No emoji in anything a source draws. Marks come from the filled glyphs in `Mark`
   (`src/common/highlights.ts`) — `★`, `♥`, `▲` and the like.
-- Don't build what the app does not call yet. `references/platform.md` lists those methods;
-  implementing one changes nothing a reader sees.
+- Don't add a method the app does not call yet expecting the app to use it —
+  `mana-extension/references/platform.md` lists them. Don't remove an existing one either:
+  a source can drive it from its own settings, as MangaUpdates' sign-in does.
 
 ## Versioning
 

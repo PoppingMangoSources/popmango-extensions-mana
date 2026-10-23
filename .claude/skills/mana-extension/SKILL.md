@@ -103,10 +103,10 @@ Three rules that are not obvious and cause silent breakage:
   `getSortOptions` is what makes sorting appear; `getSectionsForPage` *and*
   `resolvePageSection` are both required for a home page. Do not define a method you
   cannot back with real data — an empty sort list is worse than no sort list.
-- **Read filters through `FilterReader`.** Pickers send option **ids** today, but an older
-  app sent the `Option` object, and an excludable picker sends `{ included, excluded }`.
-  `filters[id] as string` gets one of those wrong and the filter silently does nothing;
-  `FilterReader` reads all three.
+- **Read filters through `FilterReader`.** A picker sends an option **id**, a multi-picker
+  an array of them, and an excludable picker `{ included, excluded }`. A cast such as
+  `filters[id] as string` gets the last two wrong and the filter silently does nothing;
+  `FilterReader` reads all of them.
 - **Never assign the network client in `onEnvironmentLoaded`.** It is not awaited before
   the first method call. Use a lazy `private get http()` getter.
 
@@ -219,8 +219,8 @@ The failures this repo has actually shipped, each silent:
       being absent — and one wanting a person handed over at once
 - [ ] Identical requests in flight share one promise, so a refresh does not ask twice
 - [ ] No cap on a section that already matches the default page size
-- [ ] No method the app does not call yet (`references/platform.md`) — it adds an intent and
-      changes nothing a reader sees
+- [ ] No new method the app does not call yet (`references/platform.md`) unless the
+      source's own code calls it — and no existing one removed without finding its caller
 - [ ] `getCoverTransport` only when covers fail without it — with it, every cover in the
       library starts the source
 - [ ] Decryption through `response.decrypt` / `Crypto.decrypt`, not bytes read into
