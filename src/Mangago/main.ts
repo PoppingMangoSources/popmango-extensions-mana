@@ -115,7 +115,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.2.1",
+  version: "1.2.2",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -480,7 +480,12 @@ class MangagoSource
           if (tiles.length === 0) throw new Error("the front page carried no carousel");
           return tiles;
         })
-        .catch(() => []);
+        // A challenge has to reach the app, which offers it to the reader; swallowed here it
+        // would leave the carousel empty with nothing to say why.
+        .catch((error: unknown) => {
+          if (error instanceof CloudflareError) throw error;
+          return [];
+        });
       return {
         results: limit === undefined ? featured : featured.slice(0, limit),
         isLastPage: true,

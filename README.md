@@ -53,12 +53,12 @@ becomes available to install.
 | <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.org](https://kagane.org) | Mixed | v1.2.0 |
 | <img src="media/sources/mangadex.png" width="22" align="top"/> **MangaDex** | [mangadex.org](https://mangadex.org) | Mixed | v1.2.1 |
 | <img src="media/sources/mangafire.png" width="22" align="top"/> **MangaFire** | [mangafire.to](https://mangafire.to) | Mixed | v1.2.1 |
-| <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.2.1 |
+| <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.2.2 |
 | <img src="media/sources/mangaupdates.png" width="22" align="top"/> **MangaUpdates** | [mangaupdates.com](https://www.mangaupdates.com) | Mixed | v1.2.0 |
 | <img src="media/sources/rinkocomics.png" width="22" align="top"/> **RinkoComics** | [rinkocomics.com](https://rinkocomics.com) | Safe | v1.2.0 |
 | <img src="media/sources/rokaricomics.png" width="22" align="top"/> **RokariComics** | [rokaricomics.com](https://rokaricomics.com) | Safe | v1.2.0 |
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.2.0 |
-| <img src="media/sources/toonkotsu.png" width="22" align="top"/> **Toonkotsu** | [toonkotsu.com](https://toonkotsu.com) | Mixed | v1.1.16 |
+| <img src="media/sources/toonkotsu.png" width="22" align="top"/> **Toonkotsu** | [toonkotsu.com](https://toonkotsu.com) | Mixed | v1.1.17 |
 | <img src="media/sources/valirscans.png" width="22" align="top"/> **ValirScans** | [valirscans.org](https://valirscans.org) | Mixed | v1.2.0 |
 | <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.3.0 |
 <!-- sources:end -->

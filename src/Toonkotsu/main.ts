@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.16",
+  version: "1.1.17",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -170,6 +170,16 @@ class ToonkotsuSource
 
   async getSearchForm(): Promise<SearchForm> {
     const groups = parseTagGroups(await this.facets());
+    // The site's tag lists run to hundreds, so each category opens as a sheet.
+    const tagFields = groups
+      .filter((group) => group.id !== FilterID.Genres)
+      .map((group) =>
+        SearchExcludableMultiPickerSheet({
+          id: group.id,
+          title: group.title,
+          options: group.options,
+        }),
+      );
 
     const form = buildSearchForm({
       header: "Advanced Search",
@@ -236,20 +246,11 @@ class ToonkotsuSource
           title: "Country",
           options: COUNTRY_OPTIONS,
         }),
-        SearchGroup({
-          id: "tags",
-          title: "Tags",
-          // The site's tag lists run to hundreds, so each category opens as a sheet.
-          children: groups
-            .filter((group) => group.id !== FilterID.Genres)
-            .map((group) =>
-              SearchExcludableMultiPickerSheet({
-                id: group.id,
-                title: group.title,
-                options: group.options,
-              }),
-            ),
-        }),
+        // A group with no fields throws, and takes the whole form with it — which is what a
+        // failed facets read would do to every filter here.
+        ...(tagFields.length
+          ? [SearchGroup({ id: "tags", title: "Tags", children: tagFields })]
+          : []),
         SearchGroup({
           id: "tag_matching",
           title: "Tag Modes",
