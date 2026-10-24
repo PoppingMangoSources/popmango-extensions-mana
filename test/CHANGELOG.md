@@ -5,7 +5,14 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.14)
+## KaganeTest (current: v1.0.15)
+
+### Changed
+
+- Title pages open faster: More like this is requested at the same time as the title instead of after its editions.
+- A chapter opened from history asks for its pages at the same time as the title and chapter list instead of after them.
+
+## KaganeTest (v1.0.14)
 
 ### Fixed
 
@@ -313,7 +320,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.4)
+## Kagane (current: v1.2.5)
+
+### Changed
+
+- Title pages open faster: More like this is requested at the same time as the title instead of after it.
+
+## Kagane (v1.2.4)
 
 ### Changed
 
