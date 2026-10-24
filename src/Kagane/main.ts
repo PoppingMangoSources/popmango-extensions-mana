@@ -123,7 +123,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.4",
+  version: "1.2.5",
   description: "Manga, manhwa, manhua and comics from kagane.cx.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -634,6 +634,27 @@ class KaganeSource
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     if (context?.allowedContentRatings?.length === 0)
       throw new Error("This title is excluded by Mana’s content-rating settings.");
+    // More like this is the slowest request on the page and needs nothing from the details,
+    // so it starts alongside them instead of after. A migration needs none of it.
+    const recommendations = isMigration(context)
+      ? undefined
+      : this.bodyOptions(undefined, context).then(async (options) => {
+          const ratings = selectedContentRatings(options);
+          const similar = ratings.length
+            ? await this.api
+                .fetchSimilar(contentId, {
+                  ratings,
+                  languages: options.contentLanguages,
+                  uploadSource: options.uploadSource,
+                  hideDisturbing: options.hideDisturbing,
+                })
+                .then((response) => response.content ?? [])
+                .catch(() => [])
+            : [];
+          return { options, ratings, similar };
+        });
+    // Marks a failure as handled for the paths that throw before awaiting it.
+    recommendations?.catch(() => undefined);
     // The tag list is what the sections are grouped from; it is kept on the device for a
     // day, and a migration needs none of it.
     const [details, titleOptions, showSpoilerTags, taxonomy] = await Promise.all([
@@ -659,30 +680,18 @@ class KaganeSource
     }
 
     // A migration needs only matching metadata, not the enrichment requests below.
-    if (isMigration(context)) return content;
+    if (recommendations === undefined) return content;
 
-    const options = await this.bodyOptions(undefined, context);
-    const ratings = selectedContentRatings(options);
-    // Both rows are asked for together: the editions of this work first, then what the
-    // site recommends beside them, each held to the same rating and disturbing settings.
-    const [related, similar] = await Promise.all([
+    // The editions of this work need its tracker id, so they wait for the details; both
+    // rows are held to the same rating and disturbing settings.
+    const [related, { options, ratings, similar }] = await Promise.all([
       details.tracker_id
         ? this.api
             .fetchRelated(details.tracker_id)
             .then((response) => response.book_series ?? [])
             .catch(() => [])
         : Promise.resolve([]),
-      ratings.length
-        ? this.api
-            .fetchSimilar(contentId, {
-              ratings,
-              languages: options.contentLanguages,
-              uploadSource: options.uploadSource,
-              hideDisturbing: options.hideDisturbing,
-            })
-            .then((response) => response.content ?? [])
-            .catch(() => [])
-        : Promise.resolve([]),
+      recommendations,
     ]);
 
     const editions = related
