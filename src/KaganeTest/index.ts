@@ -125,7 +125,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.14",
+    version: "1.0.15",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -803,10 +803,13 @@ export class Target
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     assertRatingPolicy(context);
     return this.withSettings(async (settings) => {
-      const details = await this.requireAllowed(contentId, settings, context);
-      const tracker = strictUUID(details.tracker_id);
       // A migration only needs metadata.
       const migrating = context?.origin === SourceContextOrigin.MIGRATION;
+      // More like this is the slowest request on the page and needs nothing from the
+      // details, so it starts alongside them instead of after the editions come back.
+      const similarRows = migrating ? undefined : this.similarRows(contentId, settings, context);
+      const details = await this.requireAllowed(contentId, settings, context);
+      const tracker = strictUUID(details.tracker_id);
       const [sources, rows, tags] = await Promise.all([
         this.api.sources(),
         tracker && !migrating && !settings.excludedGenres.length && !settings.excludedTags.length
@@ -815,27 +818,38 @@ export class Target
         visibleDetailTags(details, settings).length ? this.api.tags() : Promise.resolve([]),
       ]);
       const result = content(contentId, details, settings, sources, tags);
-      const editions = migrating
-        ? undefined
-        : (editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
-          (await this.similar(contentId, settings, sources, context)));
+      const editions = similarRows
+        ? (editionSection(rows, contentId, settings, context?.allowedContentRatings) ??
+          this.similar(contentId, await similarRows, settings, sources, context))
+        : undefined;
       return editions
         ? { ...result, additionalInfo: [...(result.additionalInfo ?? []), editions] }
         : result;
     });
   }
 
-  private async similar(
+  // Never rejects: it can be left unawaited when the title turns out to be excluded.
+  private similarRows(
     id: string,
+    settings: Settings,
+    context?: SourceContext,
+  ): ReturnType<KaganeApi["similar"]> {
+    const ratings = selectedRatings({ page: 1, context }, settings);
+    if (!ratings.length) return Promise.resolve([]);
+    return this.api
+      .similar(id, ratings, settings.languages, settings.uploadSource, settings.hideDisturbing)
+      .catch(() => []);
+  }
+
+  private similar(
+    id: string,
+    rows: Awaited<ReturnType<KaganeApi["similar"]>>,
     settings: Settings,
     sources: UploadSource[],
     context?: SourceContext,
-  ): Promise<HighlightsSection | undefined> {
+  ): HighlightsSection | undefined {
     const ratings = selectedRatings({ page: 1, context }, settings);
     if (!ratings.length) return undefined;
-    const rows = await this.api
-      .similar(id, ratings, settings.languages, settings.uploadSource, settings.hideDisturbing)
-      .catch(() => []);
     const seen = new Set([id]);
     return similarSection(
       rows.filter((row) => {
@@ -863,12 +877,25 @@ export class Target
 
   async getChapterData(contentId: string, chapterId: string): Promise<ChapterData> {
     return this.withSettings(async (settings) => {
-      await this.requireAllowed(contentId, settings);
       validId(chapterId);
-      const book = (await this.api.books(contentId)).find((entry) => entry.book_id === chapterId);
+      // Asked for together: a chapter opened from history would otherwise wait on the
+      // details and the whole chapter list before the reader is even asked for its pages.
+      // Each is still checked before a page is returned.
+      // The reader's own failure waits for the checks, so an unavailable chapter still says so.
+      const reader = this.api.challenge(chapterId, settings.dataSaver).then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      const [, books] = await Promise.all([
+        this.requireAllowed(contentId, settings),
+        this.api.books(contentId),
+      ]);
+      const book = books.find((entry) => entry.book_id === chapterId);
       if (!book || !available(book))
         throw new Error("Kagane chapter is unavailable or does not belong to this series");
-      const challenge = await this.api.challenge(chapterId, settings.dataSaver);
+      const answer = await reader;
+      if ("error" in answer) throw answer.error;
+      const challenge = answer.value;
       if (
         Number.isSafeInteger(book.page_count) &&
         (book.page_count ?? 0) > 0 &&
