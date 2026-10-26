@@ -9,7 +9,7 @@ import {
 } from "@mana-app/types";
 
 import { base64ToBytes, resolveUrl } from "../common/index.ts";
-import { BASE_URL, type SitePage } from "./model.ts";
+import { BASE_URL, PAGES_PER_SECOND, type SitePage } from "./model.ts";
 
 /**
  * The chapter's pages: `chapter.pages`, where the site puts them.
@@ -75,24 +75,32 @@ function pageCipher({ k, n }: Readonly<Record<string, string>>): CipherSpec | un
   }
 }
 
-let images: HttpClient | undefined;
+let covers: HttpClient | undefined;
+let pages: HttpClient | undefined;
+
+/** Covers come from the site's own CDN unencrypted and only need its referer. */
+export function coverClient(): HttpClient {
+  covers ??= new HttpClient().addHeader("Referer", `${BASE_URL}/`);
+  return covers;
+}
 
 /**
- * Covers and pages, encrypted or not.
+ * Reader pages, paced.
  *
- * One client for every image, so anything set on it — a rate limit, retries — holds across
- * all of them. Each page's keys arrive with its own request, from the fragment of its URL;
- * the host decrypts the page where it holds it, so the image never crosses into this runtime,
- * and names its type from the decrypted bytes. A host that predates native ciphers runs the
- * same cipher in JavaScript instead.
+ * Pages run to several megabytes each, and the reader asks for a chapter's worth, and the next
+ * chapter's, at once. Started together they share the connection and the page on screen waits
+ * behind them, so they are started about as fast as the site's own reader takes them, a few a
+ * second. Each page's keys arrive from the fragment of its URL; the host decrypts it where it
+ * holds it, so the image never crosses into this runtime, and names its type from the bytes.
  */
-export function imageClient(): HttpClient {
-  images ??= new HttpClient()
+export function pageClient(): HttpClient {
+  pages ??= new HttpClient()
+    .setRateLimit(PAGES_PER_SECOND, 1000)
     .addHeader("Referer", `${BASE_URL}/`)
     .addResponseInterceptor(async (response, context) => {
       if (context.origin !== RequestOrigin.Page || !response.ok) return response;
       const cipher = pageCipher(response.request.fragmentParams);
       return cipher ? response.decrypt(cipher) : response;
     });
-  return images;
+  return pages;
 }

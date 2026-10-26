@@ -105,14 +105,14 @@ import {
   parseTagGroups,
   ratingIdOf,
 } from "./parsers.ts";
-import { chapterPage, imageClient, pagesIn } from "./pages.ts";
+import { chapterPage, coverClient, pageClient, pagesIn } from "./pages.ts";
 import { readChapterInPage, waitForUnlock } from "./reader.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.17",
+  version: "1.1.18",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -777,11 +777,11 @@ class ToonkotsuSource
   }
 
   getCoverTransport(_request: ImageRequest): HttpClient {
-    return imageClient();
+    return coverClient();
   }
 
   getPageTransport(_request: ImageRequest): HttpClient {
-    return imageClient();
+    return pageClient();
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
