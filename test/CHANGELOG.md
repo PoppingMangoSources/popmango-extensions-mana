@@ -106,7 +106,13 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## ToonkotsuTest (current: v1.0.1)
+## ToonkotsuTest (current: v1.0.2)
+
+### Changed
+
+- The first three pages of a chapter start at once, then about three a second, so the page opened and the two after it no longer wait their turn.
+
+## ToonkotsuTest (v1.0.1)
 
 ### Changed
 
