@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## KaganeTest (current: v1.0.15)
+## KaganeTest (current: v1.0.16)
+
+### Fixed
+
+- Now lists the languages the site serves; it was only shown to readers who allow every language.
+
+## KaganeTest (v1.0.15)
 
 ### Changed
 
@@ -332,7 +338,13 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.5)
+## Kagane (current: v1.2.6)
+
+### Fixed
+
+- Listed for every language the site serves, so readers who only choose German, Indonesian, Thai and the like see it too.
+
+## Kagane (v1.2.5)
 
 ### Changed
 

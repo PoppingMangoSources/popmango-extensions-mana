@@ -125,13 +125,37 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.15",
+    version: "1.0.16",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
     thumbnail: "Kagane.png",
     rating: CatalogRating.MIXED,
     website: DOMAIN,
+    // Every language the site's own picker offers: Mana only lists a source to a reader when one
+    // of these is among their content languages.
+    supportedLanguages: [
+      "en_US",
+      "ja_JP",
+      "ko_KR",
+      "zh-CN",
+      "zh-TW",
+      "es_ES",
+      "es_419",
+      "fr_FR",
+      "de_DE",
+      "it_IT",
+      "pt_PT",
+      "pt_BR",
+      "ru_RU",
+      "pl_PL",
+      "tr_TR",
+      "ar_SA",
+      "id_ID",
+      "th_TH",
+      "vi_VN",
+      "hi_IN",
+    ],
     badges: ["Manga", "Manhwa", "Manhua", "Comic"],
     developers: [
       { name: "Lucifers Circle", github: "https://github.com/LucifersCircle" },
