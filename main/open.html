@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Add PoppingMango Sources to Mana</title>
-<meta name="description" content="12 sources: FlameComics, Kagane, MangaDex, MangaFire, Mangago, MangaUpdates, RinkoComics, RokariComics, StoneScape, Toonkotsu, ValirScans, XCOMIC. Tap to open Mana and add the repository.">
+<meta name="description" content="11 sources: FlameComics, MangaDex, MangaFire, Mangago, MangaUpdates, RinkoComics, RokariComics, StoneScape, Toonkotsu, ValirScans, XCOMIC. Tap to open Mana and add the repository.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PoppingMango Sources">
 <meta property="og:title" content="Add PoppingMango Sources to Mana">
-<meta property="og:description" content="12 sources: FlameComics, Kagane, MangaDex, MangaFire, Mangago, MangaUpdates, RinkoComics, RokariComics, StoneScape, Toonkotsu, ValirScans, XCOMIC. Tap to open Mana and add the repository.">
+<meta property="og:description" content="11 sources: FlameComics, MangaDex, MangaFire, Mangago, MangaUpdates, RinkoComics, RokariComics, StoneScape, Toonkotsu, ValirScans, XCOMIC. Tap to open Mana and add the repository.">
 <meta property="og:url" content="https://poppingmangosources.github.io/popmango-extensions-mana/main/open.html">
 <meta property="og:image" content="https://poppingmangosources.github.io/popmango-extensions-mana/main/assets/Repository.png">
 <meta name="twitter:card" content="summary">
@@ -100,7 +100,7 @@ code {
   "use strict";
   var repo = "https://poppingmangosources.github.io/popmango-extensions-mana/main";
   var name = "PoppingMango Sources";
-  var sources = {"flamecomics":"FlameComics","kagane":"Kagane","mangadex":"MangaDex","mangafire":"MangaFire","mangago":"Mangago","mangaupdates":"MangaUpdates","rinkocomics":"RinkoComics","rokaricomics":"RokariComics","stonescape":"StoneScape","toonkotsu":"Toonkotsu","valirscans":"ValirScans","xcomic":"XCOMIC"};
+  var sources = {"flamecomics":"FlameComics","mangadex":"MangaDex","mangafire":"MangaFire","mangago":"Mangago","mangaupdates":"MangaUpdates","rinkocomics":"RinkoComics","rokaricomics":"RokariComics","stonescape":"StoneScape","toonkotsu":"Toonkotsu","valirscans":"ValirScans","xcomic":"XCOMIC"};
   var match = /[?&]source=([^&#]*)/.exec(location.search);
   var id = match ? decodeURIComponent(match[1]) : "";
   var source = Object.prototype.hasOwnProperty.call(sources, id) ? sources[id] : "";

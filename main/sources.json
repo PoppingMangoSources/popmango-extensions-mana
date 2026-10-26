@@ -22,35 +22,7 @@
       "path": "FlameComics",
       "environment": "source",
       "intents": 6298633,
-      "hash": "3957fe9d3957fe9d3957fe9d3957fe9d3957fe9d3957fe9d3957fe9d3957fe9d"
-    },
-    {
-      "id": "kagane",
-      "name": "Kagane",
-      "version": "1.2.5",
-      "description": "Manga, manhwa, manhua and comics from kagane.cx.",
-      "website": "https://kagane.cx",
-      "rating": 1,
-      "supportedLanguages": [
-        "en_US",
-        "ko_KR",
-        "ja_JP",
-        "fr_FR",
-        "zh-CN",
-        "es_ES",
-        "pt_BR"
-      ],
-      "thumbnail": "Kagane.png",
-      "developers": [
-        {
-          "name": "PoppingMango",
-          "github": "https://github.com/PoppingMangoSources"
-        }
-      ],
-      "path": "Kagane",
-      "environment": "source",
-      "intents": 106961929,
-      "hash": "4474211e4474211e4474211e4474211e4474211e4474211e4474211e4474211e"
+      "hash": "5698808956988089569880895698808956988089569880895698808956988089"
     },
     {
       "id": "mangadex",
@@ -72,7 +44,7 @@
       "path": "MangaDex",
       "environment": "source",
       "intents": 6298633,
-      "hash": "3cb9694a3cb9694a3cb9694a3cb9694a3cb9694a3cb9694a3cb9694a3cb9694a"
+      "hash": "3356177d3356177d3356177d3356177d3356177d3356177d3356177d3356177d"
     },
     {
       "id": "mangafire",
@@ -98,7 +70,7 @@
       "path": "MangaFire",
       "environment": "source",
       "intents": 106961929,
-      "hash": "23a5ec9623a5ec9623a5ec9623a5ec9623a5ec9623a5ec9623a5ec9623a5ec96"
+      "hash": "6c4a92886c4a92886c4a92886c4a92886c4a92886c4a92886c4a92886c4a9288"
     },
     {
       "id": "mangaupdates",
@@ -120,7 +92,7 @@
       "path": "MangaUpdates",
       "environment": "tracker",
       "intents": 20978795,
-      "hash": "0e1160990e1160990e1160990e1160990e1160990e1160990e1160990e116099"
+      "hash": "61fe204661fe204661fe204661fe204661fe204661fe204661fe204661fe2046"
     },
     {
       "id": "mangago",
@@ -142,7 +114,7 @@
       "path": "Mangago",
       "environment": "source",
       "intents": 6822921,
-      "hash": "422b8265422b8265422b8265422b8265422b8265422b8265422b8265422b8265"
+      "hash": "2de401862de401862de401862de401862de401862de401862de401862de40186"
     },
     {
       "id": "rinkocomics",
@@ -164,7 +136,7 @@
       "path": "RinkoComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "0efb118f0efb118f0efb118f0efb118f0efb118f0efb118f0efb118f0efb118f"
+      "hash": "7f0a92117f0a92117f0a92117f0a92117f0a92117f0a92117f0a92117f0a9211"
     },
     {
       "id": "rokaricomics",
@@ -186,7 +158,7 @@
       "path": "RokariComics",
       "environment": "source",
       "intents": 106961929,
-      "hash": "34df703b34df703b34df703b34df703b34df703b34df703b34df703b34df703b"
+      "hash": "5b110ee15b110ee15b110ee15b110ee15b110ee15b110ee15b110ee15b110ee1"
     },
     {
       "id": "stonescape",
@@ -208,7 +180,7 @@
       "path": "StoneScape",
       "environment": "source",
       "intents": 106961929,
-      "hash": "2ec643b32ec643b32ec643b32ec643b32ec643b32ec643b32ec643b32ec643b3"
+      "hash": "41493cea41493cea41493cea41493cea41493cea41493cea41493cea41493cea"
     },
     {
       "id": "toonkotsu",
@@ -230,7 +202,7 @@
       "path": "Toonkotsu",
       "environment": "source",
       "intents": 106961929,
-      "hash": "438317d3438317d3438317d3438317d3438317d3438317d3438317d3438317d3"
+      "hash": "4c6d6b2c4c6d6b2c4c6d6b2c4c6d6b2c4c6d6b2c4c6d6b2c4c6d6b2c4c6d6b2c"
     },
     {
       "id": "valirscans",
@@ -252,7 +224,7 @@
       "path": "ValirScans",
       "environment": "source",
       "intents": 106962217,
-      "hash": "5238794252387942523879425238794252387942523879425238794252387942"
+      "hash": "3db80c7f3db80c7f3db80c7f3db80c7f3db80c7f3db80c7f3db80c7f3db80c7f"
     },
     {
       "id": "xcomic",
@@ -274,7 +246,7 @@
       "path": "XCOMIC",
       "environment": "source",
       "intents": 6298633,
-      "hash": "7df5d4217df5d4217df5d4217df5d4217df5d4217df5d4217df5d4217df5d421"
+      "hash": "11faab9c11faab9c11faab9c11faab9c11faab9c11faab9c11faab9c11faab9c"
     }
   ]
 }
