@@ -45,12 +45,11 @@ becomes available to install.
 ## Sources
 
 <!-- sources:start -->
-**12 sources available for Mana.**
+**11 sources available for Mana.**
 
 | Source | Site | Rating | Version |
 | :----- | :--- | :----- | :------ |
 | <img src="media/sources/flamecomics.png" width="22" align="top"/> **FlameComics** | [flamecomics.xyz](https://flamecomics.xyz) | Safe | v1.2.0 |
-| <img src="media/sources/kagane.png" width="22" align="top"/> **Kagane** | [kagane.cx](https://kagane.cx) | Mixed | v1.2.5 |
 | <img src="media/sources/mangadex.png" width="22" align="top"/> **MangaDex** | [mangadex.org](https://mangadex.org) | Mixed | v1.2.1 |
 | <img src="media/sources/mangafire.png" width="22" align="top"/> **MangaFire** | [mangafire.to](https://mangafire.to) | Mixed | v1.2.1 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.2.4 |
