@@ -11,6 +11,9 @@ export const PAGE_SIZE = 42;
 
 export const READER_TIMEOUT = 180;
 
+/** How many reader pages are started each second, about the pace of the site's own reader. */
+export const PAGES_PER_SECOND = 3;
+
 /**
  * Distinct titles a page of Latest Updates is filled to.
  *
