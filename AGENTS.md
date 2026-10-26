@@ -18,7 +18,7 @@ that does nothing, a row the app never draws, an icon that becomes a placeholder
 | Add, fix or extend a source | `mana-extension` | — |
 | Port a source from another app | `mana-port` | [docs/CONVERSION.md](docs/CONVERSION.md) |
 | Encrypted, scrambled or header-gated images and pages | `mana-images` | — |
-| Test a change, read a Contract run | — | [docs/TESTING.md](docs/TESTING.md) |
+| Test a change, read a Contract run | `verify` | [docs/TESTING.md](docs/TESTING.md) |
 
 The skills live in `.claude/skills/`; `.agents/skills` is the same folder for agents that look
 there. `mana-extension/references/platform.md` condenses the official source documentation
