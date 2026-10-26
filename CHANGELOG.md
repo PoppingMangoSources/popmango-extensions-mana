@@ -5,7 +5,17 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.1.18)
+## Toonkotsu (current: v1.1.19)
+
+### Added
+
+- Smallest Upload, off by default: keeps each team's lightest upload instead of its widest, and with Deduplicate Chapters each chapter's lightest from any team.
+
+### Changed
+
+- The first three pages of a chapter start at once, then about three a second, so the page opened and the two after it no longer wait their turn.
+
+## Toonkotsu (v1.1.18)
 
 ### Changed
 

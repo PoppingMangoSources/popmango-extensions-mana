@@ -11,7 +11,7 @@ export const PAGE_SIZE = 42;
 
 export const READER_TIMEOUT = 180;
 
-/** How many reader pages are started each second, about the pace of the site's own reader. */
+/** Reader pages started at once, and then each second: about the pace of the site's own reader. */
 export const PAGES_PER_SECOND = 3;
 
 /**
@@ -76,6 +76,7 @@ export const PreferenceID = {
   DeduplicateChapters: "deduplicate-chapters",
   ShowUploadSize: "show-upload-size",
   BestUploadPerGroup: "best-upload-per-group",
+  SmallestUpload: "smallest-upload",
   SectionPrefix: "section",
 } as const;
 
@@ -370,6 +371,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.DeduplicateChapters]: false,
   [PreferenceID.ShowUploadSize]: true,
   [PreferenceID.BestUploadPerGroup]: true,
+  [PreferenceID.SmallestUpload]: false,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
   ),

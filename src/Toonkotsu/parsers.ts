@@ -578,8 +578,17 @@ function sizeLabel(mb: number | null | undefined): string {
   return `${mb >= 100 ? Math.round(mb) : Number(mb.toFixed(1))} MB`;
 }
 
-/** Equal candidates keep the site's first upload rather than changing the chosen version. */
-function isBetterUpload(candidate: ChapterRelease, current: ChapterRelease): boolean {
+/**
+ * Equal candidates keep the site's first upload rather than changing the chosen version.
+ *
+ * Smallest goes by download alone, and an upload whose size the site does not state counts as
+ * the heaviest: what is being saved is the download, and an unknown one may be any size.
+ */
+function isBetterUpload(
+  candidate: ChapterRelease,
+  current: ChapterRelease,
+  smallest = false,
+): boolean {
   if ((candidate.partial === true) !== (current.partial === true)) return current.partial === true;
   const width = (release: ChapterRelease) =>
     typeof release.w === "number" && Number.isFinite(release.w) && release.w > 0 ? release.w : 0;
@@ -587,6 +596,7 @@ function isBetterUpload(candidate: ChapterRelease, current: ChapterRelease): boo
     typeof release.mb === "number" && Number.isFinite(release.mb) && release.mb > 0
       ? release.mb
       : 0;
+  if (smallest) return (size(candidate) || Infinity) < (size(current) || Infinity);
   return (
     width(candidate) > width(current) ||
     (width(candidate) === width(current) && size(candidate) > size(current))
@@ -609,6 +619,11 @@ export type ChapterOptions = {
   mainOnly?: boolean;
   /** Keep the preferred upload for each named group, independently of its size label. */
   bestPerGroup?: boolean;
+  /**
+   * Prefer the lightest upload over the widest: for each group, and with `mainOnly`, for each
+   * chapter across groups in place of the site's first.
+   */
+  smallest?: boolean;
   /**
    * Close each chapter's name with the download it is offering.
    *
@@ -658,7 +673,9 @@ export function parseChapters(
     const visible = [entry, ...(entry.alts ?? [])].filter(
       (release) => !hidden.has(parseLabel(release, entry.n).group?.toLowerCase() ?? ""),
     );
-    const releases = options.mainOnly === true ? visible.slice(0, 1) : visible;
+    // The site's first upload is only kept as is when nothing else is asked of the choice.
+    const releases =
+      options.mainOnly === true && options.smallest !== true ? visible.slice(0, 1) : visible;
 
     for (const release of releases) {
       if (!release.id || seen.has(release.id)) continue;
@@ -694,7 +711,10 @@ export function parseChapters(
         const position = slots.get(slot);
         const current = position === undefined ? undefined : kept[position];
         if (current && position !== undefined) {
-          if (options.mainOnly !== true && isBetterUpload(release, current.release)) {
+          if (
+            (options.mainOnly !== true || options.smallest === true) &&
+            isBetterUpload(release, current.release, options.smallest === true)
+          ) {
             kept[position] = item;
           }
           continue;

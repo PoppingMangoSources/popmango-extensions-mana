@@ -44,9 +44,11 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
       header: "Chapters",
       footer:
         "Keep Best Upload per Group keeps one upload per chapter and team, preferring " +
-        "complete uploads, then wider scans and larger files. Upload Size shows the " +
-        "chosen upload's download size. Deduplicate Chapters keeps only the site's first " +
-        "visible upload for each chapter.",
+        "complete uploads, then wider scans and larger files. Smallest Upload keeps the " +
+        "lightest instead, for each team and, with Deduplicate Chapters, for each chapter. " +
+        "Switching it lists other uploads, so read status does not carry over. Upload Size " +
+        "shows the chosen upload's download size. Deduplicate Chapters keeps only the " +
+        "site's first visible upload for each chapter.",
       fields: [
         {
           type: "toggle" as const,
@@ -62,6 +64,11 @@ export function buildSettingsSections(hiddenTags: () => Promise<Option[]>): Pref
           type: "toggle" as const,
           key: PreferenceID.BestUploadPerGroup,
           title: "Keep Best Upload per Group",
+        },
+        {
+          type: "toggle" as const,
+          key: PreferenceID.SmallestUpload,
+          title: "Smallest Upload",
         },
       ],
     },

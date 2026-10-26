@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.1.18",
+  version: "1.1.19",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -625,18 +625,19 @@ class ToonkotsuSource
   }
 
   async getChapters(contentId: string): Promise<Chapter[]> {
-    const [series, mainOnly, showSize, bestPerGroup, hidden] = await Promise.all([
+    const [series, mainOnly, showSize, bestPerGroup, smallest, hidden] = await Promise.all([
       this.loadSeries(contentId),
       this.preferences.flag(PreferenceID.DeduplicateChapters),
       this.preferences.flag(PreferenceID.ShowUploadSize),
       this.preferences.flag(PreferenceID.BestUploadPerGroup),
+      this.preferences.flag(PreferenceID.SmallestUpload),
       this.preferences.text(PreferenceID.HiddenGroups, ""),
     ]);
     const hiddenGroups = hidden
       .split(",")
       .map((name) => name.trim())
       .filter(Boolean);
-    return parseChapters(series, { mainOnly, showSize, bestPerGroup, hiddenGroups });
+    return parseChapters(series, { mainOnly, showSize, bestPerGroup, smallest, hiddenGroups });
   }
 
   private loadSeries(contentId: string): Promise<SeriesResponse> {

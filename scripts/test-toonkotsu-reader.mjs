@@ -322,6 +322,21 @@ for (const mainOnly of [false, true]) {
     }
   }
 }
+for (const [preferences, selected] of [
+  [{ "smallest-upload": true }, ["30", "32"]],
+  [{ "smallest-upload": true, "deduplicate-chapters": true }, ["32"]],
+  [{ "smallest-upload": true, "best-upload-per-group": false }, ["30", "31", "32", "33", "34"]],
+]) {
+  const chapters = await chapterList(selectionEntries, preferences);
+  assert.deepEqual(chapters.map((chapter) => chapter.chapterId), ["35", "36", ...selected]);
+}
+const lightest = await chapterList([
+  { id: 70, n: 8, label: "Chapter 8", mb: null, group: { name: "Team" } },
+  { id: 71, n: 8, label: "Chapter 8", mb: 5, group: { name: "Team" } },
+  { id: 72, n: 8, label: "Chapter 8", mb: 2, partial: true, group: { name: "Team" } },
+], { "smallest-upload": true });
+assert.deepEqual(lightest.map((chapter) => chapter.chapterId), ["71"], "complete beats partial; unknown size counts as heaviest");
+console.log("PASS Smallest Upload keeps the lightest complete upload per group, or per chapter when deduplicating");
 const firstVisible = await chapterList(selectionEntries, {
   "deduplicate-chapters": true,
   "hidden-groups": "Team",
