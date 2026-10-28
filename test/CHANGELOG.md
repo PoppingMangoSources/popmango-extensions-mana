@@ -5,6 +5,12 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
+## Kagane (current: v1.2.7)
+
+### Fixed
+
+- Open chapters that reuse an image at multiple reading positions without rejecting the page manifest.
+
 ## KaganeTest (current: v1.0.16)
 
 ### Fixed
@@ -338,7 +344,7 @@ counted up from `1.0.0`.
   to comics, including the expanded prose formats among unsupported title types.
 
 
-## Kagane (current: v1.2.6)
+## Kagane (v1.2.6)
 
 ### Fixed
 
