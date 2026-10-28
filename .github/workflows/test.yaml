@@ -46,6 +46,9 @@ jobs:
       - name: Toonkotsu reader crypto
         run: bun run test:toonkotsu
 
+      - name: Kagane reader manifests
+        run: bun run test:kagane
+
       # Every rule CLAUDE.md and the mana-extension skill lay down that can be checked
       # without the live site: icons, intents, probe fixtures, CHANGELOG agreement, the
       # globals the runtime does not have, and the patch-only version rule.

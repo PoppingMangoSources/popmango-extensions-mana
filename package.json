@@ -22,7 +22,8 @@
     "readme": "node scripts/update-readme.mjs",
     "format": "oxfmt src/",
     "format:check": "oxfmt --check src/",
-    "test:toonkotsu": "node scripts/test-toonkotsu-reader.mjs"
+    "test:toonkotsu": "node scripts/test-toonkotsu-reader.mjs",
+    "test:kagane": "node scripts/test-kagane-reader.mjs"
   },
   "mana": {
     "src": "src/",

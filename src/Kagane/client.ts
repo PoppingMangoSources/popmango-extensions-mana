@@ -571,18 +571,16 @@ async function parseJson<T>(response: HttpResponse): Promise<T> {
  * refused; and a run of page numbers with a gap or a repeat is a chapter half delivered.
  */
 function checkManifest(pages: readonly ManifestPage[]): void {
-  const ids = new Set<string>();
+  // Different reading positions can share the same image asset.
   const numbers: number[] = [];
   for (const page of pages) {
     if (
       !Number.isInteger(page.page_no) ||
       typeof page.page_id !== "string" ||
       !/^[A-Za-z0-9_-]+$/.test(page.page_id) ||
-      (page.ext != null && !/^[A-Za-z0-9]+$/.test(page.ext)) ||
-      ids.has(page.page_id)
+      (page.ext != null && !/^[A-Za-z0-9]+$/.test(page.ext))
     )
       throw new Error("Kagane returned an invalid page list. Reopen the chapter.");
-    ids.add(page.page_id);
     numbers.push(page.page_no);
   }
   numbers.sort((left, right) => left - right);
