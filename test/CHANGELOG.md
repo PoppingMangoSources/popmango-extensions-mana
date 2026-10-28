@@ -5,7 +5,14 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Kagane (current: v1.2.7)
+## Kagane (current: v1.2.8)
+
+### Changed
+
+- Start the first five reader images immediately, then about five per second, with covers on a separate unpaced client.
+- Allow queued page requests up to two minutes so long prefetch queues can finish.
+
+## Kagane (v1.2.7)
 
 ### Fixed
 
