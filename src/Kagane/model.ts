@@ -30,6 +30,7 @@ export type JsonObject = { [key: string]: JsonValue };
 
 // The size the site's own rows ask for.
 export const PAGE_SIZE = 50;
+export const PAGES_PER_SECOND = 5;
 
 export const FilterID = {
   Sort: "sort",

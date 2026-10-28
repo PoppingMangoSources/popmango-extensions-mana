@@ -5,6 +5,7 @@ import {
   CatalogRating,
   DefinedLanguages,
   HttpClient,
+  RateLimit,
   RequestOrigin,
   additionalInfo,
   SearchExcludableMultiPickerSheet,
@@ -28,6 +29,7 @@ import {
   type CoverRequestHandler,
   type ImageRequest,
   type PageRequestHandler,
+  type RequestInterceptor,
   type Option,
   type Pair,
   type PageLink,
@@ -70,6 +72,7 @@ import {
   languageOption,
   FilterID,
   PAGE_SIZE,
+  PAGES_PER_SECOND,
   SEARCH_STATUS_OPTIONS,
   SOURCE_TYPE_OPTIONS,
   uploadTypes,
@@ -123,7 +126,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.7",
+  version: "1.2.8",
   description: "Manga, manhwa, manhua and comics from kagane.cx.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -181,7 +184,7 @@ class KaganeSource
   );
   // A page's token outlives neither its reader session nor a quality switch, so each page
   // is re-signed as it is asked for — here, because the transport hooks cannot wait.
-  private readonly images = new HttpClient().addRequestInterceptor(async (request, context) => {
+  private readonly prepareImage: RequestInterceptor = async (request, context) => {
     if (context.origin === RequestOrigin.General) return request;
     if (request.url.includes("token=")) {
       const dataSaver = await this.preferences.flag(PreferenceID.DataSaver);
@@ -191,7 +194,19 @@ class KaganeSource
     request.url = onMirror(request.url, site.slice("https://".length));
     withDefaults(request.headers, { referer: `${site}/`, origin: site });
     return request;
-  });
+  };
+  private readonly coverImages = new HttpClient().addRequestInterceptor(this.prepareImage);
+  private readonly pageImages = new HttpClient()
+    // Long chapter prefetches can wait more than 30 seconds before their downloads start.
+    .setTimeoutMs(120_000)
+    .setRateLimiter(
+      RateLimit.tokenBucket({
+        capacity: PAGES_PER_SECOND,
+        refillTokens: PAGES_PER_SECOND,
+        intervalMs: 1000,
+      }),
+    )
+    .addRequestInterceptor(this.prepareImage);
   // The store answers only for keys it has a default for, and the hide-lists and required
   // lists are one key per tag group, so those are declared here alongside the fixed ones.
   private readonly preferences = new PreferenceStore(info.id, {
@@ -835,11 +850,11 @@ class KaganeSource
   }
 
   getCoverTransport(_request: ImageRequest): HttpClient {
-    return this.images;
+    return this.coverImages;
   }
 
   getPageTransport(_request: ImageRequest): HttpClient {
-    return this.images;
+    return this.pageImages;
   }
 
   async handleURL(url: string): Promise<DeepLinkContext | null> {
