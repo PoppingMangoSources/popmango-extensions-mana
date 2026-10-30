@@ -5,7 +5,14 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.2.1)
+## Toonkotsu (current: v1.2.2)
+
+### Changed
+
+- Replace reader image token-bucket pacing with up to 10 simultaneous downloads, reusing slots as transfers finish.
+- Give queued page requests the reader's 180-second timeout budget.
+
+## Toonkotsu (v1.2.1)
 
 ### Changed
 
