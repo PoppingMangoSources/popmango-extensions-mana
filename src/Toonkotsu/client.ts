@@ -38,7 +38,7 @@ export class ToonkotsuApi {
 
   private get http(): HttpClient {
     this.client ??= new HttpClient()
-      .setRateLimit(5, 1000)
+      .setRateLimit(10, 1000)
       .addRequestInterceptor((request) => {
         withDefaults(request.headers, { origin: BASE_URL, referer: `${BASE_URL}/` });
         return request;

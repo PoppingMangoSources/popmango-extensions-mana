@@ -11,8 +11,8 @@ export const PAGE_SIZE = 42;
 
 export const READER_TIMEOUT = 180;
 
-/** Reader pages started at once, and then each second: about the pace of the site's own reader. */
-export const PAGES_PER_SECOND = 3;
+/** A shared burst and refill budget keeps reader preloads from starting without a limit. */
+export const PAGES_PER_SECOND = 10;
 
 /**
  * Distinct titles a page of Latest Updates is filled to.
