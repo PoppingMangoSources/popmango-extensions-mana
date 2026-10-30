@@ -5,6 +5,12 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
+## ToonkotsuTest (current: v1.0.3)
+
+### Changed
+
+- Raise API requests to 10 per second and reader images to a 10-page burst with 10 tokens refilled per second.
+
 ## Kagane (current: v1.2.8)
 
 ### Changed
@@ -125,7 +131,7 @@ counted up from `1.0.0`.
 
 - A separate Kagane build for testing the reworked discover rows, cards, filters, chapter list and mirror setting before they reach Kagane.
 
-## ToonkotsuTest (current: v1.0.2)
+## ToonkotsuTest (v1.0.2)
 
 ### Changed
 
