@@ -11,8 +11,8 @@ export const PAGE_SIZE = 42;
 
 export const READER_TIMEOUT = 180;
 
-/** A shared burst and refill budget keeps reader preloads from starting without a limit. */
-export const PAGES_PER_SECOND = 10;
+/** Bound simultaneous image transfers without imposing a per-second download budget. */
+export const MAX_PAGE_DOWNLOADS = 10;
 
 /**
  * Distinct titles a page of Latest Updates is filled to.

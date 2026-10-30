@@ -3,14 +3,14 @@
 import {
   Cipher,
   HttpClient,
-  RateLimit,
+  RateLimitAction,
   RequestOrigin,
   type ChapterPage,
   type CipherSpec,
 } from "@mana-app/types";
 
 import { base64ToBytes, resolveUrl } from "../common/index.ts";
-import { BASE_URL, PAGES_PER_SECOND, type SitePage } from "./model.ts";
+import { BASE_URL, MAX_PAGE_DOWNLOADS, READER_TIMEOUT, type SitePage } from "./model.ts";
 
 /**
  * The chapter's pages: `chapter.pages`, where the site puts them.
@@ -78,6 +78,7 @@ function pageCipher({ k, n }: Readonly<Record<string, string>>): CipherSpec | un
 
 let covers: HttpClient | undefined;
 let pages: HttpClient | undefined;
+let activePages = 0;
 
 /** Covers come from the site's own CDN unencrypted and only need its referer. */
 export function coverClient(): HttpClient {
@@ -86,18 +87,25 @@ export function coverClient(): HttpClient {
 }
 
 /**
- * A shared token bucket lets preloaded pages start in bursts without removing sustained pacing.
+ * Freed download slots are reused without waiting for a per-second token refill.
  * Each page's keys arrive in its URL fragment; the host decrypts the body natively.
  */
 export function pageClient(): HttpClient {
   pages ??= new HttpClient()
-    .setRateLimiter(
-      RateLimit.tokenBucket({
-        capacity: PAGES_PER_SECOND,
-        refillTokens: PAGES_PER_SECOND,
-        intervalMs: 1000,
-      }),
-    )
+    .setTimeoutMs(READER_TIMEOUT * 1000)
+    .setRateLimiter({
+      tryAcquire() {
+        if (activePages >= MAX_PAGE_DOWNLOADS) {
+          return { action: RateLimitAction.Wait, retryAfterMs: 25 };
+        }
+        activePages++;
+        return { action: RateLimitAction.Allow };
+      },
+      // The runtime completes each admitted attempt, including errors and cancellation.
+      onComplete() {
+        activePages--;
+      },
+    })
     .addHeader("Referer", `${BASE_URL}/`)
     .addResponseInterceptor(async (response, context) => {
       if (context.origin !== RequestOrigin.Page || !response.ok) return response;
