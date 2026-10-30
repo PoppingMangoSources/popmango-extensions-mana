@@ -112,7 +112,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu-test",
   name: "ToonkotsuTest",
-  version: "1.0.5",
+  version: "1.0.6",
   description: "Testing build of Toonkotsu, installed separately from the main source.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
