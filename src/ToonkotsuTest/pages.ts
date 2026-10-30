@@ -86,14 +86,8 @@ export function coverClient(): HttpClient {
 }
 
 /**
- * Reader pages, paced.
- *
- * Pages run to several megabytes each, and the reader asks for a chapter's worth, and the next
- * chapter's, at once. Started together they share the connection and the page on screen waits
- * behind them, so they are started about as fast as the site's own reader takes them: the
- * first few at once, so the page opened and the two after it start straight away, then a few a
- * second. Each page's keys arrive from the fragment of its URL; the host decrypts it where it
- * holds it, so the image never crosses into this runtime, and names its type from the bytes.
+ * A shared token bucket lets preloaded pages start in bursts without removing sustained pacing.
+ * Each page's keys arrive in its URL fragment; the host decrypts the body natively.
  */
 export function pageClient(): HttpClient {
   pages ??= new HttpClient()

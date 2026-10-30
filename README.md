@@ -59,7 +59,7 @@ becomes available to install.
 | <img src="media/sources/rinkocomics.png" width="22" align="top"/> **RinkoComics** | [rinkocomics.com](https://rinkocomics.com) | Safe | v1.2.0 |
 | <img src="media/sources/rokaricomics.png" width="22" align="top"/> **RokariComics** | [rokaricomics.com](https://rokaricomics.com) | Safe | v1.2.0 |
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.2.0 |
-| <img src="media/sources/toonkotsutest.png" width="22" align="top"/> **ToonkotsuTest** | [toonkotsu.com](https://toonkotsu.com) | Mixed | v1.0.2 |
+| <img src="media/sources/toonkotsutest.png" width="22" align="top"/> **ToonkotsuTest** | [toonkotsu.com](https://toonkotsu.com) | Mixed | v1.0.3 |
 | <img src="media/sources/valirscans.png" width="22" align="top"/> **ValirScans** | [valirscans.org](https://valirscans.org) | Mixed | v1.2.0 |
 | <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.3.0 |
 <!-- sources:end -->
