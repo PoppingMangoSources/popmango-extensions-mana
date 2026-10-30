@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## Toonkotsu (current: v1.2.2)
+## Toonkotsu (current: v1.2.3)
+
+### Changed
+
+- Remove API rate limiting and reader image concurrency limiting.
+
+## Toonkotsu (v1.2.2)
 
 ### Changed
 
