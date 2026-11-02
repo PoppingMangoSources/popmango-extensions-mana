@@ -31,6 +31,55 @@ export function buildSettingsSections(): PreferenceSection[] {
       ],
     },
     {
+      header: "Editions",
+      footer:
+        "Lists every team's edition of a series under one title, each chapter naming its team.",
+      fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.MergeEditions,
+          title: "Merge Editions",
+        },
+      ],
+    },
+    {
+      footer:
+        "Keeps only the teams you name, separated by commas. Leave it empty for every team. " +
+        "Applies while merging.",
+      fields: [
+        {
+          type: "text" as const,
+          key: PreferenceID.IncludedEditions,
+          title: "Editions To Include",
+          placeholder: "e.g. Tapas, Pocket Comics",
+        },
+      ],
+    },
+    {
+      footer:
+        "Lists one team's chapters after another's, so reading on stays with the same team. " +
+        "Applies while merging.",
+      fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.GroupByEdition,
+          title: "Group Chapters By Edition",
+        },
+      ],
+    },
+    {
+      footer:
+        "Drops the repeat entries some editions carry for the same chapter, and loads faster. " +
+        "Every team's chapters stay listed either way.",
+      fields: [
+        {
+          type: "toggle" as const,
+          key: PreferenceID.DeduplicateChapters,
+          title: "Deduplicate Chapter List",
+        },
+      ],
+    },
+    {
       header: "Content",
       footer: "Applies to the home page, browsing and search.",
       fields: [
@@ -71,17 +120,21 @@ export function buildSettingsSections(): PreferenceSection[] {
     {
       header: "Titles",
       footer:
-        "With Merge Editions off, one series published by several teams or houses is several " +
-        "entries here, all under the same name — showing the source tags each with who " +
-        "published it, as 'On the Way to Meet Mom [WEBTOON]'. Version tags are markers like " +
-        "'(Official)' or '(Yaoi)'. Titles already saved to your library keep the name they " +
-        "were added under until you refresh them.",
+        "Adds the team to the title, as 'On the Way to Meet Mom [WEBTOON]', so one series' " +
+        "editions can be told apart. Applies while not merging.",
       fields: [
         {
           type: "toggle" as const,
           key: PreferenceID.ShowSourceInTitle,
           title: "Show Source In Title",
         },
+      ],
+    },
+    {
+      footer:
+        "Version tags are markers like '(Official)' or '(Yaoi)'. Titles already in your " +
+        "library keep their name until you refresh them.",
+      fields: [
         {
           type: "toggle" as const,
           key: PreferenceID.RemoveTitleVersion,
@@ -92,48 +145,6 @@ export function buildSettingsSections(): PreferenceSection[] {
           key: PreferenceID.CustomTitleRegex,
           title: "Custom Regex To Be Removed From Title",
           placeholder: "e.g. \\s*\\(Official\\)$",
-        },
-      ],
-    },
-    {
-      header: "Editions",
-      footer:
-        "A series is often published by several teams. Merging lists every edition in your " +
-        "languages under one title, each chapter naming its team, at one request per edition. " +
-        "Editions To Include keeps only the teams named, separated by commas, as 'Tapas, " +
-        "Pocket Comics'; leave it empty for all of them. Grouping lists one team's chapters " +
-        "after another's, so reading on stays with the same team. Both apply only while " +
-        "merging.",
-      fields: [
-        {
-          type: "toggle" as const,
-          key: PreferenceID.MergeEditions,
-          title: "Merge Editions",
-        },
-        {
-          type: "text" as const,
-          key: PreferenceID.IncludedEditions,
-          title: "Editions To Include",
-          placeholder: "All editions",
-        },
-        {
-          type: "toggle" as const,
-          key: PreferenceID.GroupByEdition,
-          title: "Group Chapters By Edition",
-        },
-      ],
-    },
-    {
-      header: "Chapters",
-      footer:
-        "Each team publishes its own edition, so every team's chapters are listed either way. " +
-        "Deduplicating drops the repeat entries some editions carry for the same chapter, " +
-        "and loads in fewer requests.",
-      fields: [
-        {
-          type: "toggle" as const,
-          key: PreferenceID.DeduplicateChapters,
-          title: "Deduplicate Chapter List",
         },
       ],
     },

@@ -131,7 +131,8 @@ export const PreferenceID = {
   RemoveTitleVersion: "remove-title-version",
   CustomTitleRegex: "custom-title-regex",
   IgnoreGenreBlocklist: "ignore-genre-blocklist",
-  DeduplicateChapters: "deduplicate-chapters",
+  // Renamed so a list turned off before deduplication kept every team's chapters starts on again.
+  DeduplicateChapters: "deduplicate-chapter-list",
   MergeEditions: "merge-editions",
   IncludedEditions: "included-editions",
   GroupByEdition: "group-by-edition",
@@ -644,8 +645,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   // On: the site's own deduplicated list keeps every chapter, one upload of each, in a single
   // request where the full list of every upload can run to several.
   [PreferenceID.DeduplicateChapters]: true,
-  // Off: a merged list costs a request per edition, a dozen or more on a popular series.
-  [PreferenceID.MergeEditions]: false,
+  [PreferenceID.MergeEditions]: true,
   [PreferenceID.IncludedEditions]: "",
   [PreferenceID.GroupByEdition]: false,
   [PreferenceID.ShowSourceInTitle]: true,
