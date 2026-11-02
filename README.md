@@ -89,8 +89,10 @@ bun run verify --all     # runs every source against its live site
 the globals the runtime does not have, and the patch-only version rule. `bun run verify`
 is the half that needs the network — a Cloudflare block reports SKIP, which is not a pass.
 
-`bun run hooks` points git at `.githooks/`, so a push runs those gates first. Skip a run
-with `git push --no-verify`.
+`bun run hooks` configures the owner identity, unsigned commits and `.githooks/`. Commit
+messages and outgoing commits are checked for attribution and session links before the
+build gates run. Dependency installation also enables this setup. Fix metadata failures
+before pushing; CI and deployment check them again.
 
 `bun run new-source` scaffolds a source folder. `bun run readme` regenerates the table above
 from `dist/sources.json` after a build.

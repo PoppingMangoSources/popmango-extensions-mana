@@ -21,6 +21,11 @@ jobs:
     steps:
       - name: Checkout Branch
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check commit metadata before publishing
+        run: node scripts/check-commits.mjs --event
 
       - uses: oven-sh/setup-bun@v2
         with:

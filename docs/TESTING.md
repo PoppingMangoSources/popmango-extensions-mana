@@ -13,6 +13,17 @@ bun run lint && bun run format:check && bun run typecheck && bun run build && bu
 `bun run hooks` installs a pre-push hook that runs the same five, and the Test workflow
 runs them on every push and pull request.
 
+Commit metadata has a separate gate: `bun run check:commits` checks HEAD, and
+`bun run check:commits --range <base>..HEAD` checks a series. Only the PoppingMangoSources
+identity is allowed as author and committer; signatures, attribution trailers and session
+links fail. `bun run test:commits` tests these guards using temporary repositories.
+The commit-message hook checks before a commit, pre-push checks every outgoing commit,
+and CI checks the push or pull-request range. Both deployment workflows run the same gate
+before publishing. A local hook can be bypassed; CI still rejects the resulting commits.
+
+`bun run hooks` configures the local identity, disables commit signing and enables the
+hooks. It also runs during dependency installation and at project session start.
+
 - **`typecheck`** is the one that matters. `mana-dev` strips types without checking them, so
   a source written against a removed API bundles cleanly and only fails on a device.
 - **`build`** writes `dist/sources/<Name>.mana` and `dist/sources.json`, then renders the

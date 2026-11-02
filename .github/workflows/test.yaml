@@ -21,6 +21,12 @@ jobs:
           # needs history rather than a single commit.
           fetch-depth: 0
 
+      - name: Check commit metadata
+        run: node scripts/check-commits.mjs --event
+
+      - name: Test commit guards
+        run: node --test scripts/test-commits.mjs
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

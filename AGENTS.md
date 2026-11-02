@@ -140,6 +140,20 @@ skill's "Before calling it done" list point by point against the diff — not fr
 
 ## Git
 
-Commits are authored by Popmango Extensions and unsigned. Commit bodies are one or two
-sentences. Do not name or link third parties in code, commit messages, or documentation.
-Work lands on `main`.
+The sole commit author and committer is the PoppingMangoSources account:
+`Popmango Extensions <297959108+PoppingMangoSources@users.noreply.github.com>`.
+Commits must be unsigned. Never add co-authors, `Co-Authored-By`, `Assisted-by`,
+`Signed-off-by`, `Claude-Session`, generated-by footers, or agent/session links.
+Commit bodies are one or two sentences. Do not name or link third parties in code,
+commit messages, or documentation. Work lands on `main`.
+
+Run `bun run hooks` after cloning, before committing. Dependency installation and the
+project's session-start hook also run this setup: repository-local identity, signing disabled,
+and `.githooks/` enabled. Do not bypass the commit-message or pre-push hooks to make an
+invalid commit pass; fix the metadata instead. Before pushing, inspect
+`git show --format=fuller --no-patch HEAD` and run `bun run check:commits`.
+
+`.claude/settings.json` disables attribution text and session URLs separately. Prose alone
+does not disable those defaults. The commit-message hook checks the proposed message and
+identity; pre-push checks the actual outgoing commits, including signatures. CI checks new
+commits on pushes and pull requests, and deployment checks them before publishing.
