@@ -126,8 +126,9 @@ export function buildSettingsSections(): PreferenceSection[] {
     {
       header: "Chapters",
       footer:
-        "A deduplicated list keeps one entry per chapter number. Turning this off shows every " +
-        "upload, including a second group's take on a chapter already listed.",
+        "Each team publishes its own edition, so every team's chapters are listed either way. " +
+        "Deduplicating drops the repeat entries some editions carry for the same chapter, " +
+        "and loads in fewer requests.",
       fields: [
         {
           type: "toggle" as const,
