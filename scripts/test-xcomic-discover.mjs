@@ -9,7 +9,7 @@ const bundle = fs.readFileSync(
   fileURLToPath(new URL("../dist/sources/XCOMIC.mana", import.meta.url)),
   "utf8",
 );
-function load(settings = {}, failFirst = false) {
+function load(settings = {}, options = {}) {
   const bodies = new Map();
   let id = 0,
     active = 0,
@@ -29,6 +29,14 @@ function load(settings = {}, failFirst = false) {
     urlCover: "https://images.test/cover.jpg",
     contentRating: "safe",
     genres: [],
+    work: {
+      data: { trackingSites: { anilist: 122625, myanimelist: "42" } },
+      comicNodes: [
+        { data: edition },
+        { data: { ...edition, id: "other", subName: "Other Team" } },
+        { data: { ...edition, id: "third", subName: "Third Team" } },
+      ],
+    },
   };
   const title = { data: comic, comicNodes: [{ data: edition }] };
   const sandbox = {
@@ -50,6 +58,8 @@ function load(settings = {}, failFirst = false) {
             started: Date.now(),
           });
           maximum = Math.max(maximum, ++active);
+          const position = requests.length;
+          await options.beforeReply?.(request);
           await new Promise((resolve) => setTimeout(resolve, 25));
           active--;
           const data = {
@@ -75,10 +85,15 @@ function load(settings = {}, failFirst = false) {
             get_comic_recentlyAdded: { items: [{ data: comic }] },
             get_comicNode: { data: comic },
             get_title_titleNode: { data: { trackingSites: {} } },
+            get_chapterNode: { data: { imageUrls: ["https://images.test/page.jpg"] } },
+            get_comic_chapterList_uniqList: {
+              paging: { total: 1, next: 0 },
+              items: [{ data: { id: request.variables?.select?.comic_id, chaNum: 1 } }],
+            },
           };
           const bodyID = String(++id);
-          bodies.set(bodyID, JSON.stringify({ data }));
-          const status = failFirst && requests.length === 1 ? 400 : 200;
+          bodies.set(bodyID, JSON.stringify({ data: options.response?.(request, data) ?? data }));
+          const status = options.failFirst && position === 1 ? 400 : 200;
           return {
             bodyID,
             sessionID: "test",
@@ -143,10 +158,115 @@ test("hidden rows cost no requests and failed calls release their slot for a ref
   await Promise.all(sections.map((section) => hidden.target.resolvePageSection({}, section.id)));
   assert.equal(hidden.requests.length, sections.length);
   assert.ok(!hidden.requests.some((request) => request.query.includes("get_title_randomList")));
-  const { target } = load({}, true);
+  const { target } = load({}, { failFirst: true });
   await assert.rejects(target.resolvePageSection({ id: "home" }, "top_rated"), /HTTP 400/);
   const result = await target.resolvePageSection({ id: "home" }, "top_rated");
   assert.ok(result.items.length > 0);
+});
+
+test("search, details and reading fill available slots without fixed delays", async () => {
+  const { target, requests, maximum } = load();
+  const results = await Promise.all([
+    target.search({ query: "title", page: 1 }),
+    target.getContent("edition"),
+    target.getChapterData("edition", "chapter"),
+  ]);
+  assert.equal(requests.length, 3);
+  assert.equal(maximum(), 3);
+  assert.ok(requests[2].started - requests[0].started < 250);
+  assert.equal(results[2].pages.length, 1);
+});
+
+test("details retain inline numeric tracker ids without a second request or edition lists", async () => {
+  const { target, requests } = load();
+  const content = await target.getContent("edition");
+  assert.equal(requests.length, 1);
+  assert.deepEqual({ ...content.trackerInfo }, { anilist: "122625", mal: "42" });
+  assert.ok(!requests[0].query.includes("comicNodes"));
+});
+
+test("redirected tracker ids still resolve, and migration skips that extra request", async () => {
+  const response = (request, data) => {
+    if (request.variables.id === "edition")
+      data.get_comicNode.data.work.data = { isMerged: true, mergedTo: "surviving" };
+    if (request.variables.id === "surviving")
+      data.get_title_titleNode.data = { trackingSites: { anilist: 123 } };
+    return data;
+  };
+  const normal = load({}, { response });
+  assert.equal((await normal.target.getContent("edition")).trackerInfo.anilist, "123");
+  assert.equal(normal.requests.length, 2);
+  const migration = load({}, { response });
+  await migration.target.getContent("edition", { origin: 0 });
+  assert.equal(migration.requests.length, 1);
+});
+
+test("merged chapters start other editions while the opened edition is still loading", async () => {
+  let release;
+  const opened = new Promise((resolve) => {
+    release = resolve;
+  });
+  const { target, requests, maximum } = load(
+    {},
+    {
+      beforeReply: (request) =>
+        request.variables?.select?.comic_id === "edition" ? opened : undefined,
+    },
+  );
+  const result = target.getChapters("edition");
+  try {
+    for (let tries = 0; tries < 50 && requests.length < 4; tries++)
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(requests.filter((request) => request.variables?.select?.comic_id).length, 3);
+  } finally {
+    release();
+  }
+  const chapters = await result;
+  assert.deepEqual(Array.from(chapters, (chapter) => chapter.chapterId).sort(), [
+    "edition",
+    "other",
+    "third",
+  ]);
+  assert.equal(maximum(), 3);
+  const metadata = requests.find((request) => request.variables.id === "edition");
+  assert.equal(metadata.variables.merge, true);
+  assert.ok(
+    !metadata.query.includes("summary"),
+    "chapter metadata does not fetch the full profile",
+  );
+});
+
+test("unmerged full chapter lists keep pagination, language and chapter ordering", async () => {
+  const { target, requests } = load(
+    {
+      "xcomic.merge-editions": false,
+      "xcomic.deduplicate-chapter-list": false,
+    },
+    {
+      response: (request, data) => {
+        const select = request.variables.select;
+        if (select?.comic_id) {
+          const start = (select.page - 1) * 600;
+          data.get_comic_chapterList_fullList = {
+            paging: { total: 1202, next: select.page < 3 ? select.page + 1 : 0 },
+            items: Array.from({ length: Math.min(600, 1202 - start) }, (_, i) => ({
+              data: { id: `chapter-${start + i}`, chaNum: 1202 - start - i },
+            })),
+          };
+        }
+        return data;
+      },
+    },
+  );
+  const chapters = await target.getChapters("edition");
+  assert.equal(chapters.length, 1202);
+  assert.ok(chapters.every((chapter) => chapter.language === "en_US"));
+  assert.equal(chapters[0].number, 1202);
+  assert.equal(chapters.at(-1).number, 1);
+  const lists = requests.filter((request) => request.variables.select?.comic_id);
+  assert.deepEqual(lists.map((request) => request.variables.select.page).sort(), [1, 2, 3]);
+  assert.ok(lists.every((request) => request.variables.select.size === 600));
+  assert.equal(requests.find((request) => request.variables.id)?.variables.merge, false);
 });
 
 test("home requests honour a selected mirror and language before building URLs", async () => {

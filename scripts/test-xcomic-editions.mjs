@@ -7,7 +7,14 @@
 import assert from "node:assert/strict";
 
 import { appLanguage } from "../src/XCOMIC/model.ts";
-import { mergedEditions, parseChapters, rankEditions } from "../src/XCOMIC/parsers.ts";
+import {
+  mergedEditions,
+  parseChapters,
+  parseTitleHighlight,
+  parseTitleHighlights,
+  parseTrackers,
+  rankEditions,
+} from "../src/XCOMIC/parsers.ts";
 
 const chapter = (id, chaNum, extra = {}) => ({ id, chaNum, dateCreate: 1_700_000_000, ...extra });
 const edition = (id, extra = {}) => ({
@@ -147,5 +154,40 @@ assert.equal(appLanguage("es_419"), "es_419");
 assert.equal(appLanguage("de"), "de");
 assert.equal(appLanguage("_t"), "UNIVERSAL");
 assert.equal(appLanguage(""), "en_US");
+
+// A ranked tile formats only its selected edition; an edition search still formats them all.
+{
+  const node = {
+    data: {
+      id: "work",
+      name: "A Title",
+      urlCover: "https://images.test/cover.jpg",
+      score_val: 8.4,
+      genres: ["fantasy"],
+    },
+    comicNodes: Array.from({ length: 40 }, (_, index) => ({
+      data: edition(String(index), { chaps_normal: index + 1 }),
+    })),
+  };
+  for (const options of [{}, { hero: true }, { detailed: true }, { showTeam: false }]) {
+    let formatted = 0;
+    const tile = parseTitleHighlight(node, ["en"], {
+      ...options,
+      cleanTitle: (name) => {
+        formatted++;
+        return name;
+      },
+    });
+    assert.equal(formatted, 1, "unselected editions do not build discarded tiles");
+    const all = parseTitleHighlights(node, ["en"], options);
+    assert.equal(all.length, 40);
+    assert.deepEqual(tile, all[0], "selected tile keeps every field and the same edition");
+  }
+  assert.equal(parseTitleHighlight({ ...node, comicNodes: [] }, ["en"]), undefined);
+}
+assert.deepEqual(parseTrackers({ anilist: 122625, kitsu: 58613, myanimelist: null }), {
+  anilist: "122625",
+  kitsu: "58613",
+});
 
 console.log("XCOMIC editions: all checks passed");

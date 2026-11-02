@@ -61,6 +61,7 @@ import {
   CHAPTER_COUNT_OPTIONS,
   DEMOGRAPHIC_OPTIONS,
   DISCOVER_SECTIONS,
+  EDITIONS_QUERY,
   FORMAT_OPTIONS,
   FilterID,
   GENRE_MODE_OPTIONS,
@@ -122,7 +123,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.7",
+  version: "1.4.8",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -319,7 +320,7 @@ class XCOMICSource
   async resolvePageSection(link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     if (!sectionById(DISCOVER_SECTIONS, sectionID)) return { items: [] };
 
-    const { results } = await this.loadSection(sectionID, 1, link.context, true);
+    const { results } = await this.loadSection(sectionID, 1, link.context);
     return { items: results };
   }
 
@@ -327,7 +328,6 @@ class XCOMICSource
     sectionId: string,
     page: number,
     context?: SourceContext,
-    home = false,
   ): Promise<PagedSearchResult> {
     await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
@@ -336,18 +336,14 @@ class XCOMICSource
 
     if (sectionId === SectionID.LatestUploads) {
       const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
-        this.api.query<LatestUploadsResponse>(
-          LATEST_UPLOADS_QUERY,
-          {
-            // This feed pages by cursor; it rejects a `page` outright.
-            select: {
-              first: 0,
-              limit: LATEST_UPLOADS_SIZE,
-              ...(cursor === undefined ? {} : { before: cursor }),
-            },
+        this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
+          // This feed pages by cursor; it rejects a `page` outright.
+          select: {
+            first: 0,
+            limit: LATEST_UPLOADS_SIZE,
+            ...(cursor === undefined ? {} : { before: cursor }),
           },
-          { paced: !home },
-        ),
+        }),
         this.titleCleaner(),
         this.showTeam(),
         this.entryKey(),
@@ -386,11 +382,7 @@ class XCOMICSource
 
     if (sectionId === SectionID.Random) {
       const [data, cleanTitle, showTeam] = await Promise.all([
-        this.api.query<RandomResponse>(
-          RANDOM_QUERY,
-          { select: { amount: RANDOM_SIZE } },
-          { paced: !home },
-        ),
+        this.api.query<RandomResponse>(RANDOM_QUERY, { select: { amount: RANDOM_SIZE } }),
         this.titleCleaner(),
         this.showTeam(),
       ]);
@@ -410,16 +402,12 @@ class XCOMICSource
 
     if (sectionId === SectionID.RecentlyAdded) {
       const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
-        this.api.query<RecentlyAddedResponse>(
-          RECENTLY_ADDED_QUERY,
-          {
-            select: {
-              size: RECENTLY_ADDED_SIZE,
-              ...(cursor === undefined ? {} : { before: cursor }),
-            },
+        this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
+          select: {
+            size: RECENTLY_ADDED_SIZE,
+            ...(cursor === undefined ? {} : { before: cursor }),
           },
-          { paced: !home },
-        ),
+        }),
         this.titleCleaner(),
         this.showTeam(),
         this.entryKey(),
@@ -447,7 +435,7 @@ class XCOMICSource
         sort: spec?.sort ?? SortID.Score,
         ...(await this.preferenceDefaults(context)),
       }),
-      { hero: spec?.style === SectionStyle.SimpleHeroPaged, detailed, paced: !home },
+      { hero: spec?.style === SectionStyle.SimpleHeroPaged, detailed },
     );
   }
 
@@ -570,12 +558,12 @@ class XCOMICSource
 
   private async browse(
     select: BrowseSelect,
-    options: { hero?: boolean; detailed?: boolean; everyEdition?: boolean; paced?: boolean } = {},
+    options: { hero?: boolean; detailed?: boolean; everyEdition?: boolean } = {},
   ): Promise<PagedSearchResult> {
-    const { hero = false, detailed = false, everyEdition = false, paced = true } = options;
+    const { hero = false, detailed = false, everyEdition = false } = options;
 
     const [data, cleanTitle, showTeam] = await Promise.all([
-      this.api.query<BrowseResponse>(BROWSE_QUERY, { select }, { paced }),
+      this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
       this.titleCleaner(),
       this.showTeam(),
     ]);
@@ -611,26 +599,24 @@ class XCOMICSource
       comic,
       cleanTitle,
       showTeam,
-      isMigration(context) ? {} : await this.trackers(comic.titleId),
+      isMigration(context) ? {} : await this.trackers(comic),
     );
   }
 
   /**
    * The tracking ids the site holds for the work behind this edition.
    *
-   * They live on the title rather than on the comic, so they cost a request the profile
-   * otherwise does not need — which is why a failure here is swallowed: a page without
-   * tracker links is a smaller loss than no page at all.
+   * Details carry the work's ids already; only a redirected work needs another request.
+   * A missing tracker must not keep the profile from opening.
    */
-  private async trackers(titleId: string | null | undefined): Promise<Record<string, string>> {
-    if (!titleId) return {};
-
+  private async trackers(comic: ComicData): Promise<Record<string, string>> {
     try {
-      const title = await this.titleNode(titleId);
+      const title =
+        comic.work?.data ?? (comic.titleId ? await this.titleNode(comic.titleId) : undefined);
       // A work the site has folded into another keeps its own row but not its ids; they
       // moved to whatever it was merged into.
       const surviving =
-        title?.isMerged && title.mergedTo && title.mergedTo !== titleId
+        title?.isMerged && title.mergedTo && title.mergedTo !== comic.titleId
           ? ((await this.titleNode(title.mergedTo)) ?? title)
           : title;
 
@@ -656,22 +642,24 @@ class XCOMICSource
       this.preferences.strings(PreferenceID.Languages),
     ]);
 
-    // The opened edition's list is asked for beside the details rather than after them;
-    // only the other editions have to wait to be named.
-    const [data, [own = []]] = await Promise.all([
-      this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
+    // Only edition metadata gates the other lists; the opened edition can still be loading.
+    const editionsRequest = this.api
+      .query<ComicNodeResponse>(EDITIONS_QUERY, { id: contentId, merge })
+      .then((data) => {
+        const comic = data.get_comicNode?.data ?? { id: contentId, name: "" };
+        return merge ? mergedEditions(comic, languages) : [comic];
+      });
+    const [editions, [own = []], others] = await Promise.all([
+      editionsRequest,
       this.chapterLists([contentId], deduplicate),
+      editionsRequest.then((editions) =>
+        this.chapterLists(
+          editions.slice(1).map((edition) => edition.id),
+          deduplicate,
+        ),
+      ),
     ]);
-    const comic = data.get_comicNode?.data ?? { id: contentId, name: "" };
-    const editions = merge ? mergedEditions(comic, languages) : [comic];
-    // `mergedEditions` puts the opened edition first, so its list leads.
-    const lists = [
-      own,
-      ...(await this.chapterLists(
-        editions.slice(1).map((edition) => edition.id),
-        deduplicate,
-      )),
-    ];
+    const lists = [own, ...others];
 
     return parseChapters(
       editions.map((edition, position) => ({
@@ -742,7 +730,6 @@ class XCOMICSource
         // The chapter list keys on snake_case and names its own order.
         select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
       },
-      { paced: false },
     );
 
     return deduplicate ? data.get_comic_chapterList_uniqList : data.get_comic_chapterList_fullList;

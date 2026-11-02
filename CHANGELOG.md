@@ -285,7 +285,16 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.7)
+## XCOMIC (current: v1.4.8)
+
+### Changed
+
+- Fill available API slots immediately for search, details and reading, retaining the three-request concurrency bound.
+- Format only the selected edition for each Discover tile, keeping all 36 hero titles and the existing metadata.
+- Fetch tracker IDs with title details, accept numeric IDs, and use a smaller edition-only query for chapter lists.
+- Start sibling edition chapter requests as soon as their IDs arrive, while preserving every edition, chapter and reading order.
+
+## XCOMIC (v1.4.7)
 
 ### Fixed
 - Restore the full 36-title hero preview while retaining immediate Discover request starts.

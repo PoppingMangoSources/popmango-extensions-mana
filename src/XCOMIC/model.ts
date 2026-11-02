@@ -782,6 +782,13 @@ query get_comic_recentlyAdded($select: Comic_RecentlyAdded_Select) {
   }
 }`;
 
+const TRACKING_FIELDS = `
+      isMerged: is_merged
+      mergedTo: merged_to
+      trackingSites: tracking_sites {
+        anilist myanimelist mangaupdates kitsu animeplanet shikimori mangabaka
+      }`;
+
 export const COMIC_QUERY = `
 query get_comicNode($id: ID!) {
   get_comicNode(id: $id) {
@@ -807,8 +814,7 @@ query get_comicNode($id: ID!) {
       score_val follows comments_total chaps_normal
       views { field count }
       work: title_titleNode {
-        data { authors artists description format_ids }
-        comicNodes { data {${EDITION_FIELDS} } }
+        data { authors artists description format_ids${TRACKING_FIELDS} }
       }
     }
   }
@@ -817,18 +823,23 @@ query get_comicNode($id: ID!) {
 /**
  * The work behind an edition, which is where the site files its tracking ids.
  *
- * A comic is one team's take on a title; the ids belong to the title, so a detail page has
- * to ask twice to carry them. Only the fields we read are asked for: this endpoint is a
- * second round trip on a page that already has what it needs to draw.
+ * Ordinary details carry these inline. A merged work redirects its tracking ids here.
  */
 export const TITLE_NODE_QUERY = `
 query get_title_titleNode($id: ID!) {
   get_title_titleNode(id: $id) {
+    data {${TRACKING_FIELDS}
+    }
+  }
+}`;
+
+export const EDITIONS_QUERY = `
+query get_comicNode($id: ID!, $merge: Boolean!) {
+  get_comicNode(id: $id) {
     data {
-      isMerged: is_merged
-      mergedTo: merged_to
-      trackingSites: tracking_sites {
-        anilist myanimelist mangaupdates kitsu animeplanet shikimori mangabaka
+      id name subName translatedLanguage
+      work: title_titleNode @include(if: $merge) {
+        comicNodes { data {${EDITION_FIELDS} } }
       }
     }
   }
@@ -957,7 +968,7 @@ export type ComicData = {
   work?: WorkNode | null;
 };
 
-export type WorkData = {
+export type WorkData = TitleNodeData & {
   authors?: string[] | null;
   artists?: string[] | null;
   description?: string | null;
@@ -1011,13 +1022,13 @@ export type ComicNodeResponse = { get_comicNode?: ComicNode | null };
 
 /** The ids the site holds for a work elsewhere, each either an id or a whole link. */
 export type TrackingSites = {
-  anilist?: string | null;
-  myanimelist?: string | null;
-  mangaupdates?: string | null;
-  kitsu?: string | null;
-  animeplanet?: string | null;
-  shikimori?: string | null;
-  mangabaka?: string | null;
+  anilist?: string | number | null;
+  myanimelist?: string | number | null;
+  mangaupdates?: string | number | null;
+  kitsu?: string | number | null;
+  animeplanet?: string | number | null;
+  shikimori?: string | number | null;
+  mangabaka?: string | number | null;
 };
 
 export type TitleNodeData = {

@@ -64,38 +64,23 @@ function withInterceptors(client: HttpClient): HttpClient {
 
 export class XCOMICApi {
   private client: HttpClient | undefined;
-  private unpacedClient: HttpClient | undefined;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
   private available = API_REQUEST_SLOTS;
   private readonly waiting: (() => void)[] = [];
 
   private get http(): HttpClient {
-    this.client ??= withInterceptors(new HttpClient().setRateLimit(3, 1000));
+    this.client ??= withInterceptors(new HttpClient());
     return this.client;
   }
 
-  /**
-   * Home rows and chapter lists fill the three shared slots immediately. Per-second pacing
-   * adds idle time even when the preceding response has already finished.
-   */
-  private get unpaced(): HttpClient {
-    this.unpacedClient ??= withInterceptors(new HttpClient());
-    return this.unpacedClient;
-  }
-
-  async query<T>(
-    query: string,
-    variables: Record<string, JsonValue>,
-    options: { paced?: boolean } = {},
-  ): Promise<T> {
+  async query<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
     const key = `${baseUrl()}|${query}|${JSON.stringify(variables)}`;
-    const client = options.paced === false ? this.unpaced : this.http;
     return this.share(key, async () => {
       if (this.available > 0) this.available--;
       else await new Promise<void>((resolve) => this.waiting.push(resolve));
       try {
-        return await this.runQuery<T>(client, query, variables);
+        return await this.runQuery<T>(this.http, query, variables);
       } finally {
         const next = this.waiting.shift();
         if (next) next();

@@ -146,7 +146,7 @@ export function parseTrackers(sites: TrackingSites | null | undefined): Record<s
   if (!sites) return trackers;
 
   for (const [field, key] of TRACKER_KEYS) {
-    const value = clean(sites[field] ?? "");
+    const value = clean(String(sites[field] ?? ""));
     if (!value) continue;
     const id = /^https?:\/\//i.test(value)
       ? (value.split(/[?#]/)[0] ?? "").replace(/\/+$/, "").split("/").pop()
@@ -473,25 +473,31 @@ export function parseTitleHighlights(
   return rankEditions(
     (node.comicNodes ?? []).map((edition) => edition.data),
     languages,
-  ).map((edition) =>
-    parseHighlight(
-      {
-        ...node.data,
-        id: edition.id,
-        name: edition.name || node.data.name,
-        // The publisher an edition came from belongs to the edition, so it has to be
-        // carried over rather than left behind on the work the tile was built from.
-        subName: edition.subName ?? null,
-        translatedLanguage: edition.translatedLanguage ?? null,
-        // The counts stay the work's, as the site prints them, except the run: a reader
-        // is about to open this edition, not every translation of it at once.
-        chaps_normal: edition.chaps_normal ?? node.data.chaps_normal ?? null,
-        // The work's own path is not the edition's, and a reader tapping through to the
-        // site should land on the one the tile named.
-        urlPath: edition.urlPath ?? null,
-      },
-      { ...options, countChapters: true },
-    ),
+  ).map((edition) => parseEditionHighlight(node, edition, options));
+}
+
+function parseEditionHighlight(
+  node: TitleNode,
+  edition: ComicData,
+  options: HighlightOptions,
+): Highlight {
+  return parseHighlight(
+    {
+      ...node.data,
+      id: edition.id,
+      name: edition.name || node.data.name,
+      // The publisher an edition came from belongs to the edition, so it has to be
+      // carried over rather than left behind on the work the tile was built from.
+      subName: edition.subName ?? null,
+      translatedLanguage: edition.translatedLanguage ?? null,
+      // The counts stay the work's, as the site prints them, except the run: a reader
+      // is about to open this edition, not every translation of it at once.
+      chaps_normal: edition.chaps_normal ?? node.data.chaps_normal ?? null,
+      // The work's own path is not the edition's, and a reader tapping through to the
+      // site should land on the one the tile named.
+      urlPath: edition.urlPath ?? null,
+    },
+    { ...options, countChapters: true },
   );
 }
 
@@ -506,7 +512,11 @@ export function parseTitleHighlight(
   languages: readonly string[],
   options: HighlightOptions = {},
 ): Highlight | undefined {
-  return parseTitleHighlights(node, languages, options)[0];
+  const edition = rankEditions(
+    (node.comicNodes ?? []).map((entry) => entry.data),
+    languages,
+  )[0];
+  return edition ? parseEditionHighlight(node, edition, options) : undefined;
 }
 
 export function parseContent(
