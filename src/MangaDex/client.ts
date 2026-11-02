@@ -3,7 +3,7 @@
 import { HttpClient } from "@mana-app/types";
 
 import { ACCEPT_LANGUAGE, withQuery, type QueryParams } from "../common/index.ts";
-import { API_URL, BASE_URL } from "./model.ts";
+import { API_URL, BASE_URL, USER_AGENT } from "./model.ts";
 
 /**
  * What the API says went wrong, which is more use than the status on its own.
@@ -36,6 +36,7 @@ function errorMessage(body: string): string | undefined {
 
 export class MangaDexApi {
   private client: HttpClient | undefined;
+  private imageClient: HttpClient | undefined;
   // The home page fires six rows at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
 
@@ -47,11 +48,22 @@ export class MangaDexApi {
       .addHeaders({
         accept: "application/json",
         "accept-language": ACCEPT_LANGUAGE,
-        // No user-agent of our own: the API sits behind Cloudflare, which scores a written
-        // one against the connection making the request and refuses the mismatch.
+        "user-agent": USER_AGENT,
         referer: `${BASE_URL}/`,
       });
     return this.client;
+  }
+
+  /**
+   * Covers and pages, which refuse the app's own user-agent as the API does. Their own
+   * client, so the API's limit does not pace a chapter's pages.
+   */
+  get images(): HttpClient {
+    this.imageClient ??= new HttpClient().addHeaders({
+      "user-agent": USER_AGENT,
+      referer: `${BASE_URL}/`,
+    });
+    return this.imageClient;
   }
 
   /** A GET against the API, shared with any identical one already in flight. */

@@ -6,6 +6,13 @@ import type { PageSectionSpec } from "../common/index.ts";
 
 export const BASE_URL = "https://mangadex.org";
 export const API_URL = "https://api.mangadex.org";
+
+/**
+ * Who is asking, as MangaDex wants it said. The API, the cover host and the image servers
+ * all send a browser user-agent to a bot challenge — a 302 to an HTML page, or a 404 for a
+ * page image — and the app sends one of those when a request names none.
+ */
+export const USER_AGENT = "PoppingMango-MangaDex (Mana)";
 /** Covers are served from the uploads host, never from the API one. */
 export const COVER_URL = "https://uploads.mangadex.org/covers";
 

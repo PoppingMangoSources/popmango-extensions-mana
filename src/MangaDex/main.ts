@@ -15,6 +15,8 @@ import {
   type Content,
   type DeepLinkContext,
   type Form,
+  type HttpClient,
+  type ImageRequest,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -97,7 +99,7 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.2.1",
+  version: "1.2.2",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -858,6 +860,14 @@ class MangaDexSource
         url: `${host}/${useSaver ? "data-saver" : "data"}/${hash}/${file}`,
       })),
     };
+  }
+
+  getCoverTransport(_request: ImageRequest): HttpClient {
+    return this.api.images;
+  }
+
+  getPageTransport(_request: ImageRequest): HttpClient {
+    return this.api.images;
   }
 
   // ----- links -----
