@@ -658,7 +658,14 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.2.3)
+## MangaDex (current: v1.2.4)
+
+### Changed
+
+- Content Ratings default to Safe, Suggestive and Erotica; Pornographic stays off until you turn it on. Ratings you already chose are kept.
+- Erotica counts as Mature rather than Explicit, so it follows Mana's own Mature setting.
+
+## MangaDex (v1.2.3)
 
 ### Added
 
