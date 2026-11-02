@@ -117,7 +117,7 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.2.3",
+  version: "1.2.4",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -136,12 +136,19 @@ function isDetailed(sectionId: string): boolean {
 }
 
 /** Which of the site's four ratings a host policy leaves standing. */
+/** MangaDex's four ratings against the app's four levels, one to one. */
+const RATING_LEVELS: Record<string, ContentRating> = {
+  safe: ContentRating.SAFE,
+  suggestive: ContentRating.SUGGESTIVE,
+  erotica: ContentRating.MATURE,
+  pornographic: ContentRating.EXPLICIT,
+};
+
 function permittedRatings(chosen: string[], context: SourceContext | undefined): string[] {
   const allowed = context?.allowedContentRatings;
-  const permitted =
-    allowed && !allowed.includes(ContentRating.EXPLICIT)
-      ? chosen.filter((rating) => rating === "safe" || rating === "suggestive")
-      : chosen;
+  const permitted = allowed
+    ? chosen.filter((rating) => allowed.includes(RATING_LEVELS[rating] ?? ContentRating.EXPLICIT))
+    : chosen;
   return permitted.length > 0 ? permitted : ["safe"];
 }
 

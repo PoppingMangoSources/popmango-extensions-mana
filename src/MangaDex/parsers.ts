@@ -155,6 +155,8 @@ export function parseRating(rating: string | null | undefined): ContentRating {
       return ContentRating.SAFE;
     case "suggestive":
       return ContentRating.SUGGESTIVE;
+    case "erotica":
+      return ContentRating.MATURE;
     case "":
       return ContentRating.SAFE;
     default:

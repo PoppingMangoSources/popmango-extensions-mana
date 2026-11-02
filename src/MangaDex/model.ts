@@ -104,7 +104,8 @@ export const CONTENT_RATING_OPTIONS: Option[] = [
 ];
 
 /** What the site itself ships with, and what a reader who changes nothing sees. */
-export const DEFAULT_CONTENT_RATINGS = ["safe", "suggestive"];
+// Pornographic stays one tap away in settings rather than on by default.
+export const DEFAULT_CONTENT_RATINGS = ["safe", "suggestive", "erotica"];
 
 export const STATUS_OPTIONS: Option[] = [
   { id: "ongoing", title: "Ongoing" },
