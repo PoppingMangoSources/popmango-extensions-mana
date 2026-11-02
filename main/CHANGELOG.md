@@ -285,7 +285,14 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.0)
+## XCOMIC (current: v1.4.1)
+
+### Changed
+
+- Merge Editions is off by default. A merged list asks for every edition's chapters, a dozen or more requests on a popular series; turn it on in settings to keep merging.
+- Merged chapter lists load in about half the time: the full upload list comes 600 chapters a request instead of 100, a request starts as soon as another finishes rather than in groups of three, and the opened edition's chapters load alongside the title details.
+
+## XCOMIC (v1.4.0)
 
 ### Added
 
