@@ -658,7 +658,13 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.2.1)
+## MangaDex (current: v1.2.2)
+
+### Fixed
+
+- Every home row, search and title failed with "returned a response that was not JSON". MangaDex now sends any request carrying a browser's user-agent to a bot check, and the app sends one when a source names none; the source now names itself on the API, covers and pages.
+
+## MangaDex (v1.2.1)
 
 ### Fixed
 
