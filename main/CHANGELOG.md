@@ -285,11 +285,17 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.3)
+## XCOMIC (current: v1.4.4)
+
+### Fixed
+
+- The Chapters settings note said turning deduplication off showed other groups' uploads. Each group is its own edition, so every group's chapters show either way; deduplicating only drops an edition's repeat entries for the same chapter.
+
+## XCOMIC (v1.4.3)
 
 ### Changed
 
-- Deduplicate Chapter List is on by default. Every chapter is still listed, one upload of each, in fewer requests: a merged One Piece takes 80 instead of 95. Turn it off in settings to see every group's upload again.
+- Deduplicate Chapter List is on by default. Every chapter is still listed, one upload of each, in fewer requests: a merged One Piece takes 80 instead of 95.
 
 ## XCOMIC (v1.4.2)
 
