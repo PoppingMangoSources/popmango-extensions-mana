@@ -658,7 +658,21 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.2.2)
+## MangaDex (current: v1.2.3)
+
+### Added
+
+- Sign in with your MangaDex account from Mana's sign-in screen. Signed in, the home page leads with Updates (new chapters from the titles you follow), Library (every title with a reading status) and a row for each of your MangaDex lists.
+- Tracker links: AniList, MyAnimeList, MangaUpdates, Kitsu and Anime-Planet ids come from MangaDex's own links, so trackers link themselves.
+- A Related section on title pages with the sequels, prequels, side stories, spin-offs and other versions MangaDex links, each naming how it relates.
+- Blocked Groups and Blocked Uploaders in settings: paste MangaDex page links or ids and their chapters are left out everywhere.
+- Created Within and Has Available Chapters in the search filters.
+
+### Fixed
+
+- Listed for every language MangaDex has translations in, so readers who do not choose English see it too. Chapters carry the app's language codes.
+
+## MangaDex (v1.2.2)
 
 ### Fixed
 

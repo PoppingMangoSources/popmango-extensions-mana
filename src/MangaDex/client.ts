@@ -3,6 +3,7 @@
 import { HttpClient } from "@mana-app/types";
 
 import { ACCEPT_LANGUAGE, withQuery, type QueryParams } from "../common/index.ts";
+import { SignedOutError, accessToken } from "./auth.ts";
 import { API_URL, BASE_URL, USER_AGENT } from "./model.ts";
 
 /**
@@ -33,6 +34,8 @@ function errorMessage(body: string): string | undefined {
 
   return messages.length > 0 ? [...new Set(messages)].join("; ") : undefined;
 }
+
+class UnauthorizedError extends Error {}
 
 export class MangaDexApi {
   private client: HttpClient | undefined;
@@ -77,11 +80,33 @@ export class MangaDexApi {
     return this.share(url, () => this.run<T>(url));
   }
 
-  private async run<T>(url: string): Promise<T> {
+  /**
+   * A GET on the reader's own account. A token the server has revoked can still look
+   * current, so a 401 refreshes once and asks again before calling the reader signed out.
+   */
+  async getSigned<T>(path: string, params?: QueryParams): Promise<T> {
+    const url = withQuery(`${API_URL}${path}`, params);
+    return this.share(`signed ${url}`, async () => {
+      for (const force of [false, true]) {
+        const token = await accessToken(force);
+        if (!token) throw new SignedOutError("Sign in to MangaDex to see this.");
+        try {
+          return await this.run<T>(url, { authorization: `Bearer ${token}` });
+        } catch (error) {
+          if (!(error instanceof UnauthorizedError) || force) throw error;
+        }
+      }
+      throw new SignedOutError("Sign in to MangaDex to see this.");
+    });
+  }
+
+  private async run<T>(url: string, headers?: Record<string, string>): Promise<T> {
     // The API writes its reason into the body, and a 404 from `/manga/{id}` is an answer
     // rather than a failure, so every status is read here.
-    const response = await this.http.get(url);
+    const response = await this.http.get(url, headers ? { headers } : undefined);
     const body = await response.text();
+
+    if (response.status === 401 && headers) throw new UnauthorizedError();
 
     if (response.status >= 400) {
       const stated = errorMessage(body);

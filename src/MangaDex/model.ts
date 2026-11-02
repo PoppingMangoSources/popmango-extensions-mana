@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
+import { DefinedLanguages, SectionStyle, type Option, type SortOption } from "@mana-app/types";
 
 import type { PageSectionSpec } from "../common/index.ts";
 
@@ -13,6 +13,15 @@ export const API_URL = "https://api.mangadex.org";
  * page image — and the app sends one of those when a request names none.
  */
 export const USER_AGENT = "PoppingMango-MangaDex (Mana)";
+
+export const AUTH_URL = "https://auth.mangadex.org/realms/mangadex/protocol/openid-connect";
+/**
+ * The OAuth client MangaDex's sign-in accepts from a reader app. It allows only its own
+ * redirect, so the app's sign-in sheet listens for that scheme.
+ */
+export const AUTH_CLIENT_ID = "neko";
+export const AUTH_REDIRECT_URI = "neko://mangadex-auth";
+export const AUTH_CALLBACK_SCHEME = "neko";
 /** Covers are served from the uploads host, never from the API one. */
 export const COVER_URL = "https://uploads.mangadex.org/covers";
 
@@ -38,6 +47,8 @@ export const FilterID = {
   OriginalLanguages: "original_languages",
   Year: "year",
   Author: "author",
+  HasChapters: "has_chapters",
+  CreatedWithin: "created_within",
   IncludedTagsMode: "included_tags_mode",
   ExcludedTagsMode: "excluded_tags_mode",
   /** One excludable picker per tag group, suffixed with the group's own name. */
@@ -54,6 +65,8 @@ export const PreferenceID = {
   HideOfficialPublishers: "hide-official-publishers",
   ShowVolume: "show-volume",
   ShowChapter: "show-chapter",
+  BlockedGroups: "blocked-groups",
+  BlockedUploaders: "blocked-uploaders",
   SectionPrefix: "section",
 } as const;
 
@@ -160,7 +173,12 @@ export const SectionID = {
   Recommended: "recommended",
   SelfPublished: "self_published",
   RecentlyAdded: "recently_added",
+  FollowedUpdates: "followed_updates",
+  Library: "library",
 } as const;
+
+/** A row for one of the reader's own MangaDex lists, by the list's id. */
+export const LIST_SECTION_PREFIX = "list.";
 
 export type DiscoverSection = PageSectionSpec & { sort?: string };
 
@@ -196,6 +214,25 @@ export const DISCOVER_SECTIONS: DiscoverSection[] = [
     title: "Recently Added",
     style: SectionStyle.SimpleSingleRow,
     sort: SortID.CreatedAt,
+  },
+];
+
+/**
+ * The rows a signed-in reader adds, under the site's own names for its Follows pages. The
+ * subtitle keeps Updates apart from the site-wide Latest Updates row above it.
+ */
+export const ACCOUNT_SECTIONS: DiscoverSection[] = [
+  {
+    id: SectionID.FollowedUpdates,
+    title: "Updates",
+    subtitle: "New chapters from the titles you follow",
+    style: SectionStyle.DetailedVerticalListGrouped,
+  },
+  {
+    id: SectionID.Library,
+    title: "Library",
+    subtitle: "Every title with a reading status on your account",
+    style: SectionStyle.SimpleSingleRow,
   },
 ];
 
@@ -373,13 +410,83 @@ export const PREFERENCE_DEFAULTS = {
   [PreferenceID.HideOfficialPublishers]: true,
   [PreferenceID.ShowVolume]: true,
   [PreferenceID.ShowChapter]: true,
+  [PreferenceID.BlockedGroups]: "",
+  [PreferenceID.BlockedUploaders]: "",
 };
+
+/** Created Within, in days back from now, as the search form offers it. */
+export const CREATED_WITHIN_OPTIONS: Option[] = [
+  { id: "", title: "Any Time" },
+  { id: "1", title: "Past Day" },
+  { id: "7", title: "Past Week" },
+  { id: "30", title: "Past Month" },
+  { id: "365", title: "Past Year" },
+];
+
+/**
+ * The app's code for each of MangaDex's languages where the two spell it differently. The
+ * app names a handful by region and takes the rest as the bare codes MangaDex already uses.
+ */
+const APP_LANGUAGES: Record<string, string> = {
+  en: DefinedLanguages.ENGLISH,
+  ja: DefinedLanguages.JAPANESE,
+  ko: DefinedLanguages.KOREAN,
+  zh: DefinedLanguages.CHINESE,
+  fr: DefinedLanguages.FRENCH,
+  es: DefinedLanguages.SPANISH,
+  "pt-br": DefinedLanguages.PORTUGUESE,
+  pt: "pt_PT",
+  "es-la": "es_419",
+  "zh-hk": "zh_HK",
+};
+
+export function appLanguage(code: string | null | undefined): string {
+  const raw = (code ?? "").trim().toLowerCase();
+  if (!raw) return DefinedLanguages.ENGLISH;
+  return APP_LANGUAGES[raw] ?? raw;
+}
+
+/** Every language MangaDex has translations in: the app lists a source only to its readers. */
+export const SUPPORTED_LANGUAGES = LANGUAGE_OPTIONS.map((option) => appLanguage(option.id));
+
+/** The app's tracker ids for MangaDex's own link keys. */
+export const TRACKER_LINKS: Record<string, string> = {
+  al: "anilist",
+  mal: "mal",
+  mu: "mangaupdates",
+  kt: "kitsu",
+  ap: "animeplanet",
+};
+
+/**
+ * How MangaDex relates one work to another, in the order a reader looks for them. Anything
+ * the site adds later follows these, under its own words.
+ */
+export const RELATION_ORDER = [
+  "main_story",
+  "prequel",
+  "sequel",
+  "side_story",
+  "spin_off",
+  "adapted_from",
+  "based_on",
+  "alternate_story",
+  "alternate_version",
+  "preserialization",
+  "serialization",
+  "colored",
+  "monochrome",
+  "shared_universe",
+  "doujinshi",
+];
 
 // ----- what the API sends back -----
 
 export type Relationship = {
   id: string;
   type: string;
+  /** How a related work relates to this one, on a `manga` relationship. */
+  related?: string | null;
   attributes?: {
     fileName?: string | null;
     name?: string | null;
@@ -450,6 +557,13 @@ export type CustomListEntity = {
   id: string;
   attributes?: { name?: string | null; visibility?: string | null } | null;
   relationships?: Relationship[] | null;
+};
+
+/** Every title on the account with a reading status, by id. */
+export type StatusResponse = { statuses?: Record<string, string> | null };
+
+export type UserResponse = {
+  data?: { id: string; attributes?: { username?: string | null } | null } | null;
 };
 
 export type AtHomeResponse = {

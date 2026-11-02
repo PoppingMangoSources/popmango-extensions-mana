@@ -3,12 +3,13 @@
 import {
   CatalogRating,
   ContentRating,
-  DefinedLanguages,
   SearchGroup,
   SearchMultiPicker,
   SearchExcludableMultiPickerSheet,
   SearchPicker,
   SearchTextField,
+  SearchToggle,
+  SectionStyle,
   type Chapter,
   type ChapterData,
   type ChapterSource,
@@ -17,6 +18,8 @@ import {
   type Form,
   type HttpClient,
   type ImageRequest,
+  type OAuthAuthenticatable,
+  type OAuthURL,
   type PageLink,
   type PageLinkResolver,
   type PageSection,
@@ -30,6 +33,7 @@ import {
   type SourceContext,
   type SourceInfo,
   type SourcePreferenceProvider,
+  type User,
 } from "@mana-app/types";
 
 import {
@@ -47,11 +51,22 @@ import {
   type PreferenceValue,
   type QueryParams,
 } from "../common/index.ts";
+import {
+  SignedOutError,
+  authorizationRequest,
+  completeSignIn,
+  hasSession,
+  signOut,
+} from "./auth.ts";
 import { MangaDexApi } from "./client.ts";
 import {
   BASE_URL,
   BUNDLED_TAG_GROUPS,
+  ACCOUNT_SECTIONS,
   CONTENT_RATING_OPTIONS,
+  CREATED_WITHIN_OPTIONS,
+  LIST_SECTION_PREFIX,
+  SUPPORTED_LANGUAGES,
   COVER_QUALITY_OPTIONS,
   CURATED_SECTIONS,
   CURATED_LISTS_LIFETIME_MS,
@@ -86,6 +101,9 @@ import {
   type StatisticsResponse,
   type TagEntity,
   type TagGroup,
+  type DiscoverSection,
+  type StatusResponse,
+  type UserResponse,
 } from "./model.ts";
 import {
   chapterMangaId,
@@ -99,11 +117,11 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.2.2",
+  version: "1.2.3",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
-  supportedLanguages: [DefinedLanguages.ENGLISH],
+  supportedLanguages: SUPPORTED_LANGUAGES,
   thumbnail: "MangaDex.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
@@ -157,7 +175,12 @@ const SEASON_RANK: Record<string, number> = { winter: 0, spring: 1, summer: 2, f
 const SEASONAL_NAME = /^Seasonal:\s+(Winter|Spring|Summer|Fall)\s+(\d{4})\b/i;
 
 class MangaDexSource
-  implements ChapterSource, SearchProvider, PageLinkResolver, SourcePreferenceProvider
+  implements
+    ChapterSource,
+    SearchProvider,
+    PageLinkResolver,
+    SourcePreferenceProvider,
+    OAuthAuthenticatable
 {
   readonly info = info;
   readonly config = config;
@@ -235,6 +258,26 @@ class MangaDexSource
         ],
       },
       {
+        header: "Blocked",
+        footer:
+          "Chapters from these groups and uploaders are left out of every list. Paste their " +
+          "MangaDex page links or ids, separated by commas or spaces.",
+        fields: [
+          {
+            type: "text",
+            key: PreferenceID.BlockedGroups,
+            title: "Blocked Groups",
+            placeholder: "Group links or ids",
+          },
+          {
+            type: "text",
+            key: PreferenceID.BlockedUploaders,
+            title: "Blocked Uploaders",
+            placeholder: "Uploader links or ids",
+          },
+        ],
+      },
+      {
         header: "Images",
         footer:
           "Data saver serves the compressed copy MangaDex keeps beside each page. Port 443 " +
@@ -252,8 +295,10 @@ class MangaDexSource
       },
       {
         header: "Home Page",
-        footer: "A row turned off here costs no request when the home page loads.",
-        fields: DISCOVER_SECTIONS.map((section) => ({
+        footer:
+          "A row turned off here costs no request when the home page loads. Updates, Library " +
+          "and a row for each of your MangaDex lists appear while you are signed in.",
+        fields: [...DISCOVER_SECTIONS, ...ACCOUNT_SECTIONS].map((section) => ({
           type: "toggle" as const,
           key: `${PreferenceID.SectionPrefix}.${section.id}`,
           title: section.title,
@@ -304,9 +349,15 @@ class MangaDexSource
   }
 
   private async blockedGroups(): Promise<string[]> {
-    return (await this.preferences.flag(PreferenceID.HideOfficialPublishers))
-      ? OFFICIAL_PUBLISHER_GROUPS
-      : [];
+    const [hideOfficial, chosen] = await Promise.all([
+      this.preferences.flag(PreferenceID.HideOfficialPublishers),
+      this.preferences.text(PreferenceID.BlockedGroups, ""),
+    ]);
+    return [...new Set([...(hideOfficial ? OFFICIAL_PUBLISHER_GROUPS : []), ...uuids(chosen)])];
+  }
+
+  private async blockedUploaders(): Promise<string[]> {
+    return uuids(await this.preferences.text(PreferenceID.BlockedUploaders, ""));
   }
 
   // ----- home -----
@@ -314,18 +365,59 @@ class MangaDexSource
   async getSectionsForPage(link: PageLink): Promise<PageSection[]> {
     if (link.id !== "home") return [];
 
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map(async (section) => ({
-        section,
-        on: await this.sectionEnabled(section.id),
-      })),
-    );
+    const signedIn = await hasSession();
+    const candidates = [...(signedIn ? ACCOUNT_SECTIONS : []), ...DISCOVER_SECTIONS];
+    const [enabled, lists] = await Promise.all([
+      Promise.all(
+        candidates.map(async (section) => (await this.sectionEnabled(section.id)) && section),
+      ),
+      signedIn ? this.ownLists() : [],
+    ]);
 
-    return toPageSections(enabled.filter((entry) => entry.on).map((entry) => entry.section));
+    const chosen = enabled.filter((section): section is DiscoverSection => Boolean(section));
+    // The account's own rows lead, as the site's Follows pages do in its own menu.
+    const account = chosen.filter((section) => ACCOUNT_SECTIONS.includes(section));
+    return toPageSections([
+      ...account,
+      ...lists,
+      ...chosen.filter((section) => !ACCOUNT_SECTIONS.includes(section)),
+    ]);
+  }
+
+  /** A row per list on the reader's account, each under the name they gave it. */
+  private async ownLists(): Promise<DiscoverSection[]> {
+    try {
+      const response = await this.api.getSigned<ListResponse<CustomListEntity>>("/user/list", {
+        limit: MAX_LIMIT,
+      });
+      return (response.data ?? []).flatMap((list) => {
+        const name = (list.attributes?.name ?? "").trim();
+        const held = (list.relationships ?? []).some((one) => one?.type === "manga");
+        return name && held
+          ? [
+              {
+                id: `${LIST_SECTION_PREFIX}${list.id}`,
+                title: name,
+                style: SectionStyle.SimpleSingleRow,
+              },
+            ]
+          : [];
+      });
+    } catch {
+      // The home page still opens without them; the rows come back on the next refresh.
+      return [];
+    }
+  }
+
+  private isSection(sectionId: string): boolean {
+    return (
+      Boolean(sectionById([...DISCOVER_SECTIONS, ...ACCOUNT_SECTIONS], sectionId)) ||
+      sectionId.startsWith(LIST_SECTION_PREFIX)
+    );
   }
 
   async resolvePageSection(link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
-    if (!sectionById(DISCOVER_SECTIONS, sectionID)) return { items: [] };
+    if (!this.isSection(sectionID)) return { items: [] };
 
     const { results } = await this.loadSection(sectionID, 1, link.context);
     return { items: results };
@@ -337,6 +429,14 @@ class MangaDexSource
     context?: SourceContext,
   ): Promise<PagedSearchResult> {
     if (sectionId === SectionID.LatestUpdates) return this.latestUpdates(page, context);
+    if (sectionId === SectionID.FollowedUpdates) {
+      return this.latestUpdates(page, context, "followed");
+    }
+    if (sectionId === SectionID.Library) return this.library(page, context);
+    if (sectionId.startsWith(LIST_SECTION_PREFIX)) {
+      const ids = await this.listMangaIds(sectionId.slice(LIST_SECTION_PREFIX.length), true);
+      return this.mangaPage(ids, page, context, false);
+    }
     if (CURATED_SECTIONS[sectionId]) return this.curatedList(sectionId, page, context);
 
     const spec = sectionById(DISCOVER_SECTIONS, sectionId);
@@ -362,24 +462,35 @@ class MangaDexSource
    * entries and the site shows it once. The manga themselves come back in a second request
    * because the feed carries only the ids.
    */
-  private async latestUpdates(page: number, context?: SourceContext): Promise<PagedSearchResult> {
-    const [ratings, languages, quality, titles, labels] = await Promise.all([
+  private async latestUpdates(
+    page: number,
+    context?: SourceContext,
+    from: "everyone" | "followed" = "everyone",
+  ): Promise<PagedSearchResult> {
+    const [ratings, languages, quality, titles, labels, groups, uploaders] = await Promise.all([
       this.ratings(context),
       this.languages(),
       this.coverQuality(),
       this.titleLanguages(),
       this.chapterLabelOptions(),
+      this.blockedGroups(),
+      this.blockedUploaders(),
     ]);
 
-    const feed = await this.api.get<ListResponse<ChapterEntity>>("/chapter", {
+    const params: QueryParams = {
       limit: LATEST_LIMIT,
       offset: (page - 1) * LATEST_LIMIT,
       "translatedLanguage[]": languages,
       "contentRating[]": ratings,
       "order[readableAt]": "desc",
       includeFutureUpdates: "0",
-      "excludedGroups[]": await this.blockedGroups(),
-    });
+      "excludedGroups[]": groups,
+      "excludedUploaders[]": uploaders,
+    };
+    const feed =
+      from === "followed"
+        ? await this.api.getSigned<ListResponse<ChapterEntity>>("/user/follows/manga/feed", params)
+        : await this.api.get<ListResponse<ChapterEntity>>("/chapter", params);
 
     const newest = new Map<string, ChapterEntity>();
     for (const chapter of feed.data ?? []) {
@@ -433,12 +544,33 @@ class MangaDexSource
       this.titleLanguages(),
     ]);
 
-    const detailed = isDetailed(sectionId);
     const listId = lists[CURATED_SECTIONS[sectionId] ?? "recommended"];
-    const ids = await this.listMangaIds(listId);
+    return this.mangaPage(await this.listMangaIds(listId), page, context, isDetailed(sectionId), {
+      ratings,
+      quality,
+      titles,
+    });
+  }
+
+  /**
+   * One page of titles out of an ordered list of ids, put back in that order after they are
+   * fetched — `/manga?ids[]` answers in its own.
+   */
+  private async mangaPage(
+    ids: readonly string[],
+    page: number,
+    context: SourceContext | undefined,
+    detailed: boolean,
+    known?: { ratings: string[]; quality: string; titles: string[] },
+  ): Promise<PagedSearchResult> {
     const slice = chunk(ids, PAGE_SIZE)[page - 1] ?? [];
     if (slice.length === 0) return { results: [], isLastPage: true };
 
+    const { ratings, quality, titles } = known ?? {
+      ratings: await this.ratings(context),
+      quality: await this.coverQuality(),
+      titles: await this.titleLanguages(),
+    };
     const manga = await this.api.get<ListResponse<MangaEntity>>("/manga", {
       limit: slice.length,
       "ids[]": slice,
@@ -454,9 +586,21 @@ class MangaDexSource
     };
   }
 
-  /** The manga a list holds, in the order its curator put them in. */
-  private async listMangaIds(listId: string): Promise<string[]> {
-    const list = await this.api.get<SingleResponse<CustomListEntity>>(`/list/${listId}`);
+  /** Every title with a reading status on the account. */
+  private async library(page: number, context?: SourceContext): Promise<PagedSearchResult> {
+    const response = await this.api.getSigned<StatusResponse>("/manga/status");
+    return this.mangaPage(Object.keys(response.statuses ?? {}), page, context, false);
+  }
+
+  /**
+   * The manga a list holds, in the order its owner put them in. A list on the reader's own
+   * account may be private, so it is asked for signed in.
+   */
+  private async listMangaIds(listId: string, own = false): Promise<string[]> {
+    const path = `/list/${listId}`;
+    const list = own
+      ? await this.api.getSigned<SingleResponse<CustomListEntity>>(path)
+      : await this.api.get<SingleResponse<CustomListEntity>>(path);
     return (list.data?.relationships ?? [])
       .filter((one) => one?.type === "manga")
       .map((one) => one.id)
@@ -585,6 +729,12 @@ class MangaDexSource
               title: "Author or Artist",
               placeholder: "Name",
             }),
+            SearchPicker({
+              id: FilterID.CreatedWithin,
+              title: "Created Within",
+              options: CREATED_WITHIN_OPTIONS,
+            }),
+            SearchToggle({ id: FilterID.HasChapters, title: "Has Available Chapters" }),
           ],
         }),
       ],
@@ -628,7 +778,7 @@ class MangaDexSource
   }
 
   async search(request: SearchRequest): Promise<PagedSearchResult> {
-    if (request.listId && sectionById(DISCOVER_SECTIONS, request.listId)) {
+    if (request.listId && this.isSection(request.listId)) {
       return this.loadSection(request.listId, pageOf(request), request.context);
     }
 
@@ -646,6 +796,7 @@ class MangaDexSource
 
     const year = Number.parseInt(filters.text(FilterID.Year), 10);
     const author = filters.text(FilterID.Author);
+    const days = Number.parseInt(filters.option(FilterID.CreatedWithin), 10);
 
     // Best Match only means anything to a query with words in it; without one the API
     // answers an empty page rather than an unordered one.
@@ -667,6 +818,8 @@ class MangaDexSource
       excludedTagsMode: filters.option(FilterID.ExcludedTagsMode, "OR"),
       ...(Number.isFinite(year) ? { year } : {}),
       ...(author ? { author } : {}),
+      ...(days > 0 ? { createdAtSince: sinceStamp(Date.now() - days * DAY_MS) } : {}),
+      ...(filters.toggle(FilterID.HasChapters) ? { withChapters: true } : {}),
     });
   }
 
@@ -782,19 +935,44 @@ class MangaDexSource
     if (!manga) throw new Error(`MangaDex has no title with id ${contentId}`);
 
     // A migration walks a whole library through here and wants only enough to match a
-    // title, so the statistics request is skipped rather than bought once per title.
-    const stats = isMigration(context)
-      ? undefined
-      : (await this.statistics([contentId])).get(contentId);
+    // title, so the statistics and related works are skipped rather than bought per title.
+    if (isMigration(context)) return parseContent(manga, { quality, titles });
 
-    return parseContent(manga, { quality, titles, ...(stats ? { stats } : {}) });
+    const [stats, related] = await Promise.all([
+      this.statistics([contentId]).then((all) => all.get(contentId)),
+      this.relatedWorks(manga, context),
+    ]);
+    return parseContent(manga, { quality, titles, related, ...(stats ? { stats } : {}) });
+  }
+
+  /** The works this one links to, with their covers, in one request. */
+  private async relatedWorks(manga: MangaEntity, context?: SourceContext): Promise<MangaEntity[]> {
+    const ids = (manga.relationships ?? [])
+      .filter((one) => one?.type === "manga")
+      .map((one) => one.id)
+      .slice(0, MAX_LIMIT);
+    if (ids.length === 0) return [];
+
+    try {
+      const response = await this.api.get<ListResponse<MangaEntity>>("/manga", {
+        limit: ids.length,
+        "ids[]": ids,
+        "contentRating[]": await this.ratings(context),
+        "includes[]": ["cover_art"],
+      });
+      return response.data ?? [];
+    } catch {
+      // A title page without its related works is a smaller loss than no page at all.
+      return [];
+    }
   }
 
   async getChapters(contentId: string, context?: SourceContext): Promise<Chapter[]> {
-    const [ratings, languages, blocked, labels] = await Promise.all([
+    const [ratings, languages, blocked, uploaders, labels] = await Promise.all([
       this.ratings(context),
       this.languages(),
       this.blockedGroups(),
+      this.blockedUploaders(),
       this.chapterLabelOptions(),
     ]);
 
@@ -806,6 +984,7 @@ class MangaDexSource
         "translatedLanguage[]": languages,
         "contentRating[]": ratings,
         "excludedGroups[]": blocked,
+        "excludedUploaders[]": uploaders,
         // Chapter leads so a volume-tagged chapter does not sink below a feed of nulls.
         "order[chapter]": "desc",
         "order[volume]": "desc",
@@ -862,6 +1041,32 @@ class MangaDexSource
     };
   }
 
+  // ----- sign-in -----
+
+  async getOAuthRequestURL(): Promise<OAuthURL> {
+    return authorizationRequest();
+  }
+
+  async handleOAuthCallback(response: string): Promise<void> {
+    await completeSignIn(response);
+  }
+
+  async getAuthenticatedUser(): Promise<User | null> {
+    try {
+      const me = await this.api.getSigned<UserResponse>("/user/me");
+      const handle = (me.data?.attributes?.username ?? "").trim();
+      return handle ? { handle } : null;
+    } catch (error) {
+      // Only a session MangaDex has ended is a signed-out reader; a failed request is not.
+      if (error instanceof SignedOutError) return null;
+      throw error;
+    }
+  }
+
+  async handleUserSignOut(): Promise<void> {
+    await signOut();
+  }
+
   getCoverTransport(_request: ImageRequest): HttpClient {
     return this.api.images;
   }
@@ -914,6 +1119,19 @@ class MangaDexSource
 }
 
 /** The API takes a timestamp without a zone, to the second. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Every MangaDex id in what a reader pasted — bare ids, or the page links that hold them. */
+function uuids(text: string): string[] {
+  return [
+    ...new Set(
+      (text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) ?? []).map(
+        (id) => id.toLowerCase(),
+      ),
+    ),
+  ];
+}
+
 function sinceStamp(at: number): string {
   return new Date(at).toISOString().replace(/\.\d+Z$/, "");
 }

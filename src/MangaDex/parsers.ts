@@ -1,9 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  AdditionalInfoType,
   ContentRating,
-  DefinedLanguages,
   PublicationStatus,
+  additionalInfo,
   type Chapter,
   type Content,
   type Highlight,
@@ -27,6 +28,9 @@ import {
 import {
   BASE_URL,
   COVER_URL,
+  RELATION_ORDER,
+  TRACKER_LINKS,
+  appLanguage,
   type ChapterEntity,
   type LocalizedString,
   type MangaEntity,
@@ -350,7 +354,7 @@ export function parseChapters(entities: ChapterEntity[], options: ChapterOptions
       date:
         parseDate(attributes.readableAt ?? attributes.publishAt ?? attributes.createdAt) ??
         new Date(0),
-      language: attributes.translatedLanguage || DefinedLanguages.ENGLISH,
+      language: appLanguage(attributes.translatedLanguage),
       ...(Number.isFinite(volume) ? { volume } : {}),
       webUrl: `${BASE_URL}/chapter/${entity.id}`,
       ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
@@ -382,9 +386,11 @@ export function parseContent(
     titles?: readonly string[];
     cleanTitle?: TitleCleaner;
     stats?: MangaStats;
+    /** The works this one links to, fetched with their covers. */
+    related?: MangaEntity[];
   },
 ): Content {
-  const { quality, titles = [], cleanTitle = asIs, stats } = options;
+  const { quality, titles = [], cleanTitle = asIs, stats, related = [] } = options;
   const attributes = manga.attributes ?? {};
 
   const tags: Tag[] = (attributes.tags ?? [])
@@ -410,6 +416,9 @@ export function parseContent(
     info.push({ key: "Final Chapter", value: attributes.lastChapter });
   }
 
+  const trackers = trackerIds(attributes.links);
+  const relatedItems = relatedHighlights(manga, related, quality, titles);
+
   // The site files no format, but it does say what language a work was written in, and its
   // "Long Strip" tag names the ones meant to be scrolled whatever that language.
   const panel = panelMode({
@@ -428,6 +437,66 @@ export function parseContent(
     contentRating: parseRating(attributes.contentRating),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
     ...(info.length > 0 ? { info } : {}),
+    ...(Object.keys(trackers).length > 0 ? { trackerInfo: trackers } : {}),
+    ...(relatedItems.length > 0
+      ? {
+          additionalInfo: [
+            additionalInfo.highlights.section({
+              id: "related",
+              title: "Related",
+              hasMore: false,
+              items: relatedItems,
+            }),
+          ],
+        }
+      : {}),
     webUrl: seriesUrl(manga.id),
   };
+}
+
+/** The tracking ids MangaDex holds for a work, keyed the way the app's trackers look them up. */
+function trackerIds(links: Record<string, string | undefined> | null | undefined) {
+  const trackers: Record<string, string> = {};
+  for (const [key, tracker] of Object.entries(TRACKER_LINKS)) {
+    const id = clean(links?.[key] ?? "");
+    if (id) trackers[tracker] = id;
+  }
+  return trackers;
+}
+
+/**
+ * The works MangaDex links to this one, in the order a reader looks for them, each naming
+ * how it relates — an item on a title page carries no subtitle, so the title says it.
+ */
+function relatedHighlights(
+  manga: MangaEntity,
+  related: readonly MangaEntity[],
+  quality: string,
+  titles: readonly string[],
+) {
+  const fetched = new Map(related.map((entity) => [entity.id.toLowerCase(), entity]));
+  const rank = (relation: string): number => {
+    const at = RELATION_ORDER.indexOf(relation);
+    return at === -1 ? RELATION_ORDER.length : at;
+  };
+
+  return (manga.relationships ?? [])
+    .filter((one) => one?.type === "manga" && fetched.has(one.id.toLowerCase()))
+    .sort((left, right) => rank(left.related ?? "") - rank(right.related ?? ""))
+    .flatMap((one) => {
+      const entity = fetched.get(one.id.toLowerCase());
+      if (!entity) return [];
+      const name = decodeEntities(localized(entity.attributes?.title, titles));
+      const relation = titleCase((one.related ?? "").replace(/_/g, " "));
+      return [
+        additionalInfo.highlights.item({
+          type: AdditionalInfoType.Highlights,
+          id: entity.id,
+          title: relation ? `${name} (${relation})` : name,
+          cover: coverUrl(entity, quality),
+          contentRating: parseRating(entity.attributes?.contentRating),
+          webUrl: seriesUrl(entity.id),
+        }),
+      ];
+    });
 }
