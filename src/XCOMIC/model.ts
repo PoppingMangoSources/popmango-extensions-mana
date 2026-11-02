@@ -641,9 +641,9 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.RemoveTitleVersion]: false,
   [PreferenceID.CustomTitleRegex]: "",
   [PreferenceID.IgnoreGenreBlocklist]: false,
-  // Off: the site lists every group's upload, and collapsing them by chapter number hides
-  // translations a reader may have come for.
-  [PreferenceID.DeduplicateChapters]: false,
+  // On: the site's own deduplicated list keeps every chapter, one upload of each, in a single
+  // request where the full list of every upload can run to several.
+  [PreferenceID.DeduplicateChapters]: true,
   // Off: a merged list costs a request per edition, a dozen or more on a popular series.
   [PreferenceID.MergeEditions]: false,
   [PreferenceID.IncludedEditions]: "",
