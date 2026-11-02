@@ -35,7 +35,7 @@ new source.
 | `getSearchForm()`, `getSortOptions()` | The filter sheet and the sort menu |
 | `getContent(id, context)` | A title's profile, and migration |
 | `getChapters(id)` | The chapter list, unless `Content.chapters` was filled |
-| `getChapterData(contentId, chapterId, chapter)` | The reader: `pages`, or a whole `document` |
+| `getChapterData(contentId, chapterId, chapter)` | The reader: `pages`, a whole `document`, or a book chapter's `text` |
 | `getPreferenceMenu()` | The settings gear — it appears only when this exists |
 | `getCoverTransport` / `getPageTransport` | Images that need headers, cookies, a limiter or decryption |
 | `handleURL(url)` | A link on one of `config.owningLinks` |
@@ -105,8 +105,8 @@ maps one to one.
 | `PageImageProcessor::process_page_image` | A response interceptor on the page transport — `response.decrypt` when a native cipher fits |
 | `DeepLinkHandler::handle_deep_link` | `handleURL` with `config.owningLinks` |
 | `BaseUrlProvider` | A preference read in the client's request interceptor |
-| `BasicLoginHandler` | A settings form whose button calls the source's own sign-in — the app has no login screen for it; see [platform.md](../.claude/skills/mana-extension/references/platform.md) |
-| `WebLoginHandler` | Nothing — a web login never appears in the app |
+| `BasicLoginHandler` | `handleBasicAuth` — the app's own password sheet; see Sign-in in [platform.md](../.claude/skills/mana-extension/references/platform.md) |
+| `WebLoginHandler` | `getWebAuthRequestURL` + `didReceiveSessionCookieFromWebAuthResponse` — the app's login page |
 | `NotificationHandler` | `didChange` on the form field |
 | `MigrationHandler` | A stable `info.id`; `context.origin === MIGRATION` in `getContent` |
 | `source.json` `languages`, `contentRating` | `info.supportedLanguages`, `info.rating` |
@@ -162,14 +162,12 @@ These have no equivalent in most references. Use them where the site supports th
 - **`Content.trackerInfo`** — AniList and MyAnimeList ids, so tracking links itself.
 - **Info rows on tiles** — `Highlight.info` under a `Detailed*` style.
 - **Native decryption** — AES-CTR/CBC/GCM and XOR on a response body or held bytes.
-- **`ChapterData.document`** — a CBZ handed to the reader whole.
+- **`ChapterData.document`** — a CBZ, EPUB or PDF handed to the reader whole, and `text` for
+  a novel chapter read as a book.
 - **Deep links** — `handleURL` plus `config.owningLinks`.
 
 ## What a port loses
 
-- **Web login, and the app's own password screen.** The types carry both and the app shows
-  neither. A password sign-in survives only as the source's own settings form, and that
-  screen does not redraw after signing in until it is reopened.
 - **Library and progress sync.** `syncUserLibrary`, `getProgressState`, library events and
   `getLibraryPageLinks` are declared and never called.
 - **A pre-request hook inside a WebView.** No page-started callback, no HTML injection. A

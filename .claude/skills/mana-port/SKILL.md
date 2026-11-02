@@ -45,8 +45,9 @@ provided and which were taken on trust from the reference.
 For each line of the inventory, name the Mana method or field that carries it (the tables
 in `docs/CONVERSION.md`). Three things never map:
 
-- **Sign-in other than OAuth**, library sync, progress sync and library links — the app does
-  not call them yet. Leave them out and say so.
+- **Library sync, progress sync and library links** — the app does not call them yet. Leave
+  them out and say so. Sign-in does map, in all three styles: password, web login and OAuth
+  (`mana-extension/references/platform.md`, Sign-in).
 - **A per-request image hook that returns a request.** It becomes a long-lived client
   returned from `getPageTransport`, with the per-image difference in the URL fragment.
 - **A WebView hook installed before the page's scripts run.** There is none; read the value

@@ -15,13 +15,13 @@ normally; a method that does not exist is a feature that does not exist.
 | Bit | Intent | Set when the instance has |
 | --- | --- | --- |
 | 0 | `preferenceMenuBuilder` | `getPreferenceMenu` |
-| 1 | `requiresSetup` | `getSetupMenu` **and** `validateSetupForm` **and** `isRunnerSetup` |
+| 1 | `requiresSetup` | `getSetupMenu` **and** `validateSetupForm` **and** `isRunnerSetup` (the app asks `isSourceSetup`) |
 | 2 | retired | was `willRequestImage`, which no longer exists |
 | 3 | `pageLinkResolver` | `getSectionsForPage` **and** `resolvePageSection` |
 | 4 | `libraryPageLinkProvider` | `getLibraryPageLinks` |
 | 5 | `authenticatable` | `getAuthenticatedUser` + `handleUserSignOut` **and** one flavour below |
 | 6 | `basicAuth` | `handleBasicAuth` |
-| 7 | `basicAuthUsesEmail` | `BasicAuthenticationUIIdentifier === EMAIL` |
+| 7 | `basicAuthUsesEmail` | a property named `BasicAuthenticationUIIdentifier` `=== EMAIL` |
 | 8 | `webviewAuth` | `getWebAuthRequestURL` + `didReceiveSessionCookieFromWebAuthResponse` |
 | 9 | `oauthAuth` | `getOAuthRequestURL` + `handleOAuthCallback` |
 | 10 | `providesSearch` | `search` |
@@ -53,9 +53,12 @@ Two traps worth calling out:
 - **Bit 20.** Omitting `getChapters` does not mean "no chapters" — it means "chapters
   arrive inside `Content.chapters`". Either implement `getChapters`, or return chapters
   from `getContent`. Doing neither leaves the app expecting inline chapters it never gets.
-- **Bit 1.** The runtime checks `target.isRunnerSetup`, but `SourceSetupProvider` in the
-  `.d.ts` declares `isSourceSetup`. Implementing only the typed name produces a source that
-  never reports as requiring setup. Define both if you need setup.
+- **Bit 1.** The runtime checks `target.isRunnerSetup`, while the app — since Build 55 — and
+  `SourceSetupProvider` in the `.d.ts` use `isSourceSetup`. Implementing only one name gives
+  a source that never reports setup or is never asked, so define both; `bun run check`
+  holds sources to it.
+- **Bit 7.** The types call the property `BasicAuthUIIdentifier`, but the runtime reads
+  `BasicAuthenticationUIIdentifier`. Set both to the same value.
 
 ## Runtime constraints
 

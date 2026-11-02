@@ -63,6 +63,9 @@ const REMOVED_API = [
   [/\bsetStatusValidator\s*\(/, "setStatusValidator — every status now reaches the caller"],
   [/\bwillRequestImage\s*\(/, "willRequestImage — replaced by getCoverTransport and getPageTransport"],
   [/\bresponseEncoding\b/, "responseEncoding — read the body with bytes() or base64()"],
+  [/\boverrideDownloadRequest\s*\(/, "overrideDownloadRequest — removed in Build 55"],
+  [/\bgetBrowsePageLinks\s*\(/, "getBrowsePageLinks — removed in Build 55"],
+  [/\bgetReadChapterMarkers\s*\(/, "getReadChapterMarkers — removed in Build 55"],
 ];
 
 const failures = [];
@@ -282,6 +285,17 @@ function checkSource(source, catalog, changelog, base) {
     const at = findInFiles(files, new RegExp(pattern.source, pattern.flags));
     check(name, at === undefined, `uses ${description}`, at);
   }
+
+  // The app asks `isSourceSetup`, while mana-dev still detects setup by `isRunnerSetup`, so
+  // a source with one and not the other either never reports setup or is never asked.
+  const sourceSetup = findInFiles(files, /\basync\s+isSourceSetup\s*\(/);
+  const runnerSetup = findInFiles(files, /\basync\s+isRunnerSetup\s*\(/);
+  check(
+    name,
+    (sourceSetup === undefined) === (runnerSetup === undefined),
+    "defines only one of isSourceSetup and isRunnerSetup — define both",
+    sourceSetup ?? runnerSetup,
+  );
 
   // --- Globals the runtime lacks, and the polyfills mana-dev prepends that src/common already
   // answers — one source should read like the next.

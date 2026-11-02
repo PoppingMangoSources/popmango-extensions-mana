@@ -1,10 +1,12 @@
 # What the app does with a source
 
 Condensed from the official source documentation (<https://mana-ios.github.io/overview>)
-and the host's release notes, checked against `@mana-app/types@0.1.1` and the runtime in
-`mana-dev@0.2.0`, and corrected where the app itself has been seen to do otherwise. Where
-the documentation and the toolchain disagree, the toolchain is what decides, and the
-disagreement is noted.
+and the host's release notes through Build 55, checked against `@mana-app/types@0.1.1` and
+the runtime in `mana-dev@0.2.0`, and corrected where the app itself has been seen to do
+otherwise. Where the documentation and the toolchain disagree, the toolchain is what
+decides, and the disagreement is noted. The documentation still describes the app before
+Build 55 — it calls password and web sign-in unused — so where they differ, the release
+notes win.
 
 This file is the one place these facts are kept. The other references and skills point
 here rather than restating them, so a platform change is corrected once.
@@ -22,7 +24,7 @@ The build detects methods on the instance; rebuild after adding or removing one.
 | Search | `search`; optional `getSearchForm`, `getSortOptions`, `validateSearchForm` |
 | Custom home page | `getSectionsForPage` **and** `resolvePageSection`; optional `willResolveSectionsForPage` |
 | Settings gear | `getPreferenceMenu` — the gear appears only when it exists |
-| Sign-in | `getAuthenticatedUser` **and** `handleUserSignOut`, plus `getOAuthRequestURL` + `handleOAuthCallback` |
+| Sign-in | `getAuthenticatedUser` **and** `handleUserSignOut`, plus one style — see [Sign-in](#sign-in) |
 | Reading events | `onChaptersMarked` **and** `onChapterRead`; optional `onPageRead` |
 | Deep links | `handleURL` with `config.owningLinks` |
 | Custom image loading | `getCoverTransport`, `getPageTransport` — each independently |
@@ -33,16 +35,12 @@ The build detects methods on the instance; rebuild after adding or removing one.
 Declared in the types and detected by the build, but the app never calls them itself:
 no screen, no button, no event leads to them. Don't add one expecting the app to use it.
 
-A source may still call one of these from its own code, and some here do — MangaUpdates
-signs in from a settings button whose `action` calls its own `handleBasicAuth`. That path
-works because the source drives it. So **never remove an existing one** on the strength of
-this table: find what calls it first, and test the sign-in on a device.
+A source may still call one of these from its own code. So **never remove an existing one**
+on the strength of this table: find what calls it first, and test it on a device.
 
 | Area | Methods |
 | :--- | :--- |
-| First-run setup | `getSetupMenu`, `validateSetupForm`, `isRunnerSetup` (the docs say `isSourceSetup`; the build reads `isRunnerSetup`) |
-| Password sign-in | `handleBasicAuth`, `BasicAuthenticationUIIdentifier` |
-| Web sign-in | `getWebAuthRequestURL`, `didReceiveSessionCookieFromWebAuthResponse` |
+| First-run setup | `getSetupMenu`, `validateSetupForm`, `isSourceSetup` — define `isRunnerSetup` too, see below |
 | Library events | `onContentsAddedToLibrary`, `onContentsRemovedFromLibrary` |
 | Library links | `getLibraryPageLinks` |
 | Progress and library sync | `getProgressState`, `syncUserLibrary`, `getGroupedUpdates` |
@@ -52,11 +50,38 @@ Partly used: `onChapterRead` and `onPageRead` arrive from the book reader (EPUB,
 only, and only when `onChaptersMarked` also exists — define it as a no-op if you need the
 other two.
 
-The only sign-in the app offers itself is OAuth. A source with more than one style is
-offered only the first, in the order password, web, OAuth — so a source that keeps a
-password method beside OAuth hides its OAuth sign-in. A web login built on
-`getWebAuthRequestURL` never appears — ValirScans has one, and readers never see it. A
-password sign-in has to be the source's own settings form calling its own code.
+Build 55 renamed `isRunnerSetup` to `isSourceSetup`, and the app asks for the new name.
+`mana-dev@0.2.0` still sets the setup intent only when `isRunnerSetup` exists, so a source
+with setup defines both, one returning the other, as MangaUpdates does. `bun run check`
+fails a source that defines only one.
+
+## Sign-in
+
+Every style needs `getAuthenticatedUser()`, returning `null` when signed out, and
+`handleUserSignOut()`. Then one style; a source with several is offered only the first, in
+the order password, web, OAuth — so a password method kept beside OAuth hides the OAuth one.
+
+| Style | Methods | What the reader sees |
+| :--- | :--- | :--- |
+| Password | `handleBasicAuth(identifier, password)` | A sheet asking for a username or email and a password. An error thrown from `handleBasicAuth` shows on the sheet |
+| Web | `getWebAuthRequestURL()`, `didReceiveSessionCookieFromWebAuthResponse(name)` | A full-screen login page loading that URL |
+| OAuth | `getOAuthRequestURL()`, `handleOAuthCallback(response)` | The system web authentication sheet |
+
+- **Password.** The app never stores the password: `handleBasicAuth` gets it once, and any
+  token or session lives in the source's own store or cookies. When it resolves, the app
+  calls `getAuthenticatedUser()` for the account name. The release notes say to set
+  `BasicAuthUIIdentifier` to `BasicAuthenticationUIIdentifier.EMAIL` for an email field and
+  keyboard; `mana-dev@0.2.0` sets that intent from a property named
+  `BasicAuthenticationUIIdentifier`. Set both, as MangaUpdates does.
+- **Web.** The login page starts with the app's cookies for its URL.
+  `didReceiveSessionCookieFromWebAuthResponse(name)` is called once for each new cookie name
+  set on the login host, its subdomains or its parent domain; return `{ state: true }` once
+  the session cookie appears. The app then copies the cookies to its own store, closes the
+  page and calls `getAuthenticatedUser()`. The reader can also tap **Done**. Signing out
+  calls `handleUserSignOut()` and clears the login host's cookies from both stores.
+- MangaUpdates (password) and ValirScans (web) had these methods before the app offered
+  them, and now get the app's own screens. MangaUpdates' settings-form sign-in still works
+  beside the sheet.
 
 ## Calls
 
@@ -77,8 +102,19 @@ password sign-in has to be the source's own settings form calling its own code.
 - `willResolveSectionsForPage` runs once before the sections resolve, for one shared
   response several rows read from.
 - A `Highlight` without `link` opens the title; `noninteractive: true` opens nothing.
+- On a title page, a highlight item without `icon` or `url` uses its `cover` and `webUrl`,
+  and a Characters section (`additionalInfo.characters`) is saved and shown.
 - `Content.trackerInfo` keys must match a tracker's link keys — its `info.id` unless its
   `trackerConfig.linkKeys` says otherwise (`anilist`, `mal`).
+
+## Cookies
+
+- WebView cookies are copied to the app's store when a flow ends — a Cloudflare check, a web
+  sign-in, a source's own WebView — and once at launch, not on every request. Only new or
+  changed cookies are copied, across every domain.
+- A redirect to another host no longer carries a hand-built `Cookie` header; the redirected
+  request gets that host's stored cookies.
+- The Cloudflare auto-bypass finishes on the first page load that shows no challenge.
 
 ## WebView
 
@@ -119,7 +155,8 @@ password sign-in has to be the source's own settings form calling its own code.
 | `ChapterPage.raw` (base64) | In `getChapterData` | Yes, a third larger than the image |
 
 - Implement only the transport you need. A source whose covers load fine skips
-  `getCoverTransport`, so the library never starts it for a cover.
+  `getCoverTransport`, so the library never starts it for a cover; without a transport the
+  app requests the image URL as it stands. `willRequestImage` is no longer called at all.
 - Image transports are outside the per-source concurrency limit; only the client's rate
   limiter paces them. A limiter tuned for API calls also throttles every page.
 - Images are cached by URL in their final, decoded form. One URL that can yield two images
@@ -147,17 +184,32 @@ password sign-in has to be the source's own settings form calling its own code.
   range) and `OperationError` (the data does not decrypt: wrong key, wrong mode, tampered).
 - There is no hashing. `src/common/aes.ts` carries SHA-256 and HMAC on `crypto-js`.
 
-## Documents
+## Documents and books
 
-`getChapterData` may return `{ document: response }`. The body goes to the app without
-entering JavaScript; interceptors still run.
+A title with `ContentType.NOVEL` — "Book" in the app — opens in the book reader. Its
+`getChapterData` returns one of:
 
-- A ZIP/CBZ of images (JPEG XL included) opens in the image reader, pages sorted by path and
-  extracted as needed. Downloads keep the archive as it came.
-- The documentation lists EPUB, PDF and UTF-8 text as opening in the book reader, while
-  the release notes say the image reader rejects EPUBs. Treat anything but a CBZ as unproven
-  until it has opened on a device.
+| Field | What the app does |
+| :--- | :--- |
+| `document` | The response goes to the app without entering JavaScript and must be 2xx. The app tells EPUB and PDF apart by their bytes — name, MIME type and URL are ignored — and reads other UTF-8 bytes like `text`. Wins over `pages` and `text` |
+| `text` | Nonempty text read as a book. HTML tags it recognises render as markup, and text such as `2 < 3` stays plain. Empty text does not replace image `pages` |
+
+- One file is one chapter, however many sections an EPUB holds.
+- A ZIP without `META-INF/container.xml` is an image archive (CBZ) and opens in the image
+  reader, pages sorted by path; every other document is kept as a book file in downloads.
+- Pictures in an HTML chapter load lazily through `getPageTransport`, like image pages, and
+  downloads pack them into the chapter so it reads offline.
+- A book's direction comes from the book — EPUB metadata or the HTML `dir` —
+  and `recommendedPanelMode` is not used for books. The novel reading modes (5–8, from
+  `NOVEL_PAGED_COMIC` on) were removed; a saved one falls back to Left to Right.
+- `@mana-app/types@0.1.1` declares `document` but not `text`; return `text` through a type
+  that adds it until the package does.
 - Malformed archives, archives without images and HTTP failures reject with an error.
+
+## Removed in Build 55
+
+`overrideDownloadRequest`, `getBrowsePageLinks` and `getReadChapterMarkers` are gone, and
+`willRequestImage` is not called. `bun run check` fails a source that still uses one.
 
 ## Forms
 
@@ -208,3 +260,9 @@ or through `PreferenceStore`, which does that already. The harness models the sa
   repository page uses both.
 - Language codes are normalised on read: `_` becomes `-`, lowercased, language names map to
   ISO codes, and `all`/`multi`/`other`/`unknown` become universal.
+- A source with no `supportedLanguages` is listed only to readers who allow every language.
+  List each one the site serves — `DefinedLanguages` where it names one, a bare ISO code
+  otherwise.
+- Themes share as links too: `mana://add-theme?url=<theme file>` (`http(s)` only) loads a
+  hosted file, and `mana://add-theme?data=<base64url theme>` carries one inline, which is
+  what the app's Share Link makes.

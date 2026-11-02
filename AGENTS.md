@@ -107,7 +107,8 @@ them alone unless that work was asked for.
   (`src/common/highlights.ts`) — `★`, `♥`, `▲` and the like.
 - Don't add a method the app does not call yet expecting the app to use it —
   `mana-extension/references/platform.md` lists them. Don't remove an existing one either:
-  a source can drive it from its own settings, as MangaUpdates' sign-in does.
+  a source can drive it from its own code, and the app takes them up over time — Build 55
+  turned on password and web sign-in that MangaUpdates and ValirScans already had.
 
 ## Versioning
 

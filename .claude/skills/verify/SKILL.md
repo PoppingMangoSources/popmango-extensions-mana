@@ -85,7 +85,8 @@ the source id. Mana's Console (Settings) records every request with its timing, 
 
 Check the screens the change touched: home rows in order, a "view more", one filter of each
 kind, a title with and without chapters, the first and last page of a chapter, a download read
-offline, and each changed setting after reopening the source.
+offline, and each changed setting after reopening the source. With sign-in, the app's own
+sheet or login page, then signing out; with a book, a chapter in the book reader.
 
 ## Report
 

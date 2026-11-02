@@ -175,6 +175,8 @@ Finish with `references/release.md`: version bump, CHANGELOG entry, README row.
 The failures this repo has actually shipped, each silent:
 
 - [ ] Icon at `assets/<Name>.png`, `thumbnail` a bare filename — not under `src/`
+- [ ] `supportedLanguages` lists every language the site serves — the app shows a source only
+      to readers who allow one of them, and a source listing none only to those who allow all
 - [ ] POST bodies sent through `Body.json` / `Body.form`, never `JSON.stringify`-ed by hand
 - [ ] Every status reaches the caller now — code that reads a body checks `status` or `ok`
       first, rather than trusting that a refusal would have thrown

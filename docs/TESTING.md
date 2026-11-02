@@ -81,11 +81,16 @@ Test the screens the change touched: the home rows in order, a "view more", one 
 each kind, a title with and without chapters, the first and last page of a chapter, a
 download, and each changed setting after reopening the source.
 
+A source with sign-in: sign in from the app's own screen, reopen the source, then sign out
+and confirm a signed-in request now fails. A book (`ContentType.NOVEL`): a chapter opens in
+the book reader, and reads offline once downloaded.
+
 ## Sources with their own tests
 
 | Command | What it covers |
 | :------ | :------------- |
 | `bun run test:toonkotsu` | Toonkotsu's request signing and page decryption, native and fallback, on fixed inputs |
+| `bun run test:xcomic` | XCOMIC's merged chapter list — one team's repeated imports, Editions To Include, grouping — and which edition a link opens |
 
 A source whose reader carries crypto or a token dance earns a test like it: fixed inputs,
 known outputs, no network.

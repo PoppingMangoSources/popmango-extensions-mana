@@ -412,6 +412,16 @@ async function verify(name, probe, verbose) {
           }
           throw error;
         }
+        // The app reads a chapter in this order: a document wins over everything, then
+        // nonempty text as a book, then image pages. Empty text falls through to the pages.
+        if (data?.document) {
+          const status = data.document.status;
+          assert(status >= 200 && status < 300, `document answered HTTP ${status}`);
+          return `document, HTTP ${status}`;
+        }
+        if (typeof data?.text === "string" && data.text.trim() !== "") {
+          return `text, ${data.text.length} characters`;
+        }
         assert(Array.isArray(data?.pages), "pages is not an array");
         assert(data.pages.length > 0, "0 pages returned");
         for (const page of data.pages) {
