@@ -285,7 +285,15 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.4)
+## XCOMIC (current: v1.4.5)
+
+### Changed
+
+- Merge Editions is on by default, so a series shows as one title with every team's chapters.
+- Deduplicate Chapter List is back on for everyone, including anyone who turned it off before deduplicating kept every team's chapters.
+- Settings: the edition settings and Deduplicate Chapter List now sit right after Site, each with its own short note, and Editions To Include shows an example of separating teams with commas.
+
+## XCOMIC (v1.4.4)
 
 ### Fixed
 
