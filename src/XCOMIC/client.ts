@@ -34,14 +34,10 @@ const UNAVAILABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504, 520, 521, 52
 /** The API path, appended to whichever mirror is being tried. */
 const API_PATH = "/query/";
 
-export class XCOMICApi {
-  private client: HttpClient | undefined;
-  // A refresh fires every row at once; identical calls in flight share one response.
-  private readonly inFlight = new Map<string, Promise<unknown>>();
-
-  private get http(): HttpClient {
-    this.client ??= new HttpClient()
-      .setRateLimit(3, 1000)
+/** The headers and the challenge check every request to the site carries. */
+function withInterceptors(client: HttpClient): HttpClient {
+  return (
+    client
       // Read off the request rather than off the active mirror: a request that fell
       // through to another host must not announce itself as coming from the first.
       .addRequestInterceptor((request) => {
@@ -61,13 +57,40 @@ export class XCOMICApi {
           throw new CloudflareError(challengedUrl(response, baseUrl()));
         }
         return response;
-      });
+      })
+  );
+}
+
+export class XCOMICApi {
+  private client: HttpClient | undefined;
+  private unpacedClient: HttpClient | undefined;
+  // A refresh fires every row at once; identical calls in flight share one response.
+  private readonly inFlight = new Map<string, Promise<unknown>>();
+
+  private get http(): HttpClient {
+    this.client ??= withInterceptors(new HttpClient().setRateLimit(3, 1000));
     return this.client;
   }
 
-  async query<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
+  /**
+   * The same client without the per-second pacing, for chapter lists. Those are already held
+   * to three in flight by their caller, which is the limit the site enforces; pacing them as
+   * well left a merged list of sixteen editions waiting five seconds on a site that answers
+   * each in a third of one.
+   */
+  private get unpaced(): HttpClient {
+    this.unpacedClient ??= withInterceptors(new HttpClient());
+    return this.unpacedClient;
+  }
+
+  async query<T>(
+    query: string,
+    variables: Record<string, JsonValue>,
+    options: { paced?: boolean } = {},
+  ): Promise<T> {
     const key = `${baseUrl()}|${query}|${JSON.stringify(variables)}`;
-    return this.share(key, () => this.runQuery<T>(query, variables));
+    const client = options.paced === false ? this.unpaced : this.http;
+    return this.share(key, () => this.runQuery<T>(client, query, variables));
   }
 
   /**
@@ -127,10 +150,14 @@ export class XCOMICApi {
     return request;
   }
 
-  private async runQuery<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
+  private async runQuery<T>(
+    client: HttpClient,
+    query: string,
+    variables: Record<string, JsonValue>,
+  ): Promise<T> {
     return withChallengeRetry(baseUrl(), async () => {
       const response = await this.send(API_PATH, (url) =>
-        this.http.post(url, Body.json({ query, variables }), {
+        client.post(url, Body.json({ query, variables }), {
           headers: { accept: "application/json" },
         }),
       );

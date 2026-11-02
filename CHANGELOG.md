@@ -285,7 +285,13 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.1)
+## XCOMIC (current: v1.4.2)
+
+### Changed
+
+- Chapter lists are no longer held to three requests a second on top of three at a time, so a merged list of sixteen editions loads in about a second and a half instead of five.
+
+## XCOMIC (v1.4.1)
 
 ### Changed
 

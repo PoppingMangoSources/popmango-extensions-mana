@@ -122,7 +122,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.1",
+  version: "1.4.2",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -729,6 +729,7 @@ class XCOMICSource
           // The chapter list keys on snake_case and names its own order.
           select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
         },
+        { paced: false },
       ),
     );
 
