@@ -160,6 +160,19 @@ function browserScript() {
     }).filter(function (tag, index, all) { return all.indexOf(tag) === index; });
   }
 
+  // A source that serves dozens of languages would otherwise stack its codes down the card;
+  // past a handful it says how many, with every code kept in the tooltip.
+  var LANGUAGES_LISTED = 4;
+
+  function languageLabel(languages, count) {
+    if (languages.length === 0) return "";
+    if (languages.length <= LANGUAGES_LISTED) {
+      return '<span>' + esc(languages.join(" · ")) + '</span>';
+    }
+    return '<span title="' + esc(languages.join(", ")) + '">' +
+      esc(count + " languages") + '</span>';
+  }
+
   // Mana shows the repository's own preview first when it has not been added yet,
   // so this one link serves a visitor who has the repository and one who does not.
   function installUrl(source) {
@@ -178,7 +191,7 @@ function browserScript() {
       '<span class="source-card__copy"><b>' + esc(source.name) + '</b>' +
       '<span><span>v' + esc(source.version) + '</span>' +
       '<i class="rating rating--' + rating.tone + '">' + esc(rating.label) + '</i>' +
-      (languages.length ? '<span>' + esc(languages.join(" · ")) + '</span>' : "") +
+      languageLabel(languages, (source.supportedLanguages || []).length) +
       '</span></span><span class="source-card__add" aria-hidden="true">Get</span></a>';
   }
 
