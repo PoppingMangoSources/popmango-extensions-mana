@@ -1,13 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { SectionStyle, type Option, type SortOption } from "@mana-app/types";
+import { DefinedLanguages, SectionStyle, type Option, type SortOption } from "@mana-app/types";
 
 import type { PageSectionSpec } from "../common/index.ts";
 
 export const BASE_URL = "https://xcomic.me";
-
-/** The site's filter lists change rarely; a day old is still a usable form. */
-export const TAXONOMY_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 /** The site answers on any of these hosts; a reader on a blocked network picks another. */
 export const MIRROR_OPTIONS: Option[] = [
@@ -90,10 +87,6 @@ export function mirrorCandidates(): string[] {
   return [...new Set([activeBaseUrl, selectedBaseUrl, ...MIRROR_OPTIONS.map((o) => o.id)])];
 }
 
-export function searchPageUrl(): string {
-  return `${activeBaseUrl}/search`;
-}
-
 export const PAGE_SIZE = 36;
 export const CHAPTER_PAGE_SIZE = 1000;
 // The full list repeats every scanlator's upload, so it is read in smaller pages.
@@ -117,6 +110,7 @@ export const FilterID = {
   ContentRatings: "content_ratings",
   Demographics: "demographics",
   Genres: "genres",
+  Formats: "formats",
   IncludeMode: "include_mode",
   ExcludeMode: "exclude_mode",
   OriginalStatus: "original_status",
@@ -137,6 +131,9 @@ export const PreferenceID = {
   CustomTitleRegex: "custom-title-regex",
   IgnoreGenreBlocklist: "ignore-genre-blocklist",
   DeduplicateChapters: "deduplicate-chapters",
+  MergeEditions: "merge-editions",
+  IncludedEditions: "included-editions",
+  GroupByEdition: "group-by-edition",
   ShowSourceInTitle: "show-source-in-title",
   SectionPrefix: "section",
 } as const;
@@ -166,12 +163,14 @@ export const SORT_OPTIONS: SortOption[] = [
 ];
 
 export const TYPE_OPTIONS: Option[] = [
-  { id: "manhwa", title: "Manhwa" },
+  { id: "cartoon", title: "Cartoon" },
+  { id: "imageset", title: "Imageset" },
   { id: "manga", title: "Manga" },
   { id: "manhua", title: "Manhua" },
-  { id: "other", title: "Other" },
+  { id: "manhwa", title: "Manhwa" },
   { id: "oel", title: "OEL" },
-  { id: "novel", title: "Novel" },
+  { id: "other", title: "Other" },
+  { id: "western", title: "Western" },
 ];
 
 export const CONTENT_RATING_OPTIONS: Option[] = [
@@ -182,16 +181,18 @@ export const CONTENT_RATING_OPTIONS: Option[] = [
 ];
 
 export const DEMOGRAPHIC_OPTIONS: Option[] = [
-  { id: "shounen", title: "Shounen" },
-  { id: "seinen", title: "Seinen" },
-  { id: "shoujo", title: "Shoujo" },
-  { id: "josei", title: "Josei" },
-  { id: "male_demographic_with_female_lead", title: "Male Demographic with Female Lead" },
-  { id: "kodomo", title: "Kodomo" },
-  { id: "male_demographic_with_female_author", title: "Male Demographic with Female Author" },
-  { id: "female_demographic_with_male_lead", title: "Female Demographic with Male Lead" },
+  { id: "shounen", title: "Shounen(B)" },
+  { id: "shoujo", title: "Shoujo(G)" },
+  { id: "seinen", title: "Seinen(M)" },
+  { id: "josei", title: "Josei(W)" },
+  { id: "kodomo", title: "Kodomo(Kid)" },
+  { id: "silver_golden", title: "Silver & Golden" },
+  { id: "non_human", title: "Non-human" },
   { id: "male_oriented", title: "Male Oriented" },
   { id: "female_oriented", title: "Female Oriented" },
+  { id: "male_demographic_with_female_author", title: "Male Demographic with Female Author" },
+  { id: "male_demographic_with_female_lead", title: "Male Demographic with Female Lead" },
+  { id: "female_demographic_with_male_lead", title: "Female Demographic with Male Lead" },
 ];
 
 /**
@@ -212,11 +213,11 @@ export const STATUS_OPTIONS: Option[] = [
 ];
 
 /**
- * The site's own genre list, as a stand-in for the one the search page carries.
+ * The site's own lists, as its search page's data spells them.
  *
- * The form reads the live page first — the list moves as the site adds to it — but a page
- * that cannot be read, or whose markup has shifted, used to leave the Genres filter empty
- * and the reader with nothing to pick. Formats share this group, as they do on the site.
+ * The page stopped drawing them as markup, and nothing in the API serves them, so they are
+ * bundled. The API takes a format wherever it takes a genre — both travel as `incGenres` and
+ * `excGenres` — so the two lists are kept apart only for the reader's sake.
  */
 export const GENRE_OPTIONS: Option[] = [
   { id: "action", title: "Action" },
@@ -328,6 +329,7 @@ export const GENRE_OPTIONS: Option[] = [
   { id: "superhero", title: "Superhero" },
   { id: "supernatural", title: "Supernatural" },
   { id: "survival", title: "Survival" },
+  { id: "suspense", title: "Suspense" },
   { id: "teacher_student", title: "Teacher-Student" },
   { id: "thriller", title: "Thriller" },
   { id: "time_travel", title: "Time Travel" },
@@ -346,6 +348,9 @@ export const GENRE_OPTIONS: Option[] = [
   { id: "yakuzas", title: "Yakuzas" },
   { id: "youkai", title: "Youkai" },
   { id: "zombies", title: "Zombies" },
+];
+
+export const FORMAT_OPTIONS: Option[] = [
   { id: "1_koma", title: "1-Koma" },
   { id: "2_koma", title: "2-koma" },
   { id: "3_koma", title: "3-koma" },
@@ -529,6 +534,35 @@ export const LANGUAGE_OPTIONS: Option[] = [
   { id: "_t", title: "Other" },
 ];
 
+/**
+ * The app's code for each of the site's languages where the two spell it differently.
+ *
+ * The app names a handful by region — `en_US`, `pt_BR` — and takes the rest as the bare ISO
+ * codes the site already uses. `_t` is the site's "Other", which belongs to no language.
+ */
+const APP_LANGUAGES: Record<string, string> = {
+  en: DefinedLanguages.ENGLISH,
+  ko: DefinedLanguages.KOREAN,
+  ja: DefinedLanguages.JAPANESE,
+  fr: DefinedLanguages.FRENCH,
+  zh: DefinedLanguages.CHINESE,
+  es: DefinedLanguages.SPANISH,
+  pt_br: DefinedLanguages.PORTUGUESE,
+  pt: "pt_PT",
+  _t: DefinedLanguages.UNIVERSAL,
+};
+
+export function appLanguage(code: string | null | undefined): string {
+  const raw = (code ?? "").trim();
+  if (!raw) return DefinedLanguages.ENGLISH;
+  return APP_LANGUAGES[raw] ?? raw;
+}
+
+/** Every language the site translates into: the app lists a source only to its readers. */
+export const SUPPORTED_LANGUAGES = LANGUAGE_OPTIONS.filter((option) => option.id !== "_t").map(
+  (option) => appLanguage(option.id),
+);
+
 export const SectionID = {
   TopRated: "top_rated",
   MostReviews: "most_reviews",
@@ -609,6 +643,11 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   // Off: the site lists every group's upload, and collapsing them by chapter number hides
   // translations a reader may have come for.
   [PreferenceID.DeduplicateChapters]: false,
+  // On, as the other clients for the site have it: a series is one entry holding every
+  // edition, and a reader picks a team from the chapter list rather than from search.
+  [PreferenceID.MergeEditions]: true,
+  [PreferenceID.IncludedEditions]: "",
+  [PreferenceID.GroupByEdition]: false,
   [PreferenceID.ShowSourceInTitle]: true,
   ...Object.fromEntries(
     DISCOVER_SECTIONS.map((section) => [`${PreferenceID.SectionPrefix}-${section.id}`, true]),
@@ -632,6 +671,7 @@ export const CONTENT_RATING_GENRES: Record<string, readonly string[]> = {
 /** What every listing tile needs, so a row never costs a second request to fill in. */
 const LISTING_FIELDS = `
       id name urlPath urlCover
+      titleId: title_id
       translatedLanguage type contentRating genres tags
       score_val follows comments_total chaps_normal
       views { field count }`;
@@ -645,6 +685,13 @@ const LISTING_FIELDS = `
  */
 const TEAM_FIELD = `
       subName`;
+
+/**
+ * An edition as a work lists it. `dbStatus` and `isPublic` are both asked for because a
+ * taken-down edition still answers, and either one is enough to mark it.
+ */
+const EDITION_FIELDS = `
+      id name subName translatedLanguage chaps_normal urlPath dbStatus isPublic`;
 
 /**
  * A title as the endpoints keyed by work answer it, aliased to the shape the parsers read.
@@ -677,7 +724,7 @@ const TITLE_FIELDS = `
       chaps_normal: total_chapters
       chapterPublishedAt: chap_last_public_at
     }
-    comicNodes { data { id name subName translatedLanguage chaps_normal urlPath } }`;
+    comicNodes { data {${EDITION_FIELDS} } }`;
 
 /**
  * Browse, which the site keys by title rather than by comic.
@@ -759,6 +806,10 @@ query get_comicNode($id: ID!) {
       urlPath urlCover
       score_val follows comments_total chaps_normal
       views { field count }
+      work: title_titleNode {
+        data { authors artists description format_ids }
+        comicNodes { data {${EDITION_FIELDS} } }
+      }
     }
   }
 }`;
@@ -788,18 +839,12 @@ query get_title_titleNode($id: ID!) {
  *
  * The site publishes both: `/title/…` is the work and `/source/…` one edition of it. Only a
  * comic id is openable, so a work's link has to be turned into one of its editions first.
- *
- * `comic_ids` is asked for beside them because it is the field the site's own clients read;
- * the editions carry the language the choice is made on, and the bare ids stand in if this
- * type turns out not to answer for them.
+ * The editions sit beside the work's `data`, not inside it.
  */
 export const TITLE_COMICS_QUERY = `
 query get_title_titleNode($id: ID!) {
   get_title_titleNode(id: $id) {
-    data {
-      comicIds: comic_ids
-      comicNodes { data { id translatedLanguage chaps_normal } }
-    }
+    comicNodes { data {${EDITION_FIELDS} } }
   }
 }`;
 
@@ -810,8 +855,6 @@ const CHAPTER_FIELDS = `
         id dbStatus serial chaNum volNum dname title urlPath
         dateCreate dateModify datePublic
         srcName srcTitle
-        groupNodes { data { name } }
-        userNode { data { name } }
       }
     }`;
 
@@ -904,7 +947,24 @@ export type ComicData = {
   /** When the newest chapter went up. Browse states it on the title rather than naming one. */
   chapterPublishedAt?: number | string | null;
   chapterNodes_last?: { data?: ChapterData | null }[] | null;
+  /** Anything but `normal`, or `isPublic` false, is an edition the site has taken down. */
+  dbStatus?: string | null;
+  isPublic?: boolean | null;
+  /**
+   * The work this edition belongs to, which often names what the edition leaves out — its
+   * artists, its formats, its description — and lists every edition of it.
+   */
+  work?: WorkNode | null;
 };
+
+export type WorkData = {
+  authors?: string[] | null;
+  artists?: string[] | null;
+  description?: string | null;
+  format_ids?: string[] | null;
+};
+
+export type WorkNode = { data?: WorkData | null; comicNodes?: ComicNode[] | null };
 
 export type ChapterData = {
   id: string;
@@ -921,8 +981,6 @@ export type ChapterData = {
   srcName?: string | null;
   /** The aggregator's name as the site writes it, where `srcName` is its bare slug. */
   srcTitle?: string | null;
-  groupNodes?: NamedNode[] | null;
-  userNode?: NamedNode | null;
   /** Anything but `normal` is a chapter the site has withdrawn but still lists. */
   dbStatus?: string | null;
   /** Only the latest-uploads feed fills this: the comic the chapter belongs to. */
@@ -967,12 +1025,11 @@ export type TitleNodeData = {
   isMerged?: boolean | null;
   mergedTo?: string | null;
   trackingSites?: TrackingSites | null;
-  /** Every edition of the work, as bare ids and — where the type answers — as comics. */
-  comicIds?: string[] | null;
-  comicNodes?: ComicNode[] | null;
 };
 
-export type TitleNodeResponse = { get_title_titleNode?: { data?: TitleNodeData | null } | null };
+export type TitleNodeResponse = {
+  get_title_titleNode?: { data?: TitleNodeData | null; comicNodes?: ComicNode[] | null } | null;
+};
 
 export type ChapterListPage = {
   paging?: { next?: number | null; total?: number | null } | null;

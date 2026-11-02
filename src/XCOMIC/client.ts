@@ -9,7 +9,6 @@ import {
 } from "@mana-app/types";
 
 import {
-  HTML_ACCEPT,
   challengedUrl,
   isChallengePage,
   isCloudflareChallenge,
@@ -69,26 +68,6 @@ export class XCOMICApi {
   async query<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
     const key = `${baseUrl()}|${query}|${JSON.stringify(variables)}`;
     return this.share(key, () => this.runQuery<T>(query, variables));
-  }
-
-  /** The filter taxonomy lives in the search page's markup rather than the API. */
-  async page(url: string): Promise<string> {
-    const origin = mirrorOrigin(url);
-    const path = origin === undefined ? url : url.slice(origin.length);
-
-    return this.share(`GET ${path}`, () =>
-      withChallengeRetry(baseUrl(), async () => {
-        // A URL that belongs to no mirror is asked for as given; only the site's own pages
-        // can be looked for somewhere else.
-        const response =
-          origin === undefined
-            ? await this.http.get(url, { headers: { accept: HTML_ACCEPT } })
-            : await this.send(path, (target) =>
-                this.http.get(target, { headers: { accept: HTML_ACCEPT } }),
-              );
-        return this.body(response);
-      }),
-    );
   }
 
   /**

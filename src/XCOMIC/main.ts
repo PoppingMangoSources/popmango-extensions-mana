@@ -4,7 +4,6 @@ import {
   CatalogRating,
   ContentRating,
   SectionStyle,
-  DefinedLanguages,
   SearchExcludableMultiPicker,
   SearchGroup,
   SearchMultiPicker,
@@ -37,7 +36,6 @@ import {
 import {
   FilterReader,
   PreferenceStore,
-  TimedCache,
   buildPreferenceMenu,
   buildSearchForm,
   pageOf,
@@ -61,9 +59,9 @@ import {
   COMIC_QUERY,
   CONTENT_RATING_OPTIONS,
   CHAPTER_COUNT_OPTIONS,
-  TAXONOMY_LIFETIME_MS,
   DEMOGRAPHIC_OPTIONS,
   DISCOVER_SECTIONS,
+  FORMAT_OPTIONS,
   FilterID,
   GENRE_MODE_OPTIONS,
   GENRE_OPTIONS,
@@ -81,17 +79,20 @@ import {
   RECENTLY_ADDED_SIZE,
   SORT_OPTIONS,
   STATUS_OPTIONS,
+  SUPPORTED_LANGUAGES,
   SectionID,
   SortID,
   TITLE_COMICS_QUERY,
   TITLE_NODE_QUERY,
   TITLE_VERSION_REGEX,
   TYPE_OPTIONS,
+  appLanguage,
   setBaseUrl,
   setLanguages,
-  searchPageUrl,
   type BrowseResponse,
+  type ComicData,
   type BrowseSelect,
+  type ChapterData,
   type ChapterListPage,
   type ChapterListResponse,
   type ChapterPagesResponse,
@@ -103,9 +104,9 @@ import {
   type TitleNodeResponse,
 } from "./model.ts";
 import {
+  mergedEditions,
   parseChapters,
   parseContent,
-  parseFilterTaxonomy,
   parseHighlight,
   parseTitleHighlight,
   parseTitleHighlights,
@@ -113,9 +114,7 @@ import {
   rankEditions,
   teamOf,
   publishedAt,
-  parseLanguage,
   parsePageUrls,
-  type FilterTaxonomy,
   type TitleCleaner,
 } from "./parsers.ts";
 import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
@@ -123,11 +122,11 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.3.0",
+  version: "1.4.0",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
-  supportedLanguages: [DefinedLanguages.ENGLISH],
+  supportedLanguages: SUPPORTED_LANGUAGES,
   thumbnail: "XCOMIC.png",
   developers: [{ name: "PoppingMango", github: "https://github.com/PoppingMangoSources" }],
 };
@@ -136,14 +135,6 @@ const config: SourceConfig = {
   disableUpdateChecks: false,
   cloudflareResolutionURL: BASE_URL,
   owningLinks: MIRROR_OPTIONS.map((option) => option.title),
-};
-
-/** What the filter form falls back to when the search page cannot be read. */
-const BUNDLED_TAXONOMY: FilterTaxonomy = {
-  genres: GENRE_OPTIONS,
-  types: TYPE_OPTIONS,
-  demographics: DEMOGRAPHIC_OPTIONS,
-  contentRatings: CONTENT_RATING_OPTIONS,
 };
 
 class XCOMICSource
@@ -158,12 +149,6 @@ class XCOMICSource
     PREFERENCE_DEFAULTS as Record<string, PreferenceValue>,
   );
 
-  // Reading the filter lists means reading the whole search page, so the answer is kept
-  // on disk as well: a form opened again does not pay for that page a second time.
-  private readonly taxonomyCache = new TimedCache<FilterTaxonomy>(
-    "xcomic.taxonomy",
-    TAXONOMY_LIFETIME_MS,
-  );
   // Recently Added pages by cursor while the app counts pages, so the cursor for the next
   // page is remembered as each one is read. Paging is sequential, so this keeps up.
   private readonly feedCursors = new Map<string, number>();
@@ -172,37 +157,7 @@ class XCOMICSource
     return SORT_OPTIONS;
   }
 
-  /**
-   * The API exposes no filter lists, but the search page's markup holds all of them.
-   * It is read once per session, and the bundled lists stand in if that read fails.
-   */
-  private taxonomy(): Promise<FilterTaxonomy> {
-    // A failed read falls back to the bundled lists and is not stored, so the next form
-    // open asks the site again rather than remembering that it once could not be read.
-    return this.taxonomyCache.get(() => this.readTaxonomy()).catch(() => BUNDLED_TAXONOMY);
-  }
-
-  private async readTaxonomy(): Promise<FilterTaxonomy> {
-    await this.applyMirror();
-    const parsed = parseFilterTaxonomy(await this.api.page(searchPageUrl()));
-
-    // A page that listed none of them did not really parse, and is not worth remembering
-    // for a day — but the form still opens with the bundled list rather than empty.
-    if (parsed.genres.length === 0) throw new Error("the search page listed no genres");
-
-    return {
-      genres: parsed.genres,
-      types: parsed.types.length > 0 ? parsed.types : BUNDLED_TAXONOMY.types,
-      demographics:
-        parsed.demographics.length > 0 ? parsed.demographics : BUNDLED_TAXONOMY.demographics,
-      contentRatings:
-        parsed.contentRatings.length > 0 ? parsed.contentRatings : BUNDLED_TAXONOMY.contentRatings,
-    };
-  }
-
   async getSearchForm(): Promise<SearchForm> {
-    const taxonomy = await this.taxonomy();
-
     return buildSearchForm({
       header: "Filters",
       footer: "Anything left empty falls back to the defaults in Settings.",
@@ -210,13 +165,18 @@ class XCOMICSource
         SearchMultiPicker({
           id: FilterID.ContentRatings,
           title: "Content Rating",
-          options: taxonomy.contentRatings,
+          options: CONTENT_RATING_OPTIONS,
         }),
-        SearchMultiPicker({ id: FilterID.Types, title: "Types", options: taxonomy.types }),
+        SearchMultiPicker({ id: FilterID.Types, title: "Types", options: TYPE_OPTIONS }),
         SearchMultiPicker({
           id: FilterID.Demographics,
           title: "Demographics",
-          options: taxonomy.demographics,
+          options: DEMOGRAPHIC_OPTIONS,
+        }),
+        SearchExcludableMultiPicker({
+          id: FilterID.Formats,
+          title: "Formats",
+          options: FORMAT_OPTIONS,
         }),
         SearchGroup({
           id: "genre_matching",
@@ -278,29 +238,18 @@ class XCOMICSource
           options: LETTER_MODE_OPTIONS,
         }),
       ],
-      ...(taxonomy.genres.length > 0
-        ? {
-            tags: SearchExcludableMultiPicker({
-              id: FilterID.Genres,
-              title: "Genres",
-              options: taxonomy.genres,
-            }),
-            tagsHeader: "Genres",
-          }
-        : {}),
+      tags: SearchExcludableMultiPicker({
+        id: FilterID.Genres,
+        title: "Genres",
+        options: GENRE_OPTIONS,
+      }),
+      tagsHeader: "Genres",
       sortHeader: "Sort",
     });
   }
 
   async getPreferenceMenu(): Promise<Form> {
-    return buildPreferenceMenu(
-      this.preferences,
-      buildSettingsSections({
-        genres: async () => (await this.taxonomy()).genres,
-        types: async () => (await this.taxonomy()).types,
-        contentRatings: async () => (await this.taxonomy()).contentRatings,
-      }),
-    );
+    return buildPreferenceMenu(this.preferences, buildSettingsSections());
   }
 
   /** Every request path starts here so the mirror setting is in force before a URL is built. */
@@ -313,9 +262,25 @@ class XCOMICSource
     setLanguages(languages);
   }
 
-  /** Whether a tile names the team behind its edition, read once rather than per row. */
-  private showTeam(): Promise<boolean> {
-    return this.preferences.flag(PreferenceID.ShowSourceInTitle);
+  /**
+   * Whether a tile names the team behind its edition, read once rather than per row. A merged
+   * title holds every team's chapters, so it names none of them.
+   */
+  private async showTeam(): Promise<boolean> {
+    const [show, merged] = await Promise.all([
+      this.preferences.flag(PreferenceID.ShowSourceInTitle),
+      this.merged(),
+    ]);
+    return show && !merged;
+  }
+
+  private merged(): Promise<boolean> {
+    return this.preferences.flag(PreferenceID.MergeEditions);
+  }
+
+  /** What makes two tiles the same entry: the edition, or — merged — the work it belongs to. */
+  private async entryKey(): Promise<(comic: ComicData) => string> {
+    return (await this.merged()) ? (comic) => comic.titleId || comic.id : (comic) => comic.id;
   }
 
   /** Reader-configured title rewriting, resolved once per call rather than per row. */
@@ -369,7 +334,7 @@ class XCOMICSource
     const detailed = isDetailedStyle(sectionById(DISCOVER_SECTIONS, sectionId)?.style);
 
     if (sectionId === SectionID.LatestUploads) {
-      const [data, cleanTitle, showTeam] = await Promise.all([
+      const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
         this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
           // This feed pages by cursor; it rejects a `page` outright.
           select: {
@@ -380,6 +345,7 @@ class XCOMICSource
         }),
         this.titleCleaner(),
         this.showTeam(),
+        this.entryKey(),
       ]);
 
       const feed = data.get_title_latestUploads;
@@ -397,8 +363,8 @@ class XCOMICSource
         .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
         .flatMap((chapter): Highlight[] => {
           const comic = chapter.data.comicNode?.data;
-          if (!comic || seen.has(comic.id)) return [];
-          seen.add(comic.id);
+          if (!comic || seen.has(keyOf(comic))) return [];
+          seen.add(keyOf(comic));
           return [parseHighlight(comic, { latest: chapter.data, cleanTitle, showTeam, detailed })];
         });
       const covered = withCovers(results);
@@ -434,7 +400,7 @@ class XCOMICSource
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
-      const [data, cleanTitle, showTeam] = await Promise.all([
+      const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
         this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
           select: {
             size: RECENTLY_ADDED_SIZE,
@@ -443,13 +409,17 @@ class XCOMICSource
         }),
         this.titleCleaner(),
         this.showTeam(),
+        this.entryKey(),
       ]);
 
       const feed = data.get_comic_recentlyAdded;
+      const seen = new Set<string>();
       const results = withCovers(
-        (feed?.items ?? []).map((node) =>
-          parseHighlight(node.data, { cleanTitle, showTeam, detailed }),
-        ),
+        (feed?.items ?? []).flatMap((node) => {
+          if (seen.has(keyOf(node.data))) return [];
+          seen.add(keyOf(node.data));
+          return [parseHighlight(node.data, { cleanTitle, showTeam, detailed })];
+        }),
       );
 
       if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
@@ -477,6 +447,7 @@ class XCOMICSource
 
     const filters = new FilterReader(request);
     const genres = filters.excludable(FilterID.Genres);
+    const formats = filters.excludable(FilterID.Formats);
     const defaults = await this.preferenceDefaults(request.context);
     const [yearMin, yearMax] = parseYearRange(filters.text(FilterID.Year));
 
@@ -491,7 +462,8 @@ class XCOMICSource
     // with no order asked for is the first: the reader has a series in mind and wants the
     // team they follow, so every edition is listed. Ordering it — or filtering with no word
     // at all — is the second, which the site answers a work at a time, and so does this.
-    const everyEdition = word !== "" && sort === SortID.Score;
+    // Merged, every edition is already one entry.
+    const everyEdition = word !== "" && sort === SortID.Score && !(await this.merged());
 
     return this.browse(
       this.browseSelect({
@@ -499,17 +471,15 @@ class XCOMICSource
         size: PAGE_SIZE,
         sort,
         word,
-        // The site files formats among its genres, so both selections travel together.
         where: filters.option(FilterID.LetterMode) === "letter" ? "letter" : "browse",
         incTypes: chosenTypes.length > 0 ? chosenTypes : defaults.incTypes,
         incContentRatings: chosenRatings.length > 0 ? chosenRatings : defaults.incContentRatings,
         incTLangs: chosenLanguages.length > 0 ? chosenLanguages : defaults.incTLangs,
         incOLangs: filters.options(FilterID.OriginalLanguages),
         incDemographics: filters.options(FilterID.Demographics),
-        // The site files its formats — Full Color, 4 Koma, Doujinshi — among its genres,
-        // so the one list covers both.
-        incGenres: genres.included,
-        excGenres: [...new Set([...genres.excluded, ...defaults.excGenres])],
+        // The API takes formats as genres, so both selections travel together.
+        incGenres: [...genres.included, ...formats.included],
+        excGenres: [...new Set([...genres.excluded, ...formats.excluded, ...defaults.excGenres])],
         incGenresMode: filters.option(FilterID.IncludeMode) || "and",
         excGenresMode: filters.option(FilterID.ExcludeMode) || "or",
         origStatus: filters.options(FilterID.OriginalStatus),
@@ -660,38 +630,102 @@ class XCOMICSource
   async getChapters(contentId: string): Promise<Chapter[]> {
     await this.applyMirror();
 
-    const deduplicate = await this.preferences.flag(PreferenceID.DeduplicateChapters);
-    const size = deduplicate ? CHAPTER_PAGE_SIZE : CHAPTER_FULL_PAGE_SIZE;
-
-    const [comic, first] = await Promise.all([
-      this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
-      this.chapterPage(contentId, 1, deduplicate, size),
+    const [deduplicate, merge, groupByEdition, included, languages] = await Promise.all([
+      this.preferences.flag(PreferenceID.DeduplicateChapters),
+      this.merged(),
+      this.preferences.flag(PreferenceID.GroupByEdition),
+      this.preferences.text(PreferenceID.IncludedEditions, ""),
+      this.preferences.strings(PreferenceID.Languages),
     ]);
 
-    const entries = (first?.items ?? []).map((item) => item.data);
+    // Unmerged, the one list is asked for beside the details rather than after them.
+    const [data, own] = await Promise.all([
+      this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
+      merge ? undefined : this.chapterLists([contentId], deduplicate),
+    ]);
+    const comic = data.get_comicNode?.data ?? { id: contentId, name: "" };
+    const editions = merge ? mergedEditions(comic, languages) : [comic];
+    const lists =
+      own ??
+      (await this.chapterLists(
+        editions.map((edition) => edition.id),
+        deduplicate,
+      ));
 
-    // The full list runs to several pages on a long series; the deduplicated one
-    // almost never does, so the extra pages are only ever fetched when they exist.
-    const total = first?.paging?.total ?? entries.length;
-    if (total > size && (first?.paging?.next ?? 0) !== 0) {
-      const pages = Math.ceil(total / size);
-      // Asked for all at once, the site answers 429 and the list is lost — a long series
-      // undeduplicated runs to fifteen pages. Three at a time is what its own readers do.
-      for (let start = 2; start <= pages; start += CHAPTER_REQUEST_BATCH) {
-        const batch = await Promise.all(
-          Array.from({ length: Math.min(CHAPTER_REQUEST_BATCH, pages - start + 1) }, (_, offset) =>
-            this.chapterPage(contentId, start + offset, deduplicate, size),
-          ),
-        );
-        for (const page of batch) {
-          entries.push(...(page?.items ?? []).map((item) => item.data));
+    return parseChapters(
+      editions.map((edition, position) => ({
+        entries: lists[position] ?? [],
+        language: appLanguage(edition.translatedLanguage),
+        team: teamOf(edition),
+      })),
+      merge
+        ? {
+            included: included
+              .split(",")
+              .map((team) => team.trim())
+              .filter(Boolean),
+            groupByEdition,
+          }
+        : {},
+    );
+  }
+
+  /**
+   * Every chapter of each edition, one list per id in the order given.
+   *
+   * More than three requests at once and the site answers 429, losing the list, so the first
+   * page of each edition goes three at a time and then the pages after them. A list that
+   * comes back short of its total lost a page somewhere, and is refused rather than shown as
+   * though it were complete.
+   */
+  private async chapterLists(
+    ids: readonly string[],
+    deduplicate: boolean,
+  ): Promise<ChapterData[][]> {
+    const size = deduplicate ? CHAPTER_PAGE_SIZE : CHAPTER_FULL_PAGE_SIZE;
+    const lists: ChapterData[][] = [];
+    const totals: number[] = [];
+    const remaining: [number, number][] = [];
+
+    for (let start = 0; start < ids.length; start += CHAPTER_REQUEST_BATCH) {
+      const firsts = await Promise.all(
+        ids
+          .slice(start, start + CHAPTER_REQUEST_BATCH)
+          .map((id) => this.chapterPage(id, 1, deduplicate, size)),
+      );
+      for (const first of firsts) {
+        const entries = (first?.items ?? []).map((item) => item.data);
+        const total = first?.paging?.total ?? entries.length;
+        // The deduplicated list almost never runs past one page; the full one does on a
+        // long series, so further pages are only asked for when they exist.
+        if (total > size && (first?.paging?.next ?? 0) !== 0) {
+          for (let page = 2; page <= Math.ceil(total / size); page++) {
+            remaining.push([lists.length, page]);
+          }
         }
+        lists.push(entries);
+        totals.push(total);
       }
     }
 
-    const data = comic.get_comicNode?.data;
-    const language = parseLanguage(data?.translatedLanguage);
-    return parseChapters(entries, language, data ? teamOf(data) : "");
+    for (let start = 0; start < remaining.length; start += CHAPTER_REQUEST_BATCH) {
+      const batch = remaining.slice(start, start + CHAPTER_REQUEST_BATCH);
+      const pages = await Promise.all(
+        batch.map(([list, page]) => this.chapterPage(ids[list] ?? "", page, deduplicate, size)),
+      );
+      pages.forEach((page, position) => {
+        const list = batch[position]?.[0];
+        if (list !== undefined) lists[list]?.push(...(page?.items ?? []).map((item) => item.data));
+      });
+    }
+
+    lists.forEach((list, position) => {
+      const total = totals[position] ?? list.length;
+      if (list.length < total) {
+        throw new Error(`XCOMIC sent ${list.length} of ${total} chapters; refresh to try again`);
+      }
+    });
+    return lists;
   }
 
   private async chapterPage(
@@ -758,20 +792,17 @@ class XCOMICSource
     }
   }
 
-  /** Which edition of a work to open: the reader's language, longest run breaking a tie. */
+  /**
+   * Which edition of a work to open: a live one in the reader's language, longest run breaking
+   * a tie — or another language's, when the reader's has none.
+   */
   private async editionOf(titleId: string): Promise<string | undefined> {
-    const data = await this.api.query<TitleNodeResponse>(TITLE_COMICS_QUERY, { id: titleId });
-    const title = data.get_title_titleNode?.data;
-
-    const languages = await this.preferences.strings(PreferenceID.Languages);
-    const ranked = rankEditions(
-      (title?.comicNodes ?? []).map((edition) => edition.data),
-      languages,
-    );
-
-    // The bare ids say nothing about language, so they are only a last resort — the site
-    // lists them newest first, which is the best guess available without asking again.
-    return ranked[0]?.id ?? title?.comicIds?.find((id) => id.trim() !== "");
+    const [data, languages] = await Promise.all([
+      this.api.query<TitleNodeResponse>(TITLE_COMICS_QUERY, { id: titleId }),
+      this.preferences.strings(PreferenceID.Languages),
+    ]);
+    const editions = (data.get_title_titleNode?.comicNodes ?? []).map((node) => node.data);
+    return rankEditions(editions, languages)[0]?.id;
   }
 }
 

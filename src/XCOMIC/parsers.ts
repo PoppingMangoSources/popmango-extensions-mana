@@ -1,16 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { load } from "cheerio";
 import {
   ContentRating,
   additionalInfo,
   ContentType,
-  DefinedLanguages,
   PublicationStatus,
   type Chapter,
   type Content,
   type Highlight,
-  type Option,
   type Pair,
   type StaffItem,
   type Tag,
@@ -24,7 +21,6 @@ import {
   relativeTime,
   resolveUrl,
   summaryFromHtml,
-  text,
   firstFilled,
   Mark,
   statusPill,
@@ -37,6 +33,7 @@ import {
   baseUrl,
   type ChapterData,
   type ComicData,
+  type ComicNode,
   type NamedNode,
   type TitleNode,
   type TrackingSites,
@@ -410,20 +407,62 @@ export function rankEditions(
   candidates: readonly (ComicData | null | undefined)[],
   languages: readonly string[],
 ): ComicData[] {
-  const editions = candidates.filter((edition): edition is ComicData => Boolean(edition?.id));
-  if (editions.length === 0) return [];
-
+  const editions = liveEditions(candidates);
   const preferred =
     languages.length === 0
       ? editions
       : editions.filter((edition) => languages.includes(edition.translatedLanguage ?? ""));
+  return byLanguage(preferred.length > 0 ? preferred : editions, languages);
+}
 
-  return [...(preferred.length > 0 ? preferred : editions)].sort((left, right) => {
-    const order =
-      languages.indexOf(left.translatedLanguage ?? "") -
-      languages.indexOf(right.translatedLanguage ?? "");
-    return order || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0);
-  });
+/** The editions a work still serves: a taken-down one answers, but opens on nothing. */
+function liveEditions(candidates: readonly (ComicData | null | undefined)[]): ComicData[] {
+  return candidates.filter(
+    (edition): edition is ComicData =>
+      Boolean(edition?.id) &&
+      edition?.isPublic !== false &&
+      (edition?.dbStatus ?? "normal") === "normal",
+  );
+}
+
+/** An edition that states no language is no reason to hide the work. */
+function readable(edition: ComicData, languages: readonly string[]): boolean {
+  return (
+    languages.length === 0 ||
+    !edition.translatedLanguage ||
+    languages.includes(edition.translatedLanguage)
+  );
+}
+
+/** The reader's own language order first, then whichever edition has the longest run. */
+function byLanguage(editions: readonly ComicData[], languages: readonly string[]): ComicData[] {
+  const rank = (edition: ComicData): number => {
+    const position = languages.indexOf(edition.translatedLanguage ?? "");
+    return position === -1 ? languages.length : position;
+  };
+  return [...editions].sort(
+    (left, right) =>
+      rank(left) - rank(right) || (right.chaps_normal ?? 0) - (left.chaps_normal ?? 0),
+  );
+}
+
+/**
+ * Every edition whose chapters a merged list carries: the work's live editions in the
+ * reader's languages, led by the one the reader opened.
+ *
+ * The opened edition leads because duplicates keep the leading edition's copy, and the app
+ * remembers what was read by chapter id — a chapter the reader finished must not be swapped
+ * for another team's copy of it. It also stays when the reader's languages no longer include
+ * it, so a title already in the library keeps its chapters.
+ */
+export function mergedEditions(comic: ComicData, languages: readonly string[]): ComicData[] {
+  const others = byLanguage(
+    liveEditions((comic.work?.comicNodes ?? []).map((node: ComicNode) => node.data)).filter(
+      (edition) => edition.id !== comic.id && readable(edition, languages),
+    ),
+    languages,
+  );
+  return [comic, ...others];
 }
 
 export function parseTitleHighlights(
@@ -482,6 +521,8 @@ export function parseContent(
   const tags: Tag[] = [
     ...(comic.genres ?? []),
     ...(comic.tags ?? []),
+    // An edition often leaves its formats to the work it belongs to.
+    ...(comic.work?.data?.format_ids ?? []),
     ...(comic.demographics ?? []),
     ...names(comic.tagNodes),
   ]
@@ -505,7 +546,8 @@ export function parseContent(
     type: contentType,
     tags: tags.map((tag) => tag.id),
   });
-  const creators = [...names(comic.authorNodes), ...names(comic.artistNodes)];
+  const credits = creditsOf(comic);
+  const creators = [...credits.authors, ...credits.artists];
 
   // The stat line the site prints under the title, in its own order.
   const info: Pair[] = [];
@@ -530,13 +572,14 @@ export function parseContent(
   // The site keeps its own notes — a licensing warning, a where-to-read-on note — out of the
   // summary, and a reader who never opens the site would otherwise never see them.
   const summary = [
-    summaryFromHtml(comic.summary?.html ?? ""),
+    summaryFromHtml(comic.summary?.html ?? "") ||
+      summaryFromHtml(comic.work?.data?.description ?? ""),
     clean(decodeEntities(comic.extraInfo?.text ?? "")),
   ]
     .filter(Boolean)
     .join("\n\n");
 
-  const staff = staffItems(comic);
+  const staff = staffItems(comic, credits);
 
   return {
     title: displayTitle(comic, cleanTitle, showTeam),
@@ -569,23 +612,40 @@ export function parseContent(
   };
 }
 
+type Credits = { authors: string[]; artists: string[] };
+
+/**
+ * Who wrote and drew it. An edition's own credits come back empty more often than not, while
+ * the work it belongs to names them, so each role falls back to the work's.
+ */
+function creditsOf(comic: ComicData): Credits {
+  const fromWork = (values: string[] | null | undefined): string[] =>
+    (values ?? []).map((name) => decodeEntities(clean(name))).filter(Boolean);
+  const authors = names(comic.authorNodes);
+  const artists = names(comic.artistNodes);
+  return {
+    authors: authors.length > 0 ? authors : fromWork(comic.work?.data?.authors),
+    artists: artists.length > 0 ? artists : fromWork(comic.work?.data?.artists),
+  };
+}
+
 /**
  * `creators` flattens everyone into one unlabelled line, so the same names are offered again
  * as staff, where each keeps the role the site filed it under. A person credited twice — the
  * usual case for a work drawn by its writer — is listed once, under the first role.
  */
-function staffItems(comic: ComicData): StaffItem[] {
-  const roles: [string, string, NamedNode[] | null | undefined][] = [
-    ["author", "Author", comic.authorNodes],
-    ["artist", "Artist", comic.artistNodes],
-    ["publisher", "Publisher", comic.publisherNodes],
+function staffItems(comic: ComicData, credits: Credits): StaffItem[] {
+  const roles: [string, string, string[]][] = [
+    ["author", "Author", credits.authors],
+    ["artist", "Artist", credits.artists],
+    ["publisher", "Publisher", names(comic.publisherNodes)],
   ];
 
   const seen = new Set<string>();
   const items: StaffItem[] = [];
 
-  for (const [role, label, nodes] of roles) {
-    for (const name of names(nodes)) {
+  for (const [role, label, people] of roles) {
+    for (const name of people) {
       if (seen.has(name)) continue;
       seen.add(name);
       items.push(
@@ -597,63 +657,108 @@ function staffItems(comic: ComicData): StaffItem[] {
   return items;
 }
 
-/** Chapters come from one endpoint newest first; only `index` is derived from the number. */
+/** One edition's chapter list, which a merged list is built from several of. */
+export type EditionChapters = {
+  entries: readonly ChapterData[];
+  /** The app's code for the edition's language: a chapter path no longer names one. */
+  language: string;
+  team: string;
+};
+
+export type ChapterListOptions = {
+  /** Teams to keep, matched by name without regard to case. Empty keeps every team. */
+  included?: readonly string[];
+  /** Number the run one team at a time rather than interleaved by chapter number. */
+  groupByEdition?: boolean;
+};
+
+/**
+ * Chapters from one or more editions, the first of which leads.
+ *
+ * One team's editions read as one scanlator, spelled as its first edition spells it, and keep
+ * one copy of each numbered chapter per language and volume — the leading edition's. A work
+ * is often imported more than once under the same team, and without this its list repeats
+ * every chapter once per import. An unnumbered chapter may be any extra, so only numbered
+ * ones collapse; a second upload inside one edition is that edition's own and stays.
+ */
 export function parseChapters(
-  entries: readonly ChapterData[],
-  language: string,
-  team = "",
+  editions: readonly EditionChapters[],
+  options: ChapterListOptions = {},
 ): Chapter[] {
-  // The site keeps a withdrawn chapter in the list and serves no pages for it, so a reader
-  // who taps one gets an empty reader rather than a missing row.
-  const parsed = entries
-    .filter((entry) => (entry.dbStatus ?? "normal") === "normal")
-    .map((entry) => {
-      const value = Number.parseFloat(formatChapterNumber(entry) ?? "");
-      // Whether the site stated a number at all, which is not the same as whether it is
-      // zero: a prologue numbered 0 opens the run, while a notice carrying no number must
-      // sit past its end so it is never the resume point.
-      const numbered = Number.isFinite(value);
-      const number = numbered ? value : 0;
+  const teams: string[] = [];
+  const owners = new Map<string, number>();
+  const included = new Set((options.included ?? []).map((team) => team.toLowerCase()));
 
-      const label = [clean(entry.dname ?? ""), clean(entry.title ?? "")]
-        .filter(Boolean)
-        .filter((value, position, values) => position === 0 || value !== values[0])
-        .map(decodeEntities)
-        .join(": ");
+  const parsed = editions.flatMap((edition, position) =>
+    edition.entries
+      // The site keeps a withdrawn chapter in the list and serves no pages for it, so a
+      // reader who taps one gets an empty reader rather than a missing row.
+      .filter((entry) => (entry.dbStatus ?? "normal") === "normal")
+      .flatMap((entry) => {
+        const value = Number.parseFloat(formatChapterNumber(entry) ?? "");
+        // Whether the site stated a number at all, which is not the same as whether it is
+        // zero: a prologue numbered 0 opens the run, while a notice carrying no number must
+        // sit past its end so it is never the resume point.
+        const numbered = Number.isFinite(value);
+        const number = numbered ? value : 0;
+        const volume = Number.parseFloat(String(entry.volNum ?? ""));
 
-      // `srcName` is the aggregator an upload came through rather than the team that made
-      // it, so the edition's own team is named first where the site states one. `srcTitle` is
-      // how the site writes that aggregator out, where `srcName` is the bare slug behind it.
-      const source = decodeEntities(clean(entry.srcTitle ?? "")) || titleCase(entry.srcName);
-      const groups = names(entry.groupNodes);
-      const uploader = clean(entry.userNode?.data?.name ?? "");
-      const scanlator = team || groups.join(", ") || source || uploader;
+        // `srcName` is the aggregator an upload came through rather than the team that made
+        // it, so the edition's own team is named first where the site states one. `srcTitle`
+        // is how the site writes that aggregator out, where `srcName` is its bare slug.
+        const named =
+          edition.team || decodeEntities(clean(entry.srcTitle ?? "")) || titleCase(entry.srcName);
+        const known = teams.findIndex((team) => team.toLowerCase() === named.toLowerCase());
+        const teamIndex = known === -1 ? teams.push(named) - 1 : known;
+        const scanlator = teams[teamIndex] ?? named;
 
-      const volume = Number.parseFloat(String(entry.volNum ?? ""));
+        if (included.size > 0 && !included.has(scanlator.toLowerCase())) return [];
+        if (numbered) {
+          const key = [teamIndex, edition.language, volume, number].join("|");
+          const owner = owners.get(key) ?? position;
+          owners.set(key, owner);
+          if (owner !== position) return [];
+        }
 
-      return {
-        chapterId: entry.id,
-        number,
-        numbered,
-        index: 0,
-        ...(Number.isFinite(volume) ? { volume } : {}),
-        // The app prints this verbatim and never joins the number onto it.
-        title: label || (numbered ? `Chapter ${number}` : "Chapter"),
-        date:
-          parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ?? new Date(0),
-        language: language || DefinedLanguages.ENGLISH,
-        webUrl: absoluteUrl(entry.urlPath || `/chapter/${entry.id}`),
-        ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
-      };
-    });
+        const label = [clean(entry.dname ?? ""), clean(entry.title ?? "")]
+          .filter(Boolean)
+          .filter((part, index, parts) => index === 0 || part !== parts[0])
+          .map(decodeEntities)
+          .join(": ");
+
+        return [
+          {
+            chapterId: entry.id,
+            number,
+            numbered,
+            index: 0,
+            ...(Number.isFinite(volume) ? { volume } : {}),
+            // The app prints this verbatim and never joins the number onto it.
+            title: label || (numbered ? `Chapter ${number}` : "Chapter"),
+            date:
+              parseTimestamp(entry.dateModify ?? entry.dateCreate ?? entry.datePublic) ??
+              new Date(0),
+            language: edition.language,
+            webUrl: absoluteUrl(entry.urlPath || `/chapter/${entry.id}`),
+            ...(scanlator ? { provider: { id: scanlator, name: scanlator } } : {}),
+          },
+        ];
+      }),
+  );
 
   // index 0 must be the earliest numbered chapter, or the app resumes partway through.
   // Anything the site left unnumbered — a notice or an extra — is indexed after the run.
-  // A chapter numbered 0 is numbered, so the run starts at it rather than after it.
+  // A chapter numbered 0 is numbered, so the run starts at it rather than after it. Grouped
+  // by edition, each team's run is numbered in turn, so reading on stays with one team.
+  const team = (chapter: Chapter): string => chapter.provider?.name.toLowerCase() ?? "";
   const positions = new Map<string, number>();
   [...parsed]
     .filter((chapter) => chapter.numbered)
-    .sort((left, right) => left.number - right.number)
+    .sort(
+      (left, right) =>
+        (options.groupByEdition ? team(left).localeCompare(team(right)) : 0) ||
+        left.number - right.number,
+    )
     .forEach((chapter, position) => positions.set(chapter.chapterId, position));
 
   let next = positions.size;
@@ -661,63 +766,14 @@ export function parseChapters(
     if (!positions.has(chapter.chapterId)) positions.set(chapter.chapterId, next++);
   }
 
-  return parsed.map(({ numbered: _numbered, ...chapter }) => ({
-    ...chapter,
-    index: positions.get(chapter.chapterId) ?? chapter.index,
-  }));
-}
-
-export type FilterTaxonomy = {
-  genres: Option[];
-  types: Option[];
-  demographics: Option[];
-  contentRatings: Option[];
-};
-
-/**
- * The search page carries every filter the site offers as `<details>` groups whose
- * options hold their API value in a bare `:` attribute. Reading them there is one
- * request for the complete lists, where the API exposes none of them.
- */
-export function parseFilterTaxonomy(html: string): FilterTaxonomy {
-  const taxonomy: FilterTaxonomy = { genres: [], types: [], demographics: [], contentRatings: [] };
-  const $ = load(html);
-
-  $("details.group").each((_, element) => {
-    const group = $(element);
-    const heading = text(group.find("summary").first()).toLowerCase();
-
-    const bucket: keyof FilterTaxonomy | undefined = heading.includes("genre")
-      ? "genres"
-      : heading.includes("type")
-        ? "types"
-        : heading.includes("demographic")
-          ? "demographics"
-          : heading.includes("content rating")
-            ? "contentRatings"
-            : undefined;
-    if (!bucket) return;
-
-    const seen = new Set(taxonomy[bucket].map((option) => option.id));
-    group.find("div[\\:]").each((__, node) => {
-      const id = ($(node).attr(":") ?? "").trim();
-      const title = decodeEntities(text($(node).find("span").first()));
-      if (!id || !title || seen.has(id)) return;
-      seen.add(id);
-      taxonomy[bucket].push({ id, title });
-    });
-  });
-
-  return taxonomy;
+  return parsed
+    .map(({ numbered: _numbered, ...chapter }) => ({
+      ...chapter,
+      index: positions.get(chapter.chapterId) ?? chapter.index,
+    }))
+    .sort((left, right) => right.index - left.index);
 }
 
 export function parsePageUrls(urls: readonly string[]): string[] {
   return urls.map(absoluteUrl).filter(Boolean);
-}
-
-/** The site's own language tags use underscores, and `_t` means unspecified. */
-export function parseLanguage(value: string | null | undefined): string {
-  const raw = (value ?? "").trim();
-  if (!raw || raw === "_t") return DefinedLanguages.ENGLISH;
-  return raw.split("_").join("-");
 }

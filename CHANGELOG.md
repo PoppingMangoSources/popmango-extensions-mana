@@ -285,7 +285,27 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.3.0)
+## XCOMIC (current: v1.4.0)
+
+### Added
+
+- Merge Editions, on by default, lists every edition of a series in your languages under one title, each chapter naming its team. One team's repeated imports read as one scanlator and keep one copy of each chapter, so a list no longer shows the same chapter once per import.
+- Editions To Include keeps only the teams you name, and Group Chapters By Edition lists one team's run after another's. Both apply while merging.
+- A Formats filter, apart from Genres.
+
+### Changed
+
+- Listed for every language the site translates into, so readers who do not choose English see it too. Chapters carry the app's language codes.
+- The filter lists are the site's current ones and are bundled: the search page stopped carrying them, and the form downloaded it on every open for nothing. Adds the Cartoon, Imageset and Western types, two demographics and the Suspense genre, and drops Novel, which the site no longer has.
+- Search shows one card per series while merging, and titles drop the team tag.
+
+### Fixed
+
+- Title pages show the author, artist, description and formats the work names when the edition leaves them out.
+- A chapter list that comes back short of its total fails with a message instead of looking complete.
+- Title links open a live edition, in another language when yours has none, rather than a taken-down one.
+
+## XCOMIC (v1.3.0)
 
 ### Changed
 
