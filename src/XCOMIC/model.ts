@@ -88,7 +88,6 @@ export function mirrorCandidates(): string[] {
 }
 
 export const PAGE_SIZE = 36;
-export const HOME_HERO_SIZE = 10;
 export const CHAPTER_PAGE_SIZE = 1000;
 // The site serves at most 600 of every upload a page, whatever is asked for, and says so in
 // the page's own `size`; asking for more would skip uploads between pages.

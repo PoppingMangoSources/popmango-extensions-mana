@@ -56,7 +56,6 @@ import {
   CHAPTER_FULL_PAGE_SIZE,
   CHAPTER_PAGES_QUERY,
   CHAPTER_PAGE_SIZE,
-  HOME_HERO_SIZE,
   COMIC_QUERY,
   CONTENT_RATING_OPTIONS,
   CHAPTER_COUNT_OPTIONS,
@@ -123,7 +122,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.6",
+  version: "1.4.7",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -444,7 +443,7 @@ class XCOMICSource
     return this.browse(
       this.browseSelect({
         page,
-        size: home && spec?.style === SectionStyle.SimpleHeroPaged ? HOME_HERO_SIZE : PAGE_SIZE,
+        size: PAGE_SIZE,
         sort: spec?.sort ?? SortID.Score,
         ...(await this.preferenceDefaults(context)),
       }),

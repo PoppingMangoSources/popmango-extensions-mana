@@ -124,13 +124,13 @@ test("Discover starts three requests together, costs one request per row, and pr
     assert.equal(
       requests.find((request) => request.variables?.select?.sortby === "field_score").variables
         .select.size,
-      10,
+      36,
     );
     await target.search({ listId: "top_rated", page: 2 });
     assert.equal(
       requests.at(-1).variables.select.size,
       36,
-      "only the home hero uses the smaller preview",
+      "performance changes must preserve the full preview and listing sizes",
     );
     assert.equal(requests.at(-1).variables.select.page, 2);
   }

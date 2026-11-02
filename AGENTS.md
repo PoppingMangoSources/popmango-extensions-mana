@@ -106,6 +106,8 @@ them alone unless that work was asked for.
   takes the best single thing the site says and comes out of the subtitle; the rows keep
   everything, because the tiles that draw rows draw no pill.
 - A home row keeps the site's own name for it. Rename nothing the site already titled.
+- Preserve preview sizes, sections and metadata when fixing performance. A smaller response
+  is not evidence of a regression's cause; compare the previously fast revision first.
 - No emoji in anything a source draws. Marks come from the filled glyphs in `Mark`
   (`src/common/highlights.ts`) — `★`, `♥`, `▲` and the like.
 - Don't add a method the app does not call yet expecting the app to use it —
