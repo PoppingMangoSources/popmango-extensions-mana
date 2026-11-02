@@ -18,7 +18,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { ContentRating, PublicationStatus, SectionStyle } from "@mana-app/types";
-import { ManaStore, createHttpBridge, decodeIntents } from "./harness/runtime.mjs";
+import { ManaStore, createHttpBridge, decodeIntents, withAppUserAgent } from "./harness/runtime.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST_SOURCES = path.join(ROOT, "dist", "sources");
@@ -179,7 +179,8 @@ async function checkImages(images, target) {
     try {
       const hook = origin === Origin.Page ? target?.getPageTransport : target?.getCoverTransport;
       if (typeof hook !== "function") {
-        const response = await fetch(url);
+        // The app loads these itself, with its own user-agent.
+        const response = await fetch(url, { headers: withAppUserAgent() });
         const type = response.headers.get("content-type") ?? "";
         // What this is looking for is a 404 or an HTML error page dressed as a 200. Some
         // image proxies answer without a content-type at all, and calling those unreachable

@@ -138,6 +138,10 @@ the order password, web, OAuth — so a password method kept beside OAuth hides 
   429/502/503/504, honouring `Retry-After`, else backing off from 250 ms to at most 5 s.
   Request interceptors run on every attempt, response interceptors once.
 - Every status is a response. `requireOk()` throws `HttpStatusError` for non-2xx.
+- A request that names no `user-agent` goes out with a browser's. A host that refuses
+  browsers needs the source's own on every client that reaches it, image transports
+  included — MangaDex sends a browser to a bot check from its API (a 302 to an HTML page
+  that reads as a 200), its cover host and its image servers (a 404).
 - `HttpHeaders` supports property access (`headers.location`, assignable), case-sensitive;
   methods ignore case. Outgoing names are sent lowercase.
 - A URL fragment is never sent. Its `key=value` pairs travel on the request as

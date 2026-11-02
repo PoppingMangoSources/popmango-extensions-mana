@@ -93,6 +93,19 @@ const BASE64_READER = 1;
 const BYTES_BODY = 3;
 
 /**
+ * The app sends a browser's user-agent on a request that names none, where Node would send
+ * its own — and some sites refuse exactly that: MangaDex answers a browser with its bot
+ * challenge. Modelling it here is what lets `verify` fail where the app fails.
+ */
+const APP_USER_AGENT =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
+
+export function withAppUserAgent(headers = {}) {
+  const named = Object.keys(headers).some((name) => name.toLowerCase() === "user-agent");
+  return named ? headers : { ...headers, "user-agent": APP_USER_AGENT };
+}
+
+/**
  * The host side of the HTTP bridge.
  *
  * A response body stays here, keyed by id, until the bundle reads or releases it, which
@@ -124,7 +137,7 @@ export function createHttpBridge() {
             : message.body;
       const raw = await fetch(message.url, {
         method: METHODS[message.method] ?? "GET",
-        headers: message.headers,
+        headers: withAppUserAgent(message.headers),
         body,
         redirect: "follow",
         signal: controller.signal,

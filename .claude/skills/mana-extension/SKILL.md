@@ -182,7 +182,8 @@ The failures this repo has actually shipped, each silent:
       first, rather than trusting that a refusal would have thrown
 - [ ] `CloudflareError`, `HttpClient` and `Body` imported from `@mana-app/types` — none of
       them is a global any more
-- [ ] No hand-written `user-agent` on a client fronting Cloudflare
+- [ ] No hand-written `user-agent` on a client fronting Cloudflare — but one of the source's
+      own where the host refuses browsers, as MangaDex does, since the app's default is one
 - [ ] A JSON API's 403/503 not reported as a challenge without a real fingerprint
 - [ ] Unnumbered chapters renumbered above the main run, not left at `0` — unless the site
       gives a reading order, in which case each is numbered where it sits in it (Kagane)
