@@ -21,12 +21,6 @@ jobs:
           # needs history rather than a single commit.
           fetch-depth: 0
 
-      - name: Check commit metadata
-        run: node scripts/check-commits.mjs --event
-
-      - name: Test commit guards
-        run: node --test scripts/test-commits.mjs
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -34,50 +28,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Lint
-        run: bun run lint
+      - name: Install workflow checker
+        run: bun run tools
 
-      - name: Check formatting
-        run: bun run format:check
-
-      # The gate that matters most: mana-dev bundles with esbuild, which strips types
-      # without checking them, so a source written against a removed API builds cleanly
-      # and only goes wrong on the device.
-      - name: Typecheck
-        run: bun run typecheck
-
-      - name: Build
-        run: bun run build
-
-      - name: Toonkotsu reader crypto
-        run: bun run test:toonkotsu
-
-      - name: XCOMIC editions
-        run: bun run test:xcomic
-
-      # Every rule AGENTS.md and the mana-extension skill lay down that can be checked
-      # without the live site: icons, intents, probe fixtures, CHANGELOG agreement, the
-      # globals the runtime does not have, and the patch-only version rule.
-      - name: Check source rules
-        # A branch name is attacker-chosen on a fork's pull request, so it is read from the
-        # environment rather than pasted into the script.
-        env:
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          if [ -n "$BASE_REF" ]; then
-            git fetch --no-tags --depth=1 origin "$BASE_REF"
-            node scripts/check-sources.mjs --base "origin/$BASE_REF"
-          else
-            node scripts/check-sources.mjs
-          fi
-
-      # The README table and the count badge are generated from dist/sources.json. A diff
-      # here means they were hand-edited, or a version bump never reached them.
-      - name: README is in step with the catalog
-        run: |
-          bun run readme
-          if ! git diff --quiet -- README.md media/badge-count-summer.svg; then
-            echo "::error::README is out of date — run 'bun run build && bun run readme' and commit the result"
-            git --no-pager diff -- README.md media/badge-count-summer.svg
-            exit 1
-          fi
+      - name: Validate
+        run: bun run validate --event

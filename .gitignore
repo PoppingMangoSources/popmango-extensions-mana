@@ -3,3 +3,4 @@ dist/
 package-lock.json
 bun.lock
 .mana-temp/
+.tools/

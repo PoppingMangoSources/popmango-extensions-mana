@@ -17,6 +17,7 @@ import {
 } from "../common/index.ts";
 import {
   acceptLanguage,
+  API_REQUEST_SLOTS,
   baseUrl,
   mirrorCandidates,
   mirrorOrigin,
@@ -66,6 +67,8 @@ export class XCOMICApi {
   private unpacedClient: HttpClient | undefined;
   // A refresh fires every row at once; identical calls in flight share one response.
   private readonly inFlight = new Map<string, Promise<unknown>>();
+  private available = API_REQUEST_SLOTS;
+  private readonly waiting: (() => void)[] = [];
 
   private get http(): HttpClient {
     this.client ??= withInterceptors(new HttpClient().setRateLimit(3, 1000));
@@ -73,10 +76,8 @@ export class XCOMICApi {
   }
 
   /**
-   * The same client without the per-second pacing, for chapter lists. Those are already held
-   * to three in flight by their caller, which is the limit the site enforces; pacing them as
-   * well left a merged list of sixteen editions waiting five seconds on a site that answers
-   * each in a third of one.
+   * Home rows and chapter lists fill the three shared slots immediately. Per-second pacing
+   * adds idle time even when the preceding response has already finished.
    */
   private get unpaced(): HttpClient {
     this.unpacedClient ??= withInterceptors(new HttpClient());
@@ -90,7 +91,17 @@ export class XCOMICApi {
   ): Promise<T> {
     const key = `${baseUrl()}|${query}|${JSON.stringify(variables)}`;
     const client = options.paced === false ? this.unpaced : this.http;
-    return this.share(key, () => this.runQuery<T>(client, query, variables));
+    return this.share(key, async () => {
+      if (this.available > 0) this.available--;
+      else await new Promise<void>((resolve) => this.waiting.push(resolve));
+      try {
+        return await this.runQuery<T>(client, query, variables);
+      } finally {
+        const next = this.waiting.shift();
+        if (next) next();
+        else this.available++;
+      }
+    });
   }
 
   /**

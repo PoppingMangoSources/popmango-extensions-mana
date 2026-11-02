@@ -285,7 +285,12 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.5)
+## XCOMIC (current: v1.4.6)
+
+### Changed
+- Load ten hero titles and start Discover requests without per-second delays, sharing three API slots with chapter requests.
+
+## XCOMIC (v1.4.5)
 
 ### Changed
 

@@ -57,7 +57,10 @@ bun run new-source <Name> --id <id> --url <https://site>
 bun run dev              # serves dist/ over HTTP for a device, rebuilding on save
 ```
 
-Run all four gates before calling a change done. `verify` needs the network, which a
+Run `bun run tools` after installing dependencies, then `bun run validate` before calling a change done.
+The same complete gate runs in pre-push, Test and both publishing workflows.
+[docs/ENFORCEMENT.md](docs/ENFORCEMENT.md) maps automatic checks and required review evidence.
+Run the individual commands while developing. `verify` needs the network, which a
 sandboxed agent usually does not have — CI is where a source meets its site, so read the
 Contract run rather than assuming a green local build means anything about the live site.
 

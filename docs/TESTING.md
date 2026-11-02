@@ -1,5 +1,8 @@
 # Testing a source
 
+Start with `bun run tools && bun run validate`. The same validator runs locally, in CI and
+before publication. [ENFORCEMENT.md](ENFORCEMENT.md) lists automatic checks and review limits.
+
 Three layers, each catching what the one before cannot. None of them replaces opening the
 source in the app; together they say how far a change has been proven, and a report should
 say which layers it passed.
@@ -10,7 +13,7 @@ say which layers it passed.
 bun run lint && bun run format:check && bun run typecheck && bun run build && bun run check
 ```
 
-`bun run hooks` installs a pre-push hook that runs the same five, and the Test workflow
+`bun run hooks` installs a pre-push hook that runs the full validator, including all tests, and the Test workflow
 runs them on every push and pull request.
 
 Commit metadata has a separate gate: `bun run check:commits` checks HEAD, and
@@ -56,7 +59,7 @@ the page transport. It checks the shape of each answer, not just that one came b
 | Key | What it does |
 | :-- | :----------- |
 | `query` | A search that returns results |
-| `contentId` | A real title — without it the content half is skipped |
+| `contentId` | A real title — without it a title is selected from search |
 | `chapterId` | A representative chapter, when the first one is not |
 | `settings` | Seeds `ObjectStore`, to drive the source under non-default settings |
 | `pagesNeedWebView` | Pages come through a WebView, which the harness does not have — SKIP with a reason |

@@ -41,6 +41,7 @@ import {
   pageOf,
   resolveSortId,
   isDetailedStyle,
+  isMigration,
   sectionById,
   toPageSections,
   withCovers,
@@ -55,7 +56,7 @@ import {
   CHAPTER_FULL_PAGE_SIZE,
   CHAPTER_PAGES_QUERY,
   CHAPTER_PAGE_SIZE,
-  CHAPTER_REQUEST_SLOTS,
+  HOME_HERO_SIZE,
   COMIC_QUERY,
   CONTENT_RATING_OPTIONS,
   CHAPTER_COUNT_OPTIONS,
@@ -122,7 +123,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.5",
+  version: "1.4.6",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -152,7 +153,6 @@ class XCOMICSource
   // Recently Added pages by cursor while the app counts pages, so the cursor for the next
   // page is remembered as each one is read. Paging is sequential, so this keeps up.
   private readonly feedCursors = new Map<string, number>();
-  private readonly chapterSlots = new Slots(CHAPTER_REQUEST_SLOTS);
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -320,7 +320,7 @@ class XCOMICSource
   async resolvePageSection(link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     if (!sectionById(DISCOVER_SECTIONS, sectionID)) return { items: [] };
 
-    const { results } = await this.loadSection(sectionID, 1, link.context);
+    const { results } = await this.loadSection(sectionID, 1, link.context, true);
     return { items: results };
   }
 
@@ -328,6 +328,7 @@ class XCOMICSource
     sectionId: string,
     page: number,
     context?: SourceContext,
+    home = false,
   ): Promise<PagedSearchResult> {
     await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
@@ -336,14 +337,18 @@ class XCOMICSource
 
     if (sectionId === SectionID.LatestUploads) {
       const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
-        this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
-          // This feed pages by cursor; it rejects a `page` outright.
-          select: {
-            first: 0,
-            limit: LATEST_UPLOADS_SIZE,
-            ...(cursor === undefined ? {} : { before: cursor }),
+        this.api.query<LatestUploadsResponse>(
+          LATEST_UPLOADS_QUERY,
+          {
+            // This feed pages by cursor; it rejects a `page` outright.
+            select: {
+              first: 0,
+              limit: LATEST_UPLOADS_SIZE,
+              ...(cursor === undefined ? {} : { before: cursor }),
+            },
           },
-        }),
+          { paced: !home },
+        ),
         this.titleCleaner(),
         this.showTeam(),
         this.entryKey(),
@@ -382,7 +387,11 @@ class XCOMICSource
 
     if (sectionId === SectionID.Random) {
       const [data, cleanTitle, showTeam] = await Promise.all([
-        this.api.query<RandomResponse>(RANDOM_QUERY, { select: { amount: RANDOM_SIZE } }),
+        this.api.query<RandomResponse>(
+          RANDOM_QUERY,
+          { select: { amount: RANDOM_SIZE } },
+          { paced: !home },
+        ),
         this.titleCleaner(),
         this.showTeam(),
       ]);
@@ -402,12 +411,16 @@ class XCOMICSource
 
     if (sectionId === SectionID.RecentlyAdded) {
       const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
-        this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
-          select: {
-            size: RECENTLY_ADDED_SIZE,
-            ...(cursor === undefined ? {} : { before: cursor }),
+        this.api.query<RecentlyAddedResponse>(
+          RECENTLY_ADDED_QUERY,
+          {
+            select: {
+              size: RECENTLY_ADDED_SIZE,
+              ...(cursor === undefined ? {} : { before: cursor }),
+            },
           },
-        }),
+          { paced: !home },
+        ),
         this.titleCleaner(),
         this.showTeam(),
         this.entryKey(),
@@ -431,11 +444,11 @@ class XCOMICSource
     return this.browse(
       this.browseSelect({
         page,
-        size: PAGE_SIZE,
+        size: home && spec?.style === SectionStyle.SimpleHeroPaged ? HOME_HERO_SIZE : PAGE_SIZE,
         sort: spec?.sort ?? SortID.Score,
         ...(await this.preferenceDefaults(context)),
       }),
-      { hero: spec?.style === SectionStyle.SimpleHeroPaged, detailed },
+      { hero: spec?.style === SectionStyle.SimpleHeroPaged, detailed, paced: !home },
     );
   }
 
@@ -558,12 +571,12 @@ class XCOMICSource
 
   private async browse(
     select: BrowseSelect,
-    options: { hero?: boolean; detailed?: boolean; everyEdition?: boolean } = {},
+    options: { hero?: boolean; detailed?: boolean; everyEdition?: boolean; paced?: boolean } = {},
   ): Promise<PagedSearchResult> {
-    const { hero = false, detailed = false, everyEdition = false } = options;
+    const { hero = false, detailed = false, everyEdition = false, paced = true } = options;
 
     const [data, cleanTitle, showTeam] = await Promise.all([
-      this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
+      this.api.query<BrowseResponse>(BROWSE_QUERY, { select }, { paced }),
       this.titleCleaner(),
       this.showTeam(),
     ]);
@@ -584,7 +597,7 @@ class XCOMICSource
     };
   }
 
-  async getContent(contentId: string): Promise<Content> {
+  async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     await this.applyMirror();
 
     const [data, cleanTitle, showTeam] = await Promise.all([
@@ -595,7 +608,12 @@ class XCOMICSource
     const comic = data.get_comicNode?.data;
     if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);
 
-    return parseContent(comic, cleanTitle, showTeam, await this.trackers(comic.titleId));
+    return parseContent(
+      comic,
+      cleanTitle,
+      showTeam,
+      isMigration(context) ? {} : await this.trackers(comic.titleId),
+    );
   }
 
   /**
@@ -719,18 +737,13 @@ class XCOMICSource
     deduplicate: boolean,
     size: number,
   ): Promise<ChapterListPage | null | undefined> {
-    // More than three at once and the site answers 429, losing the list. The slots are the
-    // instance's, so a library update opening several titles together stays under it too,
-    // and a page starts the moment any other finishes rather than waiting on a whole batch.
-    const data = await this.chapterSlots.run(() =>
-      this.api.query<ChapterListResponse>(
-        deduplicate ? CHAPTERS_UNIQUE_QUERY : CHAPTERS_FULL_QUERY,
-        {
-          // The chapter list keys on snake_case and names its own order.
-          select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
-        },
-        { paced: false },
-      ),
+    const data = await this.api.query<ChapterListResponse>(
+      deduplicate ? CHAPTERS_UNIQUE_QUERY : CHAPTERS_FULL_QUERY,
+      {
+        // The chapter list keys on snake_case and names its own order.
+        select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
+      },
+      { paced: false },
     );
 
     return deduplicate ? data.get_comic_chapterList_uniqList : data.get_comic_chapterList_fullList;
@@ -794,28 +807,6 @@ class XCOMICSource
     ]);
     const editions = (data.get_title_titleNode?.comicNodes ?? []).map((node) => node.data);
     return rankEditions(editions, languages)[0]?.id;
-  }
-}
-
-/** At most `limit` tasks running at once; the rest wait their turn in order. */
-class Slots {
-  private free: number;
-  private readonly waiting: (() => void)[] = [];
-
-  constructor(limit: number) {
-    this.free = limit;
-  }
-
-  async run<T>(task: () => Promise<T>): Promise<T> {
-    if (this.free > 0) this.free--;
-    else await new Promise<void>((resolve) => this.waiting.push(resolve));
-    try {
-      return await task();
-    } finally {
-      const next = this.waiting.shift();
-      if (next) next();
-      else this.free++;
-    }
   }
 }
 

@@ -174,6 +174,7 @@ test("setup activates hooks and local unsigned owner defaults; hooks block inval
   mkdirSync(join(cwd, ".githooks"));
   for (const path of [
     "scripts/setup-git.mjs",
+    "scripts/validate.mjs",
     "scripts/check-commits.mjs",
     ".githooks/commit-msg",
     ".githooks/pre-push",

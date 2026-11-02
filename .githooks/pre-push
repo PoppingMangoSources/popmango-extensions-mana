@@ -1,35 +1,4 @@
 #!/bin/sh
-# Runs the gates before a push, so a red build is caught here rather than in CI.
-#
-# These are the same checks the Test workflow runs, and together they take a couple of
-# seconds. Metadata is checked even when CI skips the duplicate build gates.
-#
-# Enable in a fresh clone with:  bun run hooks
-
 set -e
-
 cd "$(git rev-parse --show-toplevel)"
-node scripts/check-commits.mjs --pre-push
-
-# CI checks out and pushes with its own credentials; it runs the gates as its own job.
-if [ -n "$CI" ]; then
-  exit 0
-fi
-
-# The toolchain is bun, and CI runs it. A clone that has only npm still gets the gates
-# rather than a "command not found" it cannot act on.
-if command -v bun >/dev/null 2>&1; then
-  run="bun run"
-else
-  run="npm run"
-fi
-
-echo "pre-push: running the gates…"
-
-$run lint
-$run format:check
-$run typecheck
-$run build
-$run check
-
-echo "pre-push: all gates green"
+exec node scripts/validate.mjs --pre-push

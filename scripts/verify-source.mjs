@@ -16,9 +16,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { ContentRating, PublicationStatus, SectionStyle } from "@mana-app/types";
-import { ManaStore, createHttpBridge, decodeIntents, withAppUserAgent } from "./harness/runtime.mjs";
+import {
+  ManaStore,
+  createHttpBridge,
+  decodeIntents,
+  withAppUserAgent,
+} from "./harness/runtime.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST_SOURCES = path.join(ROOT, "dist", "sources");
@@ -32,10 +37,11 @@ const RESET = "[0m";
 class Skip extends Error {}
 
 function parseArgs(argv) {
-  const args = { names: [], probe: undefined, verbose: false, all: false };
+  const args = { names: [], probe: undefined, verbose: false, all: false, strict: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--all") args.all = true;
+    else if (arg === "--strict") args.strict = true;
     else if (arg === "--verbose" || arg === "-v") args.verbose = true;
     else if (arg === "--probe") args.probe = argv[++i];
     else if (!arg.startsWith("-")) args.names.push(arg);
@@ -266,8 +272,12 @@ function checkChapters(chapters) {
   return `${chapters.length} chapters, ${dated} with real dates`;
 }
 
-async function verify(name, probe, verbose) {
-  const bundlePath = path.join(DIST_SOURCES, `${name}.mana`);
+export async function verify(
+  name,
+  probe,
+  verbose,
+  bundlePath = path.join(DIST_SOURCES, `${name}.mana`),
+) {
   if (!fs.existsSync(bundlePath)) {
     throw new Error(`${bundlePath} not found — run "bun run build" first`);
   }
@@ -342,7 +352,10 @@ async function verify(name, probe, verbose) {
       }
       for (const section of sections) {
         await step(results, `resolvePageSection(${section.id})`, async () => {
-          const resolved = await target.resolvePageSection({ id: "home" }, section.id);
+          const resolved =
+            section.items !== undefined
+              ? section
+              : await target.resolvePageSection({ id: "home" }, section.id);
           const detail = checkHighlights(resolved?.items, section.id);
           preview.sections.push({ section, items: resolved.items });
           return detail;
@@ -359,12 +372,12 @@ async function verify(name, probe, verbose) {
     return detail;
   });
 
-  const contentId = probe.contentId;
+  const contentId = probe.contentId || preview.search.find((item) => item.id)?.id;
   if (!contentId) {
     results.push({
       name: "getContent",
-      status: "skip",
-      detail: "no contentId in probe",
+      status: searched === undefined ? "skip" : "fail",
+      detail: "no title could be selected from the probe or search; reader remains unverified",
       ms: 0,
     });
   } else {
@@ -380,7 +393,7 @@ async function verify(name, probe, verbose) {
 
     // The step reports whatever its body returns, and the later steps need the list, so the
     // list is kept aside and the row is given the summary it would otherwise have swallowed.
-    let chapters;
+    let chapters = preview.content?.chapters;
     if (target.getChapters) {
       await step(results, "getChapters", async () => {
         chapters = await target.getChapters(contentId);
@@ -389,9 +402,17 @@ async function verify(name, probe, verbose) {
     }
 
     const chapterId =
-      probe.chapterId ?? (Array.isArray(chapters) ? chapters[0]?.chapterId : undefined);
+      probe.chapterId || (Array.isArray(chapters) ? chapters[0]?.chapterId : undefined);
 
-    if (chapterId) {
+    if (target.getChapterData && !chapterId) {
+      results.push({
+        name: "getChapterData",
+        status: "skip",
+        detail: "no chapter available; reader remains unverified",
+        ms: 0,
+      });
+    }
+    if (target.getChapterData && chapterId) {
       await step(results, "getChapterData", async () => {
         // Some sources read pages through a third party that may have nothing
         // for a given issue. `"pagesDependOnUpstream": true` in the probe marks
@@ -552,7 +573,7 @@ async function main() {
   console.log(
     `\n${GREEN}${totals.pass} passed${RESET}, ${RED}${totals.fail} failed${RESET}, ${YELLOW}${totals.skip} skipped${RESET}`,
   );
-  process.exit(totals.fail > 0 ? 1 : 0);
+  process.exit(totals.fail > 0 || (args.strict && totals.skip > 0) ? 1 : 0);
 }
 
-main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

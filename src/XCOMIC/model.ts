@@ -88,12 +88,13 @@ export function mirrorCandidates(): string[] {
 }
 
 export const PAGE_SIZE = 36;
+export const HOME_HERO_SIZE = 10;
 export const CHAPTER_PAGE_SIZE = 1000;
 // The site serves at most 600 of every upload a page, whatever is asked for, and says so in
 // the page's own `size`; asking for more would skip uploads between pages.
 export const CHAPTER_FULL_PAGE_SIZE = 600;
-/** How many chapter pages may be in flight at once before the site answers 429. */
-export const CHAPTER_REQUEST_SLOTS = 3;
+/** More than three simultaneous API requests can draw a 429. */
+export const API_REQUEST_SLOTS = 3;
 export const RECENTLY_ADDED_SIZE = 50;
 /**
  * Titles asked of the uploads feed, which hands back three chapters for each.

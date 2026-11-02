@@ -116,7 +116,9 @@ limitation, an ordering requirement. Prefer a helper over duplication.
 
 ## Phase 4 — Verify
 
-All four gates must pass before the work is done:
+Run the complete gate before calling work done: `bun run tools && bun run validate`.
+See [the enforcement inventory](../../../docs/ENFORCEMENT.md) for the automatic rules and
+what still needs live or device evidence. These individual commands are useful while developing:
 
 ```bash
 bun run lint && bun run format:check && bun run typecheck && bun run build
@@ -135,8 +137,9 @@ bun run verify <Name>
 ```
 
 It drives the built `.mana` bundle through the methods the app calls and checks the shape
-of what comes back. Fill `scripts/probes/<Name>.json` with a real `contentId` (and
-`chapterId` if the first chapter is not representative) or the content half is skipped. A
+of what comes back. Put a useful query in `scripts/probes/<Name>.json`; a fixed `contentId`
+and `chapterId` select a representative record, otherwise search and the returned chapters
+select them. Missing coverage is reported explicitly. A
 Cloudflare block reports SKIP, not FAIL — that is expected for protected sites and **is
 not a pass**.
 

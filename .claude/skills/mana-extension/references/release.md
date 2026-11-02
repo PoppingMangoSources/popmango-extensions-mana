@@ -2,7 +2,8 @@
 
 ## Gates
 
-All four must pass. Nothing ships on a red gate.
+Run `bun run tools && bun run validate` before publishing. Nothing ships on a red gate.
+The same validator runs in pre-push, CI and deployment; the commands below are its core build gates.
 
 ```bash
 bun run lint
@@ -73,7 +74,7 @@ shipping it; do not express it by inventing a major bump.
 ```
 
 Newest source first, newest entry first within a source. `info.version` and the
-`(current: v...)` value must agree — nothing enforces it.
+`(current: v...)` value must agree — the source check enforces it.
 
 ## README
 
@@ -119,16 +120,16 @@ branch only exists after the first successful workflow run.
 - [ ] `bun run readme` run, table and badge current
 - [ ] `assets/<Name>.png` exists and matches `info.thumbnail`
 - [ ] `media/sources/<name>.png` exists for the README row
-- [ ] `scripts/probes/<Name>.json` has a real `contentId`
+- [ ] `scripts/probes/<Name>.json` has a useful query and optionally a fixed representative title/chapter
 
-The probe fixture is the only thing that decides whether `getContent`, `getChapters` and
-`getChapterData` are exercised at all. An empty `contentId` skips all three silently, which
-is how Mkissa shipped a reader that had never once opened a chapter. Two flags say why a
-check cannot run, so a genuine break still reads as FAIL:
+The contract uses a fixed probe title when provided, otherwise a result from search. An
+empty chapter id selects a returned chapter rather than suppressing the reader test.
+Missing records and blocked readers are reported explicitly. Use `--strict` to require no
+skipped checks. Two flags explain limitations of the harness:
 
 | Key | Effect |
 | :-- | :----- |
-| `contentId` | Required, or the three title-page checks are skipped |
+| `contentId` | Optional fixed title; when absent, use a result from the live search |
 | `chapterId` | Optional; without it the newest chapter from `getChapters` is used |
 | `pagesNeedWebView` | `getChapterData` reports SKIP — no browser here can be the site's page |
 | `pagesDependOnUpstream` | `getChapterData` reports SKIP when the third party has no pages |

@@ -5,9 +5,10 @@ description: Verify a change to a Mana source by running its built bundle and wa
 
 # Verifying a Mana source
 
-Verification here means running the built `.mana` bundle and observing it. The gates
-(`typecheck`, `lint`, `format:check`, `build`, `check`) are CI's job and prove nothing about
-behaviour; run `build` only to get the bundle. Layers and their limits are in
+Verification here means running the built `.mana` bundle and observing it. Run
+`bun run validate` before publishing; it is the same mandatory gate as CI and deployment.
+That gate does not replace live or device testing. Run `build` while developing to get the
+bundle. Layers and their limits are in
 [docs/TESTING.md](../../../docs/TESTING.md); this file is the recipe.
 
 ## The surface

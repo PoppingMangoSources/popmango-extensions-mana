@@ -61,7 +61,10 @@ const REMOVED_API = [
   [/\bNetworkClientBuilder\b/, "NetworkClientBuilder — replaced by HttpClient"],
   [/\bNetwork(?:Client|Request|Response)\b/, "the Network* types — replaced by the Http* ones"],
   [/\bsetStatusValidator\s*\(/, "setStatusValidator — every status now reaches the caller"],
-  [/\bwillRequestImage\s*\(/, "willRequestImage — replaced by getCoverTransport and getPageTransport"],
+  [
+    /\bwillRequestImage\s*\(/,
+    "willRequestImage — replaced by getCoverTransport and getPageTransport",
+  ],
   [/\bresponseEncoding\b/, "responseEncoding — read the body with bytes() or base64()"],
   [/\boverrideDownloadRequest\s*\(/, "overrideDownloadRequest — removed in Build 55"],
   [/\bgetBrowsePageLinks\s*\(/, "getBrowsePageLinks — removed in Build 55"],
@@ -148,8 +151,15 @@ function versionAt(ref, file) {
  * Versions only ever bump the patch digit. A minor or major bump is not a worse release,
  * it is an inconsistent history — AGENTS.md rules it out whatever the release contains.
  */
-function checkVersionBump(name, before, after, where) {
-  if (!before || before === after) return;
+function checkVersionBump(name, before, after, where, changed) {
+  if (!before) {
+    check(name, after === "1.0.0", "a new source must start at 1.0.0", where);
+    return;
+  }
+  if (!changed) {
+    check(name, before === after, "an unchanged source must retain its version", where);
+    return;
+  }
 
   const [oldMajor, oldMinor, oldPatch] = before.split(".").map(Number);
   const [newMajor, newMinor, newPatch] = after.split(".").map(Number);
@@ -173,6 +183,11 @@ function checkSource(source, catalog, changelog, base) {
   const dir = path.join(SRC, source.path);
   const files = sourceFiles(dir);
   const code = files.map((file) => read(file) ?? "").join("\n");
+  check(
+    name,
+    Array.isArray(source.supportedLanguages) && source.supportedLanguages.length > 0,
+    "supportedLanguages must not be empty",
+  );
 
   // --- Assets: an icon in the wrong place draws a placeholder and reports nothing.
   const thumb = source.thumbnail ?? "";
@@ -191,7 +206,7 @@ function checkSource(source, catalog, changelog, base) {
     "src/<Name>/assets/ is never packaged — move the icon to the project-root assets/",
   );
   // `update-readme.mjs` looks for exactly this path and omits the image if it is absent.
-  warn(
+  check(
     name,
     fs.existsSync(path.join(ROOT, "media", "sources", `${name.toLowerCase()}.png`)),
     `media/sources/${name.toLowerCase()}.png is missing — the README row will have no icon`,
@@ -208,12 +223,7 @@ function checkSource(source, catalog, changelog, base) {
       check(name, false, `scripts/probes/${name}.json is not valid JSON`);
     }
     if (probe) {
-      warn(name, Boolean(probe.query), `probe has no query — the search check cannot run`);
-      warn(
-        name,
-        Boolean(probe.contentId),
-        `probe has no contentId — getContent, getChapters and getChapterData are all skipped`,
-      );
+      check(name, Boolean(probe.query?.trim()), "probe must provide a nonempty search query");
     }
   }
 
@@ -234,9 +244,43 @@ function checkSource(source, catalog, changelog, base) {
     );
   }
   if (base) {
-    checkVersionBump(name, versionAt(base, `src/${source.path}/main.ts`), source.version, {
-      file: `src/${source.path}/main.ts`,
-    });
+    let previous;
+    try {
+      previous = execFileSync("git", ["show", `${base}:src/${source.path}/main.ts`], {
+        cwd: ROOT,
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+    } catch {}
+    const oldId = previous && /\bid:\s*"([^"]+)"/.exec(previous)?.[1];
+    if (oldId) check(name, oldId === source.id, "source id must remain stable for saved libraries");
+    const changed =
+      execFileSync(
+        "git",
+        ["diff", "--name-only", base, "--", `src/${source.path}/`, `assets/${source.thumbnail}`],
+        {
+          cwd: ROOT,
+          encoding: "utf-8",
+        },
+      ).trim() !== "";
+    checkVersionBump(
+      name,
+      versionAt(base, `src/${source.path}/main.ts`),
+      source.version,
+      { file: `src/${source.path}/main.ts` },
+      changed,
+    );
+    if (changed) {
+      const delta = execFileSync("git", ["diff", "--unified=0", base, "--", "CHANGELOG.md"], {
+        cwd: ROOT,
+        encoding: "utf-8",
+      });
+      check(
+        name,
+        delta.includes(`+## ${name} (current: v${source.version})`),
+        "changed source needs its current-version CHANGELOG entry",
+      );
+    }
   }
 
   // --- Intents: the mask is what the app reads, so it has to match the methods.
@@ -348,6 +392,29 @@ function main() {
       failures.push(`common: ${path.relative(ROOT, file)} declares a Target class`);
     }
   }
+  const actual = fs
+    .readdirSync(SRC)
+    .filter(
+      (name) =>
+        name !== "Template" &&
+        name !== "common" &&
+        fs.statSync(path.join(SRC, name)).isDirectory() &&
+        sourceFiles(path.join(SRC, name)).some((file) => /\bclass Target\b/.test(read(file) ?? "")),
+    );
+  for (const name of actual)
+    check(
+      name,
+      catalog.sources.some((source) => source.path === name),
+      "source is missing from built catalog",
+    );
+  for (const field of ["id", "name", "path"]) {
+    const values = catalog.sources.map((source) => source[field]);
+    check(
+      "catalog",
+      values.every(Boolean) && new Set(values).size === values.length,
+      `${field} must be present and unique`,
+    );
+  }
 
   const sources = catalog.sources.filter(
     (source) => only.length === 0 || only.includes(source.name),
@@ -383,7 +450,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`\n${GREEN}every source follows the repository's rules${RESET}\n`);
+  console.log(`\n${GREEN}all automated source checks passed${RESET}\n`);
 }
 
 main();

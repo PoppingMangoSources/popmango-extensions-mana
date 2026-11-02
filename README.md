@@ -59,7 +59,7 @@ becomes available to install.
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.2.0 |
 | <img src="media/sources/toonkotsu.png" width="22" align="top"/> **Toonkotsu** | [toonkotsu.com](https://toonkotsu.com) | Mixed | v1.2.4 |
 | <img src="media/sources/valirscans.png" width="22" align="top"/> **ValirScans** | [valirscans.org](https://valirscans.org) | Mixed | v1.2.0 |
-| <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.4.5 |
+| <img src="media/sources/xcomic.png" width="22" align="top"/> **XCOMIC** | [xcomic.me](https://xcomic.me) | 18+ | v1.4.6 |
 <!-- sources:end -->
 
 ## Reporting a problem
@@ -88,6 +88,9 @@ bun run verify --all     # runs every source against its live site
 `bun run check` is the offline half: icons, intents, probe fixtures, CHANGELOG agreement,
 the globals the runtime does not have, and the patch-only version rule. `bun run verify`
 is the half that needs the network — a Cloudflare block reports SKIP, which is not a pass.
+
+Run `bun run tools && bun run validate` for the full offline gate: repository rules, workflow
+linting, build checks and every regression test. [Enforcement and review limits](docs/ENFORCEMENT.md).
 
 `bun run hooks` configures the owner identity, unsigned commits and `.githooks/`. Commit
 messages and outgoing commits are checked for attribution and session links before the

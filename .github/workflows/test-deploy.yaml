@@ -29,9 +29,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check commit metadata before publishing
-        run: node scripts/check-commits.mjs --event
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -39,8 +36,11 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Build Extensions
-        run: bun run build
+      - name: Install workflow checker
+        run: bun run tools
+
+      - name: Validate before publishing
+        run: bun run validate --event
 
       - name: Deploy Catalog to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
