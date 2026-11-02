@@ -89,10 +89,11 @@ export function mirrorCandidates(): string[] {
 
 export const PAGE_SIZE = 36;
 export const CHAPTER_PAGE_SIZE = 1000;
-// The full list repeats every scanlator's upload, so it is read in smaller pages.
-export const CHAPTER_FULL_PAGE_SIZE = 100;
+// The site serves at most 600 of every upload a page, whatever is asked for, and says so in
+// the page's own `size`; asking for more would skip uploads between pages.
+export const CHAPTER_FULL_PAGE_SIZE = 600;
 /** How many chapter pages may be in flight at once before the site answers 429. */
-export const CHAPTER_REQUEST_BATCH = 3;
+export const CHAPTER_REQUEST_SLOTS = 3;
 export const RECENTLY_ADDED_SIZE = 50;
 /**
  * Titles asked of the uploads feed, which hands back three chapters for each.
@@ -643,9 +644,8 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   // Off: the site lists every group's upload, and collapsing them by chapter number hides
   // translations a reader may have come for.
   [PreferenceID.DeduplicateChapters]: false,
-  // On, as the other clients for the site have it: a series is one entry holding every
-  // edition, and a reader picks a team from the chapter list rather than from search.
-  [PreferenceID.MergeEditions]: true,
+  // Off: a merged list costs a request per edition, a dozen or more on a popular series.
+  [PreferenceID.MergeEditions]: false,
   [PreferenceID.IncludedEditions]: "",
   [PreferenceID.GroupByEdition]: false,
   [PreferenceID.ShowSourceInTitle]: true,

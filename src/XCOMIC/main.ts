@@ -55,7 +55,7 @@ import {
   CHAPTER_FULL_PAGE_SIZE,
   CHAPTER_PAGES_QUERY,
   CHAPTER_PAGE_SIZE,
-  CHAPTER_REQUEST_BATCH,
+  CHAPTER_REQUEST_SLOTS,
   COMIC_QUERY,
   CONTENT_RATING_OPTIONS,
   CHAPTER_COUNT_OPTIONS,
@@ -122,7 +122,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.0",
+  version: "1.4.1",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -152,6 +152,7 @@ class XCOMICSource
   // Recently Added pages by cursor while the app counts pages, so the cursor for the next
   // page is remembered as each one is read. Paging is sequential, so this keeps up.
   private readonly feedCursors = new Map<string, number>();
+  private readonly chapterSlots = new Slots(CHAPTER_REQUEST_SLOTS);
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -638,19 +639,22 @@ class XCOMICSource
       this.preferences.strings(PreferenceID.Languages),
     ]);
 
-    // Unmerged, the one list is asked for beside the details rather than after them.
-    const [data, own] = await Promise.all([
+    // The opened edition's list is asked for beside the details rather than after them;
+    // only the other editions have to wait to be named.
+    const [data, [own = []]] = await Promise.all([
       this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
-      merge ? undefined : this.chapterLists([contentId], deduplicate),
+      this.chapterLists([contentId], deduplicate),
     ]);
     const comic = data.get_comicNode?.data ?? { id: contentId, name: "" };
     const editions = merge ? mergedEditions(comic, languages) : [comic];
-    const lists =
-      own ??
-      (await this.chapterLists(
-        editions.map((edition) => edition.id),
+    // `mergedEditions` puts the opened edition first, so its list leads.
+    const lists = [
+      own,
+      ...(await this.chapterLists(
+        editions.slice(1).map((edition) => edition.id),
         deduplicate,
-      ));
+      )),
+    ];
 
     return parseChapters(
       editions.map((edition, position) => ({
@@ -673,59 +677,40 @@ class XCOMICSource
   /**
    * Every chapter of each edition, one list per id in the order given.
    *
-   * More than three requests at once and the site answers 429, losing the list, so the first
-   * page of each edition goes three at a time and then the pages after them. A list that
-   * comes back short of its total lost a page somewhere, and is refused rather than shown as
-   * though it were complete.
+   * A list that comes back short of its total lost a page somewhere, and is refused rather
+   * than shown as though it were complete.
    */
   private async chapterLists(
     ids: readonly string[],
     deduplicate: boolean,
   ): Promise<ChapterData[][]> {
     const size = deduplicate ? CHAPTER_PAGE_SIZE : CHAPTER_FULL_PAGE_SIZE;
-    const lists: ChapterData[][] = [];
-    const totals: number[] = [];
-    const remaining: [number, number][] = [];
 
-    for (let start = 0; start < ids.length; start += CHAPTER_REQUEST_BATCH) {
-      const firsts = await Promise.all(
-        ids
-          .slice(start, start + CHAPTER_REQUEST_BATCH)
-          .map((id) => this.chapterPage(id, 1, deduplicate, size)),
-      );
-      for (const first of firsts) {
+    return Promise.all(
+      ids.map(async (id) => {
+        const first = await this.chapterPage(id, 1, deduplicate, size);
         const entries = (first?.items ?? []).map((item) => item.data);
         const total = first?.paging?.total ?? entries.length;
-        // The deduplicated list almost never runs past one page; the full one does on a
-        // long series, so further pages are only asked for when they exist.
+
+        // Further pages are asked for only when they exist, as soon as this edition's first
+        // one says so rather than after every other edition's first page has come back.
         if (total > size && (first?.paging?.next ?? 0) !== 0) {
-          for (let page = 2; page <= Math.ceil(total / size); page++) {
-            remaining.push([lists.length, page]);
-          }
+          const rest = await Promise.all(
+            Array.from({ length: Math.ceil(total / size) - 1 }, (_, offset) =>
+              this.chapterPage(id, offset + 2, deduplicate, size),
+            ),
+          );
+          for (const page of rest) entries.push(...(page?.items ?? []).map((item) => item.data));
         }
-        lists.push(entries);
-        totals.push(total);
-      }
-    }
 
-    for (let start = 0; start < remaining.length; start += CHAPTER_REQUEST_BATCH) {
-      const batch = remaining.slice(start, start + CHAPTER_REQUEST_BATCH);
-      const pages = await Promise.all(
-        batch.map(([list, page]) => this.chapterPage(ids[list] ?? "", page, deduplicate, size)),
-      );
-      pages.forEach((page, position) => {
-        const list = batch[position]?.[0];
-        if (list !== undefined) lists[list]?.push(...(page?.items ?? []).map((item) => item.data));
-      });
-    }
-
-    lists.forEach((list, position) => {
-      const total = totals[position] ?? list.length;
-      if (list.length < total) {
-        throw new Error(`XCOMIC sent ${list.length} of ${total} chapters; refresh to try again`);
-      }
-    });
-    return lists;
+        if (entries.length < total) {
+          throw new Error(
+            `XCOMIC sent ${entries.length} of ${total} chapters; refresh to try again`,
+          );
+        }
+        return entries;
+      }),
+    );
   }
 
   private async chapterPage(
@@ -734,12 +719,17 @@ class XCOMICSource
     deduplicate: boolean,
     size: number,
   ): Promise<ChapterListPage | null | undefined> {
-    const data = await this.api.query<ChapterListResponse>(
-      deduplicate ? CHAPTERS_UNIQUE_QUERY : CHAPTERS_FULL_QUERY,
-      {
-        // The chapter list keys on snake_case and names its own order.
-        select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
-      },
+    // More than three at once and the site answers 429, losing the list. The slots are the
+    // instance's, so a library update opening several titles together stays under it too,
+    // and a page starts the moment any other finishes rather than waiting on a whole batch.
+    const data = await this.chapterSlots.run(() =>
+      this.api.query<ChapterListResponse>(
+        deduplicate ? CHAPTERS_UNIQUE_QUERY : CHAPTERS_FULL_QUERY,
+        {
+          // The chapter list keys on snake_case and names its own order.
+          select: { comic_id: contentId, page, size, sortby: "chapter_desc" },
+        },
+      ),
     );
 
     return deduplicate ? data.get_comic_chapterList_uniqList : data.get_comic_chapterList_fullList;
@@ -803,6 +793,28 @@ class XCOMICSource
     ]);
     const editions = (data.get_title_titleNode?.comicNodes ?? []).map((node) => node.data);
     return rankEditions(editions, languages)[0]?.id;
+  }
+}
+
+/** At most `limit` tasks running at once; the rest wait their turn in order. */
+class Slots {
+  private free: number;
+  private readonly waiting: (() => void)[] = [];
+
+  constructor(limit: number) {
+    this.free = limit;
+  }
+
+  async run<T>(task: () => Promise<T>): Promise<T> {
+    if (this.free > 0) this.free--;
+    else await new Promise<void>((resolve) => this.waiting.push(resolve));
+    try {
+      return await task();
+    } finally {
+      const next = this.waiting.shift();
+      if (next) next();
+      else this.free++;
+    }
   }
 }
 
