@@ -1085,3 +1085,8 @@ export type BrowseSelect = {
    */
   ignoreGlobalGenres?: boolean;
 };
+
+export type ContentFilters = Pick<
+  BrowseSelect,
+  "incTypes" | "incContentRatings" | "incTLangs" | "excGenres"
+>;

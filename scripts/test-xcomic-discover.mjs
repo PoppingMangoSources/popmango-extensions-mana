@@ -291,3 +291,170 @@ test("overlapping identical row requests share one fetch and migration skips tra
   await target.getContent("edition", { origin: 0 });
   assert.equal(requests.length, 2, "migration uses just the title details");
 });
+
+function feedResponse(comics, before) {
+  return (_request, data) => {
+    data.get_title_latestUploads = {
+      before,
+      items: comics.map((comic, index) => ({
+        chapters: [
+          {
+            data: {
+              id: `chapter-${index}`,
+              chaNum: 1,
+              dbStatus: "normal",
+              datePublic: 1700000100 - index,
+              comicNode: { data: comic },
+            },
+          },
+        ],
+      })),
+    };
+    data.get_comic_recentlyAdded = { before, items: comics.map((comic) => ({ data: comic })) };
+    data.get_title_randomList = comics.map((comic) => ({
+      data: comic,
+      comicNodes: [{ data: comic }],
+    }));
+    return data;
+  };
+}
+
+const feedComic = (id, overrides = {}) => ({
+  id,
+  titleId: id,
+  name: id,
+  translatedLanguage: "en",
+  type: "manga",
+  contentRating: "safe",
+  genres: ["fantasy"],
+  urlCover: "https://images.test/cover.jpg",
+  ...overrides,
+});
+
+test("every unfiltered feed excludes every blocked genre before merged-title deduplication", async () => {
+  const comics = [
+    feedComic("blocked-first", { titleId: "shared", genres: [" HENTAI "] }),
+    feedComic("blocked-other-genre", { genres: ["gore"] }),
+    feedComic("keep", { titleId: "shared" }),
+  ];
+  for (const merged of [false, true])
+    for (const section of ["latest_uploads", "recently_added", "random"]) {
+      const { target, requests } = load(
+        {
+          "xcomic.merge-editions": merged,
+          "xcomic.excluded-genres": ["hentai", "gore"],
+          "xcomic.ignore-genre-blocklist": true,
+        },
+        { response: feedResponse(comics) },
+      );
+      const result = await target.resolvePageSection({}, section);
+      assert.deepEqual(
+        Array.from(result.items, (item) => item.id),
+        ["keep"],
+        `${section}, merged=${merged}`,
+      );
+      assert.equal(
+        requests.length,
+        1,
+        "filtering never fetches per-title details or replacement pages",
+      );
+    }
+});
+
+test("unfiltered feeds honour rating, type and language settings, including inferred explicit ratings", async () => {
+  const comics = [
+    feedComic("keep"),
+    feedComic("wrong-language", { translatedLanguage: "fr" }),
+    feedComic("wrong-type", { type: "novel" }),
+    feedComic("explicit", { contentRating: "pornographic" }),
+    feedComic("inferred-explicit", { contentRating: "safe", genres: ["hentai"] }),
+    feedComic("erotica", { contentRating: "erotica" }),
+    feedComic("unstated-type", { type: null }),
+  ];
+  for (const section of ["latest_uploads", "recently_added", "random"]) {
+    const { target } = load(
+      {
+        "xcomic.languages": ["en"],
+        "xcomic.content-types": ["manga"],
+        "xcomic.content-ratings": ["safe"],
+      },
+      { response: feedResponse(comics) },
+    );
+    const result = await target.resolvePageSection({}, section);
+    assert.deepEqual(
+      Array.from(result.items, (item) => item.id),
+      ["keep", "unstated-type"],
+      section,
+    );
+  }
+});
+
+test("filtered-out feed pages advance their server cursor without ending View More early", async () => {
+  for (const section of ["latest_uploads", "recently_added"]) {
+    const { target, requests } = load(
+      { "xcomic.excluded-genres": ["hentai"] },
+      {
+        response: (request, data) =>
+          feedResponse(
+            [
+              feedComic(request.variables.select.before ? "keep" : "blocked", {
+                genres: request.variables.select.before ? [] : ["hentai"],
+              }),
+            ],
+            request.variables.select.before ? null : 100,
+          )(request, data),
+      },
+    );
+    const first = await target.search({ listId: section, page: 1 });
+    assert.equal(first.results.length, 0);
+    assert.equal(first.isLastPage, false, section);
+    const second = await target.search({ listId: section, page: 2 });
+    assert.deepEqual(
+      Array.from(second.results, (item) => item.id),
+      ["keep"],
+    );
+    assert.equal(second.isLastPage, true);
+    assert.equal(requests[1].variables.select.before, 100);
+  }
+});
+
+test("ranked sections and normal search keep sending blocked genres to server-side browse", async () => {
+  const { target, requests } = load({ "xcomic.excluded-genres": ["hentai", "gore"] });
+  await target.resolvePageSection({}, "top_rated");
+  await target.search({ query: "title", page: 1 });
+  for (const request of requests)
+    assert.deepEqual(request.variables.select.excGenres, ["hentai", "gore"]);
+});
+
+test("feed content remains selectable, while the host's explicit-content restriction is honoured", async () => {
+  const comics = [feedComic("keep"), feedComic("explicit", { genres: ["hentai"] })];
+  for (const section of ["latest_uploads", "recently_added", "random"]) {
+    const { target } = load({}, { response: feedResponse(comics) });
+    const unrestricted = await target.resolvePageSection({}, section);
+    assert.deepEqual(
+      Array.from(unrestricted.items, (item) => item.id),
+      ["keep", "explicit"],
+    );
+    const restricted = await target.resolvePageSection(
+      { context: { allowedContentRatings: [0, 1, 2] } },
+      section,
+    );
+    assert.deepEqual(
+      Array.from(restricted.items, (item) => item.id),
+      ["keep"],
+    );
+  }
+});
+
+test("a repeated feed cursor ends pagination even when every item is blocked", async () => {
+  for (const section of ["latest_uploads", "recently_added"]) {
+    const { target } = load(
+      { "xcomic.excluded-genres": ["hentai"] },
+      {
+        response: feedResponse([feedComic("blocked", { genres: ["hentai"] })], 100),
+      },
+    );
+    assert.equal((await target.search({ listId: section, page: 1 })).isLastPage, false);
+    assert.equal((await target.search({ listId: section, page: 2 })).isLastPage, true);
+  }
+});

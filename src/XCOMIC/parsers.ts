@@ -34,6 +34,7 @@ import {
   type ChapterData,
   type ComicData,
   type ComicNode,
+  type ContentFilters,
   type NamedNode,
   type TitleNode,
   type TrackingSites,
@@ -63,7 +64,7 @@ function names(nodes: NamedNode[] | null | undefined): string[] {
 }
 
 /** The site states a rating, but only sometimes; its genres say the rest. */
-function parseRating(comic: ComicData): ContentRating {
+function siteRating(comic: ComicData): string {
   const stated = (comic.contentRating ?? "").toLowerCase();
   const genres = (comic.genres ?? []).map((genre) => genre.trim().toLowerCase());
 
@@ -71,10 +72,34 @@ function parseRating(comic: ComicData): ContentRating {
     stated === rating ||
     CONTENT_RATING_GENRES[rating]?.some((genre) => genres.includes(genre)) === true;
 
-  if (matches("pornographic")) return ContentRating.EXPLICIT;
-  if (matches("erotica")) return ContentRating.EXPLICIT;
-  if (matches("suggestive")) return ContentRating.SUGGESTIVE;
-  return ContentRating.SAFE;
+  if (matches("pornographic")) return "pornographic";
+  if (matches("erotica")) return "erotica";
+  if (matches("suggestive")) return "suggestive";
+  return "safe";
+}
+
+function parseRating(comic: ComicData): ContentRating {
+  const rating = siteRating(comic);
+  if (rating === "pornographic" || rating === "erotica") return ContentRating.EXPLICIT;
+  return rating === "suggestive" ? ContentRating.SUGGESTIVE : ContentRating.SAFE;
+}
+
+/** The cursor feeds and random list expose no server-side content filters. */
+export function comicFilter(filters: ContentFilters): (comic: ComicData) => boolean {
+  const normalized = (values: readonly string[]): Set<string> =>
+    new Set(values.map((value) => value.trim().toLowerCase()));
+  const types = normalized(filters.incTypes);
+  const ratings = normalized(filters.incContentRatings);
+  const languages = normalized(filters.incTLangs);
+  const excluded = normalized(filters.excGenres);
+
+  return (comic) =>
+    (types.size === 0 || !comic.type || types.has(comic.type.trim().toLowerCase())) &&
+    (languages.size === 0 ||
+      !comic.translatedLanguage ||
+      languages.has(comic.translatedLanguage.trim().toLowerCase())) &&
+    ratings.has(siteRating(comic)) &&
+    !(comic.genres ?? []).some((genre) => excluded.has(genre.trim().toLowerCase()));
 }
 
 function parseContentType(type: string | null | undefined): ContentType | undefined {

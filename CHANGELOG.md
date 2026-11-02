@@ -285,7 +285,14 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.4.8)
+## XCOMIC (current: v1.4.9)
+
+### Fixed
+
+- Apply blocked genres, content ratings, content types and selected languages to Latest Updates, Recently Added and Random Comics.
+- Filter before merging duplicate titles, and keep cursor pagination available when an entire feed page is filtered out.
+
+## XCOMIC (v1.4.8)
 
 ### Changed
 

@@ -92,6 +92,7 @@ import {
   setLanguages,
   type BrowseResponse,
   type ComicData,
+  type ContentFilters,
   type BrowseSelect,
   type ChapterData,
   type ChapterListPage,
@@ -105,6 +106,7 @@ import {
   type TitleNodeResponse,
 } from "./model.ts";
 import {
+  comicFilter,
   mergedEditions,
   parseChapters,
   parseContent,
@@ -123,7 +125,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.8",
+  version: "1.4.9",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -335,7 +337,7 @@ class XCOMICSource
     const detailed = isDetailedStyle(sectionById(DISCOVER_SECTIONS, sectionId)?.style);
 
     if (sectionId === SectionID.LatestUploads) {
-      const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
+      const [data, cleanTitle, showTeam, keyOf, defaults] = await Promise.all([
         this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
           // This feed pages by cursor; it rejects a `page` outright.
           select: {
@@ -347,9 +349,11 @@ class XCOMICSource
         this.titleCleaner(),
         this.showTeam(),
         this.entryKey(),
+        this.preferenceDefaults(context),
       ]);
 
       const feed = data.get_title_latestUploads;
+      const allow = comicFilter(defaults);
 
       // An item is a title holding the chapters it just published, each of which holds the
       // comic it belongs to — and one title can carry more than one comic, so the rows are
@@ -364,7 +368,7 @@ class XCOMICSource
         .sort((left, right) => publishedAt(right.data) - publishedAt(left.data))
         .flatMap((chapter): Highlight[] => {
           const comic = chapter.data.comicNode?.data;
-          if (!comic || seen.has(keyOf(comic))) return [];
+          if (!comic || !allow(comic) || seen.has(keyOf(comic))) return [];
           seen.add(keyOf(comic));
           return [parseHighlight(comic, { latest: chapter.data, cleanTitle, showTeam, detailed })];
         });
@@ -375,24 +379,34 @@ class XCOMICSource
       const next = feed?.before;
       if (next != null && (cursor === undefined || next < cursor)) {
         this.feedCursors.set(`${sectionId}:${page + 1}`, next);
-        return { results: covered, isLastPage: results.length === 0 };
+        return { results: covered, isLastPage: false };
       }
       return { results: covered, isLastPage: true };
     }
 
     if (sectionId === SectionID.Random) {
-      const [data, cleanTitle, showTeam] = await Promise.all([
+      const [data, cleanTitle, showTeam, defaults] = await Promise.all([
         this.api.query<RandomResponse>(RANDOM_QUERY, { select: { amount: RANDOM_SIZE } }),
         this.titleCleaner(),
         this.showTeam(),
+        this.preferenceDefaults(context),
       ]);
 
-      const languages = await this.preferences.strings(PreferenceID.Languages);
+      const allow = comicFilter(defaults);
       return {
         results: withCovers(
           (data.get_title_randomList ?? []).flatMap(
             (node) =>
-              parseTitleHighlight(node, languages, { cleanTitle, showTeam, detailed }) ?? [],
+              parseTitleHighlight(
+                {
+                  ...node,
+                  comicNodes: (node.comicNodes ?? []).filter(({ data }) =>
+                    allow({ ...node.data, translatedLanguage: data.translatedLanguage }),
+                  ),
+                },
+                defaults.incTLangs,
+                { cleanTitle, showTeam, detailed },
+              ) ?? [],
           ),
         ),
         // The site picks a fresh handful every time it is asked; there is no page two.
@@ -401,7 +415,7 @@ class XCOMICSource
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
-      const [data, cleanTitle, showTeam, keyOf] = await Promise.all([
+      const [data, cleanTitle, showTeam, keyOf, defaults] = await Promise.all([
         this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
           select: {
             size: RECENTLY_ADDED_SIZE,
@@ -411,20 +425,26 @@ class XCOMICSource
         this.titleCleaner(),
         this.showTeam(),
         this.entryKey(),
+        this.preferenceDefaults(context),
       ]);
 
       const feed = data.get_comic_recentlyAdded;
+      const allow = comicFilter(defaults);
       const seen = new Set<string>();
       const results = withCovers(
         (feed?.items ?? []).flatMap((node) => {
-          if (seen.has(keyOf(node.data))) return [];
+          if (!allow(node.data) || seen.has(keyOf(node.data))) return [];
           seen.add(keyOf(node.data));
           return [parseHighlight(node.data, { cleanTitle, showTeam, detailed })];
         }),
       );
 
-      if (feed?.before != null) this.feedCursors.set(`${sectionId}:${page + 1}`, feed.before);
-      return { results, isLastPage: feed?.before == null || results.length === 0 };
+      const next = feed?.before;
+      if (next != null && (cursor === undefined || next < cursor)) {
+        this.feedCursors.set(`${sectionId}:${page + 1}`, next);
+        return { results, isLastPage: false };
+      }
+      return { results, isLastPage: true };
     }
 
     const spec = sectionById(DISCOVER_SECTIONS, sectionId);
@@ -499,12 +519,7 @@ class XCOMICSource
   }
 
   /** Settings stand in for anything the search form leaves blank. */
-  private async preferenceDefaults(context?: SourceContext): Promise<{
-    incTypes: string[];
-    incContentRatings: string[];
-    incTLangs: string[];
-    excGenres: string[];
-  }> {
+  private async preferenceDefaults(context?: SourceContext): Promise<ContentFilters> {
     const [types, ratings, languages, excluded] = await Promise.all([
       this.preferences.strings(PreferenceID.ContentTypes),
       this.preferences.strings(PreferenceID.ContentRatings),
