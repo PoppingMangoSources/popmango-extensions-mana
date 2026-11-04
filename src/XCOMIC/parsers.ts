@@ -550,12 +550,11 @@ export function parseContent(
   showTeam = true,
   trackers: Record<string, string> = {},
 ): Content {
-  // `tagNodes` is the site's own wording for the same things the slug lists name, so the
-  // two overlap and are matched case-blind rather than by id.
+  // `tags` contains references, not display names; `tagNodes` resolves those references.
+  // Formats belong to the work, while genres and demographics are already named slugs.
   const seenTags = new Set<string>();
   const tags: Tag[] = [
     ...(comic.genres ?? []),
-    ...(comic.tags ?? []),
     // An edition often leaves its formats to the work it belongs to.
     ...(comic.work?.data?.format_ids ?? []),
     ...(comic.demographics ?? []),

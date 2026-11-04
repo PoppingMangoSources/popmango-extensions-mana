@@ -125,7 +125,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.9",
+  version: "1.4.10",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -256,34 +256,34 @@ class XCOMICSource
   }
 
   /** Every request path starts here so the mirror setting is in force before a URL is built. */
-  private async applyMirror(): Promise<void> {
+  private async applyMirror(): Promise<string[]> {
     const [mirror, languages] = await Promise.all([
       this.preferences.text(PreferenceID.Mirror, BASE_URL),
       this.preferences.strings(PreferenceID.Languages),
     ]);
     setBaseUrl(mirror);
     setLanguages(languages);
-  }
-
-  /**
-   * Whether a tile names the team behind its edition, read once rather than per row. A merged
-   * title holds every team's chapters, so it names none of them.
-   */
-  private async showTeam(): Promise<boolean> {
-    const [show, merged] = await Promise.all([
-      this.preferences.flag(PreferenceID.ShowSourceInTitle),
-      this.merged(),
-    ]);
-    return show && !merged;
+    return languages;
   }
 
   private merged(): Promise<boolean> {
     return this.preferences.flag(PreferenceID.MergeEditions);
   }
 
-  /** What makes two tiles the same entry: the edition, or — merged — the work it belongs to. */
-  private async entryKey(): Promise<(comic: ComicData) => string> {
-    return (await this.merged()) ? (comic) => comic.titleId || comic.id : (comic) => comic.id;
+  /** One settings snapshot for every card in this request. */
+  private async displayPreferences() {
+    const [cleanTitle, show, merged] = await Promise.all([
+      this.titleCleaner(),
+      this.preferences.flag(PreferenceID.ShowSourceInTitle),
+      this.merged(),
+    ]);
+    return {
+      cleanTitle,
+      showTeam: show && !merged,
+      keyOf: merged
+        ? (comic: ComicData) => comic.titleId || comic.id
+        : (comic: ComicData) => comic.id,
+    };
   }
 
   /** Reader-configured title rewriting, resolved once per call rather than per row. */
@@ -331,13 +331,13 @@ class XCOMICSource
     page: number,
     context?: SourceContext,
   ): Promise<PagedSearchResult> {
-    await this.applyMirror();
+    const languages = await this.applyMirror();
     const cursor = page > 1 ? this.feedCursors.get(`${sectionId}:${page}`) : undefined;
     // A row that draws each tile's info rows draws no pill over its cover.
     const detailed = isDetailedStyle(sectionById(DISCOVER_SECTIONS, sectionId)?.style);
 
     if (sectionId === SectionID.LatestUploads) {
-      const [data, cleanTitle, showTeam, keyOf, defaults] = await Promise.all([
+      const [data, { cleanTitle, showTeam, keyOf }, defaults] = await Promise.all([
         this.api.query<LatestUploadsResponse>(LATEST_UPLOADS_QUERY, {
           // This feed pages by cursor; it rejects a `page` outright.
           select: {
@@ -346,10 +346,8 @@ class XCOMICSource
             ...(cursor === undefined ? {} : { before: cursor }),
           },
         }),
-        this.titleCleaner(),
-        this.showTeam(),
-        this.entryKey(),
-        this.preferenceDefaults(context),
+        this.displayPreferences(),
+        this.preferenceDefaults(context, languages),
       ]);
 
       const feed = data.get_title_latestUploads;
@@ -385,11 +383,10 @@ class XCOMICSource
     }
 
     if (sectionId === SectionID.Random) {
-      const [data, cleanTitle, showTeam, defaults] = await Promise.all([
+      const [data, { cleanTitle, showTeam }, defaults] = await Promise.all([
         this.api.query<RandomResponse>(RANDOM_QUERY, { select: { amount: RANDOM_SIZE } }),
-        this.titleCleaner(),
-        this.showTeam(),
-        this.preferenceDefaults(context),
+        this.displayPreferences(),
+        this.preferenceDefaults(context, languages),
       ]);
 
       const allow = comicFilter(defaults);
@@ -415,17 +412,15 @@ class XCOMICSource
     }
 
     if (sectionId === SectionID.RecentlyAdded) {
-      const [data, cleanTitle, showTeam, keyOf, defaults] = await Promise.all([
+      const [data, { cleanTitle, showTeam, keyOf }, defaults] = await Promise.all([
         this.api.query<RecentlyAddedResponse>(RECENTLY_ADDED_QUERY, {
           select: {
             size: RECENTLY_ADDED_SIZE,
             ...(cursor === undefined ? {} : { before: cursor }),
           },
         }),
-        this.titleCleaner(),
-        this.showTeam(),
-        this.entryKey(),
-        this.preferenceDefaults(context),
+        this.displayPreferences(),
+        this.preferenceDefaults(context, languages),
       ]);
 
       const feed = data.get_comic_recentlyAdded;
@@ -453,7 +448,7 @@ class XCOMICSource
         page,
         size: PAGE_SIZE,
         sort: spec?.sort ?? SortID.Score,
-        ...(await this.preferenceDefaults(context)),
+        ...(await this.preferenceDefaults(context, languages)),
       }),
       { hero: spec?.style === SectionStyle.SimpleHeroPaged, detailed },
     );
@@ -519,11 +514,14 @@ class XCOMICSource
   }
 
   /** Settings stand in for anything the search form leaves blank. */
-  private async preferenceDefaults(context?: SourceContext): Promise<ContentFilters> {
+  private async preferenceDefaults(
+    context?: SourceContext,
+    languagesSnapshot?: string[],
+  ): Promise<ContentFilters> {
     const [types, ratings, languages, excluded] = await Promise.all([
       this.preferences.strings(PreferenceID.ContentTypes),
       this.preferences.strings(PreferenceID.ContentRatings),
-      this.preferences.strings(PreferenceID.Languages),
+      languagesSnapshot ?? this.preferences.strings(PreferenceID.Languages),
       this.preferences.strings(PreferenceID.ExcludedGenres),
     ]);
 
@@ -577,10 +575,9 @@ class XCOMICSource
   ): Promise<PagedSearchResult> {
     const { hero = false, detailed = false, everyEdition = false } = options;
 
-    const [data, cleanTitle, showTeam] = await Promise.all([
+    const [data, { cleanTitle, showTeam }] = await Promise.all([
       this.api.query<BrowseResponse>(BROWSE_QUERY, { select }),
-      this.titleCleaner(),
-      this.showTeam(),
+      this.displayPreferences(),
     ]);
     const nodes = data.get_title_browse_items ?? [];
     const tile = { cleanTitle, showTeam, hero, detailed };
@@ -602,10 +599,9 @@ class XCOMICSource
   async getContent(contentId: string, context?: SourceContext): Promise<Content> {
     await this.applyMirror();
 
-    const [data, cleanTitle, showTeam] = await Promise.all([
+    const [data, { cleanTitle, showTeam }] = await Promise.all([
       this.api.query<ComicNodeResponse>(COMIC_QUERY, { id: contentId }),
-      this.titleCleaner(),
-      this.showTeam(),
+      this.displayPreferences(),
     ]);
     const comic = data.get_comicNode?.data;
     if (!comic) throw new Error(`XCOMIC has no title with id ${contentId}`);

@@ -802,7 +802,7 @@ query get_comicNode($id: ID!) {
       originalPubFrom { y }
       originalPubTill { y }
       originalPubZone
-      type demographics contentRating genres tags
+      type demographics contentRating genres
       authorNodes { data { name } }
       artistNodes { data { name } }
       publisherNodes { data { name } }

@@ -39,8 +39,12 @@ function load(settings = {}, options = {}) {
     },
   };
   const title = { data: comic, comicNodes: [{ data: edition }] };
+  const stateReads = [];
+  const objectStore = new ManaStore(settings);
+  const get = objectStore.get.bind(objectStore);
+  objectStore.get = (key) => { stateReads.push(key); return get(key); };
   const sandbox = {
-    ObjectStore: new ManaStore(settings),
+    ObjectStore: objectStore,
     SecureStore: new ManaStore(),
     console,
     setTimeout,
@@ -114,7 +118,7 @@ function load(settings = {}, options = {}) {
   sandbox.global = sandbox;
   sandbox.self = sandbox;
   vm.runInContext(bundle, vm.createContext(sandbox));
-  return { target: new sandbox.Target(), requests, maximum: () => maximum };
+  return { target: new sandbox.Target(), requests, stateReads, maximum: () => maximum };
 }
 
 test("Discover starts three requests together, costs one request per row, and preserves full View More pages", async () => {
@@ -457,4 +461,27 @@ test("a repeated feed cursor ends pagination even when every item is blocked", a
     assert.equal((await target.search({ listId: section, page: 1 })).isLastPage, false);
     assert.equal((await target.search({ listId: section, page: 2 })).isLastPage, true);
   }
+});
+
+test("a feed reads each display/filter setting once for the whole row", async () => {
+  for (const section of ["latest_uploads", "recently_added", "top_rated", "random"]) {
+    const { target, stateReads, requests } = load();
+    await target.resolvePageSection({ id: "home" }, section);
+    assert.equal(requests.length, 1);
+    for (const key of ["merge-editions", "languages", "show-source-in-title", "remove-title-version", "custom-title-regex"]) {
+      assert.equal(stateReads.filter((read) => read === `xcomic.${key}`).length, 1, `${section}: ${key}`);
+    }
+  }
+});
+
+test("details resolve tag names without displaying raw tag references", async () => {
+  const { target, requests } = load({}, { response: (_request, data) => {
+    data.get_comicNode.data.genres = ["comedy"];
+    data.get_comicNode.data.tags = ["n5pwg", "26yr3"];
+    data.get_comicNode.data.tagNodes = [{ data: { name: "European Ambience" } }];
+    return data;
+  } });
+  const content = await target.getContent("edition");
+  assert.deepEqual(Array.from(content.tags, (tag) => tag.title), ["Comedy", "European Ambience"]);
+  assert.equal(requests.length, 1);
 });
