@@ -46,8 +46,8 @@
     "@mana-app/dev": "^0.2.0",
     "@mana-app/types": "^0.1.1",
     "@types/crypto-js": "^4.2.2",
-    "oxc-parser": "^0.156.0",
-    "oxfmt": "^0.70.0",
+    "oxc-parser": "^0.157.0",
+    "oxfmt": "^0.76.0",
     "oxlint": "^1.65.0",
     "typescript": "^7.0.2",
     "yaml": "^2.9.1"
