@@ -401,7 +401,11 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.2.0)
+## ValirScans (current: v1.2.1)
+
+### Fixed
+
+- Recognize current comic reader props and retain the surrounding access flags.
 
 ### Changed
 
@@ -1079,7 +1083,11 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.2.0)
+## RinkoComics (current: v1.2.1)
+
+### Fixed
+
+- Read the current canvas reader’s encoded image list while retaining older image readers.
 
 ### Changed
 

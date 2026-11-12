@@ -17,6 +17,8 @@ import {
 
 import {
   absoluteImage,
+  base64ToBytes,
+  bytesToUtf8,
   clean,
   decodeEntities,
   parseDate,
@@ -529,6 +531,25 @@ export function toChapters(rows: readonly ChapterRow[], hideLocked: boolean): Ch
 
 export function parsePages(html: string): string[] {
   const $ = load(html);
+  const encoded = $("#cwPages").text().trim();
+  if (encoded) {
+    const bytes = base64ToBytes(encoded, true);
+    if (bytes.length <= 16) throw new Error("RinkoComics returned an empty encoded page list.");
+    // The canvas reader prefixes the page-list JSON with its 16-byte XOR mask.
+    const decoded = new Uint8Array(bytes.length - 16);
+    for (let index = 0; index < decoded.length; index++) {
+      decoded[index] = bytes[index + 16]! ^ bytes[index % 16]!;
+    }
+    const pages: unknown = JSON.parse(bytesToUtf8(decoded));
+    if (
+      !Array.isArray(pages) ||
+      !pages.length ||
+      pages.some((page: unknown) => typeof page !== "string" || !/^https?:\/\//i.test(page))
+    ) {
+      throw new Error("RinkoComics returned an invalid page list.");
+    }
+    return pages as string[];
+  }
   const pages: string[] = [];
 
   $("img.chapter-image").each((_, node) => {

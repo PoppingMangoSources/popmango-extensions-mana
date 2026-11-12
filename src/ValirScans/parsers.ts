@@ -467,7 +467,10 @@ export type ReaderContent =
  */
 export function parseReader(html: string): ReaderContent {
   const payload = decodeFlightPayload(html);
-  const reader = extractByMarker<ValirReaderData>(payload, '{"chapter":', true).find(
+  const reader = [
+    ...extractByMarker<ValirReaderData>(payload, '{"kind":', true),
+    ...extractByMarker<ValirReaderData>(payload, '{"chapter":', true),
+  ].find(
     (candidate) =>
       Array.isArray(candidate.chapter?.pages) || typeof candidate.chapter?.content === "string",
   );
