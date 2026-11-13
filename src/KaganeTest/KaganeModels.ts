@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 import { Option, SectionStyle, SortOption } from "@mana-app/types";
 
-export const DOMAIN = "https://kagane.org";
-export const MIRRORS = ["kagane.org", "kagane.cx", "kagane.si", "kagane.moe", "kagane.net"];
+export const DOMAIN = "https://kagane.moe";
+export const MIRRORS = ["kagane.moe", "kagane.org", "kagane.cx", "kagane.si", "kagane.net"];
 let site = DOMAIN;
 // Read at call time so a mirror change reaches every URL.
 export const origin = (): string => site;
 export const api = (): string => `${site}/api/v2`;
 export function setMirror(host: unknown): string {
-  const chosen = typeof host === "string" && MIRRORS.includes(host) ? host : "kagane.org";
+  const chosen = typeof host === "string" && MIRRORS.includes(host) ? host : "kagane.moe";
   site = `https://${chosen}`;
   return chosen;
 }

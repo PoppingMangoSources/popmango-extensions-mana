@@ -126,8 +126,8 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.8",
-  description: "Manga, manhwa, manhua and comics from kagane.cx.",
+  version: "1.2.9",
+  description: "Manga, manhwa, manhua and comics from kagane.moe.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
   // Every language the site's own picker offers: Mana only lists a source to a reader when one

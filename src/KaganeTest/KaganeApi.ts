@@ -512,6 +512,6 @@ export class KaganeApi {
   }
 
   pageURL(challenge: Challenge, chapterId: string, page: ManifestPage, dataSaver: boolean): string {
-    return `${this.cacheOrigin(challenge.cache_url)}/api/v2/books/page/${validId(chapterId)}/${encodeURIComponent(page.page_id)}.${page.ext || "jxl"}?token=${encodeURIComponent(challenge.access_token)}&is_datasaver=${dataSaver}`;
+    return `${this.cacheOrigin(challenge.cache_url)}/api/v2/books/page/${dataSaver ? "datasaver" : "original"}/${validId(chapterId)}/${encodeURIComponent(page.page_id)}.${page.ext || "jxl"}?token=${encodeURIComponent(challenge.access_token)}`;
   }
 }

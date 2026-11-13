@@ -16,7 +16,7 @@ const pages = Array.from({ length: 235 }, (_, index) => ({
   ext: "jxl",
 }));
 
-function load(manifest, { clock, onImage } = {}) {
+function load(manifest, { clock, onImage, store = new ManaStore() } = {}) {
   const bodies = new Map();
   let next = 0;
   const bridge = {
@@ -31,7 +31,7 @@ function load(manifest, { clock, onImage } = {}) {
           return { bodyID: String(++next), sessionID: "test", status: 200, url,
             headers: { "content-type": "image/jpeg" } };
         }
-        if (url === "https://kagane.cx/") value = {};
+        if (/^https:\/\/kagane\.(?:moe|org)\/$/.test(url)) value = {};
         else if (url.endsWith("/api/integrity")) {
           value = { token: "test-integrity", exp: Math.floor(Date.now() / 1000) + 300 };
         } else if (url.includes(`/api/v2/books/${chapterId}?`)) {
@@ -53,7 +53,7 @@ function load(manifest, { clock, onImage } = {}) {
   };
   const sandbox = {
     __manaHTTPBridge: bridge,
-    ObjectStore: new ManaStore(),
+    ObjectStore: store,
     SecureStore: new ManaStore(),
     console, setTimeout, clearTimeout,
     ...(clock ? {
@@ -73,7 +73,7 @@ const chapter = await target.getChapterData("test-series", chapterId);
 assert.equal(chapter.pages.length, 235);
 for (const [index, page] of chapter.pages.entries()) {
   assert.equal(new URL(page.url).pathname,
-    `/api/v2/books/page/${chapterId}/${pages[index].page_id}.jxl`);
+    `/api/v2/books/page/original/${chapterId}/${pages[index].page_id}.jxl`);
 }
 assert.equal(chapter.pages[129].url, chapter.pages[144].url);
 assert.equal(chapter.pages[129].url, chapter.pages[204].url);
@@ -90,6 +90,29 @@ for (const [label, manifest, error] of [
   await assert.rejects(() => load(manifest).getChapterData("test-series", chapterId), error);
   console.log(`PASS ${label} rejected`);
 }
+
+// A preference change must not re-sign an issued page for the other quality.
+for (const dataSaver of [false, true]) {
+  const store = new ManaStore({ "kagane.data-saver": dataSaver, "kagane.mirror": "kagane.org" });
+  const seen = [];
+  const reader = load(pages, { store, onImage: (request) => seen.push(request) });
+  const result = await reader.getChapterData("test-series", chapterId);
+  const issued = result.pages[0].url;
+  const quality = dataSaver ? "datasaver" : "original";
+  assert.equal(new URL(issued).pathname, `/api/v2/books/page/${quality}/${chapterId}/image-1.jxl`);
+  assert.equal(new URL(issued).searchParams.has("is_datasaver"), false);
+  await store.set("kagane.data-saver", !dataSaver);
+  const legacy = issued.replace(`/page/${quality}/`, "/page/") + `&is_datasaver=${dataSaver}`;
+  for (const url of [issued, legacy]) {
+    const request = { url, origin: 2 };
+    const response = await reader.getPageTransport(request)[Symbol.for("mana.http.image.v1")](request);
+    response.releaseNative();
+    assert.equal(new URL(seen.at(-1).url).pathname, new URL(issued).pathname);
+    assert.equal(seen.at(-1).headers.origin, "https://kagane.org");
+    assert.equal(seen.at(-1).headers.referer, "https://kagane.org/");
+  }
+}
+console.log("PASS both quality paths, legacy URLs, mirror headers, and issued quality after a preference change");
 
 // Advance SDK queue timers without making the long-chapter check take a minute.
 const clock = {
@@ -124,7 +147,7 @@ const starts = { pages: [], covers: [] };
 const paced = load(pages, {
   clock,
   onImage: (request) => {
-    assert.equal(request.headers.referer, "https://kagane.cx/");
+    assert.equal(request.headers.referer, "https://kagane.moe/");
     const kind = request.url.includes("/books/page/") ? "pages" : "covers";
     starts[kind].push(clock.now);
   },
@@ -139,7 +162,7 @@ const dispatch = async (request) => {
 await clock.run(Promise.all([
   ...longChapter.pages.map((page) => dispatch({ url: page.url, origin: 2 })),
   ...Array.from({ length: 10 }, (_, index) => dispatch({
-    url: `https://kagane.cx/api/v2/image/cover-${index}`, origin: 1,
+    url: `https://kagane.moe/api/v2/image/cover-${index}`, origin: 1,
   })),
 ]));
 assert.equal(starts.pages.length, 235, "queued pages must survive the default 30-second timeout");

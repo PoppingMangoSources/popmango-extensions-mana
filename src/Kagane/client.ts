@@ -47,12 +47,12 @@ const READER_SESSION_LIMIT = 40;
 
 /**
  * `url` moved onto the reader's chosen mirror. Only the default address is rewritten: the
- * mirrors share one API, so a URL built for kagane.cx is answered the same on any of them,
+ * mirrors share one API, so a URL built for kagane.moe is answered the same on any of them,
  * and a host that is not the site's — the image CDN — is left where it is.
  */
 export function onMirror(url: string, mirror: string): string {
-  if (mirror === MIRRORS[0] || !MIRRORS.includes(mirror)) return url;
-  return url.replace(/^https:\/\/(?:www\.)?kagane\.cx(?=[/?#]|$)/i, `https://${mirror}`);
+  if (!MIRRORS.includes(mirror)) return url;
+  return url.replace(/^https:\/\/(?:www\.)?kagane\.(?:moe|cx)(?=[/?#]|$)/i, `https://${mirror}`);
 }
 
 /** A `cache_url` the reader token may be sent to, or the site itself when it is not one. */
@@ -509,26 +509,32 @@ export class KaganeApi {
       .addPathComponent("api")
       .addPathComponent("v2")
       .addPathComponent("books")
-      .addPathComponent("page");
+      .addPathComponent("page")
+      .addPathComponent(dataSaver ? "datasaver" : "original");
 
     return builder
       .addPathComponent(chapterId)
       .addPathComponent(fileName)
       .setQueryItem("token", token)
-      .setQueryItem("is_datasaver", dataSaver)
       .build();
   }
 
   async refreshPageUrl(imageUrl: string, dataSaver: boolean): Promise<string> {
-    const match = /\/api\/v2\/books\/page\/(?:datasaver\/)?([^/?#]+)\/([^/?#]+)/.exec(imageUrl);
+    const match = /\/api\/v2\/books\/page\/(?:(original|datasaver)\/)?([^/?#]+)\/([^/?#]+)/.exec(
+      imageUrl,
+    );
     if (!match) return imageUrl;
 
-    const [, chapterId, fileName] = match;
+    const [, pathQuality, chapterId, fileName] = match;
     if (!chapterId || !fileName) return imageUrl;
 
     // Issued pages keep their original quality mode until the chapter is reopened.
     const quality = /[?&]is_datasaver=(true|false)(?:&|$)/.exec(imageUrl)?.[1];
-    const mode = quality === undefined ? dataSaver : quality === "true";
+    const mode = pathQuality
+      ? pathQuality === "datasaver"
+      : quality === undefined
+        ? dataSaver
+        : quality === "true";
     let session = this.readerSessions.get(`${chapterId}:${mode}`);
     if (!session || Date.now() >= session.expiry) {
       await this.fetchChallenge(chapterId, mode);
