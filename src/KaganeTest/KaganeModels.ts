@@ -2,7 +2,7 @@
 import { Option, SectionStyle, SortOption } from "@mana-app/types";
 
 export const DOMAIN = "https://kagane.moe";
-export const MIRRORS = ["kagane.moe", "kagane.org", "kagane.cx", "kagane.si", "kagane.net"];
+export const MIRRORS = ["kagane.moe", "kagane.org"];
 let site = DOMAIN;
 // Read at call time so a mirror change reaches every URL.
 export const origin = (): string => site;

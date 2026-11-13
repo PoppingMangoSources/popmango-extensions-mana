@@ -126,7 +126,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.9",
+  version: "1.2.10",
   description: "Manga, manhwa, manhua and comics from kagane.moe.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,

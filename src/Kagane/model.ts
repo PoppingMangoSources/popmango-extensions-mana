@@ -8,7 +8,7 @@ export const API_URL = `${BASE_URL}/api/v2`;
 export const DEFAULT_CACHE_URL = BASE_URL;
 
 /** Every address the site answers on; each serves the same library and the same API. */
-export const MIRRORS = ["kagane.moe", "kagane.org", "kagane.cx", "kagane.si", "kagane.net"];
+export const MIRRORS = ["kagane.moe", "kagane.org"];
 
 export const MIRROR_OPTIONS: Option[] = MIRRORS.map((host) => ({ id: host, title: host }));
 

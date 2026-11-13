@@ -30,7 +30,13 @@ counted up from `1.0.0`.
 
 - Raise API requests to 10 per second and reader images to a 10-page burst with 10 tokens refilled per second.
 
-## Kagane (current: v1.2.9)
+## Kagane (current: v1.2.10)
+
+### Changed
+
+- Keep only kagane.moe and kagane.org in the mirror selector; default and removed saved mirror choices use kagane.moe.
+
+## Kagane (v1.2.9)
 
 ### Fixed
 
@@ -53,7 +59,13 @@ counted up from `1.0.0`.
 
 - Open chapters that reuse an image at multiple reading positions without rejecting the page manifest.
 
-## KaganeTest (current: v1.0.17)
+## KaganeTest (current: v1.0.18)
+
+### Changed
+
+- Keep only kagane.moe and kagane.org in the mirror selector; default and removed saved mirror choices use kagane.moe.
+
+## KaganeTest (v1.0.17)
 
 ### Fixed
 

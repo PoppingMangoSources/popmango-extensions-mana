@@ -16,7 +16,7 @@ const pages = Array.from({ length: 235 }, (_, index) => ({
   ext: "jxl",
 }));
 
-function load(manifest, { clock, onImage, store = new ManaStore() } = {}) {
+function load(manifest, { clock, onImage, onRequest, store = new ManaStore() } = {}) {
   const bodies = new Map();
   let next = 0;
   const bridge = {
@@ -24,6 +24,7 @@ function load(manifest, { clock, onImage, store = new ManaStore() } = {}) {
     now: () => clock ? clock.now : Date.now(),
     async send(message) {
       if (message.operation === 0) {
+        onRequest?.(message);
         const { url } = message;
         let value;
         if (url.includes("/api/v2/books/page/") || url.includes("/api/v2/image/")) {
@@ -90,6 +91,22 @@ for (const [label, manifest, error] of [
   await assert.rejects(() => load(manifest).getChapterData("test-series", chapterId), error);
   console.log(`PASS ${label} rejected`);
 }
+
+for (const host of ["kagane.cx", "kagane.si", "kagane.net"]) {
+  const reader = load(pages, {
+    store: new ManaStore({ "kagane.mirror": host }),
+    onRequest: (request) => {
+      assert.equal(request.headers.origin, "https://kagane.moe");
+      if (!request.url.includes("/books/page/"))
+        assert.equal(new URL(request.url).hostname, "kagane.moe");
+    },
+  });
+  const chapter = await reader.getChapterData("test-series", chapterId);
+  const request = { url: chapter.pages[0].url, origin: 2 };
+  const response = await reader.getPageTransport(request)[Symbol.for("mana.http.image.v1")](request);
+  response.releaseNative();
+}
+console.log("PASS removed saved mirrors fall back to kagane.moe for API and image requests");
 
 // A preference change must not re-sign an issued page for the other quality.
 for (const dataSaver of [false, true]) {
