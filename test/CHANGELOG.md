@@ -30,7 +30,17 @@ counted up from `1.0.0`.
 
 - Raise API requests to 10 per second and reader images to a 10-page burst with 10 tokens refilled per second.
 
-## Kagane (current: v1.2.8)
+## Kagane (current: v1.2.9)
+
+### Fixed
+
+- Use the CDN’s original/datasaver image paths and retain each issued page’s quality during token refresh.
+
+### Changed
+
+- Default to kagane.moe, with kagane.org and the existing mirrors available in settings.
+
+## Kagane (v1.2.8)
 
 ### Changed
 
@@ -43,7 +53,17 @@ counted up from `1.0.0`.
 
 - Open chapters that reuse an image at multiple reading positions without rejecting the page manifest.
 
-## KaganeTest (current: v1.0.16)
+## KaganeTest (current: v1.0.17)
+
+### Fixed
+
+- Use the CDN’s original/datasaver image paths.
+
+### Changed
+
+- Default to kagane.moe and keep kagane.org available as a mirror.
+
+## KaganeTest (v1.0.16)
 
 ### Fixed
 
