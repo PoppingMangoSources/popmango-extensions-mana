@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
-  CloudflareError,
   CatalogRating,
   ContentRating,
   SearchGroup,
@@ -38,7 +37,6 @@ import {
 } from "@mana-app/types";
 
 import {
-  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -119,7 +117,7 @@ import {
 const info: SourceInfo = {
   id: "mangadex",
   name: "MangaDex",
-  version: "1.2.5",
+  version: "1.2.6",
   description: "Scanlations in every language, from mangadex.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -412,8 +410,7 @@ class MangaDexSource
             ]
           : [];
       });
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       // The home page still opens without them; the rows come back on the next refresh.
       return [];
     }
@@ -627,11 +624,9 @@ class MangaDexSource
   private async curatedListIds(): Promise<CuratedListIds> {
     return this.listCache
       .get(() => this.readCuratedListIds())
-      .catch((error: unknown) =>
-        fallbackUnlessCloudflare(error, {
-          ...FALLBACK_LIST_IDS,
-        }),
-      );
+      .catch(() => ({
+        ...FALLBACK_LIST_IDS,
+      }));
   }
 
   private async readCuratedListIds(): Promise<CuratedListIds> {
@@ -755,9 +750,7 @@ class MangaDexSource
 
   /** The tag list, read from the site once a day, bundled copy standing in until then. */
   private tags(): Promise<TagGroup[]> {
-    return this.tagCache
-      .get(() => this.readTags())
-      .catch((error: unknown) => fallbackUnlessCloudflare(error, BUNDLED_TAG_GROUPS));
+    return this.tagCache.get(() => this.readTags()).catch(() => BUNDLED_TAG_GROUPS);
   }
 
   private async readTags(): Promise<TagGroup[]> {
@@ -928,8 +921,7 @@ class MangaDexSource
       for (const [id, entry] of Object.entries(response.statistics ?? {})) {
         stats.set(id, { rating: entry?.rating?.bayesian, follows: entry?.follows });
       }
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       // A row without its numbers still shows its covers; the pill falls through instead.
     }
     return stats;
@@ -976,8 +968,7 @@ class MangaDexSource
         "includes[]": ["cover_art"],
       });
       return response.data ?? [];
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       // A title page without its related works is a smaller loss than no page at all.
       return [];
     }
@@ -1073,7 +1064,6 @@ class MangaDexSource
       const handle = (me.data?.attributes?.username ?? "").trim();
       return handle ? { handle } : null;
     } catch (error) {
-      if (error instanceof CloudflareError) throw error;
       // Only a session MangaDex has ended is a signed-out reader; a failed request is not.
       if (error instanceof SignedOutError) return null;
       throw error;
@@ -1113,8 +1103,7 @@ class MangaDexSource
           ...(content.webUrl ? { webUrl: content.webUrl } : {}),
         },
       };
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       return null;
     }
   }
@@ -1130,8 +1119,7 @@ class MangaDexSource
     try {
       const response = await this.api.get<SingleResponse<ChapterEntity>>(`/chapter/${chapter[1]}`);
       return response.data ? chapterMangaId(response.data) : undefined;
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       return undefined;
     }
   }

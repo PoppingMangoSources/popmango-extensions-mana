@@ -1,15 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import {
-  CloudflareError,
-  Body,
-  HttpClient,
-  HttpMethod,
-  type HttpResponse,
-  type JsonValue,
-} from "@mana-app/types";
+import { Body, HttpClient, HttpMethod, type HttpResponse, type JsonValue } from "@mana-app/types";
 
-import { challengedUrl, isApiChallenge, withQuery, type QueryParams } from "../common/index.ts";
+import { withQuery, type QueryParams } from "../common/index.ts";
 import { API_URL, MUTATION_INTERVAL_MS } from "./model.ts";
 import { readToken } from "./session.ts";
 
@@ -117,7 +110,6 @@ export class MangaUpdatesApi {
   // The site answers 401, 404 and 412 with no body at all, so the status is read before
   // anything is asked of the body.
   private async parse<T>(response: HttpResponse, url: string): Promise<T> {
-    if (await isApiChallenge(response)) throw new CloudflareError(challengedUrl(response, API_URL));
     // Only 401 means the session is the problem. A 403 is the site — or something between
     // it and the reader — refusing the request, and calling that "sign in" misdirects.
     // A 404 is an answer: the title is simply not on any of the reader's lists.

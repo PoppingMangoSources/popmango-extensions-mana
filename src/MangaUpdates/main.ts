@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
-  CloudflareError,
   BasicAuthenticationUIIdentifier,
   CatalogRating,
   DefinedLanguages,
@@ -43,7 +42,6 @@ import {
 } from "@mana-app/types";
 
 import {
-  fallbackUnlessCloudflare,
   FilterReader,
   buildSearchForm,
   pageOf,
@@ -92,7 +90,7 @@ import {
 const info: SourceInfo = {
   id: "mangaupdates",
   name: "MangaUpdates",
-  version: "1.2.1",
+  version: "1.2.2",
   description: "Track your reading against mangaupdates.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -102,7 +100,6 @@ const info: SourceInfo = {
 };
 
 const config: SourceConfig = {
-  cloudflareResolutionURL: BASE_URL,
   disableUpdateChecks: false,
   // Browsing works signed out, but a tracker exists to write to an account — this is what
   // tells the app the source has one, and to offer signing into it.
@@ -356,7 +353,6 @@ class MangaUpdatesTracker
         ...(info.length > 0 ? { info } : {}),
       };
     } catch (error) {
-      if (error instanceof CloudflareError) throw error;
       // A rejected token is a signed-out account; anything else is a passing failure and
       // must not throw away a session that is still good.
       if (error instanceof UnauthorizedError) {
@@ -368,15 +364,11 @@ class MangaUpdatesTracker
   }
 
   async handleUserSignOut(): Promise<void> {
-    try {
-      await this.api
-        .call("/account/logout", "POST")
-        .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined));
-    } finally {
-      await clearToken();
-      await forgetPendingCredentials();
-      this.lists = undefined;
-    }
+    // Best effort: the local token is dropped either way, or the reader cannot sign out.
+    await this.api.call("/account/logout", "POST").catch(() => undefined);
+    await clearToken();
+    await forgetPendingCredentials();
+    this.lists = undefined;
   }
 
   // ========================= Browsing =========================
@@ -398,9 +390,7 @@ class MangaUpdatesTracker
         this.genreOptions = named.map((genre) => ({ id: genre, title: genre }));
         return this.genreOptions;
       }
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
-    }
+    } catch {}
 
     this.genreOptions = [];
     return this.genreOptions;
@@ -551,8 +541,7 @@ class MangaUpdatesTracker
           ...(content.webUrl ? { webUrl: content.webUrl } : {}),
         },
       };
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       return null;
     }
   }
@@ -609,9 +598,7 @@ class MangaUpdatesTracker
     const [entry, lists, rating] = await Promise.all([
       this.readEntry(id),
       this.listDefinitions(),
-      this.api
-        .call<RatingResponse>(`/series/${seriesId(id)}/rating`, "GET")
-        .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined)),
+      this.api.call<RatingResponse>(`/series/${seriesId(id)}/rating`, "GET").catch(() => undefined),
     ]);
 
     // A reader's own lists are offered under their own names; the five built-in types
@@ -722,7 +709,6 @@ class MangaUpdatesTracker
     try {
       return await this.api.call<ListEntry>(`/lists/series/${seriesId(id)}`, "GET");
     } catch (error) {
-      if (error instanceof CloudflareError) throw error;
       if (error instanceof UnauthorizedError) throw error;
       return undefined;
     }
@@ -741,9 +727,7 @@ class MangaUpdatesTracker
     if (!entry) return DEFAULT_STATUS;
     if (entry.list_type) return entry.list_type;
 
-    const lists = await this.listDefinitions().catch((error: unknown) =>
-      fallbackUnlessCloudflare(error, []),
-    );
+    const lists = await this.listDefinitions().catch(() => []);
     const match = lists.find((list) => list.list_id === entry.list_id);
     return match?.type ?? DEFAULT_STATUS;
   }
@@ -782,9 +766,7 @@ class MangaUpdatesTracker
 
     if (/^\d+$/.test(status)) return Number.parseInt(status, 10);
 
-    const lists = await this.listDefinitions().catch((error: unknown) =>
-      fallbackUnlessCloudflare(error, []),
-    );
+    const lists = await this.listDefinitions().catch(() => []);
     const match = lists.find((list) => list.type === status);
     return match?.list_id ?? entry?.list_id;
   }

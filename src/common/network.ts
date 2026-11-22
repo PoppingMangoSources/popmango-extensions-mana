@@ -11,27 +11,68 @@ export const HTML_ACCEPT =
 const JSON_ACCEPT = "application/json, text/javascript, */*; q=0.01";
 export const IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8";
 export const ACCEPT_LANGUAGE = "en-US,en;q=0.9";
-// The SDK handles challenge headers and 403/503 pages before source interceptors.
+/**
+ * Markup only an interstitial carries.
+ *
+ * `challenges.cloudflare.com` and `cf-turnstile-response` are left out on purpose: an
+ * ordinary page embeds the Turnstile widget on a form, and calling that a challenge sends
+ * the reader to a page with nothing to solve.
+ */
 const CHALLENGE_PATTERNS: readonly RegExp[] = [
   /<title>\s*Just a moment/i,
   /cf-browser-verification/i,
   /(?:window\.)?_cf_chl_opt\s*=/i,
   /id=["']cf-chl-/i,
+  // The two ids the app's own handler keys on.
+  /challenge-error-title/i,
+  /challenge-error-text/i,
+  // A proof-of-work interstitial posts its answer back here; the WebView the app opens for
+  // a challenge runs it like any other.
+  /\.open\(\s*["']POST["']\s*,\s*["']\/_v["']\)/,
 ];
 
+/**
+ * The URL to hand the reader for a challenge, which is the one that was challenged.
+ *
+ * Cloudflare answers that URL with the interstitial rather than the endpoint's own
+ * response, so opening it shows the puzzle to solve — and the clearance it mints is
+ * scoped to the whole domain, so it covers every other request the source makes. The
+ * fallback is only for a response that did not record its request.
+ */
 export function challengedUrl(response: HttpResponse, fallback: string): string {
   return response.request?.url || fallback;
 }
 
+/**
+ * Cloudflare's interstitial answers with a normal 200 as often as it answers with a 403,
+ * so the body has to be sniffed as well as the status code.
+ */
 export function isChallengePage(html: string): boolean {
-  return CHALLENGE_PATTERNS.some((pattern) => pattern.test(html.slice(0, 8192)));
+  const head = html.slice(0, 8192);
+  if (CHALLENGE_PATTERNS.some((pattern) => pattern.test(head))) return true;
+  return head.includes("pow_nonce") && head.includes("pow_hash");
 }
 
+/**
+ * Cloudflare's own word that it challenged the request.
+ *
+ * An endpoint that answers in JSON gets no interstitial to sniff for, so the header is the
+ * only sign it carries.
+ */
 export function isCloudflareChallenge(response: HttpResponse): boolean {
   return (response.headers.get("cf-mitigated") ?? "").toLowerCase() === "challenge";
 }
 
-// Supplement runtime detection only for a positive interstitial, including HTTP 200.
+/**
+ * Whether a response is a challenge the SDK let through.
+ *
+ * The SDK already throws for the `cf-mitigated` header and for a Cloudflare 403/503 that
+ * carries challenge markup, before any interceptor runs. What reaches here is the rest: an
+ * interstitial served as a 200, or a refusal with no challenge on it. Only the first is a
+ * challenge — a bare 403 is the site saying no, and calling it Cloudflare opens a page with
+ * no puzzle on it. A body that is not markup is left unread, since reading it pulls it out
+ * of the host for a challenge it cannot be.
+ */
 export async function isApiChallenge(response: HttpResponse): Promise<boolean> {
   if (isCloudflareChallenge(response)) return true;
   const type = response.headers.get("content-type") ?? "";

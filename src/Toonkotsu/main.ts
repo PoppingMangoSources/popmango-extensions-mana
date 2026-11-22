@@ -114,7 +114,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.2.7",
+  version: "1.2.8",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -712,9 +712,7 @@ class ToonkotsuSource
     // The keys are served to an unsigned request, so a document is only needed when the
     // site refuses one — and a challenge here is the API's, which the WebView may already
     // hold the clearance for.
-    const asked = await this.api
-      .chapter(id)
-      .catch((error: unknown) => fallbackUnlessCloudflare<ChapterAnswer>(error, {}));
+    const asked = await this.api.chapter(id).catch((): ChapterAnswer => ({}));
     if (asked.refused) return asked.refused;
     if (asked.body !== undefined) return { body: asked.body };
 
@@ -771,8 +769,7 @@ class ToonkotsuSource
     try {
       await page.goto(url, { waitUntil: "domcontentloaded" });
       return await page.evaluate(waitForUnlock, HUMAN_CHECK_SECONDS * 1000);
-    } catch (error) {
-      if (error instanceof CloudflareError) throw error;
+    } catch {
       return false;
     } finally {
       await page.close();

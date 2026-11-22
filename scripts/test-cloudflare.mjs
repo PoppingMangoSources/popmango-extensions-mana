@@ -123,6 +123,10 @@ for (const [name, response, expected] of [
   checks++;
 }
 assert.equal(isChallengePage('<input name="cf-turnstile-response">'), false);
+assert.equal(isChallengePage('<h1 id="challenge-error-title">Verify you are human</h1>'), true);
+assert.equal(isChallengePage('<script>x.open("POST", "/_v")</script>'), true);
+assert.equal(isChallengePage("<script>var pow_nonce = 1, pow_hash = 'a';</script>"), true);
+assert.equal(isChallengePage("<p>pow_nonce</p>"), false);
 const nativeBridge = bridge(async () => challenge);
 globalThis.__manaHTTPBridge = nativeBridge;
 let interceptorCalled = false;
@@ -174,6 +178,9 @@ await assert.rejects(
 );
 checks++;
 
+// Neither site sits behind Cloudflare, so only the SDK's own detection is asked of them; an
+// interstitial served as a 200 is something only a Cloudflare-fronted site can send.
+const NOT_CLOUDFLARE = new Set(["MangaDex.mana", "MangaUpdates.mana"]);
 let sources = 0;
 for (const response of [
   challenge,
@@ -185,6 +192,7 @@ for (const response of [
 ]) {
   for (const entry of fs.readdirSync(new URL("../dist/sources/", import.meta.url))) {
     if (!entry.endsWith(".mana")) continue;
+    if (response !== challenge && NOT_CLOUDFLARE.has(entry)) continue;
     const io = bridge(async () => response);
     let webviews = 0;
     const sandbox = {
@@ -219,7 +227,7 @@ for (const response of [
   }
 }
 console.log(
-  `Cloudflare checks passed: ${checks} detection/transport cases and ${sources / 2} bundled sources, each with native and HTTP 200 challenges.`,
+  `Cloudflare checks passed: ${checks} detection/transport cases and ${sources} bundled source runs against native and HTTP 200 challenges.`,
 );
 
 // The app passes a challenge on its own only for calls like getSectionsForPage, not for rows

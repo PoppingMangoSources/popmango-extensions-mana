@@ -92,7 +92,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rinkocomics",
   name: "RinkoComics",
-  version: "1.2.4",
+  version: "1.2.5",
   description: "Comics and novels from rinkocomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,

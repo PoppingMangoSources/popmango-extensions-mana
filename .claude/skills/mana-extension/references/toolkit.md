@@ -180,10 +180,14 @@ holds sources to these so one reads like the next.
 buildClient({ baseUrl, requests, interval, accept, headers, resolutionUrl, originFor, json, maxRetries, timeout, sendOrigin, statusValidator })
 ```
 
-Applies rate limiting, sets `origin`/`referer`/`accept`/`accept-language`/`user-agent`, and
-installs a response interceptor that throws `CloudflareError(resolutionUrl)` on 403/503 or a
-challenge fingerprint (`challenges.cloudflare.com`, `cf-browser-verification`, `__cf_chl_`,
-`<title>Just a moment`, a proof-of-work marker).
+Applies rate limiting, sets `origin`/`referer`/`accept`/`accept-language`, and installs a
+response interceptor that throws `CloudflareError` naming the challenged URL when
+`isApiChallenge` finds a challenge the SDK let through: a markup body carrying an
+interstitial fingerprint (`<title>Just a moment`, `cf-browser-verification`,
+`_cf_chl_opt`, the `challenge-error-*` ids, a proof-of-work marker), whatever its status.
+The SDK has already thrown for `cf-mitigated: challenge` and for a Cloudflare 403/503 with
+challenge markup. A bare 403 or 503 is the site refusing, not a challenge. The user agent
+is left to the host so it matches the WebView the clearance cookie was minted in.
 
 - `originFor: (url) => string` — per-request origin, for sites whose images or API live on
   a different host than their pages.

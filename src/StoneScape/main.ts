@@ -90,7 +90,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.2.3",
+  version: "1.2.4",
   description: "Manhwa, manhua, manga and novels from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
