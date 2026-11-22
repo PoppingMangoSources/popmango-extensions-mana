@@ -42,6 +42,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -115,7 +116,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.2.4",
+  version: "1.2.5",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -209,7 +210,9 @@ class MangagoSource
         this.genreOptions = titles.map((title) => ({ id: genreIdFromTitle(title), title }));
         return this.genreOptions;
       }
-    } catch {}
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
+    }
     this.genreOptions = GENRE_OPTIONS;
     return this.genreOptions;
   }
@@ -483,7 +486,7 @@ class MangagoSource
         // Featured has never failed on its own. Passing a Cloudflare challenge on from here
         // is what put one in front of the reader and broke the home page in 1.2.2, so a
         // failure stays an empty row.
-        .catch(() => []);
+        .catch((error: unknown) => fallbackUnlessCloudflare(error, []));
       return {
         results: limit === undefined ? featured : featured.slice(0, limit),
         isLastPage: true,

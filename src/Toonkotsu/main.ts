@@ -44,6 +44,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -112,7 +113,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.2.4",
+  version: "1.2.5",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -165,7 +166,7 @@ class ToonkotsuSource
     // remembering that the list could not be had.
     return this.facetsCache
       .get(() => this.api.json<FacetsResponse>(catalogueUrl("cdn/v1/facets", { sfw: false })))
-      .catch(() => ({}) as FacetsResponse);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, {} as FacetsResponse));
   }
 
   async getSearchForm(): Promise<SearchForm> {
@@ -602,7 +603,7 @@ class ToonkotsuSource
       this.facets(),
       this.api
         .json<Enrichment>(catalogueUrl(`cdn/v1/series/${encodeURIComponent(contentId)}/enrichment`))
-        .catch(() => undefined),
+        .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined)),
       // The series answer carries recommendations for some titles only; the site's own
       // title page asks for the rest separately.
       series.recs?.some(allowed)
@@ -613,7 +614,7 @@ class ToonkotsuSource
             )
             .then(
               (data) => data.items ?? [],
-              () => [],
+              (error: unknown) => fallbackUnlessCloudflare(error, []),
             ),
     ]);
     return parseContent(
@@ -703,7 +704,9 @@ class ToonkotsuSource
     // The keys are served to an unsigned request, so a document is only needed when the
     // site refuses one — and a challenge here is the API's, which the WebView may already
     // hold the clearance for.
-    const asked = await this.api.chapter(id).catch((): ChapterAnswer => ({}));
+    const asked = await this.api
+      .chapter(id)
+      .catch((error: unknown) => fallbackUnlessCloudflare<ChapterAnswer>(error, {}));
     if (asked.refused) return asked.refused;
     if (asked.body !== undefined) return { body: asked.body };
 
@@ -760,7 +763,8 @@ class ToonkotsuSource
     try {
       await page.goto(url, { waitUntil: "domcontentloaded" });
       return await page.evaluate(waitForUnlock, HUMAN_CHECK_SECONDS * 1000);
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return false;
     } finally {
       await page.close();

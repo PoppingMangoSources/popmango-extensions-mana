@@ -3,10 +3,10 @@
 import { CloudflareError, HttpClient } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   UrlBuilder,
   challengedUrl,
-  isCloudflareChallenge,
-  withChallengeRetry,
+  isApiChallenge,
   withDefaults,
 } from "../common/index.ts";
 import {
@@ -37,10 +37,10 @@ export class FlameComicsApi {
         withDefaults(request.headers, { referer: `${BASE_URL}/` });
         return request;
       })
-      .addResponseInterceptor((response) => {
+      .addResponseInterceptor(async (response) => {
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
-        if (isCloudflareChallenge(response)) {
+        if (await isApiChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
@@ -49,16 +49,11 @@ export class FlameComicsApi {
   }
 
   private async fetchText(url: string): Promise<string> {
-    return withChallengeRetry(BASE_URL, async () => {
-      const response = await this.http.get(url);
-      if (response.status === 403 || response.status === 503) {
-        throw new CloudflareError(challengedUrl(response, BASE_URL));
-      }
-      if (response.status >= 400) {
-        throw new Error(`Flame Comics rejected the request (HTTP ${response.status})`);
-      }
-      return response.text();
-    });
+    const response = await this.http.get(url);
+    if (response.status >= 400) {
+      throw new Error(`Flame Comics rejected the request (HTTP ${response.status})`);
+    }
+    return response.text();
   }
 
   /** The build id sits in the homepage's own `__NEXT_DATA__`. */
@@ -66,7 +61,9 @@ export class FlameComicsApi {
     const now = Date.now();
     if (this.buildId && now - this.buildIdAt < BUILD_ID_TTL_MS) return this.buildId;
 
-    const html = await this.fetchText(`${BASE_URL}/`).catch(() => "");
+    const html = await this.fetchText(`${BASE_URL}/`).catch((error: unknown) =>
+      fallbackUnlessCloudflare(error, ""),
+    );
     this.buildId = /"buildId":"([^"]+)"/.exec(html)?.[1] ?? FALLBACK_BUILD_ID;
     this.buildIdAt = now;
     return this.buildId;

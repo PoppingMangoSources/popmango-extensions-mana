@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   CatalogRating,
   ContentRating,
   DefinedLanguages,
@@ -36,6 +37,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   buildPreferenceMenu,
@@ -91,7 +93,7 @@ import type { QueryParam } from "./vrf.ts";
 const info: SourceInfo = {
   id: "mangafire",
   name: "MangaFire",
-  version: "1.2.1",
+  version: "1.2.2",
   description: "Manga, manhwa and manhua from mangafire.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -273,7 +275,9 @@ class MangaFireSource
     // A pasted title link is the title itself rather than words to search for.
     const linked = hidFromUrl(query);
     if (linked) {
-      const details = await this.api.fetchDetails(linked).catch(() => undefined);
+      const details = await this.api
+        .fetchDetails(linked)
+        .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined));
       const title = details?.data;
       return {
         results: title ? parseHighlights([title], "kind") : [],
@@ -337,7 +341,9 @@ class MangaFireSource
 
   /** The site addresses a creator by id, so a typed name is looked up before it is used. */
   private async authorId(name: string): Promise<string | undefined> {
-    const response = await this.api.fetchTags(name).catch(() => undefined);
+    const response = await this.api
+      .fetchTags(name)
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined));
     const tags = (response?.data ?? []).filter(
       (tag) => tag.type === "author" || tag.type === "artist",
     );
@@ -468,7 +474,8 @@ class MangaFireSource
           webUrl: titleUrl(hid),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }

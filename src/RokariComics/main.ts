@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   CatalogRating,
   DefinedLanguages,
   SearchExcludableMultiPickerSheet,
@@ -32,6 +33,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -79,7 +81,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rokaricomics",
   name: "RokariComics",
-  version: "1.2.0",
+  version: "1.2.1",
   description: "Comics from rokaricomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -144,7 +146,7 @@ class RokariComicsSource
         if ((parsed["genres"] ?? []).length === 0) throw new Error("RokariComics listed no genres");
         return parsed;
       })
-      .catch(() => ({}));
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, {}));
   }
 
   async getSearchForm(): Promise<SearchForm> {
@@ -251,7 +253,9 @@ class RokariComicsSource
     // A pasted link is the title itself rather than words to search for.
     const linked = this.contentIdFromUrl(query);
     if (linked) {
-      const content = await this.getContent(linked).catch(() => undefined);
+      const content = await this.getContent(linked).catch((error: unknown) =>
+        fallbackUnlessCloudflare(error, undefined),
+      );
       return {
         results: content
           ? [
@@ -354,7 +358,8 @@ class RokariComicsSource
           webUrl: contentUrl(contentId),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }

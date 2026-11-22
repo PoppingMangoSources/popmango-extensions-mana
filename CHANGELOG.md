@@ -5,14 +5,74 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## XCOMIC (current: v1.4.10)
+## FlameComics (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## MangaDex (current: v1.2.5)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## MangaFire (current: v1.2.2)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## MangaUpdates (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## Mangago (current: v1.2.5)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## RokariComics (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## StoneScape (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## Toonkotsu (current: v1.2.5)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## ValirScans (current: v1.2.2)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## XCOMIC (current: v1.4.11)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## XCOMIC (v1.4.10)
 
 ### Fixed
 
 - Resolve detail tag references to their readable names instead of displaying internal ids.
 - Reuse each row's display settings and language snapshot, avoiding duplicate native reads.
 
-## Toonkotsu (current: v1.2.4)
+## Toonkotsu (v1.2.4)
 
 ### Changed
 
@@ -401,7 +461,7 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.2.1)
+## ValirScans (v1.2.1)
 
 ### Fixed
 
@@ -728,7 +788,7 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.2.4)
+## MangaDex (v1.2.4)
 
 ### Changed
 
@@ -826,7 +886,7 @@ counted up from `1.0.0`.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.2.0)
+## RokariComics (v1.2.0)
 
 ### Changed
 
@@ -1087,6 +1147,7 @@ counted up from `1.0.0`.
 
 ### Fixed
 
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 - Read the redesigned home, browse filters, details and chapter rows, including chapter zero.
 - Show Editor's Choice, Featured This Week and Today comic releases with their current metadata.
 
@@ -1252,7 +1313,7 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.2.1)
+## MangaFire (v1.2.1)
 
 ### Changed
 
@@ -1428,7 +1489,7 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.2.0)
+## StoneScape (v1.2.0)
 
 ### Changed
 
@@ -1692,7 +1753,7 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.2.0)
+## MangaUpdates (v1.2.0)
 
 ### Changed
 
@@ -2397,7 +2458,7 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.2.0)
+## FlameComics (v1.2.0)
 
 ### Changed
 
@@ -2542,7 +2603,7 @@ First release. Manhwa, manhua and manga from flamecomics.xyz:
 - Chapters are read from the series payload that already carries them, and page images
   come from the CDN with the token the site uses as a cache-buster.
 
-## Mangago (current: v1.2.4)
+## Mangago (v1.2.4)
 
 ### Changed
 

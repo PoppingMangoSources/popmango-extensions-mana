@@ -1,14 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { CloudflareError, HttpClient, type HttpResponse } from "@mana-app/types";
+import { CloudflareError, HttpClient } from "@mana-app/types";
 
 import {
   ACCEPT_LANGUAGE,
   HTML_ACCEPT,
   challengedUrl,
   hostOf,
-  isChallengePage,
-  isCloudflareChallenge,
+  isApiChallenge,
   withDefaults,
 } from "../common/index.ts";
 import { BROWSE_USER_AGENT, DOMAIN, READER_USER_AGENT } from "./model.ts";
@@ -82,19 +81,9 @@ export function buildMangagoClient(): HttpClient {
     .addResponseInterceptor(async (response) => {
       // The challenged URL is what the app opens for the reader; Cloudflare answers it
       // with the interstitial, and the clearance it mints covers the whole domain.
-      if (
-        isCloudflareChallenge(response) ||
-        response.status === 403 ||
-        response.status === 503 ||
-        (mayBeMarkup(response) && isChallengePage(await response.text()))
-      ) {
+      if (await isApiChallenge(response)) {
         throw new CloudflareError(challengedUrl(response, DOMAIN));
       }
       return response;
     });
-}
-
-/** Only markup can be the interstitial; an image is left unread. */
-function mayBeMarkup(response: HttpResponse): boolean {
-  return !/^image\//i.test(response.headers.get("content-type") ?? "");
 }

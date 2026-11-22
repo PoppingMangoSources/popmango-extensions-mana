@@ -109,6 +109,18 @@ the book reader, and reads offline once downloaded.
 A source whose reader carries crypto or a token dance earns a test like it: fixed inputs,
 known outputs, no network.
 
+## Cloudflare transport checks
+
+`bun scripts/test-cloudflare.mjs` exercises the installed SDK bridge and built sources.
+It checks native challenge detection, positive HTTP 200 interstitials, ordinary 403/503
+errors, normal Turnstile widgets, optional-data fallbacks and native image transport.
+Real challenges must reach Mana unchanged; a source-owned bypass loop delays the host.
+The shared client leaves the browser identity to Mana. Site-specific MangaDex and
+Mangago user agents remain because their response contracts depend on them.
+
+These simulated checks do not verify cookie transfer or completion of the app’s bypass
+UI. Test those on a device separately.
+
 ## Reporting
 
 Say which layers ran and what each said. "Gates green, contract not run — no network" is a

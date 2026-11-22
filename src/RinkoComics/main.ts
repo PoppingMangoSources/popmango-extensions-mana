@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   CatalogRating,
   DefinedLanguages,
   SearchMultiPickerSheet,
@@ -30,6 +31,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -144,7 +146,7 @@ class RinkoComicsSource
         if (genres.length === 0) throw new Error("RinkoComics listed no genres");
         return genres;
       })
-      .catch(() => []);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, []));
   }
 
   async getSearchForm(): Promise<SearchForm> {
@@ -223,7 +225,9 @@ class RinkoComicsSource
     // A pasted link is the title itself rather than words to search for.
     const linked = this.contentIdFromUrl(query);
     if (linked) {
-      const content = await this.getContent(linked).catch(() => undefined);
+      const content = await this.getContent(linked).catch((error: unknown) =>
+        fallbackUnlessCloudflare(error, undefined),
+      );
       return {
         results: content
           ? [
@@ -297,7 +301,7 @@ class RinkoComicsSource
     for (let page = 0; page < MAX_CHAPTER_PAGES; page++) {
       const fragment = await this.api
         .fetchChapterBatch(comicId, nonce, next)
-        .catch(() => undefined);
+        .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined));
       if (!fragment) break;
 
       const batch = parseChapterRows(fragment);
@@ -366,7 +370,8 @@ class RinkoComicsSource
           webUrl: contentUrl(contentId),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }
