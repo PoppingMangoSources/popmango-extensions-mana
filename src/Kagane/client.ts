@@ -8,7 +8,6 @@ import {
   UrlBuilder,
   challengedUrl,
   isApiChallenge,
-  createClearanceProbe,
   withDefaults,
 } from "../common/index.ts";
 import {
@@ -48,12 +47,15 @@ const READER_SESSION_LIMIT = 40;
 
 /**
  * `url` moved onto the reader's chosen mirror. Only the default address is rewritten: the
- * mirrors share one API, so a URL built for kagane.moe is answered the same on any of them,
+ * mirrors share one API, so a URL built for kagane.org is answered the same on any of them,
  * and a host that is not the site's — the image CDN — is left where it is.
  */
 export function onMirror(url: string, mirror: string): string {
   if (!MIRRORS.includes(mirror)) return url;
-  return url.replace(/^https:\/\/(?:www\.)?kagane\.(?:moe|cx)(?=[/?#]|$)/i, `https://${mirror}`);
+  return url.replace(
+    /^https:\/\/(?:www\.)?kagane\.(?:org|moe|cx)(?=[/?#]|$)/i,
+    `https://${mirror}`,
+  );
 }
 
 /** A `cache_url` the reader token may be sent to, or the site itself when it is not one. */
@@ -72,6 +74,11 @@ function hasControlCharacter(value: string): boolean {
     if (code < 32 || code === 127) return true;
   }
   return false;
+}
+
+/** `https://host` of a URL, which is what a Cloudflare clearance is minted for. */
+function hostRoot(url: string): string {
+  return /^https?:\/\/[^/?#]+/i.exec(url)?.[0] ?? BASE_URL;
 }
 
 export class KaganeApi {
@@ -137,29 +144,34 @@ export class KaganeApi {
         return request;
       })
       .addResponseInterceptor(async (response) => {
-        // The challenged URL is what the app opens for the reader; Cloudflare answers it
-        // with the interstitial, and the clearance it mints covers the whole domain.
+        // The mirror's front page is what the app opens for the reader: an API URL is a POST
+        // the WebView would load as a GET, and the clearance covers the whole domain anyway.
         if (await isApiChallenge(response)) {
-          throw new CloudflareError(challengedUrl(response, BASE_URL));
+          throw new CloudflareError(`${hostRoot(challengedUrl(response, BASE_URL))}/`);
         }
         return response;
       });
     return this.client;
   }
 
-  private readonly ensureClearance = createClearanceProbe(
-    () => this.http,
-    () => this.siteUrl(),
-  );
-
   private async request(run: () => Promise<HttpResponse>): Promise<HttpResponse> {
     try {
-      const [response] = await Promise.all([run(), this.ensureClearance()]);
-      return response;
+      return await run();
     } catch (error) {
-      if (error instanceof CloudflareError) this.forgetTokens();
-      throw error;
+      throw this.challengeAtRoot(error);
     }
+  }
+
+  /**
+   * The runtime names the request it caught as the page to clear, which for this API is a
+   * POST the WebView would load as a GET. The mirror's front page carries the same
+   * challenge and is a page the bypass can finish on.
+   */
+  private challengeAtRoot(error: unknown): unknown {
+    if (!(error instanceof CloudflareError)) return error;
+    // A challenge replaces the session both tokens were minted against.
+    this.forgetTokens();
+    return new CloudflareError(`${hostRoot(error.resolutionURL)}/`);
   }
 
   private async fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
@@ -402,7 +414,8 @@ export class KaganeApi {
     const request = (async (): Promise<string> => {
       // The site hands out its cookies here, so this warms the session the token is
       // minted against — including the clearance a challenge just wrote.
-      await this.ensureClearance();
+      const site = await this.siteUrl();
+      await this.request(() => this.http.get(`${site}/`, { headers: { accept: "text/html" } }));
 
       const integrity = await this.postJson<IntegrityResponse>(
         `${BASE_URL}/api/integrity`,
@@ -467,14 +480,9 @@ export class KaganeApi {
 
     for (const force of [false, true]) {
       const token = await this.fetchIntegrityToken(force);
-      const response = await this.http
-        .post(url, Body.json({}), { headers: { "x-integrity-token": token } })
-        .catch((error: unknown) => {
-          // A challenge here replaces the session both tokens were minted against, so
-          // neither survives it; the next open mints them afresh rather than reusing them.
-          if (error instanceof CloudflareError) this.forgetTokens();
-          throw error;
-        });
+      const response = await this.request(() =>
+        this.http.post(url, Body.json({}), { headers: { "x-integrity-token": token } }),
+      );
 
       if (STALE_TOKEN_STATUSES.has(response.status)) {
         if (!force) continue;

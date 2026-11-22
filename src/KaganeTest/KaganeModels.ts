@@ -1,14 +1,16 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 import { Option, SectionStyle, SortOption } from "@mana-app/types";
 
-export const DOMAIN = "https://kagane.moe";
-export const MIRRORS = ["kagane.moe", "kagane.org"];
+// kagane.moe marks responses that are not challenges with `cf-mitigated: challenge`, which
+// the app reads as a challenge every time, so kagane.org is the default.
+export const DOMAIN = "https://kagane.org";
+export const MIRRORS = ["kagane.org", "kagane.moe"];
 let site = DOMAIN;
 // Read at call time so a mirror change reaches every URL.
 export const origin = (): string => site;
 export const api = (): string => `${site}/api/v2`;
 export function setMirror(host: unknown): string {
-  const chosen = typeof host === "string" && MIRRORS.includes(host) ? host : "kagane.moe";
+  const chosen = typeof host === "string" && MIRRORS.includes(host) ? host : "kagane.org";
   site = `https://${chosen}`;
   return chosen;
 }
@@ -59,7 +61,8 @@ export const SETTING_KEYS = [
   "excludedTags",
   "chapterTitle",
   "hideDisturbing",
-  "mirror",
+  // Renamed so saved kagane.moe choices start on kagane.org again.
+  "mirrorHost",
 ];
 export const UPLOADS: Option[] = [
   { id: "all", title: "All uploads" },

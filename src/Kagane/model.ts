@@ -2,13 +2,19 @@
 
 import { SectionStyle, type JsonValue, type Option, type SortOption } from "@mana-app/types";
 
-export const BASE_URL = "https://kagane.moe";
+export const BASE_URL = "https://kagane.org";
 export const API_URL = `${BASE_URL}/api/v2`;
 
 export const DEFAULT_CACHE_URL = BASE_URL;
 
-/** Every address the site answers on; each serves the same library and the same API. */
-export const MIRRORS = ["kagane.moe", "kagane.org"];
+/**
+ * Every address the site answers on; each serves the same library and the same API.
+ *
+ * kagane.org leads because kagane.moe sends `cf-mitigated: challenge` on responses that are
+ * not challenges at all (its robots.txt answers 200 with the header), and the app reads
+ * that header as a challenge on every request, so its bypass can never finish there.
+ */
+export const MIRRORS = ["kagane.org", "kagane.moe"];
 
 export const MIRROR_OPTIONS: Option[] = MIRRORS.map((host) => ({ id: host, title: host }));
 
@@ -75,7 +81,9 @@ export const PreferenceID = {
   IncludedTags: "included-tags",
   IncludedSources: "included-sources",
   ExcludedSources: "excluded-sources",
-  Mirror: "mirror",
+  // Renamed so every saved kagane.moe choice, made while it was the default, starts on
+  // kagane.org again; picking moe afterwards still sticks.
+  Mirror: "mirror-host",
   UploadSource: "upload-source",
   ShowSourceInTitle: "show-source-in-title",
   ShowEditionInTitle: "show-edition-in-title",
@@ -285,7 +293,7 @@ export const PREFERENCE_DEFAULTS: Record<string, string | string[] | boolean | n
   [PreferenceID.ExcludedGenres]: [] as string[],
   [PreferenceID.IncludedGenres]: [] as string[],
   [PreferenceID.ExcludedTags]: [] as string[],
-  [PreferenceID.Mirror]: "kagane.moe",
+  [PreferenceID.Mirror]: "kagane.org",
   [PreferenceID.IncludedSources]: [] as string[],
   [PreferenceID.ExcludedSources]: [] as string[],
   [PreferenceID.UploadSource]: "all",

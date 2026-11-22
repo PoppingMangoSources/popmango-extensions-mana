@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 /* Chapter traversal adapted from LucifersCircle/pirate.vodka-extensions (Inkdex). */
-import { createClearanceProbe, isApiChallenge } from "../common/index.ts";
+import { isApiChallenge } from "../common/index.ts";
 
 import {
   Body,
@@ -108,11 +108,6 @@ export class KaganeApi {
     return request;
   }
 
-  private readonly ensureClearance = createClearanceProbe(
-    () => this.client,
-    () => `${origin()}/`,
-  );
-
   private async response(
     url: string,
     body?: Record<string, JsonValue>,
@@ -120,22 +115,21 @@ export class KaganeApi {
   ): Promise<HttpResponse> {
     let response: HttpResponse;
     try {
-      [response] = await Promise.all([
-        this.client.request(
-          {
-            url,
-            method: body === undefined ? HttpMethod.Get : HttpMethod.Post,
-            ...(body === undefined ? {} : { body: Body.json(body) }),
-          },
-          { headers },
-        ),
-        this.ensureClearance(),
-      ]);
+      response = await this.client.request(
+        {
+          url,
+          method: body === undefined ? HttpMethod.Get : HttpMethod.Post,
+          ...(body === undefined ? {} : { body: Body.json(body) }),
+        },
+        { headers },
+      );
     } catch (error) {
-      // The SDK detects positive challenges before response interceptors.
+      // The SDK detects positive challenges before response interceptors, naming the API
+      // request; the mirror's front page is the page the bypass can finish on.
       if (error instanceof CloudflareError) {
         this.token = "";
         this.expiry = 0;
+        throw new CloudflareError(`${origin()}/`);
       }
       throw error;
     }

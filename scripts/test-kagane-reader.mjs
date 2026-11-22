@@ -92,13 +92,20 @@ for (const [label, manifest, error] of [
   console.log(`PASS ${label} rejected`);
 }
 
-for (const host of ["kagane.cx", "kagane.si", "kagane.net"]) {
+// Removed mirrors, and every choice saved under the old key (kagane.moe included), start on
+// kagane.org; a kagane.moe choice made under the new key is kept.
+for (const [saved, expected] of [
+  [{ "kagane.mirror-host": "kagane.cx" }, "kagane.org"],
+  [{ "kagane.mirror-host": "kagane.net" }, "kagane.org"],
+  [{ "kagane.mirror": "kagane.moe" }, "kagane.org"],
+  [{ "kagane.mirror-host": "kagane.moe" }, "kagane.moe"],
+]) {
   const reader = load(pages, {
-    store: new ManaStore({ "kagane.mirror": host }),
+    store: new ManaStore(saved),
     onRequest: (request) => {
-      assert.equal(request.headers.origin, "https://kagane.moe");
+      assert.equal(request.headers.origin, `https://${expected}`);
       if (!request.url.includes("/books/page/"))
-        assert.equal(new URL(request.url).hostname, "kagane.moe");
+        assert.equal(new URL(request.url).hostname, expected);
     },
   });
   const chapter = await reader.getChapterData("test-series", chapterId);
@@ -106,11 +113,11 @@ for (const host of ["kagane.cx", "kagane.si", "kagane.net"]) {
   const response = await reader.getPageTransport(request)[Symbol.for("mana.http.image.v1")](request);
   response.releaseNative();
 }
-console.log("PASS removed saved mirrors fall back to kagane.moe for API and image requests");
+console.log("PASS removed and old-key mirrors fall back to kagane.org; a new kagane.moe choice is kept");
 
 // A preference change must not re-sign an issued page for the other quality.
 for (const dataSaver of [false, true]) {
-  const store = new ManaStore({ "kagane.data-saver": dataSaver, "kagane.mirror": "kagane.org" });
+  const store = new ManaStore({ "kagane.data-saver": dataSaver, "kagane.mirror-host": "kagane.moe" });
   const seen = [];
   const reader = load(pages, { store, onImage: (request) => seen.push(request) });
   const result = await reader.getChapterData("test-series", chapterId);
@@ -125,8 +132,8 @@ for (const dataSaver of [false, true]) {
     const response = await reader.getPageTransport(request)[Symbol.for("mana.http.image.v1")](request);
     response.releaseNative();
     assert.equal(new URL(seen.at(-1).url).pathname, new URL(issued).pathname);
-    assert.equal(seen.at(-1).headers.origin, "https://kagane.org");
-    assert.equal(seen.at(-1).headers.referer, "https://kagane.org/");
+    assert.equal(seen.at(-1).headers.origin, "https://kagane.moe");
+    assert.equal(seen.at(-1).headers.referer, "https://kagane.moe/");
   }
 }
 console.log("PASS both quality paths, legacy URLs, mirror headers, and issued quality after a preference change");
@@ -164,7 +171,7 @@ const starts = { pages: [], covers: [] };
 const paced = load(pages, {
   clock,
   onImage: (request) => {
-    assert.equal(request.headers.referer, "https://kagane.moe/");
+    assert.equal(request.headers.referer, "https://kagane.org/");
     const kind = request.url.includes("/books/page/") ? "pages" : "covers";
     starts[kind].push(clock.now);
   },
@@ -179,7 +186,7 @@ const dispatch = async (request) => {
 await clock.run(Promise.all([
   ...longChapter.pages.map((page) => dispatch({ url: page.url, origin: 2 })),
   ...Array.from({ length: 10 }, (_, index) => dispatch({
-    url: `https://kagane.moe/api/v2/image/cover-${index}`, origin: 1,
+    url: `https://kagane.org/api/v2/image/cover-${index}`, origin: 1,
   })),
 ]));
 assert.equal(starts.pages.length, 235, "queued pages must survive the default 30-second timeout");

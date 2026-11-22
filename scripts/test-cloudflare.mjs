@@ -291,18 +291,19 @@ console.log(
   "Clearance probe checks passed: retry, concurrent sharing, expiry, mirror changes and ordinary origin errors.",
 );
 
+// Kagane's API and pages sit behind one zone-wide challenge, so a working API is proof
+// enough: no extra request is spent on the front page. A challenged API names the mirror's
+// front page, never the POST endpoint the WebView would have to load as a GET.
 for (const name of ["Kagane", "KaganeTest"]) {
   let blocked = true;
   const io = bridge(async (request) =>
-    request.url.includes("/api/")
-      ? {
+    blocked
+      ? challenge
+      : {
           status: 200,
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ content: [], last: true }),
-        }
-      : blocked
-        ? challenge
-        : { status: 200, headers: { "content-type": "text/html" }, body: "<html>Site</html>" },
+        },
   );
   const sandbox = {
     ObjectStore: new ManaStore(),
@@ -320,18 +321,19 @@ for (const name of ["Kagane", "KaganeTest"]) {
   const source = new sandbox.Target();
   await assert.rejects(
     source.search({ query: "test", page: 1 }),
-    isCF,
-    `${name}: working metadata must not hide blocked image clearance`,
-  );
-  assert.ok(
-    io.requests.some((request) => !request.url.includes("/api/")),
-    `${name}: missing site probe`,
+    (error) => isCF(error) && error.resolutionURL === "https://kagane.org/",
+    `${name}: a challenged API must send the reader to the mirror's front page`,
   );
   blocked = false;
+  io.requests.length = 0;
   const result = await source.search({ query: "test", page: 1 });
   assert.equal(result.results.length, 0, `${name}: retry after bypass must reach the API response`);
+  assert.ok(
+    io.requests.every((request) => request.url.includes("/api/")),
+    `${name}: a working API must not also fetch the front page`,
+  );
 }
-console.log("Both Kagane bundles detect image-only protection and recover on retry.");
+console.log("Both Kagane bundles send challenges to the front page and recover on retry.");
 
 const unhandled = [];
 const observeUnhandled = (error) => unhandled.push(error);

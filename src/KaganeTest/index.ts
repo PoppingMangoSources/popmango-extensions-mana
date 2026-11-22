@@ -127,7 +127,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.19",
+    version: "1.0.20",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -266,9 +266,10 @@ export class Target
   async getPreferenceMenu(): Promise<Form> {
     const settings = await this.settings();
     const [genres, tags, languages] = await Promise.all([
-      this.api.genres().catch((error: unknown) => fallbackUnlessCloudflare(error, [])),
-      this.api.tags().catch((error: unknown) => fallbackUnlessCloudflare(error, [])),
-      this.languageOptions().catch((error: unknown) => fallbackUnlessCloudflare(error, LANGUAGES)),
+      // Settings never send the reader to a challenge; the home page clears it instead.
+      this.api.genres().catch(() => []),
+      this.api.tags().catch(() => []),
+      this.languageOptions().catch(() => LANGUAGES),
     ]);
     return {
       sections: [
@@ -308,7 +309,7 @@ export class Target
               title: "Preferred Mirror",
               options: options(MIRRORS),
               value: settings.mirror,
-              didChange: (value) => this.save("mirror", value),
+              didChange: (value) => this.save("mirrorHost", value),
             }),
           ],
         }),

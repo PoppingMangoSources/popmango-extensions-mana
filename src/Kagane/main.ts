@@ -128,8 +128,8 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.11",
-  description: "Manga, manhwa, manhua and comics from kagane.moe.",
+  version: "1.2.12",
+  description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
   // Every language the site's own picker offers: Mana only lists a source to a reader when one
@@ -567,10 +567,12 @@ class KaganeSource
     return buildPreferenceMenu(
       this.preferences,
       await buildSettingsSections({
-        genres: () => this.genreOptions(),
-        tags: () => this.tagOptions(),
-        sources: () => this.sourceOptions(),
-        languages: () => this.languageOptions(),
+        // Settings never send the reader to a challenge; a list that cannot be read is left
+        // out, and the home page, which asks for the same lists, clears it instead.
+        genres: () => this.genreOptions().catch(() => []),
+        tags: () => this.tagOptions().catch(() => []),
+        sources: () => this.sourceOptions().catch(() => []),
+        languages: () => this.languageOptions().catch(() => LANGUAGE_OPTIONS),
         resetContentFilters: async () => {
           await this.preferences.reset(PreferenceID.ExcludedGenres);
           await this.preferences.reset(PreferenceID.IncludedGenres);
