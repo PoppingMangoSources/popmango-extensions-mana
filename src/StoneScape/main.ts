@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   CatalogRating,
   ContentRating,
   DefinedLanguages,
@@ -34,6 +35,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -82,7 +84,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.2.0",
+  version: "1.2.1",
   description: "Manhwa, manhua and manga from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -149,7 +151,7 @@ class StoneScapeSource
         if (genres.length === 0) throw new Error("StoneScape listed no genres");
         return genres;
       })
-      .catch(() => BUNDLED_GENRES);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, BUNDLED_GENRES));
   }
 
   async getSearchForm(): Promise<SearchForm> {
@@ -261,7 +263,9 @@ class StoneScapeSource
     // A pasted series link is the title itself rather than words to search for.
     const slug = slugFromUrl(query);
     if (slug) {
-      const series = await this.api.fetchSeriesDetails(slug).catch(() => undefined);
+      const series = await this.api
+        .fetchSeriesDetails(slug)
+        .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined));
       return { results: series ? [toHighlight(series, false)] : [], isLastPage: true };
     }
 
@@ -350,7 +354,8 @@ class StoneScapeSource
           webUrl: seriesUrl(slug),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }

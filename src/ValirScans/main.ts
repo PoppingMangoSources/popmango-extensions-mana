@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   CatalogRating,
   DefinedLanguages,
   SearchExcludableMultiPicker,
@@ -39,6 +40,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   TimedCache,
@@ -97,7 +99,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.2.0",
+  version: "1.2.1",
   description: "Comics from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
@@ -192,7 +194,7 @@ class ValirScansSource
     const account = await this.api
       .fetchSession()
       .then(parseAccount)
-      .catch(() => undefined);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined));
 
     if (!account?.authenticated) return null;
 
@@ -234,7 +236,9 @@ class ValirScansSource
         if (parsed.genres.length === 0) throw new Error("ValirScans listed no genres");
         return parsed;
       })
-      .catch(() => ({ genres: BUNDLED_GENRES, tags: [] }));
+      .catch((error: unknown) =>
+        fallbackUnlessCloudflare(error, { genres: BUNDLED_GENRES, tags: [] }),
+      );
   }
 
   async getSearchForm(): Promise<SearchForm> {
@@ -369,7 +373,9 @@ class ValirScansSource
     // A pasted link is the title itself rather than words to search for.
     const linked = this.contentIdFromUrl(query);
     if (linked) {
-      const content = await this.getContent(linked).catch(() => undefined);
+      const content = await this.getContent(linked).catch((error: unknown) =>
+        fallbackUnlessCloudflare(error, undefined),
+      );
       return {
         results: content
           ? [
@@ -454,7 +460,7 @@ class ValirScansSource
           .then(parseSeriesPage)
           // One page failing must not lose the ones that came back; the list is short by
           // that page rather than empty.
-          .catch(() => undefined),
+          .catch((error: unknown) => fallbackUnlessCloudflare(error, undefined)),
       ),
     );
 
@@ -528,7 +534,8 @@ class ValirScansSource
           webUrl: contentUrl(contentId),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }

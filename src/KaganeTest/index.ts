@@ -1,4 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
+
+import { fallbackUnlessCloudflare } from "../common/index.ts";
 import { assertRatingPolicy } from "./ContentRatingPolicy";
 import {
   CatalogRating,
@@ -125,7 +127,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.18",
+    version: "1.0.19",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -264,9 +266,9 @@ export class Target
   async getPreferenceMenu(): Promise<Form> {
     const settings = await this.settings();
     const [genres, tags, languages] = await Promise.all([
-      this.api.genres().catch(() => []),
-      this.api.tags().catch(() => []),
-      this.languageOptions().catch(() => LANGUAGES),
+      this.api.genres().catch((error: unknown) => fallbackUnlessCloudflare(error, [])),
+      this.api.tags().catch((error: unknown) => fallbackUnlessCloudflare(error, [])),
+      this.languageOptions().catch((error: unknown) => fallbackUnlessCloudflare(error, LANGUAGES)),
     ]);
     return {
       sections: [
@@ -832,6 +834,8 @@ export class Target
       // More like this is the slowest request on the page and needs nothing from the
       // details, so it starts alongside them instead of after the editions come back.
       const similarRows = migrating ? undefined : this.similarRows(contentId, settings, context);
+      // Details or editions can finish without awaiting this background request.
+      similarRows?.catch(() => undefined);
       const details = await this.requireAllowed(contentId, settings, context);
       const tracker = strictUUID(details.tracker_id);
       const [sources, rows, tags] = await Promise.all([
@@ -852,7 +856,6 @@ export class Target
     });
   }
 
-  // Never rejects: it can be left unawaited when the title turns out to be excluded.
   private similarRows(
     id: string,
     settings: Settings,
@@ -862,7 +865,7 @@ export class Target
     if (!ratings.length) return Promise.resolve([]);
     return this.api
       .similar(id, ratings, settings.languages, settings.uploadSource, settings.hideDisturbing)
-      .catch(() => []);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, []));
   }
 
   private similar(

@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 /* Chapter traversal adapted from LucifersCircle/pirate.vodka-extensions (Inkdex). */
+import { createClearanceProbe, isApiChallenge } from "../common/index.ts";
+
 import {
   Body,
   CloudflareError,
@@ -106,6 +108,11 @@ export class KaganeApi {
     return request;
   }
 
+  private readonly ensureClearance = createClearanceProbe(
+    () => this.client,
+    () => `${origin()}/`,
+  );
+
   private async response(
     url: string,
     body?: Record<string, JsonValue>,
@@ -113,14 +120,17 @@ export class KaganeApi {
   ): Promise<HttpResponse> {
     let response: HttpResponse;
     try {
-      response = await this.client.request(
-        {
-          url,
-          method: body === undefined ? HttpMethod.Get : HttpMethod.Post,
-          ...(body === undefined ? {} : { body: Body.json(body) }),
-        },
-        { headers },
-      );
+      [response] = await Promise.all([
+        this.client.request(
+          {
+            url,
+            method: body === undefined ? HttpMethod.Get : HttpMethod.Post,
+            ...(body === undefined ? {} : { body: Body.json(body) }),
+          },
+          { headers },
+        ),
+        this.ensureClearance(),
+      ]);
     } catch (error) {
       // The SDK detects positive challenges before response interceptors.
       if (error instanceof CloudflareError) {
@@ -129,14 +139,7 @@ export class KaganeApi {
       }
       throw error;
     }
-    const type = response.headers.get("content-type") ?? "";
-    const mitigated = response.headers.get("cf-mitigated") === "challenge";
-    if (
-      mitigated ||
-      ((response.status === 403 || response.status === 503) &&
-        !type.includes("application/json") &&
-        /cf-chl-|_cf_chl_opt|Just a moment|cf-browser-verification/i.test(await response.text()))
-    ) {
+    if (await isApiChallenge(response)) {
       this.token = "";
       this.expiry = 0;
       throw new CloudflareError(`${origin()}/`);

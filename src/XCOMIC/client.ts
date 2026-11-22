@@ -8,14 +8,7 @@ import {
   type JsonValue,
 } from "@mana-app/types";
 
-import {
-  HTML_ACCEPT,
-  challengedUrl,
-  isChallengePage,
-  isCloudflareChallenge,
-  withChallengeRetry,
-  withDefaults,
-} from "../common/index.ts";
+import { HTML_ACCEPT, challengedUrl, isApiChallenge, withDefaults } from "../common/index.ts";
 import {
   acceptLanguage,
   baseUrl,
@@ -54,11 +47,11 @@ export class XCOMICApi {
         });
         return request;
       })
-      .addResponseInterceptor((response) => {
+      .addResponseInterceptor(async (response) => {
         // The API host cannot render the interstitial, so the challenge points at the site.
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
-        if (isCloudflareChallenge(response)) {
+        if (await isApiChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, baseUrl()));
         }
         return response;
@@ -77,7 +70,7 @@ export class XCOMICApi {
     const path = origin === undefined ? url : url.slice(origin.length);
 
     return this.share(`GET ${path}`, () =>
-      withChallengeRetry(baseUrl(), async () => {
+      (async () => {
         // A URL that belongs to no mirror is asked for as given; only the site's own pages
         // can be looked for somewhere else.
         const response =
@@ -87,7 +80,7 @@ export class XCOMICApi {
                 this.http.get(target, { headers: { accept: HTML_ACCEPT } }),
               );
         return this.body(response);
-      }),
+      })(),
     );
   }
 
@@ -108,15 +101,6 @@ export class XCOMICApi {
 
       try {
         const response = await run(`${origin}${path}`);
-
-        // A refusal is only a challenge when the interstitial itself comes back; the site
-        // answers an ordinary block with the same status and no challenge markup.
-        if (
-          (response.status === 403 || response.status === 503) &&
-          isChallengePage(await response.text())
-        ) {
-          throw new CloudflareError(challengedUrl(response, origin));
-        }
 
         if (!isLast && UNAVAILABLE_STATUSES.has(response.status)) {
           unreachable = new Error(`XCOMIC rejected the request (HTTP ${response.status})`);
@@ -149,41 +133,39 @@ export class XCOMICApi {
   }
 
   private async runQuery<T>(query: string, variables: Record<string, JsonValue>): Promise<T> {
-    return withChallengeRetry(baseUrl(), async () => {
-      const response = await this.send(API_PATH, (url) =>
-        this.http.post(url, Body.json({ query, variables }), {
-          headers: { accept: "application/json" },
-        }),
+    const response = await this.send(API_PATH, (url) =>
+      this.http.post(url, Body.json({ query, variables }), {
+        headers: { accept: "application/json" },
+      }),
+    );
+
+    const body = await this.body(response);
+
+    let parsed: GraphQLResponse<T>;
+    try {
+      parsed = JSON.parse(body) as GraphQLResponse<T>;
+    } catch {
+      throw new Error("XCOMIC returned a response that was not JSON");
+    }
+
+    if (parsed.errors?.length) {
+      // The site answers every rejected query with the same "Internal Server Error",
+      // so the line and column it points at are the whole of what it will tell us
+      // about which field it would not serve.
+      throw new Error(
+        parsed.errors
+          .map((error) => {
+            const at = error.locations?.[0];
+            const where = at?.line ? ` at ${at.line}:${at.column ?? 0}` : "";
+            const code = error.extensions?.code ? ` [${error.extensions.code}]` : "";
+            return `${error.message}${where}${code}`;
+          })
+          .join("\n"),
       );
+    }
+    if (!parsed.data) throw new Error("XCOMIC returned no data");
 
-      const body = await this.body(response);
-
-      let parsed: GraphQLResponse<T>;
-      try {
-        parsed = JSON.parse(body) as GraphQLResponse<T>;
-      } catch {
-        throw new Error("XCOMIC returned a response that was not JSON");
-      }
-
-      if (parsed.errors?.length) {
-        // The site answers every rejected query with the same "Internal Server Error",
-        // so the line and column it points at are the whole of what it will tell us
-        // about which field it would not serve.
-        throw new Error(
-          parsed.errors
-            .map((error) => {
-              const at = error.locations?.[0];
-              const where = at?.line ? ` at ${at.line}:${at.column ?? 0}` : "";
-              const code = error.extensions?.code ? ` [${error.extensions.code}]` : "";
-              return `${error.message}${where}${code}`;
-            })
-            .join("\n"),
-        );
-      }
-      if (!parsed.data) throw new Error("XCOMIC returned no data");
-
-      return parsed.data;
-    });
+    return parsed.data;
   }
 
   // A challenge is recognised while the mirrors are being walked, so by the time a

@@ -10,3 +10,18 @@ Checked 2026-11-13 against Keiyoushi `all/kagane` and Aidoku Community `multi.ka
 - The mirror selector contains only kagane.moe and kagane.org. New installs and saved choices for removed mirrors use kagane.moe; an explicit kagane.org choice is preserved.
 
 Never store a live access token in source or fixtures.
+
+## Cloudflare clearance
+
+The SDK detects challenge headers and protected 403/503 pages before source response
+interceptors run. Propagate its CloudflareError unchanged and clear reader credentials.
+Supplement it only with positive interstitial markup, including HTTP 200 responses.
+
+Both Kagane sources probe the selected site with GET alongside API requests, since API
+metadata can work while image delivery requires clearance. Concurrent callers share the
+probe, successful checks last ten minutes, and changing mirrors forces a new check.
+Failed checks remain retryable; ordinary root errors are not cached as clearance.
+
+`bun scripts/test-cloudflare.mjs` covers SDK detection, built source propagation, probe
+retry/concurrency/expiry and mirror changes. Completion of the native bypass UI and
+cookie transfer still require a Mana device test.

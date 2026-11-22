@@ -8,7 +8,12 @@ import {
   type JsonValue,
 } from "@mana-app/types";
 
-import { challengedUrl, isCloudflareChallenge, withDefaults } from "../common/index.ts";
+import {
+  fallbackUnlessCloudflare,
+  challengedUrl,
+  isApiChallenge,
+  withDefaults,
+} from "../common/index.ts";
 import { BASE_URL, type CatalogueParams, type ReaderResult, type SiteFailure } from "./model.ts";
 import { ReaderSigner } from "./signing.ts";
 
@@ -43,10 +48,10 @@ export class ToonkotsuApi {
         withDefaults(request.headers, { origin: BASE_URL, referer: `${BASE_URL}/` });
         return request;
       })
-      .addResponseInterceptor((response) => {
+      .addResponseInterceptor(async (response) => {
         // The API answers in JSON and cannot draw the interstitial, so the challenge points
         // at the site itself; the clearance it mints covers the whole domain.
-        if (isCloudflareChallenge(response)) {
+        if (await isApiChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
@@ -98,7 +103,9 @@ export class ToonkotsuApi {
 
     // The reader refuses a visitor with no guest session, which this call alone hands out.
     if (answer.status === 401 || answer.status === 403) {
-      await this.get(`${BASE_URL}/api/auth/me`).catch(() => undefined);
+      await this.get(`${BASE_URL}/api/auth/me`).catch((error: unknown) =>
+        fallbackUnlessCloudflare(error, undefined),
+      );
       answer = await this.get(url);
     }
 

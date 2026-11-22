@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
+import { fallbackUnlessCloudflare } from "../common/index.ts";
 import type { Option } from "@mana-app/types";
 
 import type { PreferenceField, PreferenceSection } from "../common/index.ts";
@@ -17,7 +18,9 @@ import { excludedTagsKey, groupTags, includedTagsKey } from "./tag-groups.ts";
  * A failed read leaves the section without hide-lists rather than with empty ones.
  */
 async function groupedTagFields(tags: () => Promise<Option[]>): Promise<PreferenceField[]> {
-  const grouped = groupTags(await tags().catch(() => []));
+  const grouped = groupTags(
+    await tags().catch((error: unknown) => fallbackUnlessCloudflare(error, [])),
+  );
 
   return grouped.map(({ group, options }) => ({
     type: "excludable",

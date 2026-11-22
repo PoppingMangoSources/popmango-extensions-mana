@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   AdditionalInfoType,
   CatalogRating,
   DefinedLanguages,
@@ -48,6 +49,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   buildPreferenceMenu,
@@ -126,7 +128,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.10",
+  version: "1.2.11",
   description: "Manga, manhwa, manhua and comics from kagane.moe.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -351,7 +353,7 @@ class KaganeSource
     return this.api
       .fetchContentLanguages()
       .then((languages) => languages.map(languageOption))
-      .catch(() => LANGUAGE_OPTIONS);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, LANGUAGE_OPTIONS));
   }
 
   async getSortOptions(): Promise<SortOption[]> {
@@ -679,7 +681,7 @@ class KaganeSource
                   hideDisturbing: options.hideDisturbing,
                 })
                 .then((response) => response.content ?? [])
-                .catch(() => [])
+                .catch((error: unknown) => fallbackUnlessCloudflare(error, []))
             : [];
           return { options, ratings, similar };
         });
@@ -719,7 +721,7 @@ class KaganeSource
         ? this.api
             .fetchRelated(details.tracker_id)
             .then((response) => response.book_series ?? [])
-            .catch(() => [])
+            .catch((error: unknown) => fallbackUnlessCloudflare(error, []))
         : Promise.resolve([]),
       recommendations,
     ]);
@@ -875,7 +877,8 @@ class KaganeSource
           webUrl: seriesUrl(seriesId),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }

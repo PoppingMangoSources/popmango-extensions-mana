@@ -11,90 +11,32 @@ export const HTML_ACCEPT =
 const JSON_ACCEPT = "application/json, text/javascript, */*; q=0.01";
 export const IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8";
 export const ACCEPT_LANGUAGE = "en-US,en;q=0.9";
-const USER_AGENT =
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
-
+// The SDK handles challenge headers and 403/503 pages before source interceptors.
 const CHALLENGE_PATTERNS: readonly RegExp[] = [
-  /challenges\.cloudflare\.com/i,
-  /cf-browser-verification/i,
-  /__cf_chl_/i,
   /<title>\s*Just a moment/i,
-  /\.open\(\s*["']POST["']\s*,\s*["']\/_v["']\)/,
-  // The two ids the app's own handler keys on, and the widget an interactive round adds.
-  /challenge-error-title/i,
-  /challenge-error-text/i,
-  /cf-turnstile-response/i,
+  /cf-browser-verification/i,
+  /(?:window\.)?_cf_chl_opt\s*=/i,
+  /id=["']cf-chl-/i,
 ];
 
-/**
- * The URL to hand the reader for a challenge, which is the one that was challenged.
- *
- * Cloudflare answers that URL with the interstitial rather than the endpoint's own
- * response, so opening it shows the puzzle to solve — and the clearance it mints is
- * scoped to the whole domain, so it covers every other request the source makes. The
- * site root is only the fallback, for a response that did not record its request.
- */
 export function challengedUrl(response: HttpResponse, fallback: string): string {
-  const url = response.request?.url;
-  return typeof url === "string" && url ? url : fallback;
+  return response.request?.url || fallback;
 }
 
-/**
- * Cloudflare's interstitial answers with a normal 200 as often as it answers
- * with a 403, so the body has to be sniffed as well as the status code.
- */
 export function isChallengePage(html: string): boolean {
-  if (!html) return false;
-  const head = html.slice(0, 4096);
-  if (CHALLENGE_PATTERNS.some((pattern) => pattern.test(head))) return true;
-  return head.includes("pow_nonce") && head.includes("pow_hash");
+  return CHALLENGE_PATTERNS.some((pattern) => pattern.test(html.slice(0, 8192)));
 }
 
-/**
- * Cloudflare's own word that it challenged the request.
- *
- * An endpoint that answers in JSON gets no interstitial to sniff for, so the header is the
- * only sign it carries.
- */
 export function isCloudflareChallenge(response: HttpResponse): boolean {
   return (response.headers.get("cf-mitigated") ?? "").toLowerCase() === "challenge";
 }
 
-/**
- * Whether a JSON API's answer was written by Cloudflare rather than by the API.
- *
- * Cloudflare names a challenge in a header of its own and answers the interstitial with a
- * 403 as readily as a 200. Where neither that header nor the interstitial's markup is
- * present, the body shape decides: an API that answers JSON did not write a refusal that
- * is not JSON.
- *
- * Without that last test the two cannot be told apart. Reporting every 403 as a challenge
- * sends a reader to a page with no puzzle on it when the API simply said no; reporting none
- * of them leaves a real block with no way to clear it.
- */
+// Supplement runtime detection only for a positive interstitial, including HTTP 200.
 export async function isApiChallenge(response: HttpResponse): Promise<boolean> {
   if (isCloudflareChallenge(response)) return true;
-  if (response.status !== 403 && response.status !== 503) return false;
-
-  const body = await response.text();
-  if (isChallengePage(body)) return true;
-  try {
-    JSON.parse(body);
-    return false;
-  } catch {
-    return true;
-  }
-}
-
-/**
- * Whether a body is worth reading to look for an interstitial.
- *
- * The interstitial is always a page of markup. Reading a body pulls it out of the host and
- * into this runtime, so an image or a JSON answer is left where it is rather than read for
- * a challenge it cannot be.
- */
-function mayBeChallenge(response: HttpResponse): boolean {
-  return /html/i.test(response.headers.get("content-type") ?? "");
+  const type = response.headers.get("content-type") ?? "";
+  if (type && !/html/i.test(type)) return false;
+  return isChallengePage(await response.text());
 }
 
 type ClientOptions = {
@@ -195,17 +137,12 @@ export function buildClient(options: ClientOptions): HttpClient {
         referer: `${origin}/`,
         accept,
         "accept-language": ACCEPT_LANGUAGE,
-        "user-agent": USER_AGENT,
         ...headers,
       });
       return request;
     })
     .addResponseInterceptor(async (response) => {
-      if (
-        response.status === 403 ||
-        response.status === 503 ||
-        (mayBeChallenge(response) && isChallengePage(await response.text()))
-      ) {
+      if (await isApiChallenge(response)) {
         throw new CloudflareError(challengedUrl(response, resolutionUrl));
       }
       if (json && response.status >= 400) {

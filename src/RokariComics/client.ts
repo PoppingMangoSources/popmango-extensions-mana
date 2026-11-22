@@ -2,7 +2,7 @@
 
 import type { HttpClient } from "@mana-app/types";
 
-import { buildClient, withChallengeRetry, withQuery } from "../common/index.ts";
+import { buildClient, withQuery } from "../common/index.ts";
 import { BASE_URL, DIRECTORY_PATH, PAGE_CACHE_MS } from "./model.ts";
 
 export type BrowseQuery = {
@@ -48,7 +48,7 @@ export class RokariComicsApi {
     const running = this.inFlight.get(url);
     if (running) return running;
 
-    const request = withChallengeRetry(BASE_URL, async () => {
+    const request = (async () => {
       const response = await this.http.get(url);
       if (response.status >= 500) {
         throw new Error(
@@ -58,7 +58,7 @@ export class RokariComicsApi {
       const body = await response.text();
       this.pages.set(url, { at: Date.now(), body });
       return body;
-    }).finally(() => {
+    })().finally(() => {
       if (this.inFlight.get(url) === request) this.inFlight.delete(url);
     });
 

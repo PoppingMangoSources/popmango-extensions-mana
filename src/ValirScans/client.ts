@@ -2,7 +2,7 @@
 
 import type { HttpClient } from "@mana-app/types";
 
-import { buildClient, withChallengeRetry, withQuery } from "../common/index.ts";
+import { buildClient, withQuery } from "../common/index.ts";
 import {
   BASE_URL,
   TYPE_OPTIONS,
@@ -60,7 +60,7 @@ export class ValirScansApi {
     const running = this.inFlight.get(url);
     if (running) return running;
 
-    const request = withChallengeRetry(BASE_URL, async () => {
+    const request = (async () => {
       const response = await this.http.get(url, headers === undefined ? undefined : { headers });
       if (response.status >= 500) {
         throw new Error(
@@ -70,7 +70,7 @@ export class ValirScansApi {
       const body = await response.text();
       this.pages.set(url, { at: Date.now(), body });
       return body;
-    }).finally(() => {
+    })().finally(() => {
       if (this.inFlight.get(url) === request) this.inFlight.delete(url);
     });
 

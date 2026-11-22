@@ -3,11 +3,12 @@
 import { Body, CloudflareError, HttpClient, type HttpResponse } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   TimedCache,
   UrlBuilder,
   challengedUrl,
-  isCloudflareChallenge,
-  withChallengeRetry,
+  isApiChallenge,
+  createClearanceProbe,
   withDefaults,
 } from "../common/index.ts";
 import {
@@ -71,24 +72,6 @@ function hasControlCharacter(value: string): boolean {
     if (code < 32 || code === 127) return true;
   }
   return false;
-}
-
-// A JSON 403/503 is an expired token or a rate limit, not a challenge; only a real
-// fingerprint counts, or every row prompts for a WebView that cannot help.
-async function isChallenged(response: HttpResponse): Promise<boolean> {
-  if (isCloudflareChallenge(response)) return true;
-  if (response.status !== 403 && response.status !== 503) return false;
-
-  const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-  if (contentType.includes("application/json")) return false;
-
-  const body = await response.text();
-  const looksHtml = contentType.includes("text/html") || /^\s*(?:<!doctype html|<html)/i.test(body);
-
-  return (
-    looksHtml &&
-    /cf-browser-verification|cf-challenge|cf-chl-|_cf_chl_opt|Just a moment/i.test(body)
-  );
 }
 
 export class KaganeApi {
@@ -156,7 +139,7 @@ export class KaganeApi {
       .addResponseInterceptor(async (response) => {
         // The challenged URL is what the app opens for the reader; Cloudflare answers it
         // with the interstitial, and the clearance it mints covers the whole domain.
-        if (await isChallenged(response)) {
+        if (await isApiChallenge(response)) {
           throw new CloudflareError(challengedUrl(response, BASE_URL));
         }
         return response;
@@ -164,11 +147,25 @@ export class KaganeApi {
     return this.client;
   }
 
+  private readonly ensureClearance = createClearanceProbe(
+    () => this.http,
+    () => this.siteUrl(),
+  );
+
+  private async request(run: () => Promise<HttpResponse>): Promise<HttpResponse> {
+    try {
+      const [response] = await Promise.all([run(), this.ensureClearance()]);
+      return response;
+    } catch (error) {
+      if (error instanceof CloudflareError) this.forgetTokens();
+      throw error;
+    }
+  }
+
   private async fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
-    return withChallengeRetry(await this.siteUrl(), async () => {
-      const response = await this.http.get(url, headers ? { headers } : undefined);
-      return parseJson<T>(response);
-    });
+    return parseJson<T>(
+      await this.request(() => this.http.get(url, headers ? { headers } : undefined)),
+    );
   }
 
   private async postJson<T>(
@@ -176,14 +173,15 @@ export class KaganeApi {
     body: JsonObject | undefined,
     headers?: Record<string, string>,
   ): Promise<T> {
-    return withChallengeRetry(await this.siteUrl(), async () => {
-      const response = await this.http.post(
-        url,
-        body === undefined ? undefined : Body.json(body),
-        headers ? { headers } : undefined,
-      );
-      return parseJson<T>(response);
-    });
+    return parseJson<T>(
+      await this.request(() =>
+        this.http.post(
+          url,
+          body === undefined ? undefined : Body.json(body),
+          headers ? { headers } : undefined,
+        ),
+      ),
+    );
   }
 
   async fetchSearch(
@@ -355,7 +353,7 @@ export class KaganeApi {
         if (entries.length === 0) throw new Error("Kagane returned no genres");
         return Object.fromEntries(entries.map((genre) => [genre.id, genre.genre_name]));
       })
-      .catch(() => ({}));
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, {}));
   }
 
   async fetchContentLanguages(): Promise<string[]> {
@@ -379,7 +377,7 @@ export class KaganeApi {
         if (entries.length === 0) throw new Error("Kagane returned no tags");
         return Object.fromEntries(entries.map((tag) => [tag.id, tag.tag_name]));
       })
-      .catch(() => ({}));
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, {}));
   }
 
   async fetchUploadSources(): Promise<UploadSource[]> {
@@ -392,7 +390,7 @@ export class KaganeApi {
         if (sources.length === 0) throw new Error("Kagane returned no upload sources");
         return sources;
       })
-      .catch(() => []);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, []));
   }
 
   private async fetchIntegrityToken(force = false): Promise<string> {
@@ -404,7 +402,7 @@ export class KaganeApi {
     const request = (async (): Promise<string> => {
       // The site hands out its cookies here, so this warms the session the token is
       // minted against — including the clearance a challenge just wrote.
-      await this.http.get(`${BASE_URL}/`).catch(() => undefined);
+      await this.ensureClearance();
 
       const integrity = await this.postJson<IntegrityResponse>(
         `${BASE_URL}/api/integrity`,
@@ -469,14 +467,14 @@ export class KaganeApi {
 
     for (const force of [false, true]) {
       const token = await this.fetchIntegrityToken(force);
-      const response = await withChallengeRetry(await this.siteUrl(), () =>
-        this.http.post(url, Body.json({}), { headers: { "x-integrity-token": token } }),
-      ).catch((error: unknown) => {
-        // A challenge here replaces the session both tokens were minted against, so
-        // neither survives it; the next open mints them afresh rather than reusing them.
-        if (error instanceof CloudflareError) this.forgetTokens();
-        throw error;
-      });
+      const response = await this.http
+        .post(url, Body.json({}), { headers: { "x-integrity-token": token } })
+        .catch((error: unknown) => {
+          // A challenge here replaces the session both tokens were minted against, so
+          // neither survives it; the next open mints them afresh rather than reusing them.
+          if (error instanceof CloudflareError) this.forgetTokens();
+          throw error;
+        });
 
       if (STALE_TOKEN_STATUSES.has(response.status)) {
         if (!force) continue;

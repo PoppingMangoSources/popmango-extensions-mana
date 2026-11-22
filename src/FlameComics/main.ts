@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
 import {
+  CloudflareError,
   CatalogRating,
   DefinedLanguages,
   additionalInfo,
@@ -34,6 +35,7 @@ import {
 } from "@mana-app/types";
 
 import {
+  fallbackUnlessCloudflare,
   FilterReader,
   PreferenceStore,
   buildPreferenceMenu,
@@ -77,7 +79,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "flamecomics",
   name: "FlameComics",
-  version: "1.2.0",
+  version: "1.2.1",
   description: "Manhwa, manhua and manga from flamecomics.xyz.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -294,7 +296,7 @@ class FlameComicsSource
     // stops answering leaves the reader with everything else.
     const similar = await this.api
       .fetchSimilar(contentId, SIMILAR_LIMIT)
-      .catch(() => [] as SeriesListItem[]);
+      .catch((error: unknown) => fallbackUnlessCloudflare(error, [] as SeriesListItem[]));
 
     const items = parseSimilar(similar.filter((item) => String(item.series_id) !== contentId));
     if (items.length === 0) return content;
@@ -352,7 +354,8 @@ class FlameComicsSource
           webUrl: seriesUrl(seriesId),
         },
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return null;
     }
   }

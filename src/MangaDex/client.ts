@@ -1,8 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { HttpClient } from "@mana-app/types";
+import { CloudflareError, HttpClient } from "@mana-app/types";
 
-import { ACCEPT_LANGUAGE, withQuery, type QueryParams } from "../common/index.ts";
+import {
+  challengedUrl,
+  isApiChallenge,
+  ACCEPT_LANGUAGE,
+  withQuery,
+  type QueryParams,
+} from "../common/index.ts";
 import { API_URL, BASE_URL } from "./model.ts";
 
 /**
@@ -69,6 +75,8 @@ export class MangaDexApi {
     // The API writes its reason into the body, and a 404 from `/manga/{id}` is an answer
     // rather than a failure, so every status is read here.
     const response = await this.http.get(url);
+    if (await isApiChallenge(response))
+      throw new CloudflareError(challengedUrl(response, BASE_URL));
     const body = await response.text();
 
     if (response.status >= 400) {
