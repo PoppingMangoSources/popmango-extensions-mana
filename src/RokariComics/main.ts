@@ -46,6 +46,7 @@ import {
   type PreferenceValue,
   IMAGE_ACCEPT,
   imageClient,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { RokariComicsApi } from "./client.ts";
 import {
@@ -81,7 +82,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rokaricomics",
   name: "RokariComics",
-  version: "1.2.2",
+  version: "1.2.3",
   description: "Comics from rokaricomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
@@ -107,6 +108,8 @@ class RokariComicsSource
 {
   readonly info = info;
   readonly config = config;
+  // Asked before the home page hands over its rows, where the app passes a challenge itself.
+  private readonly ensureClearance = createClearanceProbe(`${BASE_URL}/`);
   /** The theme serves its artwork from the site itself, behind a referer check. */
   private readonly images = imageClient({
     referer: `${BASE_URL}/`,
@@ -205,9 +208,12 @@ class RokariComicsSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(
+        DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
+      ),
+      this.ensureClearance(),
+    ]);
 
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }

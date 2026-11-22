@@ -56,6 +56,7 @@ import {
   imageClient,
   chapterDocument,
   htmlChapter,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { ValirScansApi, type BrowseQuery } from "./client.ts";
 import {
@@ -103,7 +104,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.2.3",
+  version: "1.2.4",
   description: "Comics and novels from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
@@ -131,6 +132,8 @@ class ValirScansSource
 {
   readonly info = info;
   readonly config = config;
+  // Asked before the home page hands over its rows, where the app passes a challenge itself.
+  private readonly ensureClearance = createClearanceProbe(`${BASE_URL}/`);
   /** The site serves its artwork from its own host, behind a referer check. */
   private readonly images = imageClient({
     referer: `${BASE_URL}/`,
@@ -292,9 +295,12 @@ class ValirScansSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(
+        DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
+      ),
+      this.ensureClearance(),
+    ]);
 
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }

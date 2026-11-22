@@ -236,6 +236,8 @@ The failures this repo has actually shipped, each silent:
 - [ ] A form field's `optional` is `true` or left out — nothing else counts
 - [ ] A novel title sets `ContentType.NOVEL`, and its chapters return
       `htmlChapter(response, chapterDocument(...))` — never an error saying text cannot be shown
+- [ ] A source behind Cloudflare awaits `createClearanceProbe` in `getSectionsForPage` — the
+      app does not bypass a challenge first met by a lazily resolved row
 - [ ] Settings never raise a Cloudflare challenge; a list they cannot read falls back
 - [ ] A challenged API or POST request is rethrown naming the host's front page
 - [ ] A new source starts at `1.0.0`; **every** push that changes one bumps its **patch**

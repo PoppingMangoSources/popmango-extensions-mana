@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## FlameComics (current: v1.2.1)
+## FlameComics (current: v1.2.2)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## FlameComics (v1.2.1)
 
 ### Fixed
 
@@ -17,7 +23,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## MangaFire (current: v1.2.2)
+## MangaFire (current: v1.2.3)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## MangaFire (v1.2.2)
 
 ### Fixed
 
@@ -29,7 +41,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Mangago (current: v1.2.6)
+## Mangago (current: v1.2.7)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## Mangago (v1.2.6)
 
 ### Fixed
 
@@ -41,7 +59,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## RokariComics (current: v1.2.2)
+## RokariComics (current: v1.2.3)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## RokariComics (v1.2.2)
 
 ### Fixed
 
@@ -53,7 +77,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## StoneScape (current: v1.2.2)
+## StoneScape (current: v1.2.3)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## StoneScape (v1.2.2)
 
 ### Added
 
@@ -65,7 +95,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Toonkotsu (current: v1.2.6)
+## Toonkotsu (current: v1.2.7)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## Toonkotsu (v1.2.6)
 
 ### Fixed
 
@@ -77,7 +113,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## ValirScans (current: v1.2.3)
+## ValirScans (current: v1.2.4)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## ValirScans (v1.2.3)
 
 ### Added
 
@@ -89,7 +131,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## XCOMIC (current: v1.4.11)
+## XCOMIC (current: v1.4.12)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## XCOMIC (v1.4.11)
 
 ### Fixed
 
@@ -1173,7 +1221,13 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.2.3)
+## RinkoComics (current: v1.2.4)
+
+### Fixed
+
+- The home page asks the site's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## RinkoComics (v1.2.3)
 
 ### Added
 

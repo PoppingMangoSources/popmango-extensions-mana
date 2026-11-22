@@ -221,3 +221,62 @@ for (const response of [
 console.log(
   `Cloudflare checks passed: ${checks} detection/transport cases and ${sources / 2} bundled sources, each with native and HTTP 200 challenges.`,
 );
+
+// The app passes a challenge on its own only for calls like getSectionsForPage, not for rows
+// resolved lazily after it. Every source behind Cloudflare probes its front page there, so a
+// challenge surfaces where it is bypassed; an ordinary failure must not take the home page
+// down, and a passed probe is not asked again on the next open.
+const PROBED = [
+  "FlameComics",
+  "MangaFire",
+  "Mangago",
+  "RinkoComics",
+  "RokariComics",
+  "StoneScape",
+  "Toonkotsu",
+  "ValirScans",
+  "XCOMIC",
+];
+for (const name of PROBED) {
+  const load = (reply) => {
+    const io = bridge(reply);
+    const sandbox = {
+      ObjectStore: new ManaStore(),
+      SecureStore: new ManaStore(),
+      __manaHTTPBridge: io,
+      console,
+      setTimeout,
+      clearTimeout,
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(
+      fs.readFileSync(new URL(`../dist/sources/${name}.mana`, import.meta.url), "utf8"),
+      sandbox,
+    );
+    return { io, source: new sandbox.Target() };
+  };
+  const home = { id: "home" };
+
+  const blocked = load(async () => challenge);
+  await assert.rejects(
+    blocked.source.getSectionsForPage(home),
+    isCF,
+    `${name}: a challenged front page must surface from getSectionsForPage`,
+  );
+
+  const down = load(async () => ({ status: 502, headers: {}, body: "" }));
+  const sections = await down.source.getSectionsForPage(home);
+  assert.ok(sections.length > 0, `${name}: an ordinary failure must not empty the home page`);
+
+  const open = load(async () => ({
+    status: 200,
+    headers: { "content-type": "text/html" },
+    body: "<html>Site</html>",
+  }));
+  await open.source.getSectionsForPage(home);
+  const asked = open.io.requests.length;
+  assert.equal(asked, 1, `${name}: the probe must be one request`);
+  await open.source.getSectionsForPage(home);
+  assert.equal(open.io.requests.length, asked, `${name}: a passed probe must be remembered`);
+}
+console.log(`Home pages probe for challenges before their rows in ${PROBED.length} sources.`);

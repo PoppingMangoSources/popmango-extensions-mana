@@ -118,6 +118,13 @@ the order password, web, OAuth — so a password method kept beside OAuth hides 
 - When the challenged request is an API call or a POST, rethrow the error naming the host's
   front page (`https://host/`): the bypass loads the URL as a GET, and a front page is a page
   it can finish on. The clearance covers the whole host either way.
+- The app passes a challenge on its own only for calls like `getSectionsForPage`, never for
+  a row resolved lazily afterwards — each row could name a different path — so a challenge
+  first met by `resolvePageSection` is handed to the reader to solve. A source behind
+  Cloudflare awaits `createClearanceProbe(siteRoot)` from `src/common/cloudflare.ts` in
+  `getSectionsForPage`, beside its row settings: a GET of the front page that throws only a
+  challenge, is remembered for ten minutes once passed, and leaves any other failure to the
+  rows.
 - Settings never raise a challenge. A list the settings screen cannot read falls back to a
   bundled or cached one, or is left out; the home page asks for the same data and clears the
   challenge there, where a reader expects to be asked.

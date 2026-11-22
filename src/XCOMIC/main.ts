@@ -46,6 +46,7 @@ import {
   toPageSections,
   withCovers,
   type PreferenceValue,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { XCOMICApi } from "./client.ts";
 import {
@@ -104,6 +105,7 @@ import {
   type RecentlyAddedResponse,
   type TitleNodeData,
   type TitleNodeResponse,
+  baseUrl,
 } from "./model.ts";
 import {
   comicFilter,
@@ -125,7 +127,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "xcomic",
   name: "XCOMIC",
-  version: "1.4.11",
+  version: "1.4.12",
   description: "Manga, manhwa, manhua and comics from xcomic.me.",
   website: BASE_URL,
   rating: CatalogRating.EXPLICIT,
@@ -145,6 +147,11 @@ class XCOMICSource
 {
   readonly info = info;
   readonly config = config;
+  // The chosen mirror's front page, read when asked so a mirror change is probed at once.
+  private readonly ensureClearance = createClearanceProbe(async () => {
+    await this.applyMirror();
+    return `${baseUrl()}/`;
+  });
 
   private readonly api = new XCOMICApi();
   private readonly preferences = new PreferenceStore(
@@ -312,9 +319,12 @@ class XCOMICSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(
+        DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
+      ),
+      this.ensureClearance(),
+    ]);
 
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }

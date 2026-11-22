@@ -54,6 +54,7 @@ import {
   sectionById,
   toPageSections,
   type PreferenceValue,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { buildMangagoClient } from "./client.ts";
 import {
@@ -116,7 +117,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.2.6",
+  version: "1.2.7",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -151,6 +152,8 @@ class MangagoSource
 {
   readonly info = info;
   readonly config = config;
+  // Asked before the home page hands over its rows, where the app passes a challenge itself.
+  private readonly ensureClearance = createClearanceProbe(`${DOMAIN}/`);
 
   private client: HttpClient | undefined;
   private readonly preferences = new PreferenceStore(
@@ -252,9 +255,10 @@ class MangagoSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.sectionEnabled(section.id)),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(DISCOVER_SECTIONS.map((section) => this.sectionEnabled(section.id))),
+      this.ensureClearance(),
+    ]);
 
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }

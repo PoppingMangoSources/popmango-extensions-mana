@@ -49,6 +49,7 @@ import {
   type PreferenceValue,
   IMAGE_ACCEPT,
   imageClient,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { MangaFireApi } from "./client.ts";
 import {
@@ -93,7 +94,7 @@ import type { QueryParam } from "./vrf.ts";
 const info: SourceInfo = {
   id: "mangafire",
   name: "MangaFire",
-  version: "1.2.2",
+  version: "1.2.3",
   description: "Manga, manhwa and manhua from mangafire.to.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -133,6 +134,8 @@ class MangaFireSource
 {
   readonly info = info;
   readonly config = config;
+  // Asked before the home page hands over its rows, where the app passes a challenge itself.
+  private readonly ensureClearance = createClearanceProbe(`${BASE_URL}/`);
   /** The image CDN refuses a request that does not carry a referer from the site itself. */
   private readonly images = imageClient({
     referer: `${BASE_URL}/`,
@@ -195,9 +198,12 @@ class MangaFireSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(
+        DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
+      ),
+      this.ensureClearance(),
+    ]);
 
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }

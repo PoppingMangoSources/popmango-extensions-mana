@@ -49,6 +49,7 @@ import {
   type PreferenceValue,
   IMAGE_ACCEPT,
   imageClient,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { StoneScapeApi } from "./client.ts";
 import {
@@ -89,7 +90,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.2.2",
+  version: "1.2.3",
   description: "Manhwa, manhua, manga and novels from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -115,6 +116,8 @@ class StoneScapeSource
 {
   readonly info = info;
   readonly config = config;
+  // Asked before the home page hands over its rows, where the app passes a challenge itself.
+  private readonly ensureClearance = createClearanceProbe(`${BASE_URL}/`);
   /**
    * Covers and pages are served from the site itself, behind the same Cloudflare, and it
    * refuses an image asked for without a referer of its own.
@@ -185,9 +188,12 @@ class StoneScapeSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(
+        DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
+      ),
+      this.ensureClearance(),
+    ]);
 
     return toPageSections(DISCOVER_SECTIONS.filter((_, position) => enabled[position]));
   }

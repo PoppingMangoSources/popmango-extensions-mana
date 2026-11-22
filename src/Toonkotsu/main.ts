@@ -58,6 +58,7 @@ import {
   sectionById,
   toPageSections,
   withCovers,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { ToonkotsuApi, catalogueUrl, type ChapterAnswer } from "./client.ts";
 import {
@@ -113,7 +114,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.2.6",
+  version: "1.2.7",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -139,6 +140,8 @@ class ToonkotsuSource
 {
   readonly info = info;
   readonly config = config;
+  // Asked before the home page hands over its rows, where the app passes a challenge itself.
+  private readonly ensureClearance = createClearanceProbe(`${BASE_URL}/`);
 
   private readonly api = new ToonkotsuApi();
   private readonly preferences = new PreferenceStore(info.id, PREFERENCE_DEFAULTS);
@@ -311,9 +314,12 @@ class ToonkotsuSource
   async getSectionsForPage(link: PageLink): Promise<PageSection[]> {
     if (link.id !== "home") return [];
 
-    const enabled = await Promise.all(
-      DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
-    );
+    const [enabled] = await Promise.all([
+      Promise.all(
+        DISCOVER_SECTIONS.map((section) => this.preferences.flag(sectionPreferenceKey(section.id))),
+      ),
+      this.ensureClearance(),
+    ]);
     return toPageSections(DISCOVER_SECTIONS.filter((_, index) => enabled[index]));
   }
 
