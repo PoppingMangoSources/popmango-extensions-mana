@@ -5,7 +5,85 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## ToonkotsuTest (current: v1.0.6)
+## FlameComics (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## Kagane (current: v1.2.11)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors. Check site clearance with a shared GET probe before returning protected image data.
+
+## KaganeTest (current: v1.0.19)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors. Check site clearance with a shared GET probe before returning protected image data.
+
+## MangaDex (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## MangaFire (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## MangaUpdates (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## Mangago (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## RinkoComics (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## RokariComics (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## StoneScape (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## ToonkotsuTest (current: v1.0.7)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## ValirScans (current: v1.2.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## XCOMIC (current: v1.3.1)
+
+### Fixed
+
+- Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
+
+## ToonkotsuTest (v1.0.6)
 
 ### Changed
 
@@ -30,7 +108,7 @@ counted up from `1.0.0`.
 
 - Raise API requests to 10 per second and reader images to a 10-page burst with 10 tokens refilled per second.
 
-## Kagane (current: v1.2.10)
+## Kagane (v1.2.10)
 
 ### Changed
 
@@ -59,7 +137,7 @@ counted up from `1.0.0`.
 
 - Open chapters that reuse an image at multiple reading positions without rejecting the page manifest.
 
-## KaganeTest (current: v1.0.18)
+## KaganeTest (v1.0.18)
 
 ### Changed
 
@@ -343,7 +421,7 @@ counted up from `1.0.0`.
   and rating in the subtitle, followed by type/status rows and reads for Hidden Gems.
 - Remove the duplicate Progress row from Latest Updates.
 
-## XCOMIC (current: v1.3.0)
+## XCOMIC (v1.3.0)
 
 ### Changed
 
@@ -373,7 +451,7 @@ counted up from `1.0.0`.
 
 - Show Most Follows in a single detailed row.
 
-## ValirScans (current: v1.2.0)
+## ValirScans (v1.2.0)
 
 ### Changed
 
@@ -908,7 +986,7 @@ counted up from `1.0.0`.
 - Numbers in the filter form are stepped rather than typed — publication years and chapter
   counts — so there is nothing to mistype, and one left at its bound asks for nothing.
 
-## MangaDex (current: v1.2.0)
+## MangaDex (v1.2.0)
 
 ### Changed
 
@@ -973,7 +1051,7 @@ counted up from `1.0.0`.
 - Settings for translated languages, cover quality, data saver, and forcing port 443 for a
   network that allows nothing else out.
 
-## RokariComics (current: v1.2.0)
+## RokariComics (v1.2.0)
 
 ### Changed
 
@@ -1230,7 +1308,7 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.2.0)
+## RinkoComics (v1.2.0)
 
 ### Changed
 
@@ -1388,7 +1466,7 @@ counted up from `1.0.0`.
   site's own Latest Novels row is left off for the same reason, and a novel chapter reached
   by a link says what it is instead of showing a blank reader.
 
-## MangaFire (current: v1.2.0)
+## MangaFire (v1.2.0)
 
 ### Changed
 
@@ -1558,7 +1636,7 @@ counted up from `1.0.0`.
   being accepted at once — which shows up as the API refusing in its own words rather than
   as a Cloudflare prompt, so the two stay distinguishable.
 
-## StoneScape (current: v1.2.0)
+## StoneScape (v1.2.0)
 
 ### Changed
 
@@ -1822,7 +1900,7 @@ counted up from `1.0.0`.
   path `assets/Repository.png`, which the app has no base to resolve against, so it now
   names the published file in full.
 
-## MangaUpdates (current: v1.2.0)
+## MangaUpdates (v1.2.0)
 
 ### Changed
 
@@ -2527,7 +2605,7 @@ First release. Manga, manhwa, manhua and comics from xcomic.me:
 - Chapters keep the site's own order and name their scanlator, whether that is an official
   source, a group, or the person who uploaded it.
 
-## FlameComics (current: v1.2.0)
+## FlameComics (v1.2.0)
 
 ### Changed
 
@@ -3053,7 +3131,7 @@ Manga, manhwa, manhua and comics from kagane.to:
 - The integrity-token exchange the reader needs, with a refresh when a token goes stale.
 - Requests are narrowed to the content ratings the app says it will accept.
 
-## Mangago (current: v1.2.0)
+## Mangago (v1.2.0)
 
 ### Changed
 
