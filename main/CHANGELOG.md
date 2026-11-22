@@ -5,7 +5,13 @@ whatever the push contains. The minor digit moves only when it is asked for by n
 sources that were already here were renumbered to `1.1.0` in one go; before that they
 counted up from `1.0.0`.
 
-## FlameComics (current: v1.2.2)
+## FlameComics (current: v1.2.3)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## FlameComics (v1.2.2)
 
 ### Fixed
 
@@ -17,13 +23,25 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## MangaDex (current: v1.2.5)
+## MangaDex (current: v1.2.6)
+
+### Fixed
+
+- Removed the Cloudflare checks added in 1.2.5. MangaDex is not behind Cloudflare, so they could only get in the way.
+
+## MangaDex (v1.2.5)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## MangaFire (current: v1.2.3)
+## MangaFire (current: v1.2.4)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## MangaFire (v1.2.3)
 
 ### Fixed
 
@@ -35,13 +53,27 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## MangaUpdates (current: v1.2.1)
+## MangaUpdates (current: v1.2.2)
+
+### Fixed
+
+- Removed the Cloudflare checks added in 1.2.1. MangaUpdates is not behind Cloudflare, so they could only get in the way.
+- Signing out never stops on an error from the site's logout call; you are signed out either way.
+
+## MangaUpdates (v1.2.1)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Mangago (current: v1.2.7)
+## Mangago (current: v1.2.8)
+
+### Fixed
+
+- A Cloudflare challenge on Featured leaves the row empty again rather than putting a check you have to solve in front of the home page.
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## Mangago (v1.2.7)
 
 ### Fixed
 
@@ -59,7 +91,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## RokariComics (current: v1.2.3)
+## RokariComics (current: v1.2.4)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## RokariComics (v1.2.3)
 
 ### Fixed
 
@@ -77,7 +115,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## StoneScape (current: v1.2.3)
+## StoneScape (current: v1.2.4)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## StoneScape (v1.2.3)
 
 ### Fixed
 
@@ -95,7 +139,14 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Toonkotsu (current: v1.2.7)
+## Toonkotsu (current: v1.2.8)
+
+### Fixed
+
+- A challenge on the chapter API falls back to opening the chapter page again, which may already hold the clearance, rather than stopping the chapter.
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## Toonkotsu (v1.2.7)
 
 ### Fixed
 
@@ -113,7 +164,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## ValirScans (current: v1.2.4)
+## ValirScans (current: v1.2.5)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## ValirScans (v1.2.4)
 
 ### Fixed
 
@@ -131,7 +188,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## XCOMIC (current: v1.4.12)
+## XCOMIC (current: v1.4.13)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## XCOMIC (v1.4.12)
 
 ### Fixed
 
@@ -1221,7 +1284,13 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.2.4)
+## RinkoComics (current: v1.2.5)
+
+### Fixed
+
+- A proof-of-work check page, or a Cloudflare page showing its own error, counts as a challenge again, so the app opens it for you instead of the screen coming up empty.
+
+## RinkoComics (v1.2.4)
 
 ### Fixed
 
