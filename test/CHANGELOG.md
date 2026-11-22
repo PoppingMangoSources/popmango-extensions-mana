@@ -11,13 +11,29 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Kagane (current: v1.2.11)
+## Kagane (current: v1.2.12)
+
+### Fixed
+
+- The Cloudflare check passes on its own again. kagane.org is the default mirror: kagane.moe marks ordinary responses as challenges, so the app's automatic check could never finish there. Mirror choices saved while kagane.moe was the default start on kagane.org; pick kagane.moe again in settings to go back to it.
+- A challenge now sends the app to the mirror's front page instead of an API address, and requests no longer fetch the front page alongside every API call.
+- Opening settings never asks you to solve a challenge; a list that cannot be loaded is left out until the home page has passed it.
+
+## Kagane (v1.2.11)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors. Check site clearance with a shared GET probe before returning protected image data.
 
-## KaganeTest (current: v1.0.19)
+## KaganeTest (current: v1.0.20)
+
+### Fixed
+
+- The Cloudflare check passes on its own again. kagane.org is the default mirror: kagane.moe marks ordinary responses as challenges, so the app's automatic check could never finish there. Mirror choices saved while kagane.moe was the default start on kagane.org; pick kagane.moe again in settings to go back to it.
+- A challenge now sends the app to the mirror's front page instead of an API address, and requests no longer fetch the front page alongside every API call.
+- Opening settings never asks you to solve a challenge; a list that cannot be loaded is left out until the home page has passed it.
+
+## KaganeTest (v1.0.19)
 
 ### Fixed
 
