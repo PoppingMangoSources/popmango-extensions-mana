@@ -54,7 +54,7 @@ becomes available to install.
 | <img src="media/sources/mangafire.png" width="22" align="top"/> **MangaFire** | [mangafire.to](https://mangafire.to) | Mixed | v1.2.1 |
 | <img src="media/sources/mangago.png" width="22" align="top"/> **Mangago** | [mangago.me](https://www.mangago.me) | Mixed | v1.2.4 |
 | <img src="media/sources/mangaupdates.png" width="22" align="top"/> **MangaUpdates** | [mangaupdates.com](https://www.mangaupdates.com) | Mixed | v1.2.0 |
-| <img src="media/sources/rinkocomics.png" width="22" align="top"/> **RinkoComics** | [rinkocomics.com](https://rinkocomics.com) | Safe | v1.2.1 |
+| <img src="media/sources/rinkocomics.png" width="22" align="top"/> **RinkoComics** | [rinkocomics.com](https://rinkocomics.com) | Safe | v1.2.2 |
 | <img src="media/sources/rokaricomics.png" width="22" align="top"/> **RokariComics** | [rokaricomics.com](https://rokaricomics.com) | Safe | v1.2.0 |
 | <img src="media/sources/stonescape.png" width="22" align="top"/> **StoneScape** | [stonescape.xyz](https://stonescape.xyz) | Mixed | v1.2.0 |
 | <img src="media/sources/toonkotsu.png" width="22" align="top"/> **Toonkotsu** | [toonkotsu.com](https://toonkotsu.com) | Mixed | v1.2.4 |

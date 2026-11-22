@@ -20,7 +20,7 @@ export const LOCK_SUFFIX = "#lock";
  * it looks: the walk below steps by how many rows it just read, so over-counting made it
  * skip past real chapters and keep asking for pages that were already behind it.
  */
-export const CHAPTER_SELECTOR = "li.chapter";
+export const CHAPTER_SELECTOR = "#cwChapters a.chapter-item, li.chapter";
 
 /** The load-more control carries the id and offset the ajax action wants. */
 export const LOAD_MORE_SELECTOR = "#loadMoreChaptersBtn, [data-comic-id]";
@@ -58,45 +58,27 @@ export const HOME_CACHE_MS = 20_000;
 export const PAGE_CACHE_MS = 30_000;
 
 /** The site marks a chapter it has locked; the tick of a padlock says so at a glance. */
-export const LOCK_MARK = "🔒";
+export const LOCK_MARK = "Locked:";
 
 /** The house mark for a view count, the same one the other sources here use. */
-export const VIEWS_MARK = "⏯︎";
+export const VIEWS_MARK = "◉";
 
-/**
- * The home page, in the site's own order and under its own names.
- *
- * Every row is read out of one document — the site builds its whole front page server-side
- * — so all three together cost a single request rather than one each.
- *
- * The shapes follow the other sources here, which all lay a front page out the same way: a
- * hero for the set the site is pushing, a plain strip for a shelf of picks, and a grouped
- * vertical list for new chapters, that last being the one style the app draws
- * `Highlight.info` in. Hot This Week takes the hero because it is what the site ranks and
- * what its own slider repeats — the slider is the same titles in the same order, so giving
- * it a row of its own would put one query on the page twice.
- */
 export const DISCOVER_SECTIONS: PageSectionSpec[] = [
   {
     id: SectionID.Hot,
-    title: "Hot This Week",
-    subtitle: "Most read over the last seven days",
+    title: "Editor's Choice",
     style: SectionStyle.SimpleHeroPaged,
-    // Each of these is a fixed set the site assembles for its front page. None has a
-    // longer listing behind it, so there is nothing for a "view more" to open.
     viewMore: false,
   },
   {
     id: SectionID.Pinned,
-    title: "Editor's Choice",
-    subtitle: "Pinned by the site",
+    title: "Featured This Week",
     style: SectionStyle.SimpleSingleRow,
     viewMore: false,
   },
   {
     id: SectionID.Latest,
     title: "Latest Releases",
-    subtitle: "Fresh chapters as they land",
     style: SectionStyle.DetailedVerticalListGrouped,
     viewMore: false,
   },
@@ -107,18 +89,17 @@ export const FilterID = {
 } as const;
 
 export const SortID = {
-  Newest: "newest",
-  Oldest: "oldest",
+  Newest: "updated",
+  Added: "new",
+  Views: "views",
   TitleAsc: "az",
-  TitleDesc: "za",
 } as const;
 
-/** The site's own sort menu, in its own words. */
 export const SORT_OPTIONS: SortOption[] = [
-  { id: SortID.Newest, title: "Newest First", isDefault: true },
-  { id: SortID.Oldest, title: "Oldest First" },
+  { id: SortID.Newest, title: "Latest Update", isDefault: true },
+  { id: SortID.Added, title: "Newest Series" },
+  { id: SortID.Views, title: "Most Viewed" },
   { id: SortID.TitleAsc, title: "A-Z" },
-  { id: SortID.TitleDesc, title: "Z-A" },
 ];
 
 /** How long the browse page's genre list is kept before it is read again. */
@@ -151,6 +132,7 @@ export type Card = {
   title: string;
   cover: string;
   genres: string[];
+  summary?: string;
   /** The site's own position in a ranked row. */
   rank?: string;
   views?: string;

@@ -72,7 +72,9 @@ function cardGenres($: CheerioAPI, card: Cheerio<AnyNode>): string[] {
   const genres: string[] = [];
 
   card
-    .find(".comic-genres .genre, .comic-genres-popular span, .novel-genres .genre-tag, .genre")
+    .find(
+      ".chip, .comic-genres .genre, .comic-genres-popular span, .novel-genres .genre-tag, .genre",
+    )
     .each((_, node) => {
       const value = decodeEntities(text($(node)));
       const key = value.toLowerCase();
@@ -108,12 +110,14 @@ function parseCards(
       firstText(card, selectors.title) || decodeEntities(clean(link.attr("title") ?? ""));
 
     if (!id || !title || seen.has(id)) return;
+    const cover = absoluteImage(card.find(selectors.cover).first(), BASE_URL);
+    if (!cover) return;
     seen.add(id);
 
     const entry: Card = {
       id,
       title,
-      cover: absoluteImage(card.find(selectors.cover).first(), BASE_URL),
+      cover,
       genres: cardGenres($, card),
       chapters: [],
     };
@@ -145,11 +149,11 @@ function latestChapters($: CheerioAPI, card: Cheerio<AnyNode>, into: Card): void
     // the newest release — the one the padlock is for — out of the row entirely.
     if (!locked && !href.includes("/chapter/")) continue;
 
-    const label = firstText(row, "label") || decodeEntities(text(row));
+    const label = decodeEntities(text(row.children("span").first()));
     if (!label) continue;
 
     // The stamp is written as a bare span beside the label, in the site's relative wording.
-    const stamp = firstText(row, ".chapter-date, time, span");
+    const stamp = text(row.children("span").last());
     const uploaded = stamp ? parseDate(stamp) : undefined;
 
     into.chapters.push({ label, ...(uploaded ? { uploaded } : {}), locked });
@@ -177,54 +181,34 @@ function sectionCards($: CheerioAPI, sectionId: string): Card[] {
       return parseCards(
         $,
         {
-          card: ".popular-comics .comic-card-popular",
-          link: "a.read-btn",
-          title: ".comic-title-popular",
-          cover: ".comic-cover img",
+          card: "[data-cw-slider] [data-slide]",
+          link: "a.btn-primary",
+          title: "h2",
+          cover: "img",
         },
         (card, into) => {
-          const rank = firstText(card, ".comic-rank");
-          if (rank) into.rank = rank.replace(/^#/, "");
-          // The site prints two stats in one row: what has been read, and how much there is.
-          const stats = card
-            .find(".comic-stats .stat")
-            .toArray()
-            .map((node) => decodeEntities(text($(node))))
-            .filter(Boolean);
-          if (stats[0]) into.views = stats[0];
-          // The site writes this stat as "180 Ch"; the subtitle supplies its own "Ch.",
-          // so only the count is kept.
-          const count = /(\d[\d.,]*[KMkm]?)/.exec(stats[1] ?? "")?.[1];
-          if (count) into.chapterCount = count;
+          into.summary = firstText(card, "p");
+          const count = /^(\d+) chapters$/.exec(text(card.find("span.text-subtle").last()));
+          if (count) into.chapterCount = count[1];
         },
       );
-
     case SectionID.Pinned:
-      return parseCards(
-        $,
-        {
-          card: "a.pinned-comic-card",
-          title: ".pinned-comic-title",
-          cover: ".comic-thumbnail img",
-        },
-        (card, into) => {
-          const badge = firstText(card, ".chapter-badge");
-          if (badge) into.chapterCount = badge;
-        },
-      );
-
+      return parseCards($, {
+        card: "section[aria-labelledby='cw-week-m'] a",
+        title: ".line-clamp-2",
+        cover: "img",
+      });
     case SectionID.Latest:
       return parseCards(
         $,
         {
-          card: ".latest-releases .comic-card",
-          link: "a.comic-card__cover",
-          title: ".comic-card__title",
-          cover: ".comic-card__cover img",
+          card: "#cw-latest article",
+          link: "a.line-clamp-2",
+          title: "a.line-clamp-2",
+          cover: "img",
         },
         (card, into) => latestChapters($, card, into),
       );
-
     default:
       return [];
   }
@@ -234,13 +218,13 @@ export function parseBrowse(html: string): { results: Card[]; isLastPage: boolea
   const $ = load(html);
 
   const results = parseCards($, {
-    card: "article.ac-card",
-    link: ".ac-title a",
-    title: ".ac-title a",
-    cover: ".ac-thumb img",
+    card: "#cwBrowse ul > li",
+    link: "a",
+    title: ".line-clamp-2",
+    cover: "img",
   });
 
-  return { results, isLastPage: $(".ac-pagination a.next").length === 0 };
+  return { results, isLastPage: $("#cwBrowse a.next, #cwBrowse a[rel=next]").length === 0 };
 }
 
 /** The theme puts its genre checkboxes on the browse page rather than in a form. */
@@ -249,10 +233,10 @@ export function parseGenres(html: string): Option[] {
   const options: Option[] = [];
   const seen = new Set<string>();
 
-  $(".ac-filter-group.ac-genre input[name='genres[]']").each((_, node) => {
+  $("#cwBrowse input[name='genres[]']").each((_, node) => {
     const input = $(node);
     const id = clean(input.attr("value") ?? "");
-    const title = decodeEntities(text(input.parent().find(".ac-option-text").first()));
+    const title = decodeEntities(text(input.parent().find("span").first()));
     if (!id || !title || seen.has(id)) return;
     seen.add(id);
     options.push({ id, title });
@@ -283,7 +267,7 @@ function buildBadge(card: Card): string {
 function buildSubtitle(card: Card, sectionId: string): string {
   if (sectionId === SectionID.Latest) return "";
 
-  if (sectionId === SectionID.Hot && card.chapterCount) return `Ch. ${card.chapterCount}`;
+  if (sectionId === SectionID.Hot) return card.summary ?? "";
 
   return card.genres.slice(0, 3).join(", ");
 }
@@ -311,7 +295,7 @@ function buildInfoRows(card: Card): Pair[] {
 export function toHighlight(card: Card, sectionId: string): Highlight {
   const subtitle = buildSubtitle(card, sectionId);
   const info = sectionId === SectionID.Latest ? buildInfoRows(card) : [];
-  const badge = toBadge(buildBadge(card));
+  const badge = sectionId === SectionID.Latest ? undefined : toBadge(buildBadge(card));
 
   return {
     id: card.id,
@@ -358,7 +342,7 @@ export function parseContent(html: string, contentId: string): Content {
 
   const tags: Tag[] = [];
   const seenTag = new Set<string>();
-  $(".comic-genres .genres .genre").each((_, node) => {
+  $("#main a[href*='/comics_genres/']").each((_, node) => {
     const name = decodeEntities(text($(node)));
     if (!name) return;
     const id = name.toLowerCase().replace(/\s+/g, "-");
@@ -368,14 +352,19 @@ export function parseContent(html: string, contentId: string): Content {
   });
 
   const synopsis =
-    firstText(page, ".comic-synopsis", ".novel-synopsis") ||
+    firstText(page, "#cwSynopsis", ".comic-synopsis", ".novel-synopsis") ||
     decodeEntities(clean($("meta[property='og:description']").first().attr("content") ?? ""));
 
-  const status = parseStatus(firstText(page, ".comic-status span:last-child", ".comic-status"));
+  const state = text(
+    $("#main dt")
+      .filter((_, el) => text($(el)) === "Status")
+      .next("dd"),
+  );
+  const status = parseStatus(state);
 
   const info: Pair[] = [];
-  const state = titleCase(firstText(page, ".comic-status span:last-child"));
-  if (state) info.push({ key: "Status", value: `◌ ${state}` });
+  const statusLabel = titleCase(state);
+  if (statusLabel) info.push({ key: "Status", value: `◌ ${statusLabel}` });
 
   // The catalogue is comics throughout, so the only thing that separates a strip from a
   // paged release here is a genre naming it one.
@@ -448,10 +437,20 @@ export function parseChapterRows(html: string): ChapterRow[] {
     if (!id) return;
 
     const name =
-      firstText(row, ".chapter-number", ".ch-name", ".chapter-side-title", "label") ||
-      decodeEntities(clean(row.attr("data-title") ?? ""));
+      firstText(
+        row,
+        ".chapter-number",
+        ".ch-name",
+        ".chapter-side-title",
+        "label",
+        "span > span:first-child",
+      ) || decodeEntities(clean(row.attr("data-title") ?? ""));
 
-    const stamp = firstText(row, ".chapter-date");
+    const stamp = (
+      firstText(row, ".chapter-date") || text(row.children("span").first().children("span").last())
+    )
+      .split("·")[0]
+      ?.trim();
     const date = stamp ? parseDate(stamp) : undefined;
 
     rows.push({
@@ -563,5 +562,5 @@ export function parsePages(html: string): string[] {
 /** A novel chapter serves prose where a comic serves images, and Mana reads only images. */
 export function isProseChapter(html: string): boolean {
   const $ = load(html);
-  return $("#textContent").length > 0 || $(".novel-content").length > 0;
+  return $("#cwNovelText, #textContent").length > 0 || $(".novel-content").length > 0;
 }

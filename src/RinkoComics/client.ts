@@ -58,6 +58,7 @@ export class RinkoComicsApi {
             `RinkoComics' server did not answer (HTTP ${response.status}). The site is up but its origin is not responding — try again in a few minutes.`,
           );
         }
+        response.requireOk();
         const body = await response.text();
         this.pages.set(url, { at: Date.now(), body });
         return body;
@@ -71,17 +72,16 @@ export class RinkoComicsApi {
   }
 
   fetchHome(): Promise<string> {
-    return this.get(`${BASE_URL}/`);
+    return this.get(`${BASE_URL}/?show=today`);
   }
 
   browseUrl(query: BrowseQuery): string {
     // The theme pages by path and keeps everything else in the query string.
     const path = query.page > 1 ? `/comic/page/${query.page}/` : "/comic/";
     const base = withQuery(`${BASE_URL}${path}`, {
-      post_type: "comic",
-      s: query.search,
+      q: query.search,
       // `newest` is the site's own default, and omitting it keeps the URL honest.
-      sort: query.sort === SortID.Newest ? undefined : query.sort,
+      sort: query.sort ?? SortID.Newest,
     });
 
     const genres = (query.genres ?? []).filter(Boolean);
@@ -123,6 +123,7 @@ export class RinkoComicsApi {
       { headers: { "x-requested-with": "XMLHttpRequest" } },
     );
 
+    response.requireOk();
     let parsed: AjaxResponse;
     try {
       parsed = JSON.parse(await response.text()) as AjaxResponse;

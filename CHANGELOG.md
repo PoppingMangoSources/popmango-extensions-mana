@@ -1083,7 +1083,14 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.2.1)
+## RinkoComics (current: v1.2.2)
+
+### Fixed
+
+- Read the redesigned home, browse filters, details and chapter rows, including chapter zero.
+- Show Editor's Choice, Featured This Week and Today comic releases with their current metadata.
+
+## RinkoComics (v1.2.1)
 
 ### Fixed
 
