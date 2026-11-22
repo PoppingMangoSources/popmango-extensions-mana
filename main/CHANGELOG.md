@@ -29,31 +29,61 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Mangago (current: v1.2.5)
+## Mangago (current: v1.2.6)
+
+### Fixed
+
+- Opening settings never asks you to solve a Cloudflare challenge. A list that cannot be loaded falls back until the home page has passed the challenge.
+
+## Mangago (v1.2.5)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## RokariComics (current: v1.2.1)
+## RokariComics (current: v1.2.2)
+
+### Fixed
+
+- Chapter pages whose file names contain spaces or accented letters load, and pages the site already escaped are no longer escaped twice.
+
+## RokariComics (v1.2.1)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## StoneScape (current: v1.2.1)
+## StoneScape (current: v1.2.2)
+
+### Added
+
+- Novels. Novels, Popular Novels and Latest Novels rows on the home page, a Type filter in search, and novel chapters that open in Mana's book reader with the author's notes and illustrations.
+
+## StoneScape (v1.2.1)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Toonkotsu (current: v1.2.5)
+## Toonkotsu (current: v1.2.6)
+
+### Fixed
+
+- Opening settings never asks you to solve a Cloudflare challenge. A list that cannot be loaded falls back until the home page has passed the challenge.
+
+## Toonkotsu (v1.2.5)
 
 ### Fixed
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## ValirScans (current: v1.2.2)
+## ValirScans (current: v1.2.3)
+
+### Added
+
+- Novels. A Latest Novel Updates row on the home page, a Comics or Novels choice in search, and novel chapters that open in Mana's book reader.
+
+## ValirScans (v1.2.2)
 
 ### Fixed
 
@@ -1143,7 +1173,19 @@ counted up from `1.0.0`.
   for the same reason, and a novel chapter reached by a link says what it is instead of
   showing a blank reader.
 
-## RinkoComics (current: v1.2.2)
+## RinkoComics (current: v1.2.3)
+
+### Added
+
+- Novels. Their titles open in Mana's book reader, every episode is listed with locked ones marked, and a free episode reads as a book.
+- New Novels and Latest Releases (Novels) on the home page, and a Type filter in search to look through novels instead of comics.
+
+### Changed
+
+- The home page follows the site again, under its own names: Editor's Choice with each pick's blurb, Featured This Week (most read) with its ranks, New Novels, and the latest comic and novel releases with a padlock on the locked chapters.
+- Title pages list the type, chapter or episode count and views beside the status, and search results show where each title stands.
+
+## RinkoComics (v1.2.2)
 
 ### Fixed
 
