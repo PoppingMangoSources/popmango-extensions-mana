@@ -11,7 +11,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors.
 
-## Kagane (current: v1.2.12)
+## Kagane (current: v1.2.13)
+
+### Fixed
+
+- The home page asks the mirror's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## Kagane (v1.2.12)
 
 ### Fixed
 
@@ -25,7 +31,13 @@ counted up from `1.0.0`.
 
 - Pass real Cloudflare challenges directly to Mana and avoid false bypass prompts for ordinary server errors. Check site clearance with a shared GET probe before returning protected image data.
 
-## KaganeTest (current: v1.0.20)
+## KaganeTest (current: v1.0.21)
+
+### Fixed
+
+- The home page asks the mirror's front page before loading its rows, so a Cloudflare challenge is met where the app passes it on its own. A challenge first met by a row was left for you to solve by hand.
+
+## KaganeTest (v1.0.20)
 
 ### Fixed
 

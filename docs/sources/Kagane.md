@@ -25,9 +25,12 @@ reader a manual prompt. kagane.org is the default for that reason.
 
 The runtime names the challenged request as the page to clear. For this API that is a POST
 the WebView would load as a GET, so both sources rethrow the error naming the mirror's front
-page, `https://<mirror>/`, the same page the reader would open. There is no separate
-clearance probe: the API and the pages sit behind the same zone-wide challenge, so a working
-API is already proof of clearance. The settings screen never raises a challenge; its lists
+page, `https://<mirror>/`, the same page the reader would open. Requests carry no
+per-call clearance probe: the API and the pages sit behind the same zone-wide challenge, so a
+working API is already proof of clearance. `getSectionsForPage` does ask the mirror's front
+page first, once per ten minutes: the app passes a challenge on its own only for calls like
+that one, never for the rows it resolves lazily afterwards, so a challenge first met by a row
+was handed to the reader to solve. The settings screen never raises a challenge; its lists
 fall back to what is cached or are left out.
 
 `bun scripts/test-cloudflare.mjs` covers SDK detection, built source propagation, the front-page

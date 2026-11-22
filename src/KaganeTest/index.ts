@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { fallbackUnlessCloudflare } from "../common/index.ts";
+import { createClearanceProbe, fallbackUnlessCloudflare } from "../common/index.ts";
 import { assertRatingPolicy } from "./ContentRatingPolicy";
 import {
   CatalogRating,
@@ -68,6 +68,7 @@ import {
   RATINGS,
   SECTIONS,
   setMirror,
+  origin,
   SETTING_KEYS,
   Settings,
   SORTS,
@@ -127,7 +128,7 @@ export class Target
 {
   readonly info: SourceInfo = {
     id: "kagane-test",
-    version: "1.0.20",
+    version: "1.0.21",
     name: "KaganeTest",
     description:
       "Kagane with current API support, grouped tags and global four-category content settings.",
@@ -165,6 +166,12 @@ export class Target
     ],
   };
   readonly config = { cloudflareResolutionURL: `${DOMAIN}/`, owningLinks: MIRRORS };
+  // Its own client: cookies are shared, so the clearance reaches the API client too.
+  private readonly probeClient = new HttpClient();
+  private readonly ensureClearance = createClearanceProbe(
+    () => this.probeClient,
+    () => `${origin()}/`,
+  );
   private readonly api = new KaganeApi();
   private readonly coverClient = this.imageTransport(RequestOrigin.Cover);
   private readonly pageClient = this.imageTransport(RequestOrigin.Page);
@@ -958,6 +965,10 @@ export class Target
   async getSectionsForPage(link: PageLink): Promise<PageSection[]> {
     assertRatingPolicy(link.context);
     this.home(link);
+    // The app passes a challenge on its own only here, not for the rows resolved lazily
+    // after, so the mirror's front page is asked first.
+    await this.settings();
+    await this.ensureClearance();
     return SECTIONS.map(({ id, title, subtitle, style }) => ({ id, title, subtitle, style }));
   }
 

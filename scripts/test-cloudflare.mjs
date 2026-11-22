@@ -371,3 +371,38 @@ try {
   process.off("unhandledRejection", observeUnhandled);
 }
 console.log("Background challenges remain handled while title details are pending.");
+
+// The app passes a challenge on its own only for calls like getSectionsForPage, not for rows
+// resolved lazily after it, so both Kagane bundles probe the mirror's front page there.
+for (const name of ["Kagane", "KaganeTest"]) {
+  const load = (reply) => {
+    const io = bridge(reply);
+    const sandbox = {
+      ObjectStore: new ManaStore(),
+      SecureStore: new ManaStore(),
+      __manaHTTPBridge: io,
+      console,
+      setTimeout,
+      clearTimeout,
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(
+      fs.readFileSync(new URL(`../dist/sources/${name}.mana`, import.meta.url), "utf8"),
+      sandbox,
+    );
+    return { io, source: new sandbox.Target() };
+  };
+  const home = { id: "home" };
+  const blocked = load(async () => challenge);
+  await assert.rejects(
+    blocked.source.getSectionsForPage(home),
+    (error) => isCF(error) && error.resolutionURL === "https://kagane.org/",
+    `${name}: a challenged front page must surface from getSectionsForPage`,
+  );
+  const down = load(async () => ({ status: 502, headers: {}, body: "" }));
+  assert.ok(
+    (await down.source.getSectionsForPage(home)).length > 0,
+    `${name}: an ordinary failure must not empty the home page`,
+  );
+}
+console.log("Both Kagane bundles probe the mirror's front page before their rows.");

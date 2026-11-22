@@ -60,6 +60,7 @@ import {
   type PreferenceValue,
   isMigration,
   withDefaults,
+  createClearanceProbe,
 } from "../common/index.ts";
 import { KaganeApi, onMirror } from "./client.ts";
 import {
@@ -128,7 +129,7 @@ import { buildSettingsSections } from "./settings.ts";
 const info: SourceInfo = {
   id: "kagane",
   name: "Kagane",
-  version: "1.2.12",
+  version: "1.2.13",
   description: "Manga, manhwa, manhua and comics from kagane.org.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -180,6 +181,15 @@ class KaganeSource
 {
   readonly info = info;
   readonly config = config;
+
+  // The app passes a challenge on its own only for calls like this page's sections, not for
+  // the rows resolved lazily after them, so the mirror's front page is asked first. Its own
+  // client: cookies are shared, so the clearance reaches the API client too.
+  private readonly probeClient = new HttpClient();
+  private readonly ensureClearance = createClearanceProbe(
+    () => this.probeClient,
+    async () => `${await this.api.siteUrl()}/`,
+  );
 
   private readonly api = new KaganeApi(() =>
     this.preferences.text(PreferenceID.Mirror, MIRRORS[0]!),
@@ -599,6 +609,7 @@ class KaganeSource
   }
 
   async getSectionsForPage(_link: PageLink): Promise<PageSection[]> {
+    await this.ensureClearance();
     return toPageSections(DISCOVER_SECTIONS);
   }
 
