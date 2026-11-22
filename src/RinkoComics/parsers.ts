@@ -21,10 +21,13 @@ import {
   bytesToUtf8,
   clean,
   decodeEntities,
+  escapeHtml,
   parseDate,
   relativeTime,
   resolveUrl,
   panelMode,
+  Mark,
+  statusPill,
   summaryFromHtml,
   text,
   titleCase,
@@ -37,10 +40,12 @@ import {
   LOAD_MORE_SELECTOR,
   LOCK_MARK,
   LOCK_SUFFIX,
+  NOVEL_TEXT_SELECTOR,
   SectionID,
-  VIEWS_MARK,
+  TypeID,
   type Card,
   type ChapterRow,
+  type TitleKind,
 } from "./model.ts";
 
 /** A content id is the site's own path, which is what every link on the page carries. */
@@ -52,6 +57,11 @@ export function pathOf(href: string): string {
     .replace(/^https?:\/\/[^/]+/i, "")
     .replace(/[?#].*$/, "")
     .replace(/^\/+|\/+$/g, "");
+}
+
+/** Novels live under `/novel/`, comics under `/comic/`; the path says which a title is. */
+export function kindOf(contentId: string): TitleKind {
+  return /^novel(?:_chapter)?\//i.test(contentId) ? TypeID.Novel : TypeID.Comic;
 }
 
 export function contentUrl(contentId: string): string {
@@ -147,7 +157,8 @@ function latestChapters($: CheerioAPI, card: Cheerio<AnyNode>, into: Card): void
     const locked = isLockedRow($, row, href);
     // The site drops the link on a chapter it has held back, so requiring one would leave
     // the newest release — the one the padlock is for — out of the row entirely.
-    if (!locked && !href.includes("/chapter/")) continue;
+    // Comics link `/chapter/`, novels `/novel_chapter/`.
+    if (!locked && !/\/(?:novel_)?chapter\//.test(href)) continue;
 
     const label = decodeEntities(text(row.children("span").first()));
     if (!label) continue;
@@ -171,8 +182,26 @@ export function parseHome(html: string): Record<string, Card[]> {
   return {
     [SectionID.Hot]: sectionCards($, SectionID.Hot),
     [SectionID.Pinned]: sectionCards($, SectionID.Pinned),
+    [SectionID.Novels]: sectionCards($, SectionID.Novels),
     [SectionID.Latest]: sectionCards($, SectionID.Latest),
   };
+}
+
+/** The novels' releases: the front page's release block with its Novels tab chosen. */
+export function parseNovelHome(html: string): Card[] {
+  return sectionCards(load(html), SectionID.Latest);
+}
+
+/** The genre chips a hero slide or a ranked card prints, in the site's order. */
+function chipGenres($: CheerioAPI, nodes: Cheerio<AnyNode>): string[] {
+  const genres: string[] = [];
+  nodes.each((_, node) => {
+    for (const part of decodeEntities(text($(node))).split("·")) {
+      const value = part.trim();
+      if (value && !genres.includes(value)) genres.push(value);
+    }
+  });
+  return genres;
 }
 
 function sectionCards($: CheerioAPI, sectionId: string): Card[] {
@@ -188,13 +217,31 @@ function sectionCards($: CheerioAPI, sectionId: string): Card[] {
         },
         (card, into) => {
           into.summary = firstText(card, "p");
+          into.genres = chipGenres(
+            $,
+            card.find("div.flex-wrap > span").first().parent().children("span"),
+          );
           const count = /^(\d+) chapters$/.exec(text(card.find("span.text-subtle").last()));
           if (count) into.chapterCount = count[1];
         },
       );
     case SectionID.Pinned:
+      return parseCards(
+        $,
+        {
+          card: "section[aria-labelledby='cw-week-m'] a",
+          title: ".line-clamp-2",
+          cover: "img",
+        },
+        (card, into) => {
+          const rank = text(card.children("span").first());
+          if (/^\d+$/.test(rank)) into.rank = rank;
+          into.genres = chipGenres($, card.find("span.truncate"));
+        },
+      );
+    case SectionID.Novels:
       return parseCards($, {
-        card: "section[aria-labelledby='cw-week-m'] a",
+        card: "section[aria-labelledby='cw-novels'] a[href*='/novel/']",
         title: ".line-clamp-2",
         cover: "img",
       });
@@ -217,12 +264,19 @@ function sectionCards($: CheerioAPI, sectionId: string): Card[] {
 export function parseBrowse(html: string): { results: Card[]; isLastPage: boolean } {
   const $ = load(html);
 
-  const results = parseCards($, {
-    card: "#cwBrowse ul > li",
-    link: "a",
-    title: ".line-clamp-2",
-    cover: "img",
-  });
+  const results = parseCards(
+    $,
+    {
+      card: "#cwBrowse ul > li",
+      link: "a",
+      title: ".line-clamp-2",
+      cover: "img",
+    },
+    (card, into) => {
+      const status = text(card.find("span.text-subtle").last());
+      if (status) into.status = status;
+    },
+  );
 
   return { results, isLastPage: $("#cwBrowse a.next, #cwBrowse a[rel=next]").length === 0 };
 }
@@ -246,56 +300,46 @@ export function parseGenres(html: string): Option[] {
 }
 
 /**
- * The pill over a tile's cover.
- *
- * The site counts what a title has been read and grades it nothing else, so that count is
- * what the pill carries. A card the site prints no count on wears no pill.
+ * The pill over a tile's cover: the site's own rank where it ranks a row, else where the
+ * title has got to. A card the site prints neither on wears no pill.
  */
 function buildBadge(card: Card): string {
-  return card.views ? `${VIEWS_MARK} ${card.views}` : "";
+  if (card.rank) return `#${card.rank}`;
+  return statusPill(titleCase(card.status));
 }
 
 /**
  * What a tile writes under its title.
  *
- * The count is on the pill above, so a ranked card says how much there is to read instead
- * — the other number the site prints on it.
+ * Editor's Choice is the one card the site writes a blurb for, so that blurb is what its
+ * hero carries; elsewhere the genres the card prints say what kind of story it is.
  *
- * Latest Releases says nothing on this line: its chapters are rows of their own beneath it,
- * and repeating the newest one here would print it twice.
+ * The release rows say nothing on this line: their chapters are rows of their own beneath
+ * it, and repeating the newest one here would print it twice.
  */
 function buildSubtitle(card: Card, sectionId: string): string {
-  if (sectionId === SectionID.Latest) return "";
-
-  if (sectionId === SectionID.Hot) return card.summary ?? "";
-
+  if (sectionId === SectionID.Latest || sectionId === SectionID.NovelLatest) return "";
+  if (sectionId === SectionID.Hot) return card.summary ?? card.genres.slice(0, 3).join(", ");
   return card.genres.slice(0, 3).join(", ");
 }
 
 /**
  * The rows a vertical list draws beneath a title — the site's own recent releases, each
  * against the time it landed, with a padlock on the ones it has held back.
- *
- * The count leads them. No pill is drawn over the thumbnail a list like this uses, so the
- * one number the site prints on the card would otherwise be nowhere on the tile at all.
  */
 function buildInfoRows(card: Card): Pair[] {
-  const rows: Pair[] = [];
-  if (card.views) rows.push({ key: "Views", value: `${VIEWS_MARK} ${card.views}` });
-
-  for (const chapter of card.chapters) {
-    rows.push({
-      key: chapter.locked ? `${LOCK_MARK} ${chapter.label}` : chapter.label,
-      value: chapter.uploaded ? relativeTime(chapter.uploaded) : "",
-    });
-  }
-  return rows;
+  return card.chapters.map((chapter) => ({
+    key: chapter.locked ? `${LOCK_MARK} ${chapter.label}` : chapter.label,
+    value: chapter.uploaded ? relativeTime(chapter.uploaded) : "",
+  }));
 }
 
 export function toHighlight(card: Card, sectionId: string): Highlight {
+  const releases = sectionId === SectionID.Latest || sectionId === SectionID.NovelLatest;
   const subtitle = buildSubtitle(card, sectionId);
-  const info = sectionId === SectionID.Latest ? buildInfoRows(card) : [];
-  const badge = sectionId === SectionID.Latest ? undefined : toBadge(buildBadge(card));
+  const info = releases ? buildInfoRows(card) : [];
+  // The hero draws its artwork full-bleed under the blurb; a pill there covers the art.
+  const badge = releases || sectionId === SectionID.Hot ? undefined : toBadge(buildBadge(card));
 
   return {
     id: card.id,
@@ -355,20 +399,32 @@ export function parseContent(html: string, contentId: string): Content {
     firstText(page, "#cwSynopsis", ".comic-synopsis", ".novel-synopsis") ||
     decodeEntities(clean($("meta[property='og:description']").first().attr("content") ?? ""));
 
-  const state = text(
-    $("#main dt")
-      .filter((_, el) => text($(el)) === "Status")
-      .next("dd"),
-  );
+  // The facts panel prints each fact twice, once per layout, so the first of each counts.
+  const facts = new Map<string, string>();
+  $("#main dt").each((_, node) => {
+    const key = text($(node));
+    const value = decodeEntities(text($(node).next("dd")));
+    if (key && value && !facts.has(key)) facts.set(key, value);
+  });
+
+  const state = facts.get("Status") ?? "";
   const status = parseStatus(state);
+  const kind = kindOf(contentId);
 
   const info: Pair[] = [];
   const statusLabel = titleCase(state);
-  if (statusLabel) info.push({ key: "Status", value: `◌ ${statusLabel}` });
+  if (statusLabel) info.push({ key: "Status", value: `${Mark.Status} ${statusLabel}` });
+  const typeLabel = titleCase(facts.get("Type"));
+  if (typeLabel) info.push({ key: "Type", value: `${Mark.Type} ${typeLabel}` });
+  const count = facts.get(kind === TypeID.Novel ? "Episodes" : "Chapters");
+  if (count) info.push({ key: kind === TypeID.Novel ? "Episodes" : "Chapters", value: count });
+  const views = facts.get("Views");
+  if (views) info.push({ key: "Views", value: `${Mark.Views} ${views}` });
 
-  // The catalogue is comics throughout, so the only thing that separates a strip from a
+  // Only a comic has panels to lay out, and the only thing that separates a strip from a
   // paged release here is a genre naming it one.
-  const panel = panelMode({ tags: tags.map((tag) => tag.title) });
+  const panel =
+    kind === TypeID.Comic ? panelMode({ tags: tags.map((tag) => tag.title) }) : undefined;
 
   return {
     title,
@@ -377,9 +433,8 @@ export function parseContent(html: string, contentId: string): Content {
     additionalTitles: [],
     tags,
     ...(status === undefined ? {} : { status }),
-    // The site files novels separately and they are not offered here, so a title reached
-    // this way is a comic.
-    contentType: ContentType.COMIC,
+    // A novel is what opens the book reader, which reads its episodes as documents.
+    contentType: kind === TypeID.Novel ? ContentType.NOVEL : ContentType.COMIC,
     ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: ContentRating.SAFE,
     ...(creators.length > 0 ? { creators } : {}),
@@ -436,18 +491,25 @@ export function parseChapterRows(html: string): ChapterRow[] {
     const id = path || `locked-${postId}`;
     if (!id) return;
 
-    const name =
-      firstText(
-        row,
-        ".chapter-number",
-        ".ch-name",
-        ".chapter-side-title",
-        "label",
-        "span > span:first-child",
-      ) || decodeEntities(clean(row.attr("data-title") ?? ""));
+    // A novel's episode row prints its number as `#12` beside the episode's own title; the
+    // whole label is passed on, since the app prints a chapter title as it is given.
+    const episode = /^#(\d+(?:\.\d+)?)$/.exec(firstText(row, "span.font-semibold"));
+    const name = episode
+      ? [`Episode ${episode[1]}`, firstText(row, "span.truncate")].filter(Boolean).join(": ")
+      : firstText(
+          row,
+          ".chapter-number",
+          ".ch-name",
+          ".chapter-side-title",
+          "label",
+          "span > span:first-child",
+        ) || decodeEntities(clean(row.attr("data-title") ?? ""));
 
     const stamp = (
-      firstText(row, ".chapter-date") || text(row.children("span").first().children("span").last())
+      firstText(row, ".chapter-date") ||
+      (episode
+        ? text(row.children("span").last())
+        : text(row.children("span").first().children("span").last()))
     )
       .split("·")[0]
       ?.trim();
@@ -559,8 +621,38 @@ export function parsePages(html: string): string[] {
   return pages;
 }
 
-/** A novel chapter serves prose where a comic serves images, and Mana reads only images. */
-export function isProseChapter(html: string): boolean {
+export type ProseChapter = { title: string; body: string };
+
+/**
+ * An episode's prose, ready for the book reader, or `undefined` for a comic chapter.
+ *
+ * Only the paragraphs and the plain inline markup inside them are kept; the theme's reader
+ * controls, scripts and styling are not the book's.
+ */
+export function parseProse(html: string): ProseChapter | undefined {
   const $ = load(html);
-  return $("#cwNovelText, #textContent").length > 0 || $(".novel-content").length > 0;
+  const root = $(NOVEL_TEXT_SELECTOR).first();
+  if (root.length === 0) return undefined;
+
+  root.find("script, style, noscript, iframe, form, button, ins, .adsbygoogle").remove();
+  const paragraphs: string[] = [];
+  root.find("p, h2, h3, h4, blockquote, hr").each((_, node) => {
+    const element = $(node);
+    const tag = (node as { tagName?: string }).tagName?.toLowerCase() ?? "p";
+    if (tag === "hr") {
+      paragraphs.push("<hr/>");
+      return;
+    }
+    const value = text(element);
+    if (value) paragraphs.push(`<${tag}>${escapeHtml(value)}</${tag}>`);
+  });
+  if (paragraphs.length === 0) {
+    const plain = text(root);
+    if (plain) paragraphs.push(`<p>${escapeHtml(plain)}</p>`);
+  }
+
+  const heading = decodeEntities(text($("h1.cw-novel-title, h1").first()));
+  const episode = decodeEntities(text($("header span").first()));
+  const title = [episode, heading].filter(Boolean).join(": ") || "Episode";
+  return { title, body: `<h1>${escapeHtml(title)}</h1>${paragraphs.join("")}` };
 }

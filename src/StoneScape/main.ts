@@ -37,6 +37,7 @@ import {
 import {
   fallbackUnlessCloudflare,
   FilterReader,
+  htmlChapter,
   PreferenceStore,
   TimedCache,
   buildPreferenceMenu,
@@ -53,6 +54,7 @@ import { StoneScapeApi } from "./client.ts";
 import {
   BASE_URL,
   BUNDLED_GENRES,
+  ContentKind,
   DISCOVER_SECTIONS,
   FilterID,
   GENRE_LIFETIME_MS,
@@ -66,10 +68,13 @@ import {
   STATUS_OPTIONS,
   SectionID,
   SortID,
+  TYPE_OPTIONS,
+  sectionKind,
   type Series,
   type SeriesResponse,
 } from "./model.ts";
 import {
+  novelChapterHtml,
   parseChapters,
   parseContent,
   parsePages,
@@ -84,8 +89,8 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "stonescape",
   name: "StoneScape",
-  version: "1.2.1",
-  description: "Manhwa, manhua and manga from stonescape.xyz.",
+  version: "1.2.2",
+  description: "Manhwa, manhua, manga and novels from stonescape.xyz.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
   supportedLanguages: [DefinedLanguages.ENGLISH],
@@ -157,8 +162,12 @@ class StoneScapeSource
   async getSearchForm(): Promise<SearchForm> {
     return buildSearchForm({
       header: "Filters",
-      footer: "Anything left empty falls back to the site's own defaults.",
-      fields: [SearchPicker({ id: FilterID.Status, title: "Status", options: STATUS_OPTIONS })],
+      footer:
+        "The site lists comics and novels apart, so a search reads one of them. Anything left empty falls back to the site's own defaults.",
+      fields: [
+        SearchPicker({ id: FilterID.Type, title: "Type", options: TYPE_OPTIONS }),
+        SearchPicker({ id: FilterID.Status, title: "Status", options: STATUS_OPTIONS }),
+      ],
       // A tags section is always inline chips and ignores a sheet builder, which suits the
       // forty-odd genres the site lists.
       tags: SearchExcludableMultiPicker({
@@ -201,9 +210,14 @@ class StoneScapeSource
     const hero = isHeroSection(sectionID);
     const subtitle = SECTION_SUBTITLES[sectionID];
 
-    if (sectionID === SectionID.Featured) {
+    const kind = sectionKind(sectionID);
+    if (sectionID === SectionID.Featured || sectionID === SectionID.Novels) {
       // The site hand-picks this set and it arrives whole, so it is shown as given.
-      const banner = await this.api.fetchBanner();
+      const banner = await this.api.fetchBanner(kind);
+      // The site can switch its novel carousel off, and then shows none.
+      if (kind === ContentKind.Novel && banner.showNovelSection === false) {
+        return { results: [], isLastPage: true };
+      }
       const featured = this.permitted(banner.featuredSeries ?? [], allowed);
       return {
         results: featured.map((entry) => toHighlight(entry, hero, subtitle)),
@@ -214,11 +228,11 @@ class StoneScapeSource
     const period = SECTION_PERIODS[sectionID];
     if (period) {
       // The popular endpoint pages, so its row shares the listing the "more" link opens.
-      const response = await this.api.fetchPopular(period, PAGE_SIZE, page);
+      const response = await this.api.fetchPopular(period, PAGE_SIZE, page, kind);
       return this.toResults(response, page, allowed, hero, subtitle);
     }
 
-    const response = await this.api.fetchSeries({ page, limit: PAGE_SIZE });
+    const response = await this.api.fetchSeries({ kind, page, limit: PAGE_SIZE });
     return this.toResults(response, page, allowed, hero, subtitle);
   }
 
@@ -274,6 +288,8 @@ class StoneScapeSource
     const page = pageOf(request);
 
     const response = await this.api.fetchSeries({
+      kind:
+        filters.option(FilterID.Type) === ContentKind.Novel ? ContentKind.Novel : ContentKind.Comic,
       page,
       limit: PAGE_SIZE,
       ...(query ? { search: query } : {}),
@@ -316,9 +332,26 @@ class StoneScapeSource
     return parseChapters(response.chapters ?? [], showLocked);
   }
 
-  async getChapterData(_contentId: string, chapterId: string): Promise<ChapterData> {
+  async getChapterData(contentId: string, chapterId: string): Promise<ChapterData> {
     const response = await this.api.fetchChapterPages(chapterId);
     const pages = parsePages(response);
+
+    // A novel chapter has no pages, only text, which the API serves by chapter number. The
+    // chapter keeps the same id a comic's does, so the number is looked up in the list.
+    if (pages.length === 0) {
+      const chapter = (await this.api.fetchChapters(contentId)).chapters?.find(
+        (entry) => entry.chapterId === chapterId,
+      );
+      if (chapter) {
+        const novel = await this.api.fetchNovelChapter(contentId, chapter.chapterNumber);
+        if (novel.chapter.contentHtml?.trim()) {
+          return htmlChapter(
+            novel.response,
+            novelChapterHtml(novel.chapter, chapter.title ?? "Chapter"),
+          );
+        }
+      }
+    }
 
     // A locked chapter answers with no pages rather than an error, so the reason a reader
     // would otherwise have to guess at is spelled out here.

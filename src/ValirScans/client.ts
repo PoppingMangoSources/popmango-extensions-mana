@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import type { HttpClient } from "@mana-app/types";
+import type { HttpClient, HttpResponse } from "@mana-app/types";
 
 import { buildClient, withQuery } from "../common/index.ts";
 import {
@@ -13,6 +13,7 @@ import {
 } from "./model.ts";
 
 export type BrowseQuery = {
+  mode?: "comics" | "novels";
   page: number;
   search?: string | undefined;
   sort?: string | undefined;
@@ -100,6 +101,26 @@ export class ValirScansApi {
     return this.get(`${BASE_URL}/series/${contentId}/chapter/${chapterId}`, { rsc: "1" });
   }
 
+  /**
+   * The reader route with the response it came in, for a chapter being opened: a novel's
+   * prose goes to the book reader as that response with its body swapped. Not cached — a
+   * chapter is opened once, and the reader needs the response object itself.
+   */
+  async fetchReader(
+    contentId: string,
+    chapterId: string,
+  ): Promise<{ response: HttpResponse; body: string }> {
+    const response = await this.http.get(`${BASE_URL}/series/${contentId}/chapter/${chapterId}`, {
+      headers: { rsc: "1" },
+    });
+    if (response.status >= 500) {
+      throw new Error(
+        `ValirScans' server did not answer (HTTP ${response.status}). Try again in a few minutes.`,
+      );
+    }
+    return { response: response.requireOk(), body: await response.text() };
+  }
+
   fetchSession(): Promise<string> {
     return this.get(`${BASE_URL}${SESSION_PATH}`);
   }
@@ -112,7 +133,7 @@ export class ValirScansApi {
     const params: Record<string, string | number | undefined> = {
       page: query.page,
       limit: 24,
-      mode: "comics",
+      mode: query.mode ?? "comics",
       q: query.search?.trim() || undefined,
       ch_min: query.minChapters,
       ch_max: query.maxChapters,

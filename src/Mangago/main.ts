@@ -116,7 +116,7 @@ import { decodeHex } from "../common/bytes.ts";
 const info: SourceInfo = {
   id: "mangago",
   name: "Mangago",
-  version: "1.2.5",
+  version: "1.2.6",
   description: "Manga, manhwa and doujinshi from mangago.me.",
   website: DOMAIN,
   rating: CatalogRating.MIXED,
@@ -245,7 +245,9 @@ class MangagoSource
   async getPreferenceMenu(): Promise<Form> {
     return buildPreferenceMenu(
       this.preferences,
-      buildSettingsSections(() => this.genres()),
+      // Settings never send the reader to a challenge; the built-in list stands in until the
+      // home page, which reads the same site, has passed it.
+      buildSettingsSections(() => this.genres().catch(() => GENRE_OPTIONS)),
     );
   }
 

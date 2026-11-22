@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { Body, type HttpClient } from "@mana-app/types";
+import { Body, type HttpClient, type HttpResponse } from "@mana-app/types";
 
 import { buildClient, withQuery } from "../common/index.ts";
-import { AJAX_PATH, BASE_URL, PAGE_CACHE_MS, SortID } from "./model.ts";
+import { AJAX_PATH, BASE_URL, PAGE_CACHE_MS, SortID, type TitleKind } from "./model.ts";
 
 export type BrowseQuery = {
+  kind: TitleKind;
   page: number;
   search?: string | undefined;
   sort?: string | undefined;
@@ -75,12 +76,16 @@ export class RinkoComicsApi {
     return this.get(`${BASE_URL}/?show=today`);
   }
 
+  /** The same front page with its releases switched to novels, on the All tab. */
+  fetchNovelHome(): Promise<string> {
+    return this.get(`${BASE_URL}/?rel=novels`);
+  }
+
   browseUrl(query: BrowseQuery): string {
     // The theme pages by path and keeps everything else in the query string.
-    const path = query.page > 1 ? `/comic/page/${query.page}/` : "/comic/";
+    const path = query.page > 1 ? `/${query.kind}/page/${query.page}/` : `/${query.kind}/`;
     const base = withQuery(`${BASE_URL}${path}`, {
       q: query.search,
-      // `newest` is the site's own default, and omitting it keeps the URL honest.
       sort: query.sort ?? SortID.Newest,
     });
 
@@ -104,6 +109,20 @@ export class RinkoComicsApi {
 
   fetchPage(path: string): Promise<string> {
     return this.get(`${BASE_URL}/${path.replace(/^\/+/, "")}`);
+  }
+
+  /**
+   * A page as the response itself, for a novel episode whose page goes on to the book
+   * reader. Not cached: an episode is read once, and the reader needs the response object.
+   */
+  async fetchResponse(path: string): Promise<HttpResponse> {
+    const response = await this.http.get(`${BASE_URL}/${path.replace(/^\/+/, "")}`);
+    if (response.status >= 500) {
+      throw new Error(
+        `RinkoComics' server did not answer (HTTP ${response.status}). Try again in a few minutes.`,
+      );
+    }
+    return response.requireOk();
   }
 
   /** One batch of the chapter list past the first. */

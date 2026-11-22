@@ -107,6 +107,21 @@ the order password, web, OAuth — so a password method kept beside OAuth hides 
 - `Content.trackerInfo` keys must match a tracker's link keys — its `info.id` unless its
   `trackerConfig.linkKeys` says otherwise (`anilist`, `mal`).
 
+## Cloudflare
+
+- The SDK throws `CloudflareError` itself, before response interceptors, for any response
+  with `cf-mitigated: challenge` — whatever its status — and for a Cloudflare 403/503 whose
+  body carries a challenge marker. Its resolution URL is the request's own URL.
+- A host that sends `cf-mitigated: challenge` on responses that are not challenges can never
+  pass: kagane.moe answered its robots.txt 200 with that header on 2026-11-22. Prefer a
+  mirror that does not, and check a mirror's robots.txt headers before making it the default.
+- When the challenged request is an API call or a POST, rethrow the error naming the host's
+  front page (`https://host/`): the bypass loads the URL as a GET, and a front page is a page
+  it can finish on. The clearance covers the whole host either way.
+- Settings never raise a challenge. A list the settings screen cannot read falls back to a
+  bundled or cached one, or is left out; the home page asks for the same data and clears the
+  challenge there, where a reader expects to be asked.
+
 ## Cookies
 
 - WebView cookies are copied to the app's store when a flow ends — a Cloudflare check, a web
@@ -209,6 +224,25 @@ A title with `ContentType.NOVEL` — "Book" in the app — opens in the book rea
 - `@mana-app/types@0.1.1` declares `document` but not `text`; return `text` through a type
   that adds it until the package does.
 - Malformed archives, archives without images and HTTP failures reject with an error.
+
+### Novels in a comic source
+
+A site that publishes comics and novels side by side (RinkoComics, StoneScape, ValirScans)
+serves both from one source rather than two:
+
+- `contentType` is decided per title — `ContentType.NOVEL` for a novel, a comic type
+  otherwise. It is what sends the title to the book reader, and a novel listed as a comic
+  opens to an empty image reader. `recommendedPanelMode` is for comics only.
+- A novel chapter returns `htmlChapter(response, chapterDocument(title, body))` from
+  `src/common/books.ts`: the page or API response the prose came in, with its body swapped
+  for a standalone HTML document. That keeps the status and URL the app checks, costs no
+  second request, and is the form `@mana-app/types` declares. Keep only the prose and its
+  plain inline markup; the site's reader controls, scripts and ads are not the book's.
+- Images inside the prose need absolute URLs; a relative `src` loads nothing.
+- Chapter ids already in readers' libraries do not change. Where a novel's text is fetched
+  by something other than the id (StoneScape asks by chapter number), look it up.
+- Listings that the site splits by type get a picker for it in search, and the home page
+  keeps the site's own novel rows under their own names.
 
 ## Removed in Build 55
 

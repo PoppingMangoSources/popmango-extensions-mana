@@ -83,6 +83,7 @@ Everything reusable lives in `src/common/` and is **imported, not copied**:
 | `html.ts` | `text`, `clean`, `imageSrc`, `summaryOf`, `parseStatus`, `hasNextPage` |
 | `aes.ts` | `aesCbcDecrypt`, on `crypto-js`. Import it directly — it is not in the barrel |
 | `bytes.ts` | `base64ToBytes`, `bytesToUtf8`, `utf8ToBytes`, `decodeHex`, `bytesToBase64Url` |
+| `books.ts` | `htmlChapter`, `chapterDocument`, `escapeHtml`, `textToHtml` for novel chapters |
 
 A directory becomes a source when one of its files exports `class Target`. That is why
 `src/common/` is shared code and not an extension of its own — never put a `Target` in it.
@@ -233,6 +234,10 @@ The failures this repo has actually shipped, each silent:
 - [ ] Decryption through `response.decrypt` / `Crypto.decrypt`, not bytes read into
       JavaScript, wherever a native cipher fits
 - [ ] A form field's `optional` is `true` or left out — nothing else counts
+- [ ] A novel title sets `ContentType.NOVEL`, and its chapters return
+      `htmlChapter(response, chapterDocument(...))` — never an error saying text cannot be shown
+- [ ] Settings never raise a Cloudflare challenge; a list they cannot read falls back
+- [ ] A challenged API or POST request is rethrown naming the host's front page
 - [ ] A new source starts at `1.0.0`; **every** push that changes one bumps its **patch**
       digit, whatever changed — never batch pushes under a number, and move the minor digit
       only when it is asked for by name

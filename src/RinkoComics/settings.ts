@@ -24,7 +24,7 @@ export function buildSettingsSections(): PreferenceSection[] {
     {
       header: "Home Sections",
       footer:
-        "Every row is read from the same page, so the whole home costs one request however many are on.",
+        "Every row but the novels' releases is read from the same page, so the whole home costs two requests however many are on.",
       fields: DISCOVER_SECTIONS.map((section) => ({
         type: "toggle" as const,
         key: sectionPreferenceKey(section.id),

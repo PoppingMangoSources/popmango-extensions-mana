@@ -113,7 +113,7 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "toonkotsu",
   name: "Toonkotsu",
-  version: "1.2.5",
+  version: "1.2.6",
   description: "Manga, manhwa and manhua from toonkotsu.com.",
   website: BASE_URL,
   rating: CatalogRating.MIXED,
@@ -298,7 +298,9 @@ class ToonkotsuSource
     return buildPreferenceMenu(
       this.preferences,
       buildSettingsSections(async () => {
-        const groups = parseTagGroups(await this.facets());
+        // Settings never send the reader to a challenge; an unreadable list is left out
+        // until the home page, which reads the same API, has passed it.
+        const groups = parseTagGroups(await this.facets().catch(() => ({}) as FacetsResponse));
         return groups
           .flatMap((group) => group.options)
           .sort((left, right) => left.title.localeCompare(right.title));

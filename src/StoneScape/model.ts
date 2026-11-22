@@ -14,13 +14,23 @@ export const PAGE_SIZE = 24;
 export const GENRE_LIFETIME_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Only the comic half of the catalogue is offered. The site also publishes novels, whose
- * chapters are HTML text, and a Mana chapter is a list of images with no text form — a
- * novel would list here and then open to nothing.
+ * The two halves of the catalogue, as the API's `contentType` names them. Every listing asks
+ * for one: left out, the API mixes novels into the comic rows.
  */
-export const CONTENT_TYPE = "manhwa";
+export const ContentKind = {
+  Comic: "manhwa",
+  Novel: "novel",
+} as const;
+
+export type ContentKindId = (typeof ContentKind)[keyof typeof ContentKind];
+
+export const TYPE_OPTIONS: Option[] = [
+  { id: ContentKind.Comic, title: "Manhwa & Manga" },
+  { id: ContentKind.Novel, title: "Novels" },
+];
 
 export const FilterID = {
+  Type: "type",
   Status: "status",
   Genres: "genres",
 } as const;
@@ -39,6 +49,9 @@ export const SectionID = {
   PopularMonth: "popular_month",
   PopularYear: "popular_year",
   Latest: "latest",
+  Novels: "novels",
+  LatestNovels: "latest_novels",
+  PopularNovels: "popular_novels",
 } as const;
 
 export const PreferenceID = {
@@ -154,7 +167,36 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     // The banner is a hand-picked set with no listing behind it.
     viewMore: false,
   },
+  // The site's novel half, which it fronts with a banner and popular and latest strips of
+  // its own, kept after the comics so the page reads as the site's comic front page first.
+  {
+    id: SectionID.Novels,
+    title: "Novels",
+    subtitle: "The site's own novel carousel",
+    style: SectionStyle.SimpleSingleRow,
+    viewMore: false,
+  },
+  {
+    id: SectionID.PopularNovels,
+    title: "Popular Novels",
+    subtitle: "Most read over the last seven days",
+    style: SectionStyle.SimpleSingleRow,
+  },
+  {
+    id: SectionID.LatestNovels,
+    title: "Latest Novels",
+    style: SectionStyle.DetailedVerticalListGrouped,
+  },
 ];
+
+/** The rows that list the novel half of the catalogue. */
+export function sectionKind(sectionId: string): ContentKindId {
+  return sectionId === SectionID.Novels ||
+    sectionId === SectionID.LatestNovels ||
+    sectionId === SectionID.PopularNovels
+    ? ContentKind.Novel
+    : ContentKind.Comic;
+}
 
 /** Which rows are drawn as a wide hero card, and so want the banner rather than the cover. */
 export function isHeroSection(sectionId: string): boolean {
@@ -180,6 +222,9 @@ export const SECTION_SUBTITLES: Record<string, "chapter" | "kind" | "views" | "h
   [SectionID.PopularMonth]: "views",
   [SectionID.Latest]: "chapter",
   [SectionID.Featured]: "chapter",
+  [SectionID.Novels]: "chapter",
+  [SectionID.PopularNovels]: "views",
+  [SectionID.LatestNovels]: "chapter",
 };
 
 /** The periods `/api/series/popular` accepts, keyed by the section that asks for one. */
@@ -187,6 +232,7 @@ export const SECTION_PERIODS: Record<string, PopularPeriod> = {
   [SectionID.PopularWeek]: "week",
   [SectionID.PopularMonth]: "month",
   [SectionID.PopularYear]: "year",
+  [SectionID.PopularNovels]: "week",
 };
 
 export type PopularPeriod = "week" | "month" | "year";
@@ -238,7 +284,10 @@ export type SeriesResponse = {
   } | null;
 };
 
-export type BannerResponse = { featuredSeries?: Series[] | null };
+export type BannerResponse = {
+  featuredSeries?: Series[] | null;
+  showNovelSection?: boolean | null;
+};
 
 export type GenreResponse = { genres?: { slug: string; label: string }[] | null };
 
@@ -251,6 +300,14 @@ export type SeriesChapterDetails = SeriesChapter & {
 
 export type ChapterListResponse = { chapters?: SeriesChapterDetails[] | null };
 
+/** A novel chapter's text, which the API serves by series and chapter number. */
+export type NovelChapterResponse = SeriesChapterDetails & {
+  contentHtml?: string | null;
+  noteBeforeHtml?: string | null;
+  noteAfterHtml?: string | null;
+  illustrations?: { pageNumber: number; imageUrl: string }[] | null;
+};
+
 export type ChapterPageItem = { pageNumber?: number | null; url: string };
 
 export type ChapterPagesResponse = {
@@ -259,6 +316,7 @@ export type ChapterPagesResponse = {
 };
 
 export type SeriesQuery = {
+  kind?: ContentKindId;
   page: number;
   limit?: number;
   genres?: string[];

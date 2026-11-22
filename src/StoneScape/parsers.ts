@@ -24,11 +24,14 @@ import {
   titleCase,
   toBadge,
   typePill,
+  chapterDocument,
+  escapeHtml,
 } from "../common/index.ts";
 import {
   BASE_URL,
   CONTENT_RATING_GENRES,
   type ChapterPagesResponse,
+  type NovelChapterResponse,
   type Series,
   type SeriesChapterDetails,
 } from "./model.ts";
@@ -83,6 +86,8 @@ export function parseRating(genres: readonly string[] | null | undefined): Conte
 
 /** The catalogue is Korean unless a series says otherwise. */
 function parseContentType(series: Series): ContentType {
+  // A novel opens in the book reader, whatever country it comes from.
+  if ((series.contentType ?? "").toLowerCase() === "novel") return ContentType.NOVEL;
   switch ((series.countryOfOrigin ?? "").toUpperCase()) {
     case "JP":
       return ContentType.MANGA;
@@ -424,4 +429,30 @@ export function parsePages(response: ChapterPagesResponse): string[] {
 /** A pasted series link is treated as a search for that series. */
 export function slugFromUrl(value: string): string | undefined {
   return /^https?:\/\/(?:www\.)?stonescape\.xyz\/series\/([^/?#]+)/i.exec(value.trim())?.[1];
+}
+
+/**
+ * A novel chapter as one HTML document for the book reader: its heading, the author's notes
+ * either side of the text, and any illustrations after it, with the site's relative image
+ * paths made absolute so the reader can load them.
+ */
+export function novelChapterHtml(response: NovelChapterResponse, fallbackTitle: string): string {
+  const number = Number.parseFloat(response.chapterNumber ?? "");
+  const label = Number.isFinite(number) ? `Chapter ${number}` : fallbackTitle;
+  const name = decodeEntities(clean(response.title ?? ""));
+  const heading = name ? `${label}: ${name}` : label;
+  const illustrations = [...(response.illustrations ?? [])]
+    .sort((left, right) => left.pageNumber - right.pageNumber)
+    .map((image) => `<p><img src="${escapeHtml(absoluteUrl(image.imageUrl))}" alt=""/></p>`)
+    .join("");
+  const body = [
+    `<h1>${escapeHtml(heading)}</h1>`,
+    response.noteBeforeHtml ?? "",
+    response.contentHtml ?? "",
+    response.noteAfterHtml ?? "",
+    illustrations,
+  ]
+    .join("")
+    .replace(/(\s(?:src|href)=["'])\/(?!\/)/g, `$1${BASE_URL}/`);
+  return chapterDocument(heading, body);
 }

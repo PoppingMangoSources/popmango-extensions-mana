@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 
-import { CloudflareError, HttpClient } from "@mana-app/types";
+import { CloudflareError, HttpClient, type HttpResponse } from "@mana-app/types";
 
 import {
   ACCEPT_LANGUAGE,
@@ -12,7 +12,9 @@ import {
 import {
   API_URL,
   BASE_URL,
-  CONTENT_TYPE,
+  ContentKind,
+  type ContentKindId,
+  type NovelChapterResponse,
   PAGE_SIZE,
   SortID,
   type BannerResponse,
@@ -106,7 +108,7 @@ export class StoneScapeApi {
     return withQuery(`${API_URL}/series`, {
       page: query.page,
       limit: query.limit ?? PAGE_SIZE,
-      contentType: CONTENT_TYPE,
+      contentType: query.kind ?? ContentKind.Comic,
       genres: query.genres?.length ? query.genres.join(",") : undefined,
       status: query.status,
       search: query.search,
@@ -119,19 +121,49 @@ export class StoneScapeApi {
     return this.get<SeriesResponse>(this.seriesUrl(query));
   }
 
-  fetchPopular(period: PopularPeriod, limit: number, page = 1): Promise<SeriesResponse> {
+  fetchPopular(
+    period: PopularPeriod,
+    limit: number,
+    page = 1,
+    kind: ContentKindId = ContentKind.Comic,
+  ): Promise<SeriesResponse> {
     return this.get<SeriesResponse>(
-      withQuery(`${API_URL}/series/popular`, {
-        page,
-        period,
-        contentType: CONTENT_TYPE,
-        limit,
-      }),
+      withQuery(`${API_URL}/series/popular`, { page, period, contentType: kind, limit }),
     );
   }
 
-  fetchBanner(): Promise<BannerResponse> {
-    return this.get<BannerResponse>(`${API_URL}/banner-config`);
+  fetchBanner(kind: ContentKindId = ContentKind.Comic): Promise<BannerResponse> {
+    return this.get<BannerResponse>(
+      `${API_URL}/${kind === ContentKind.Novel ? "novel-banner-config" : "banner-config"}`,
+    );
+  }
+
+  /**
+   * A novel chapter's text, with the response it came in: the book reader is handed that
+   * response with its body swapped for the finished document. The API finds the chapter by
+   * its number, not its id.
+   */
+  async fetchNovelChapter(
+    slug: string,
+    chapterNumber: string,
+  ): Promise<{ response: HttpResponse; chapter: NovelChapterResponse }> {
+    const response = await this.http.get(
+      `${API_URL}/series/by-slug/${encodeURIComponent(slug)}/chapters/${encodeURIComponent(chapterNumber)}/novel-content`,
+    );
+    const body = await response.text();
+    if (response.status >= 400) {
+      const stated = errorMessage(body);
+      throw new Error(
+        stated
+          ? `StoneScape rejected the request: ${stated} (HTTP ${response.status})`
+          : `StoneScape rejected the request (HTTP ${response.status})`,
+      );
+    }
+    try {
+      return { response, chapter: JSON.parse(body) as NovelChapterResponse };
+    } catch {
+      throw new Error("StoneScape returned a chapter that was not JSON.");
+    }
   }
 
   fetchGenres(): Promise<GenreResponse> {

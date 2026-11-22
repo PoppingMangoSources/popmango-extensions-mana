@@ -97,7 +97,9 @@ download, and each changed setting after reopening the source.
 
 A source with sign-in: sign in from the app's own screen, reopen the source, then sign out
 and confirm a signed-in request now fails. A book (`ContentType.NOVEL`): a chapter opens in
-the book reader, and reads offline once downloaded.
+the book reader, and reads offline once downloaded. A source that serves novels beside comics
+is verified twice — once with its comic probe, once with `--probe` naming a novel's
+`contentId` and a free `chapterId` — and the reader check must say `document, HTTP 200`.
 
 ## Sources with their own tests
 

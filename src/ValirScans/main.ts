@@ -8,6 +8,7 @@ import {
   SearchExcludableMultiPickerSheet,
   SearchTextField,
   SearchMenuPicker,
+  SearchPicker,
   type BasicURL,
   type BooleanState,
   type Chapter,
@@ -53,6 +54,8 @@ import {
   type PreferenceValue,
   IMAGE_ACCEPT,
   imageClient,
+  chapterDocument,
+  htmlChapter,
 } from "../common/index.ts";
 import { ValirScansApi, type BrowseQuery } from "./client.ts";
 import {
@@ -78,6 +81,7 @@ import {
   type HomeSections,
   type ValirChapterItem,
   type ValirSeries,
+  MODE_OPTIONS,
 } from "./model.ts";
 import {
   chapterIsLocked,
@@ -99,8 +103,8 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "valirscans",
   name: "ValirScans",
-  version: "1.2.2",
-  description: "Comics from valirscans.org.",
+  version: "1.2.3",
+  description: "Comics and novels from valirscans.org.",
   website: BASE_URL,
   // The catalogue runs from all-ages to adult, and the site grades each title itself.
   rating: CatalogRating.MIXED,
@@ -245,6 +249,8 @@ class ValirScansSource
     const { genres, tags } = await this.filterTaxonomy();
 
     const fields: SearchListItem[] = [
+      // The site browses its comics and its novels apart, so a search reads one of them.
+      SearchPicker({ id: FilterID.Mode, title: "Comics or Novels", options: MODE_OPTIONS }),
       // The site's own filter panel includes and excludes each facet, so each field here
       // does too. Genres and tags come off the site and are long, which takes a sheet —
       // the host no longer promotes a long list to one on its own.
@@ -339,11 +345,12 @@ class ValirScansSource
     const rows: Record<string, ValirSeries[]> = {
       [SectionID.MostPopular]: home.mostPopular,
       [SectionID.LatestComics]: home.latestUpdates,
+      [SectionID.LatestNovels]: home.latestUpdates,
       [SectionID.PopularToday]: home.popularToday,
       [SectionID.EditorsPicks]: home.editorsPicks,
     };
 
-    const series = permitted(rows[sectionID] ?? [], allowed);
+    const series = permitted(rows[sectionID] ?? [], allowed, sectionID === SectionID.LatestNovels);
     return {
       // Only a ranked row numbers its tiles, and it is the site's own order that ranks
       // them — the cards arrive one per rank rather than carrying a rank of their own.
@@ -359,7 +366,9 @@ class ValirScansSource
   ): Promise<PagedSearchResult> {
     const { series, hasMore } = parseBrowse(await this.api.fetchBrowse(query));
     return {
-      results: permitted(series, allowed).map((entry) => toHighlight(entry, "stats")),
+      results: permitted(series, allowed, query.mode === "novels").map((entry) =>
+        toHighlight(entry, "stats"),
+      ),
       // The site's own count decides where the list ends, so a page that lost a row to
       // the rating policy still runs on to the end rather than stopping short.
       isLastPage: !hasMore,
@@ -415,6 +424,7 @@ class ValirScansSource
 
     return this.browse(
       {
+        mode: filters.option(FilterID.Mode) === "novels" ? "novels" : "comics",
         page: pageOf(request),
         ...(query ? { search: query } : {}),
         sort: resolveSortId(SORT_OPTIONS, request, SortID.Updated),
@@ -475,7 +485,8 @@ class ValirScansSource
       );
     }
 
-    const reader = parseReader(await this.api.fetchChapter(contentId, chapterPath(chapterId)));
+    const { response, body } = await this.api.fetchReader(contentId, chapterPath(chapterId));
+    const reader = parseReader(body);
 
     if (reader.kind === "locked") {
       throw new Error(
@@ -483,10 +494,8 @@ class ValirScansSource
       );
     }
     if (reader.kind === "prose") {
-      // A novel chapter is prose, and a Mana chapter is a list of images with no text form.
-      throw new Error(
-        "This is a novel chapter, which is text rather than images and cannot be shown here.",
-      );
+      // The book reader gets the chapter's own response with its body swapped for the prose.
+      return htmlChapter(response, chapterDocument(reader.title, reader.html));
     }
     if (reader.pages.length === 0) {
       throw new Error(

@@ -26,6 +26,7 @@ import {
   summaryFromHtml,
   toBadge,
   typePill,
+  escapeHtml,
 } from "../common/index.ts";
 import {
   BASE_URL,
@@ -357,8 +358,8 @@ export function parseContent(page: ValirSeriesPage, contentId: string): Content 
     additionalTitles: [...new Set(alternates)],
     tags,
     ...(status === undefined ? {} : { status }),
-    // Novels are not offered here, so a title reached this way is a comic.
-    contentType: ContentType.COMIC,
+    // A novel is what opens the book reader, which reads its chapters as documents.
+    contentType: isNovel(series) ? ContentType.NOVEL : ContentType.COMIC,
     ...(panel === undefined ? {} : { recommendedPanelMode: panel }),
     contentRating: ratingOf(series),
     ...(creators.length > 0 ? { creators: [...new Set(creators)] } : {}),
@@ -456,15 +457,29 @@ export function toChapters(
 
 export type ReaderContent =
   | { kind: "pages"; pages: string[] }
-  | { kind: "prose" }
+  | { kind: "prose"; title: string; html: string }
   | { kind: "locked" };
 
 /**
- * What the reader route holds for a chapter.
- *
- * Prose is reported rather than returned: a novel chapter is text where a Mana chapter is
- * a list of images, and saying so beats a blank reader nobody can act on.
+ * Novel prose arrives as a text chunk the payload points at: `"content":"$1b"` names row
+ * `1b:T<hex length>,<text>`, whose length counts UTF-8 bytes rather than characters.
  */
+function resolveTextChunk(payload: string, pointer: string): string | undefined {
+  const header = new RegExp(`(?:^|\\n)${pointer.slice(1)}:T([0-9a-f]+),`).exec(payload);
+  if (!header) return undefined;
+  const length = Number.parseInt(header[1]!, 16);
+  const start = header.index + header[0].length;
+  let bytes = 0;
+  let end = start;
+  while (end < payload.length && bytes < length) {
+    const code = payload.codePointAt(end) ?? 0;
+    bytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+    end += code > 0xffff ? 2 : 1;
+  }
+  return payload.slice(start, end);
+}
+
+/** What the reader route holds for a chapter: its pages, its prose, or a lock. */
 export function parseReader(html: string): ReaderContent {
   const payload = decodeFlightPayload(html);
   const reader = [
@@ -493,10 +508,21 @@ export function parseReader(html: string): ReaderContent {
     .map((page) => absolute(page.imageUrl))
     .filter(Boolean);
 
-  if (pages.length > 0) return { kind: "pages", pages };
-  return typeof reader.chapter.content === "string" && reader.chapter.content.trim()
-    ? { kind: "prose" }
-    : { kind: "pages", pages: [] };
+  // Prose wins over pages: a novel can carry placeholder page entries beside its text.
+  let content = typeof reader.chapter.content === "string" ? reader.chapter.content.trim() : "";
+  if (content.startsWith("$")) content = resolveTextChunk(payload, content)?.trim() ?? "";
+  if (content) {
+    const number = String(reader.chapter.chapterNumber ?? "").trim();
+    const name = clean(reader.chapter.title ?? "");
+    const label = number ? `Chapter ${Number.parseFloat(number) || number}` : "";
+    const title = [label, name].filter(Boolean).join(": ") || "Chapter";
+    return {
+      kind: "prose",
+      title,
+      html: `<h1>${escapeHtml(title)}</h1>${content.replace(/&nbsp;/g, " ")}`,
+    };
+  }
+  return { kind: "pages", pages };
 }
 
 // ========================= Tiles =========================
@@ -614,9 +640,10 @@ export function toHighlight(series: ValirSeries, style: SubtitleStyle, rank = 0)
 export function permitted(
   list: readonly ValirSeries[],
   allowed: readonly ContentRating[] | undefined,
+  novels = false,
 ): ValirSeries[] {
   return list.filter((series) => {
-    if (!series.slug || !series.title || isNovel(series)) return false;
+    if (!series.slug || !series.title || isNovel(series) !== novels) return false;
     return !allowed || allowed.includes(ratingOf(series));
   });
 }

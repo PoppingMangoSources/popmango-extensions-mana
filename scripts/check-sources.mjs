@@ -341,6 +341,24 @@ function checkSource(source, catalog, changelog, base) {
     sourceSetup ?? runnerSetup,
   );
 
+  // A chapter handed to the book reader only opens there when its title is a novel; listed
+  // as a comic it lands in the image reader with nothing to show.
+  const bookChapter = findInFiles(files, /\bhtmlChapter\s*\(/);
+  check(
+    name,
+    bookChapter === undefined || findInFiles(files, /ContentType\.NOVEL\b/) !== undefined,
+    "returns book chapters but never marks a title ContentType.NOVEL",
+    bookChapter,
+  );
+  // The book reader reads novels now; refusing one by name is a capability left on the floor.
+  const proseRefusal = findInFiles(files, /cannot be shown here|text rather than images/);
+  check(
+    name,
+    proseRefusal === undefined,
+    "refuses a novel chapter — return it with htmlChapter as a book instead",
+    proseRefusal,
+  );
+
   // --- Globals the runtime lacks, and the polyfills mana-dev prepends that src/common already
   // answers — one source should read like the next.
   for (const [pattern, description] of [

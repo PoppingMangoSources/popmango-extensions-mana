@@ -304,6 +304,15 @@ It returns `undefined` rather than guessing, so the call site can `?? new Date(0
 
 Never hand back an invalid `Date` — it fails the contract test and renders broken.
 
+## `src/common/books.ts` — novel chapters
+
+`htmlChapter(response, html)` returns a novel chapter as `ChapterData.document`: the response
+the prose came in with its body replaced, so the app keeps its status and URL and no second
+request is made. `chapterDocument(title, bodyHtml, language)` wraps the prose in a standalone
+document, marking right-to-left languages with `dir`. `escapeHtml` escapes text for element
+content and quoted attributes; `textToHtml` turns plain text into one paragraph per line. None
+of it imports cheerio — cleaning a site's markup stays in that source's parsers.
+
 ## `src/common/aes.ts` — hashing
 
 The host decrypts natively but does not hash, so this file carries `sha256(data)` and

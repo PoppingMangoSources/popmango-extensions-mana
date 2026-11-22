@@ -26,3 +26,4 @@ export * from "./html.ts";
 export * from "./aes-ctr.ts";
 export * from "./bytes.ts";
 export * from "./cache.ts";
+export * from "./books.ts";

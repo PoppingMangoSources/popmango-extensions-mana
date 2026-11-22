@@ -5,6 +5,7 @@ import {
   CatalogRating,
   DefinedLanguages,
   SearchMultiPickerSheet,
+  SearchPicker,
   type Chapter,
   type ChapterData,
   type ChapterSource,
@@ -31,8 +32,10 @@ import {
 } from "@mana-app/types";
 
 import {
+  chapterDocument,
   fallbackUnlessCloudflare,
   FilterReader,
+  htmlChapter,
   PreferenceStore,
   TimedCache,
   buildPreferenceMenu,
@@ -57,7 +60,10 @@ import {
   PreferenceID,
   HOME_CACHE_MS,
   SORT_OPTIONS,
+  SectionID,
   SortID,
+  TYPE_OPTIONS,
+  TypeID,
   type Card,
   type ChapterRow,
 } from "./model.ts";
@@ -65,7 +71,7 @@ import {
   chapterIsLocked,
   chapterPath,
   contentUrl,
-  isProseChapter,
+  kindOf,
   parseBrowse,
   parseChapterRows,
   parseContent,
@@ -73,7 +79,9 @@ import {
   parseHome,
   parseLoadMore,
   parseNonce,
+  parseNovelHome,
   parsePages,
+  parseProse,
   pathOf,
   toChapters,
   toHighlight,
@@ -83,8 +91,8 @@ import { buildSettingsSections, sectionPreferenceKey } from "./settings.ts";
 const info: SourceInfo = {
   id: "rinkocomics",
   name: "RinkoComics",
-  version: "1.2.2",
-  description: "Comics from rinkocomics.com.",
+  version: "1.2.3",
+  description: "Comics and novels from rinkocomics.com.",
   website: BASE_URL,
   rating: CatalogRating.SAFE,
   supportedLanguages: [DefinedLanguages.ENGLISH],
@@ -128,6 +136,8 @@ class RinkoComicsSource
   // The front page, held just long enough for every row on it to be drawn from one read.
   private home: { at: number; sections: Record<string, Card[]> } | undefined;
   private homeRequest: Promise<Record<string, Card[]>> | undefined;
+  private novelHome: { at: number; cards: Card[] } | undefined;
+  private novelHomeRequest: Promise<Card[]> | undefined;
 
   async getSortOptions(): Promise<SortOption[]> {
     return SORT_OPTIONS;
@@ -154,8 +164,9 @@ class RinkoComicsSource
 
     return buildSearchForm({
       header: "Filters",
-      footer: "Anything left empty falls back to the site's own defaults.",
-      fields: [],
+      footer:
+        "The site lists comics and novels separately, so a search reads one of them. Anything left empty falls back to the site's own defaults.",
+      fields: [SearchPicker({ id: FilterID.Type, title: "Type", options: TYPE_OPTIONS })],
       // The list comes off the site, so it takes a sheet rather than however many inline
       // rows the site happens to publish. A read that failed offers no field at all,
       // which is honester than an empty one.
@@ -212,10 +223,32 @@ class RinkoComicsSource
     return this.homeRequest;
   }
 
+  /** The novels' release tab, held the same way as the front page. */
+  private async novelReleases(): Promise<Card[]> {
+    const cached = this.novelHome;
+    if (cached && Date.now() - cached.at < HOME_CACHE_MS) return cached.cards;
+
+    this.novelHomeRequest ??= this.api
+      .fetchNovelHome()
+      .then((html) => {
+        const cards = parseNovelHome(html);
+        this.novelHome = { at: Date.now(), cards };
+        return cards;
+      })
+      .finally(() => {
+        this.novelHomeRequest = undefined;
+      });
+
+    return this.novelHomeRequest;
+  }
+
   async resolvePageSection(_link: PageLink, sectionID: string): Promise<ResolvedPageSection> {
     if (!sectionById(DISCOVER_SECTIONS, sectionID)) return { items: [] };
 
-    const cards = (await this.homeSections())[sectionID] ?? [];
+    const cards =
+      sectionID === SectionID.NovelLatest
+        ? await this.novelReleases()
+        : ((await this.homeSections())[sectionID] ?? []);
     return { items: cards.map((card) => toHighlight(card, sectionID)) };
   }
 
@@ -248,11 +281,14 @@ class RinkoComicsSource
 
     const filters = new FilterReader(request);
     const page = pageOf(request);
+    // New Novels' "view more" is the site's own "See all": its novel listing, newest first.
+    const novels = request.listId === SectionID.Novels;
 
     const html = await this.api.fetchBrowse({
+      kind: novels || filters.option(FilterID.Type) === TypeID.Novel ? TypeID.Novel : TypeID.Comic,
       page,
       search: query || undefined,
-      sort: resolveSortId(SORT_OPTIONS, request, SortID.Newest),
+      sort: novels ? SortID.Added : resolveSortId(SORT_OPTIONS, request, SortID.Newest),
       genres: filters.options(FilterID.Genres),
     });
 
@@ -324,16 +360,24 @@ class RinkoComicsSource
       );
     }
 
-    const html = await this.api.fetchPage(chapterPath(chapterId));
-    const pages = parsePages(html);
+    const path = chapterPath(chapterId);
+    if (kindOf(path) === TypeID.Novel) {
+      // The episode's page is the response the book reader gets, with only its body swapped
+      // for the prose, so the app still sees the status and address it came from.
+      const response = await this.api.fetchResponse(path);
+      const prose = parseProse(await response.text());
+      if (!prose) {
+        throw new Error(
+          "RinkoComics returned no text for this episode. It may be readable only on the website.",
+        );
+      }
+      return htmlChapter(response, chapterDocument(prose.title, prose.body));
+    }
 
+    const pages = parsePages(await this.api.fetchPage(path));
     if (pages.length === 0) {
-      // A novel chapter is prose, and a Mana chapter is a list of images with no text form.
-      // Saying so beats a blank reader the reader cannot act on.
       throw new Error(
-        isProseChapter(html)
-          ? "This is a novel chapter, which is text rather than images and cannot be shown here."
-          : "RinkoComics returned no pages for this chapter. It may have been taken down, or be readable only on the website.",
+        "RinkoComics returned no pages for this chapter. It may have been taken down, or be readable only on the website.",
       );
     }
 

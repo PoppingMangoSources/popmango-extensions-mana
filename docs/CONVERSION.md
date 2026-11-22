@@ -163,7 +163,10 @@ These have no equivalent in most references. Use them where the site supports th
 - **Info rows on tiles** — `Highlight.info` under a `Detailed*` style.
 - **Native decryption** — AES-CTR/CBC/GCM and XOR on a response body or held bytes.
 - **`ChapterData.document`** — a CBZ, EPUB or PDF handed to the reader whole, and `text` for
-  a novel chapter read as a book.
+  a novel chapter read as a book. A Paperback `ChapterDetails` of `type: "html"` becomes
+  `htmlChapter(response, chapterDocument(title, body))` from `src/common/books.ts`, on a title
+  whose `contentType` is `ContentType.NOVEL`; the XHTML clean-up Paperback's reader needs is
+  not needed here.
 - **Deep links** — `handleURL` plus `config.owningLinks`.
 
 ## What a port loses

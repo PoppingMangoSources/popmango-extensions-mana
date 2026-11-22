@@ -29,7 +29,7 @@ what it ignores, and what each choice costs.
 
 | Path | What it holds |
 | :--- | :------------ |
-| `src/common/` | The shared runtime: networking, forms, dates, URLs, HTML helpers, AES |
+| `src/common/` | The shared runtime: networking, forms, dates, URLs, HTML helpers, AES, book chapters |
 | `src/<Source>/` | One folder per source — `client.ts`, `model.ts`, `parsers.ts`, `main.ts` |
 | `src/Template/` | What `bun run new-source` copies |
 | `assets/` | Source icons, named `<Source>.png` — the only folder the toolchain packages |

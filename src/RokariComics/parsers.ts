@@ -566,13 +566,24 @@ export function parsePages(html: string): string[] {
 
     const pages = (parsed.sources ?? [])
       .flatMap((entry) => entry.images ?? [])
-      .map((url) => resolveUrl(clean(url), BASE_URL))
+      .map((url) => safeUrl(resolveUrl(clean(url), BASE_URL)))
       .filter(Boolean);
 
     if (pages.length > 0) return pages;
   }
 
   return [];
+}
+
+/**
+ * An image URL the network stack will accept as given.
+ *
+ * The reader hands paths over raw, so a space or an accented letter in a file name has to be
+ * escaped; a path the site escaped already must not be escaped twice, which turns `%20` into
+ * `%2520` and breaks a signed query.
+ */
+function safeUrl(url: string): string {
+  return encodeURI(url).replace(/%25([0-9a-f]{2})/gi, "%$1");
 }
 
 /** The one JSON value beginning at `start`, brace-matched to its end. */

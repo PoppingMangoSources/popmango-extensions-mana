@@ -61,6 +61,7 @@ export const SectionID = {
   PopularToday: "popular-today",
   EditorsPicks: "editors-picks",
   NewSeries: "new-series",
+  LatestNovels: "latest-novels",
 } as const;
 
 // Top Rated and New Series use paginated catalogue sorts; the other rows share one home read.
@@ -105,6 +106,15 @@ export const DISCOVER_SECTIONS: PageSectionSpec[] = [
     subtitle: "The newest additions to the catalogue",
     style: SectionStyle.SimpleSingleRow,
   },
+  {
+    // The site's update feed mixes its novels in with the comics; they are split out here
+    // so neither row is half the other.
+    id: SectionID.LatestNovels,
+    title: "Latest Novel Updates",
+    subtitle: "New chapters of the site's novels",
+    style: SectionStyle.DetailedVerticalListGrouped,
+    viewMore: false,
+  },
 ];
 
 /** What each row writes under a title, so no two say the same thing down the page. */
@@ -115,11 +125,13 @@ export const SECTION_SUBTITLES: Record<string, SubtitleStyle> = {
   [SectionID.PopularToday]: "stats",
   [SectionID.EditorsPicks]: "stats",
   [SectionID.NewSeries]: "stats",
+  [SectionID.LatestNovels]: "chapters",
 };
 
 export type SubtitleStyle = "hero" | "rank" | "chapters" | "stats";
 
 export const FilterID = {
+  Mode: "mode",
   Genres: "genres",
   Tags: "tags",
   Types: "types",
@@ -160,6 +172,12 @@ export const NOVEL_TYPES = [
   "Fanfiction",
   "Original Fiction",
   "One Shot",
+];
+
+/** The catalogue's two halves, which the site browses one at a time. */
+export const MODE_OPTIONS: Option[] = [
+  { id: "comics", title: "Comics" },
+  { id: "novels", title: "Novels" },
 ];
 
 export const TYPE_OPTIONS: Option[] = [
@@ -318,8 +336,10 @@ export type ValirReaderPage = {
 };
 
 export type ValirChapterData = {
-  /** Prose, for the novels this source does not offer — its presence is what names one. */
+  /** A novel chapter's prose, or a `$` pointer to the text chunk that holds it. */
   content?: string | null;
+  title?: string | null;
+  chapterNumber?: number | string | null;
   pages?: ValirReaderPage[];
   isLocked?: boolean;
 };
